@@ -38,11 +38,11 @@ class Issue(Base):
     comments = relationship("Comment", backref="issue")
     labels = relationship("Label", secondary=issue_labels, backref="issues")
 
-
 class Label(Base):
     __tablename__ = "labels"
     id = Column(Integer, primary_key=True)
     name = Column(String)
+    
     
 class Comment(Base):
     __tablename__ = "comments"
