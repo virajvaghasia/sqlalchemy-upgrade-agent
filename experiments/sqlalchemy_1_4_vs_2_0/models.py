@@ -23,6 +23,10 @@ class Project(Base):
     created_at = Column(DateTime)
     issues = relationship("Issue", backref="project")
 
+issue_labels = Table("issue_labels", Base.metadata,
+    Column("issue_id", Integer, ForeignKey("issues.id"), primary_key=True),
+    Column("label_id", Integer, ForeignKey("labels.id"), primary_key=True),
+)
 
 class Issue(Base):
     __tablename__ = "issues"
@@ -32,19 +36,21 @@ class Issue(Base):
     created_at = Column(DateTime)
     project_id = Column(Integer, ForeignKey("projects.id"))
     comments = relationship("Comment", backref="issue")
+    labels = relationship("Label", secondary=issue_labels, backref="issues")
 
-class Comment(Base):
-    __tablename__ = "comments"
-    id = Column(Integer, primary_key=True)
-    issue_id = Column(Integer, ForeignKey("issues.id"))
-    user_id = Column(Integer, ForeignKey("users.id"))
 
 class Label(Base):
     __tablename__ = "labels"
     id = Column(Integer, primary_key=True)
     name = Column(String)
+    
+class Comment(Base):
+    __tablename__ = "comments"
+    id = Column(Integer, primary_key=True)
+    issue_id = Column(Integer, ForeignKey("issues.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    body = Column(String)
 
-issue_labels = Table("issue_labels", Base.metadata,
-    Column("issue_id", Integer, ForeignKey("issues.id"), primary_key=True),
-    Column("label_id", Integer, ForeignKey("labels.id"), primary_key=True),
-)
+
+
+

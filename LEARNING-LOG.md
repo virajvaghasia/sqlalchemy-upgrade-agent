@@ -222,6 +222,83 @@ pushing back, and pushing back was correct.
 
 ---
 
+## Mistakes made (mine and yours) — and the patterns behind them
+
+Not shameful; they're the point. But **three of these are the same mistake twice**, and the
+pattern is worth more than the individual fixes.
+
+### The recurring one: declaring both sides of a `backref`
+
+Hit it on `Project`/`Issue`. Fixed it. Then hit the **identical** thing on `Issue`/`Label`
+forty minutes later.
+
+```
+Issue.labels  = relationship("Label", secondary=..., backref="issues")   # creates Label.issues
+Label.issues  = relationship("Issue", secondary=..., backref="labels")   # creates Issue.labels
+                                                                          # → both declared twice
+```
+
+**`backref` declares one side and generates the other. So you write it ONCE.** If you find
+yourself typing a relationship on the second class, stop — you already have it.
+
+The tell in the error message is always the phrase *"property of that name exists on
+mapper"*: SQLAlchemy is saying *"I went to create this attribute for you and found one
+already there, and I refuse to silently overwrite it."*
+
+### The other recurring one: using a name before defining it
+
+`issue_labels` was written *below* `class Issue`, which used it. Twice.
+
+Python executes a module **top to bottom**. A class body runs at import time, so any plain
+name it references must already exist. `NameError`.
+
+The exception — and it's why `relationship("Issue")` takes a **string** — is that
+SQLAlchemy resolves *string* names lazily, after every class is defined. That's the whole
+reason for the quotes. `secondary=` accepts a string too (`secondary="issue_labels"`), which
+sidesteps ordering entirely. But the plain-object form is what real 1.4 code uses, so: just
+put the `Table` above the class.
+
+### Reaching for the 2.0 idiom by reflex
+
+Twice you wrote the modern, correct thing:
+
+- `from sqlalchemy.orm import declarative_base` (2.0) instead of `sqlalchemy.ext.declarative` (1.4)
+- `back_populates` (2.0) instead of `backref` (1.4)
+
+Ordinarily that instinct is good. **Here it's the enemy** — code that doesn't break produces
+no `BREAKAGES.md` entry, and the deliverable is the breakages. Suppressing this reflex for
+two days is genuinely hard, and worth noticing every time it happens.
+
+### Copying the docs' example instead of the design
+
+The first `User` had `name` / `fullname` / `nickname` — straight from the SQLAlchemy
+tutorial, not from our schema.
+
+Reading the docs for **syntax** is exactly right. Pasting their **data model** is the
+copying reflex, and it's precisely the reflex this whole phase exists to break.
+
+### Smaller ones
+
+- **`Column(String, enum=IssueStatus)`** — `enum=` isn't a `Column` keyword; the type is the
+  *first argument*. And `sqlalchemy.types.Enum` (a column type) is a completely different
+  thing from Python's `enum.Enum` (a class you subclass) — they just share a name.
+- **`body` on `Label`** — a label has a `name` ("bug", "urgent"); the *comment* is the thing
+  with text. Field on the wrong class.
+- **A trailing `\`** at the end of a relationship line — that's a line-continuation
+  character, gluing two statements into one. `SyntaxError`, and it blocks Python from ever
+  reaching the real problems below it.
+
+### Mine
+
+- I told you `sqlalchemy.ext.declarative` was **removed** in 2.0. It's **moved and
+  deprecated** (`MovedIn20Warning`). I asserted an API fact without checking it.
+- I pointed you at the 1.4 docs page for `declarative_base` — which teaches the *new* import
+  — and then criticised you for using it. You were right to push back.
+
+**Don't take my API claims on trust. Make the library say it.**
+
+---
+
 ## The boundary — what goes in `BREAKAGES.md` and what doesn't
 
 **`BREAKAGES.md` is only for things that worked in 1.4 and stopped working in 2.0.**
