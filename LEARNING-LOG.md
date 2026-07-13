@@ -11,24 +11,32 @@ matters.
 
 **Step 2 of 10 — the schema.** (`PRACTICE-APP.md` has the full runbook.)
 
-Done:
-- ✅ Step 1 — Python 3.11.15 + SQLAlchemy 1.4.52 pinned, `uv.lock` committed
-- 🔄 Step 2 — `models.py`: `User`, `Project`, `Issue`, `Comment`, `Label`, `issue_labels`
-  written. **Three things still missing** (below).
+- ✅ **Step 1** — Python 3.11.15 + SQLAlchemy 1.4.52 pinned, `uv.lock` committed
+- 🔄 **Step 2** — `models.py`
+  - ✅ `User`, `Project`, `Issue`, `Comment`, `Label`
+  - ✅ `issue_labels` — plain join `Table` (many-to-many, no extra columns)
+  - ✅ `IssueAssignment` — association *object* (`role`, `assigned_at`)
+  - ⬜ **`issue_blocks` + `Issue.blocks` / `blocked_by` — the self-referential one.** ← you
+    are here
+  - ⬜ then `create_all()` → a real `.db` file on disk
 
-### The three things left in step 2
+`uv run python -m experiments.sqlalchemy_1_4_vs_2_0.check` is green. Run it after every
+change.
 
-1. **`Comment` has no `body` and no `created_at`.** Right now it's two foreign keys and
-   nothing else — a comment with no text in it.
-2. **`issue_labels` is defined *below* `class Issue`, and needs to be above it.** When you
-   write `secondary=issue_labels`, you're passing the actual Python object, so the name must
-   already exist by the time the class body runs. Python reads top to bottom.
-3. **`Issue` has no `labels` relationship.** The `issue_labels` table exists but nothing
-   references it. Add:
-   `labels = relationship("Label", secondary=issue_labels, backref="issues")`
+### Next: the self-referential many-to-many
 
-Then still to come in step 2: the **association object** (`IssueAssignment`) and the
-**self-referential** `blocked_by` / `blocks`.
+The only relationship SQLAlchemy cannot figure out alone. See **"Self-referential: why it
+needs `primaryjoin`"** below for the full derivation. Short version:
+
+1. A junction `Table` — `issue_blocks`, with `blocker_id` and `blocked_id`, **both**
+   `ForeignKey("issues.id")`, both `primary_key=True`. Define it **above** `class Issue`.
+2. On `Issue`, one relationship: `blocks`, with `secondary=issue_blocks`, an explicit
+   `primaryjoin` and `secondaryjoin`, and `backref="blocked_by"`.
+
+**Predict before you run it:** the `backref` produces `blocked_by` by **swapping**
+`primaryjoin` and `secondaryjoin`. That swap *is* the "read the same table in the other
+direction" idea, done for you. If it didn't swap them, `blocked_by` would be identical to
+`blocks` and the whole thing would be pointless.
 
 ---
 
@@ -65,8 +73,8 @@ Keep this open while you write `models.py`. ✅ = built. ⬜ = still to do.
 | 1 | ✅ `Project` ↔ `Issue` | one-to-many | `issues.project_id` | `issue.project` (object) and `project.issues` (list) |
 | 2 | ✅ `Issue` ↔ `Comment` | one-to-many | `comments.issue_id` | `issue.comments` (list) and `comment.issue` (object) |
 | 3 | ✅ `User` ↔ `Comment` | one-to-many | `comments.user_id` | `user.comments` (list) and `comment.author` (object) |
-| 4 | ⬜ `Issue` ↔ `Label` | **many-to-many** | neither table — in `issue_labels` | `issue.labels` (list) and `label.issues` (list) |
-| 5 | ⬜ `Issue` ↔ `User` | **many-to-many with data** | in `issue_assignments`, *plus* `role` + `assigned_at` | `issue.assignments` → `IssueAssignment` objects → `.user` |
+| 4 | ✅ `Issue` ↔ `Label` | **many-to-many** | neither table — in `issue_labels` | `issue.labels` (list) and `label.issues` (list) |
+| 5 | ✅ `Issue` ↔ `User` | **many-to-many with data** | in `issue_assignments`, *plus* `role` + `assigned_at` | `issue.assignments` → `IssueAssignment` objects → `.user` |
 | 6 | ⬜ `Issue` ↔ `Issue` | **self-referential M:M** | in `issue_blocks` | `issue.blocked_by` (list) and `issue.blocks` (list) |
 
 ### Reading the table
@@ -301,29 +309,87 @@ over the *same attribute on the same class*.
 
 ### Self-referential: why it needs `primaryjoin`
 
-Issue 7 is blocked by issue 3. Both ends are `issues`. Still many-to-many (an issue can
-block several and be blocked by several), so it still needs a junction:
+#### First: `secondary=` is always TWO joins
 
-**issue_blocks**
+Go back to labels. The SQL SQLAlchemy generated was never one join — it was two:
 
-| blocker_id | blocked_id |
-|---|---|
-| 3 | 7 |
+```sql
+SELECT labels.* FROM labels
+JOIN issue_labels ON issue_labels.label_id = labels.id   ← junction → target
+WHERE issue_labels.issue_id = 4                          ← me → junction
+```
 
-Both columns are `ForeignKey("issues.id")`. **And that's the problem.**
+Those two joins have names:
 
-For labels, SQLAlchemy figured out the join itself: one FK points at `issues`, the other at
-`labels`, so which is which is obvious. Here **both point at the same table.** When you ask
-for `issue.blocks`, SQLAlchemy genuinely cannot tell which column means *me* and which means
-*them* — the schema is symmetric and the meaning isn't.
+- **`primaryjoin`** — how I get from **me** to the junction table
+- **`secondaryjoin`** — how I get from the junction table to the **target**
 
-So you tell it, explicitly: `primaryjoin` ("how do I find *my* rows in the junction") and
-`secondaryjoin` ("how do I get from those rows to the *other* issue"). Swap them and you get
-`blocked_by` instead of `blocks` — **the same table read in the opposite direction.**
+You never wrote them for labels **because SQLAlchemy could infer them.** It looked at
+`issue_labels`, saw one FK pointing at `issues` and one at `labels`, and the assignment was
+obvious: the `issues` one is *me*, the `labels` one is *them*.
 
-This is the only relationship in the schema where SQLAlchemy needs help, and it needs it for
-a reason you can now state in one sentence: **ambiguity it cannot resolve, because both
-foreign keys point at the same place.**
+#### The ambiguity
+
+```
+issue_blocks
+┌────────────┬────────────┐
+│ blocker_id │ blocked_id │
+├────────────┼────────────┤
+│     3      │     7      │    ← issue 3 blocks issue 7
+└────────────┴────────────┘
+   FK→issues.id  FK→issues.id
+```
+
+**Both foreign keys point at `issues`.** So when you ask for `issue.blocks`, SQLAlchemy sees
+two columns that — as far as the *schema* is concerned — are completely interchangeable.
+Which one means *me*? Which means *them*?
+
+The database has no idea. **The meaning lives in the column names, and names are not
+semantics.** `blocker_id` means something to you; to SQLAlchemy it's just a string.
+
+That's the ambiguity, and it's the only place in this schema where you must speak up.
+
+#### What you tell it
+
+For `Issue.blocks` — *"the issues that I block"*:
+
+- **`primaryjoin`**: my `id` = `issue_blocks.blocker_id` → **I am the blocker**
+- **`secondaryjoin`**: `issue_blocks.blocked_id` = the target's `id` → **they are the blocked**
+
+**Swap those two and you get the exact opposite meaning — `blocked_by`.** Same table, same
+rows, read in the other direction. That is the entire trick, and it's why this relationship
+is conceptually interesting rather than merely fiddly.
+
+#### The syntax: the `.c` accessor
+
+To reference a column of a bare `Table` (not a mapped class), use **`.c`** — for *columns*:
+
+```python
+issue_blocks.c.blocker_id     # a Table keeps its columns in .c
+Issue.id                      # a mapped class exposes them as attributes
+```
+
+**This is the visible seam between Core and ORM.** Mapped classes give you attributes; raw
+`Table`s give you `.c`.
+
+And the join conditions are just **SQL expressions written in Python**:
+
+```python
+Issue.id == issue_blocks.c.blocker_id
+```
+
+That `==` compares nothing. It **builds a WHERE-clause object.** Same machinery as
+`session.query(Issue).filter(Issue.status == "open")` — the `==` is overloaded to construct
+SQL, not to evaluate a boolean.
+
+#### The backref swap
+
+`backref="blocked_by"` will generate the reverse side by **swapping `primaryjoin` and
+`secondaryjoin` for you.**
+
+Which is precisely the "read it in the other direction" idea, automated. **If it didn't
+swap them, `blocked_by` would be identical to `blocks`** — and the relationship would be
+useless. Predict this before you run it; then check the emitted SQL and confirm.
 
 ---
 
