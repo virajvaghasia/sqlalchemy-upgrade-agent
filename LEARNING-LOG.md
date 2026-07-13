@@ -32,6 +32,80 @@ Then still to come in step 2: the **association object** (`IssueAssignment`) and
 
 ---
 
+## The relationship map — what connects to what
+
+Keep this open while you write `models.py`. ✅ = built. ⬜ = still to do.
+
+```
+                          ┌──────────┐
+                          │ projects │
+                          └────┬─────┘
+                               │ 1
+                               │
+                               │ many          ┌────────┐
+                          ┌────┴─────┐  M:M    │ labels │
+              ┌───────────┤  issues  ├─────────┤        │
+              │           └──┬────┬──┘ via     └────────┘
+              │ 1            │    │    issue_labels
+              │              │    │
+         many │         self-ref  │ M:M via issue_assignments
+              │       blocked_by/ │      (+ role, assigned_at)
+       ┌──────┴─────┐   blocks    │
+       │  comments  │             │
+       └──────┬─────┘        ┌────┴────┐
+              │ many         │  users  │
+              └──────────────┤         │
+                       1     └─────────┘
+```
+
+### Every relationship, one line each
+
+| # | Relationship | Kind | Where the FK lives | Gives you |
+|---|---|---|---|---|
+| 1 | ✅ `Project` ↔ `Issue` | one-to-many | `issues.project_id` | `issue.project` (object) and `project.issues` (list) |
+| 2 | ✅ `Issue` ↔ `Comment` | one-to-many | `comments.issue_id` | `issue.comments` (list) and `comment.issue` (object) |
+| 3 | ✅ `User` ↔ `Comment` | one-to-many | `comments.user_id` | `user.comments` (list) and `comment.author` (object) |
+| 4 | ⬜ `Issue` ↔ `Label` | **many-to-many** | neither table — in `issue_labels` | `issue.labels` (list) and `label.issues` (list) |
+| 5 | ⬜ `Issue` ↔ `User` | **many-to-many with data** | in `issue_assignments`, *plus* `role` + `assigned_at` | `issue.assignments` → `IssueAssignment` objects → `.user` |
+| 6 | ⬜ `Issue` ↔ `Issue` | **self-referential M:M** | in `issue_blocks` | `issue.blocked_by` (list) and `issue.blocks` (list) |
+
+### Reading the table
+
+**One-to-many (1, 2, 3).** One project has many issues; each issue belongs to exactly one
+project. **The foreign key always lives on the "many" side** — `issues.project_id`, not
+`projects.issue_id`. A project can't hold a list of ids in one column, so the child points
+at the parent. This is why the FK is on `Issue` but the `relationship()` can be declared on
+either class.
+
+**Many-to-many (4).** An issue has many labels; a label is on many issues. **Neither table
+can hold the foreign key** — so a third table does. Each row of `issue_labels` is one
+(issue, label) pairing and nothing more. You never touch it directly: `secondary=` makes
+SQLAlchemy hop through it and hand you `Label` objects.
+
+**Many-to-many *with data* (5) — the association object.** Same shape as (4), except the
+pairing carries facts of its own: *this user is the **owner** of this issue, assigned **on
+Tuesday***. Those facts belong to the *pairing*, not to the user and not to the issue.
+`secondary=` has nowhere to put them. So the join table becomes a real class, and you
+traverse it in two hops: `issue.assignments[0].role` and `issue.assignments[0].user`.
+
+**The one-column test:** does the fact that connects A and B have any attributes of its own?
+No → association table (4). Yes → association object (5). That's the whole rule, and it's a
+drill question.
+
+**Self-referential (6).** Issue #7 is blocked by issue #3. Both sides are `issues` — one
+table, related to itself. It's still many-to-many (an issue can block several, and be
+blocked by several), so it still needs a join table (`issue_blocks`, with `blocker_id` and
+`blocked_id`, both pointing at `issues.id`).
+
+This is the one that fights you, because SQLAlchemy now has an ambiguity it can't resolve
+alone: **both foreign keys point at the same table**, so when you ask for `issue.blocks`, it
+genuinely cannot tell which column means "me" and which means "them." That's what
+`primaryjoin` / `secondaryjoin` are for — you tell it explicitly. (For a self-referential
+*one*-to-many, the equivalent knob is `remote_side`.) Don't fight this one blind — ask me to
+explain it when you get there.
+
+---
+
 ## Concepts, in the order you hit them
 
 ### 1. SQLAlchemy configures mappers *lazily*
