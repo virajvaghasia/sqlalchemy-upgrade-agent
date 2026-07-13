@@ -50,6 +50,16 @@ class Comment(Base):
     issue_id = Column(Integer, ForeignKey("issues.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     body = Column(String)
+    created_at = Column(DateTime)
+
+class IssueAssignment(Base):
+    __tablename__ = "issue_assignments"
+    issue_id = Column(Integer, ForeignKey("issues.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    role = Column(String)
+    assigned_at = Column(DateTime)
+    issue = relationship("Issue", backref="assignments")
+    user = relationship("User", backref="assignments")
 
 
 
