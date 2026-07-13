@@ -106,6 +106,227 @@ explain it when you get there.
 
 ---
 
+## From SQL to ORM — why every relationship looks the way it does
+
+You know SQL. So don't start from SQLAlchemy. **Start from the tables, and let the ORM fall
+out of them.** Every "why" below has a SQL answer underneath it.
+
+### The one law everything derives from
+
+> **A column holds exactly one value.**
+
+That's it. Every relationship pattern in every ORM ever written is a consequence of that one
+constraint. Watch.
+
+### One-to-many: why the FK is always on the "many" side
+
+One project has many issues. Each issue has one project.
+
+Try putting the link on `projects`:
+
+| id | name | issue_id |
+|---|---|---|
+| 1 | Apollo | 4? 7? 12? 88? |
+
+**Broken.** A project has many issues and that column holds one value. You'd need a list in
+a cell, and SQL doesn't do that.
+
+Now put it on `issues`:
+
+| id | title | project_id |
+|---|---|---|
+| 4 | Login fails | 1 |
+| 7 | Slow query | 1 |
+
+**Works.** Each issue points at *one* project — one value, one column. Many rows can point
+at the same project, and that's what makes it "many."
+
+> **The foreign key lives on the side that has ONE of the other thing.** It's not a
+> convention. It's forced.
+
+And "give me the project's issues" is just the query run backwards:
+`SELECT * FROM issues WHERE project_id = 1`.
+
+### Many-to-many: why a third table is unavoidable
+
+An issue has many labels. A label is on many issues. **Now *both* sides need a list**, and
+neither column can hold one. There is nowhere to put the link.
+
+So you invent a table whose *rows are the links*:
+
+**issue_labels**
+
+| issue_id | label_id |
+|---|---|
+| 4 | 1 |
+| 4 | 2 |
+| 7 | 1 |
+
+Each row = one pairing. Issue 4 has labels 1 and 2. Label 1 is on issues 4 and 7. Both
+"lists" are now rows, and rows are unlimited.
+
+> **A junction table exists because a column can't hold a list.** Same law, applied twice.
+
+The primary key is the **pair** (`issue_id`, `label_id`) — that's what stops you attaching
+the same label to the same issue twice.
+
+### Now the ORM — and the thing to get straight first
+
+**`relationship()` creates nothing in the database.** Not a column, not a constraint, not a
+table. It's Python-side only.
+
+The `ForeignKey` is the real thing — it's in the DDL, the database enforces it, it exists
+whether or not Python is running.
+
+`relationship()` is a **convenience layer that writes the SELECTs for you.** When you touch
+`project.issues`, SQLAlchemy emits `SELECT * FROM issues WHERE project_id = 1` and hands you
+objects. That's all it is. You could delete every `relationship()` from `models.py` and the
+schema on disk would be **identical** — you'd just have to write the joins yourself.
+
+> **`ForeignKey` = the database's truth. `relationship()` = Python's convenience.**
+> You need both, and they're not alternatives.
+
+### Why `Table` for `issue_labels` but `class` for the others
+
+Here's the insight that makes it click:
+
+> **A declarative class IS a `Table` — plus a mapping to a Python class.**
+
+When you write `class Label(Base)`, SQLAlchemy builds a `Table` object under the hood. You
+can *see* it: `Label.__table__` is a real `Table`, indistinguishable in kind from
+`issue_labels`. The class adds one thing on top: **a mapper, which turns rows into Python
+objects.**
+
+So "should this be a `Table` or a class?" is really one question:
+
+> **Do I ever want a Python object for a row of this table?**
+
+For `issue_labels`: **no.** What would you even do with it? A row is `(4, 1)` — pure
+linkage, no facts. An `IssueLabel` object would carry no information you don't already have
+from the `Issue` and the `Label`. So you skip the mapper and declare only the `Table`.
+
+For `Label`: **yes, obviously.** A row is a real thing with a name, and you want
+`label.name`.
+
+**That's the entire rule.** Not style. Not preference. Just: *is there anything worth
+putting in an object?*
+
+### What `secondary=` actually does
+
+```python
+labels = relationship("Label", secondary=issue_labels, backref="issues")
+```
+
+You're telling SQLAlchemy: *"to get from an issue to its labels, **hop through**
+`issue_labels`."* It generates:
+
+```sql
+SELECT labels.* FROM labels
+JOIN issue_labels ON labels.id = issue_labels.label_id
+WHERE issue_labels.issue_id = 4
+```
+
+Note what comes back: **`Label` objects.** The junction table appears in the SQL and then
+**vanishes from the Python.** `issue.labels[0]` is a `Label`. You never see an `IssueLabel`,
+because there is no such class — that's the point.
+
+> **`secondary=` means "this table is plumbing, hide it from me."**
+
+### And why `issue_assignments` CANNOT be `secondary=`
+
+Same shape as labels — until you add one column:
+
+**issue_assignments**
+
+| issue_id | user_id | role | assigned_at |
+|---|---|---|---|
+| 4 | 2 | owner | 2026-07-13 |
+| 4 | 5 | reviewer | 2026-07-14 |
+
+Now ask: **where does `role` live?**
+
+It isn't a fact about the user — Alice isn't globally an "owner", she's the owner *of issue
+4* and a reviewer *of issue 9*. It isn't a fact about the issue either — issue 4 doesn't
+have one role, it has one per person.
+
+> **`role` is a fact about the PAIRING. It belongs to neither end.**
+
+And `secondary=` hands you `User` objects and throws the junction row away. So there is
+**physically nowhere for `role` to be.** You'd write `issue.users[0]` and get a `User` —
+`role` isn't on a `User`. It's gone.
+
+**So the junction row must become an object.** The moment a link carries a fact, that fact
+needs somewhere to live, and "somewhere" is a Python object, and a Python object needs a
+class:
+
+```python
+class IssueAssignment(Base):
+    __tablename__ = "issue_assignments"
+    issue_id    = Column(Integer, ForeignKey("issues.id"), primary_key=True)
+    user_id     = Column(Integer, ForeignKey("users.id"),  primary_key=True)
+    role        = Column(String)          # ← the reason this class exists
+    assigned_at = Column(DateTime)
+    issue = relationship("Issue", backref="assignments")
+    user  = relationship("User",  backref="assignments")
+```
+
+**This is the price, and it's the lesson:**
+
+```
+issue.labels[0]              →  a Label        ONE hop   (junction hidden)
+issue.assignments[0].user    →  a User         TWO hops  (junction is an object)
+issue.assignments[0].role    →  "owner"        ← only reachable because of the object
+```
+
+You traded a hop for a place to keep `role`. **You cannot have both.**
+
+> **The one-column test:** does the fact that connects A and B have attributes of its own?
+> **No** → association *table* (`secondary=`). **Yes** → association *object* (a class).
+> That's the whole rule, and it's a drill question.
+
+### Why `backref="assignments"` twice doesn't collide
+
+`IssueAssignment` declares `backref="assignments"` on **both** its relationships — and
+unlike the duplicate-backref crash you hit twice, this one is fine.
+
+Why? Because they create attributes on **different classes**:
+
+- `issue = relationship("Issue", backref="assignments")` → creates **`Issue`**`.assignments`
+- `user  = relationship("User",  backref="assignments")` → creates **`User`**`.assignments`
+
+Two classes, one attribute each. No conflict. The earlier crash was two declarations fighting
+over the *same attribute on the same class*.
+
+**"Is the name taken?" is a question about a class, not about the file.**
+
+### Self-referential: why it needs `primaryjoin`
+
+Issue 7 is blocked by issue 3. Both ends are `issues`. Still many-to-many (an issue can
+block several and be blocked by several), so it still needs a junction:
+
+**issue_blocks**
+
+| blocker_id | blocked_id |
+|---|---|
+| 3 | 7 |
+
+Both columns are `ForeignKey("issues.id")`. **And that's the problem.**
+
+For labels, SQLAlchemy figured out the join itself: one FK points at `issues`, the other at
+`labels`, so which is which is obvious. Here **both point at the same table.** When you ask
+for `issue.blocks`, SQLAlchemy genuinely cannot tell which column means *me* and which means
+*them* — the schema is symmetric and the meaning isn't.
+
+So you tell it, explicitly: `primaryjoin` ("how do I find *my* rows in the junction") and
+`secondaryjoin` ("how do I get from those rows to the *other* issue"). Swap them and you get
+`blocked_by` instead of `blocks` — **the same table read in the opposite direction.**
+
+This is the only relationship in the schema where SQLAlchemy needs help, and it needs it for
+a reason you can now state in one sentence: **ambiguity it cannot resolve, because both
+foreign keys point at the same place.**
+
+---
+
 ## Concepts, in the order you hit them
 
 ### 1. SQLAlchemy configures mappers *lazily*
