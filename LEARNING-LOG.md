@@ -164,6 +164,47 @@ sides, each naming the other. More typing, but no invisible attributes appearing
 classes because of a line in some other file. **We are deliberately using `backref` because
 it's the 1.4-ism — it's a future `BREAKAGES.md` entry.**
 
+### 3b. Why relationships take a **string**: deferred resolution
+
+```python
+class Issue(Base):
+    comments = relationship("Comment", backref="issue")   # "Comment" — in quotes
+```
+
+`Comment` is defined *below* `Issue` in the file. So when Python executes that line, the
+name `Comment` **does not exist yet**. Unquoted, it would be an instant `NameError`.
+
+The string dodges that. `"Comment"` is just text — Python happily stores the characters and
+resolves nothing.
+
+Later, when `configure_mappers()` runs (i.e. your `check.py`), every class *has* been
+defined, and `Base` has quietly been collecting them in a **registry** — a name→class
+dictionary. SQLAlchemy walks that registry, looks up `"Comment"`, finds the class, and wires
+the relationship.
+
+**Deferred resolution: store a name now, look it up later, once the world is complete.**
+`ForeignKey("issues.id")` is the same trick against the *table* registry.
+
+#### This is exactly why `issue_labels` broke and `"Label"` didn't
+
+```python
+labels = relationship("Label", secondary=issue_labels, backref="issues")
+#                      ^^^^^^^            ^^^^^^^^^^^^
+#                      string             bare Python name
+#                      → deferred         → evaluated RIGHT NOW
+```
+
+`"Label"` is fine below its class. `issue_labels` is not — it's a plain variable reference,
+and Python evaluates it on the spot.
+
+Two ways out:
+
+- `secondary=issue_labels` — the object. **Must be defined above the class.** ← do this
+- `secondary="issue_labels"` — the string. Deferred, works anywhere in the file.
+
+**The rule: in SQLAlchemy, a quoted name is a promise to resolve later. An unquoted name is
+a demand to resolve now.**
+
 ### 4. Association *table* vs association *object*
 
 This is the distinction the whole schema was designed to teach, and it's a drill question.
