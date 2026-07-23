@@ -28,6 +28,11 @@ issue_labels = Table("issue_labels", Base.metadata,
     Column("label_id", Integer, ForeignKey("labels.id"), primary_key=True),
 )
 
+issue_blocks = Table("issue_blocks", Base.metadata,
+    Column("blocker_id", Integer, ForeignKey("issues.id"), primary_key=True),
+    Column("blocked_id", Integer, ForeignKey("issues.id"), primary_key=True),
+)
+
 class Issue(Base):
     __tablename__ = "issues"
     id = Column(Integer, primary_key=True)
@@ -37,6 +42,7 @@ class Issue(Base):
     project_id = Column(Integer, ForeignKey("projects.id"))
     comments = relationship("Comment", backref="issue")
     labels = relationship("Label", secondary=issue_labels, backref="issues")
+    blocks = relationship("Issue", secondary=issue_blocks, primaryjoin=id==issue_blocks.c.blocker_id, secondaryjoin=id==issue_blocks.c.blocked_id, backref="blocked_by")
 
 class Label(Base):
     __tablename__ = "labels"
@@ -44,7 +50,7 @@ class Label(Base):
     name = Column(String)
     
     
-class Comment(Base):
+class Comment(Base): 
     __tablename__ = "comments"
     id = Column(Integer, primary_key=True)
     issue_id = Column(Integer, ForeignKey("issues.id"))
