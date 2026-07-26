@@ -20,8 +20,8 @@ The app must make all five of these unavoidable:
    `backref`
 3. **an association object** — a join table that has *extra columns of its own*, so it
    cannot be a plain `secondary=` and must be a mapped class
-4. **a self-referential relationship** (`remote_side`) — hardest to get right, best
-   interview story
+4. **a self-referential relationship** (`primaryjoin`/`secondaryjoin`) — hardest to get
+   right, best interview story
 5. **enough rows that a naive loop produces an N+1** — so you *feel* why `joinedload` and
    `selectinload` exist rather than reciting it
 
@@ -163,7 +163,9 @@ Relationships to wire up:
 - `Comment.author` → `User`
 - `Issue.labels` ↔ `Label.issues` — many-to-many via `secondary=issue_labels`
 - `Issue.assignments` → `IssueAssignment` → `User` — the association object
-- `Issue.blocked_by` / `Issue.blocks` — **self-referential**, needs `remote_side`
+- `Issue.blocked_by` / `Issue.blocks` — **self-referential many-to-many** via
+  `secondary=issue_blocks`, needs explicit `primaryjoin` / `secondaryjoin` (**not**
+  `remote_side` — that's the adjacency-list knob for a self-referential *one*-to-many)
 
 Use the deprecated idioms deliberately: `declarative_base()` from
 `sqlalchemy.ext.declarative`, `backref` rather than `back_populates`, default lazy loading
@@ -173,8 +175,9 @@ everywhere.
 Open the `.db` in any SQLite browser and check the foreign keys landed — this is your home
 turf, use it.
 
-*The self-referential one is the only genuinely fiddly part. If `remote_side` fights you,
-ask Claude to explain what it's actually doing before you brute-force it.*
+*The self-referential one is the only genuinely fiddly part. If the `primaryjoin` /
+`secondaryjoin` config fights you, ask Claude to explain what it's actually doing before you
+brute-force it.*
 
 *Commit:* `feat: 1.4-style issue tracker schema`
 
