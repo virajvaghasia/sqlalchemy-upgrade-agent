@@ -25,6 +25,10 @@ build/
 .idea/
 *.swp
 
+# Local backups of tracked docs — keep on disk, never commit
+*.bak
+*.orig
+
 # OS
 .DS_Store
 
