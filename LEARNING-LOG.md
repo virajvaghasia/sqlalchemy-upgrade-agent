@@ -27,11 +27,15 @@ This split is why the log stays readable: an idea gets one explanation in `CONCE
   the emitted SQL, including a live N+1. Closes Step 2's "real database" item.
 - ✅ **`CONCEPTS.md`** — every `§` now carries its own **Proof** (verified output) and
   **Drill** (42 questions, collapsed answers). §0 schema map and §14/§15 runtime added.
-- ⬜ **Steps 3–10** — seed ~200 rows, the 1.4 query layer, `SQLALCHEMY_WARN_20`, the 2.0
-  upgrade, `BREAKAGES.md`. **← you are here. None of the breakage work has started.**
+- ✅ **Step 3** — `seed.py` builds `issues.db`: 200 issues, 710 comments, 387 label links,
+  303 assignments, 60 blocking pairs. Deterministic and idempotent.
+- ⬜ **Steps 4–10** — the 1.4 query layer, baseline query counts, `SQLALCHEMY_WARN_20`, the
+  2.0 upgrade, `BREAKAGES.md`. **← you are here. No breakage work has started.**
 
-**Immediate next action:** Step 3 — grow the seed from 21 rows to ~200, generated in a loop
-rather than hand-written. `explore.py` is already shaped for it.
+**Immediate next action:** Step 4 — `app.py`, half a dozen functions in deliberately bad 1.4
+style: `session.query(...)`, `Query.get()`, a raw `engine.execute("SELECT ...")` without
+`text()`, an N+1 report loop, and a function that returns an `Issue` after its session closed
+(the future `DetachedInstanceError`, → §14).
 
 ---
 
@@ -140,6 +144,24 @@ What the run actually proved, as opposed to asserted:
 Also: added `description` to `Issue` — the declarative constructor rejects unknown kwargs
 outright, so a missing column fails loudly at `__init__` rather than silently — and `__repr__`
 to every mapped class.
+
+### Aug 3 — Step 3, the seed that hurts `(event only, → Step 3)`
+`seed.py` writes a real SQLite **file** (`issues.db`), not in-memory — Step 4 opens the same
+database from a separate process. Generated in a loop from a fixed `RANDOM_SEED`, so the
+counts never move between runs; if they moved, the "202 queries before, 2 after" comparison
+in Step 9 would mean nothing.
+
+```
+users 5 · projects 3 · issues 200 · labels 8
+comments 710 · issue_assignments 303 · issue_labels 387 · issue_blocks 60
+open 106 · in_progress 40 · closed 54
+```
+
+Two schema constraints shaped the generator, both from Part 1: `IssueAssignment`'s PK is
+`(issue_id, user_id)`, so assignees are sampled *without replacement* — the same person can't
+hold two roles on one issue (§4). And `issue_blocks` pairs are deduplicated in both directions
+with self-blocks skipped (§5). Verified in SQLite rather than through the ORM: 0 orphan rows,
+0 self-blocks, 0 duplicate pairs.
 
 ### Aug 3 — docs consolidated, runtime sections added → §0 §14 §15
 Folded the separate drills file into `CONCEPTS.md` so each `§` is self-contained: explanation,
