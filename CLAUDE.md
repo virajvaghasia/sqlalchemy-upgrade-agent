@@ -79,3 +79,41 @@ networking.
 | Root docs | `SCREAMING_CASE.md` |
 | Branches | `phase-N/short-topic` |
 | Commits | Conventional Commits (`feat:`, `fix:`, `docs:`) |
+
+---
+
+## Session Notes (what Claude is doing, session by session)
+
+This is a running, terse log of *actions taken in a given session* — not concepts learned
+(that's `LEARNING-LOG.md`) and not settled design calls (that's the `⚖` memory entries).
+Append a dated entry each session; keep each entry to a few bullets.
+
+### 2026-07-30
+- Clarified collaboration scope for the `explore.py` session-layer + seeding task: per
+  the collaboration rule above, this is a paired exercise (Claude explains the pattern,
+  Viraj writes the code) — not something Claude hands over finished.
+- Added this Session Notes section to CLAUDE.md at Viraj's request, so session activity
+  is readable here without digging through conversation history.
+- Created `CONCEPTS.md` drills — a Q&A register (questions Claude poses + questions Viraj asks),
+  separate from `CONCEPTS.md` (prose) and `LEARNING-LOG.md` (timeline).
+
+### 2026-08-02
+- Built out `explore.py` sections 1–8: users/project, issues, labels, comments,
+  IssueAssignment, self-referential blocks, a lazy-load/N+1 demo, and row counts.
+- Added `description` column to `Issue` and `__repr__` to all mapped classes.
+- `explore.py` now runs end to end and seeds 15 rows across all six patterns.
+
+### 2026-08-03
+- Replaced §6's three assertion `print()`s with the join conditions read live off the
+  mapper — Viraj challenged them, correctly: a script whose purpose is watching the library
+  behave shouldn't contain "trust me" prints.
+- **Seed mismatch resolved.** `explore.py` grown to 9 issues with `issue_blocks` rows
+  (3→7) (3→9) (9→7), matching what the `CONCEPTS.md` always specified.
+- **`CONCEPTS.md` Part 3 renamed to "Appendix"** and filled with verified output — the old
+  name collided with `CONCEPTS.md` drills's parts and read as a fourth teaching chapter rather than
+  evidence.
+- **`CONCEPTS.md` drills restructured** to two halves, Questions and Answers, 42 items. The 2.0 group
+  is left unanswered on purpose — those get settled by running Step 6.
+- Fact-checking the answer key caught a wrong answer of Claude's (#13: `issue.project`
+  does *not* always emit SQL — many-to-one checks the identity map first). Corrected in
+  place, with the measurement.

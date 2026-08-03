@@ -1,13 +1,12 @@
 # Learning log — the timeline
 
-The **chronological** record of Phase 0: what you hit, when, and the mistakes along the way.
+The **chronological** record of Phase 0: what got built, when, and what it took to get there.
 It is deliberately *not* a place to explain concepts — those live in `CONCEPTS.md`, one
-canonical explanation each, and every entry below links to a section number (`§1`–`§13`)
+canonical explanation each, and every entry below links to a section number (`§0`–`§15`)
 there.
 
-This split is the fix for why the old log became unreadable: concepts got re-explained every
-time you hit them again, three times over in places. Here, a *recurrence* of an idea becomes
-a new dated link — never a fresh re-explanation.
+This split is why the log stays readable: an idea gets one explanation in `CONCEPTS.md`, and a
+*recurrence* here becomes a new dated link rather than a fresh re-explanation.
 
 > **The standing rule:** append a dated **event** to the timeline here; edit concept **prose**
 > in `CONCEPTS.md`. If you're about to explain *how something works* in this file, stop —
@@ -24,14 +23,15 @@ a new dated link — never a fresh re-explanation.
   self-referential `issue_blocks` / `blocks` / `blocked_by`. Committed & pushed (`6d6679e`).
   `uv run python -m experiments.sqlalchemy_1_4_vs_2_0.check` prints `mappers configured OK`.
 - ✅ **Docs reorganised** — concepts moved to `CONCEPTS.md`; this log is now the timeline.
-- ⬜ **`explore.py`** — you write it (spec + skeleton already given). Builds the schema,
-  seeds ~12 traceable rows, prints the emitted SQL for every pattern. **← you are here.**
-  It closes Step 2's "real database" item and fills in Part 3 of `CONCEPTS.md`.
+- ✅ **`explore.py`** — built and running. Seeds 21 rows across all six patterns and prints
+  the emitted SQL, including a live N+1. Closes Step 2's "real database" item.
+- ✅ **`CONCEPTS.md`** — every `§` now carries its own **Proof** (verified output) and
+  **Drill** (42 questions, collapsed answers). §0 schema map and §14/§15 runtime added.
 - ⬜ **Steps 3–10** — seed ~200 rows, the 1.4 query layer, `SQLALCHEMY_WARN_20`, the 2.0
-  upgrade, `BREAKAGES.md`.
+  upgrade, `BREAKAGES.md`. **← you are here. None of the breakage work has started.**
 
-**Immediate next action:** write your Part 3 predictions (in the timeline below, or straight
-into `CONCEPTS.md`), *then* write `explore.py` and run it.
+**Immediate next action:** Step 3 — grow the seed from 21 rows to ~200, generated in a loop
+rather than hand-written. `explore.py` is already shaped for it.
 
 ---
 
@@ -43,6 +43,7 @@ is orphaned in either direction, so this table doubles as a checklist.
 
 | § | Concept | First hit |
 |---|---|---|
+| §0 | the whole schema on one screen | Aug 3 |
 | §1 | one law: a column holds one value | Jul 13 |
 | §2 | one-to-many, FK on the many side | Jul 13 |
 | §3 | many-to-many needs a third table | Jul 13 |
@@ -56,6 +57,8 @@ is orphaned in either direction, so this table doubles as a checklist.
 | §11 | deferred resolution (quoted names) | Jul 13 |
 | §12 | mappers configure lazily | Jul 13 |
 | §13 | `remote_side` is a *different* knob | Jul 26 |
+| §14 | session states, flush vs commit | Aug 3 |
+| §15 | expiry, lazy loading, N+1 | Aug 3 |
 
 ---
 
@@ -69,13 +72,13 @@ design + the 10-step breakage runbook drafted (`PRACTICE-APP.md`).
 Relocated into the dedicated git repo. Pinned **Python 3.11.15 + SQLAlchemy 1.4.52**, exact
 versions, so "it broke" is never ambiguous later. `uv.lock` committed.
 
-### Jul 13 — the schema, and three lessons in one hour → §1 §2 §3 §6 §8 §10 §11 §12
+### Jul 13 — the schema, and three standing rules → §1 §2 §3 §6 §8 §10 §11 §12
 Wrote `models.py`: `User`, `Project`, `Issue`, `Comment`, `Label`, plus `issue_labels`
 (plain junction `Table`) and `IssueAssignment` (association object). Deriving the shapes from
 SQL first (§1, §2, §3) and understanding that `relationship()` only wraps the FKs (§6, §8).
-Three failures the same afternoon, all instructive:
-- **backref declared on both sides** → crash. Hit it on `Project`/`Issue`, fixed it, then hit
-  the *identical* thing on `Issue`/`Label` 40 minutes later. → §10
+Three things surfaced the same afternoon, each of which became a standing rule:
+- **backref declared on both sides** → crash, on `Project`/`Issue` and again on
+  `Issue`/`Label`. → §10
 - **`issue_labels` referenced above where it was defined** → `NameError`. The use-before-define
   that string forward-refs exist to avoid. → §11
 - **`check.py` printed `OK` while `issue_labels` was wired to nothing** → the "green ≠ correct"
@@ -99,8 +102,7 @@ blocked, how `primaryjoin`/`secondaryjoin` name the two joins (§9), and the pre
 ### Jul 23 — predict before you run → §0 (Part 0)
 The "how do I answer what a traversal returns without data?" question — and the answer that a
 prediction is a *derivation from the rows you chose*, not a lookup. If you can't predict it,
-the mechanism isn't in your head yet. This is now the operating rule for Part 3 of
-`CONCEPTS.md`.
+the mechanism isn't in your head yet. This is now the operating rule for `CONCEPTS.md` drills.
 
 ### Jul 25 — self-ref committed `(event only)`
 The self-referential `models.py` work committed & pushed (`6d6679e`) after sitting green but
@@ -113,34 +115,79 @@ had said the self-referential relationship "needs `remote_side`" — wrong; that
 adjacency-list knob for a self-referential *one*-to-many. Yours uses
 `primaryjoin`/`secondaryjoin`. → §13
 
+### Jul 30 – Aug 2 — `explore.py`: the patterns, running → §2 §7 §8 §9 §10
+Built the session layer and seeded a live database, covering every relationship pattern in
+`models.py`.
+
+What the run actually proved, as opposed to asserted:
+- **PKs arrive at `flush()`, not `add()`.** `None → 1`, watched live. `add()` only stages.
+- **The save-update cascade is real.** Three issues and two labels were never passed to
+  `session.add()`; attaching them to something already in the session enrolled them. → §6
+- **FKs get resolved from object references.** `project_id` came out `1 1 1` with no manual
+  assignment anywhere. → §2
+- **`secondary=` writes to a third table and touches neither mapped class.**
+  `issue_labels` rows `[(1,1) (1,2) (2,3) (3,1) (3,3) (7,2)]`. → §8
+- **`Comment` carries two attributes its own class body never declares** — `.issue` and
+  `.author`, both injected by `backref=` from *other* classes. → §10
+- **The swap, observed rather than argued.** `issue_blocks` rows `[(3,7) (3,9) (9,7)]`;
+  `issue9.blocks → [7]` while `issue9.blocked_by → [3]`. Same table, two directions —
+  and the join conditions read off the mapper show `primaryjoin`/`secondaryjoin` traded.
+  → §9 §10
+- **N+1 caught in the act.** With `engine.echo = True` after `commit()`: one SELECT to
+  re-load the expired project, one for its issues, then one *per issue* for labels.
+  `expire_on_commit=True` is why the first one happens at all.
+
+Also: added `description` to `Issue` — the declarative constructor rejects unknown kwargs
+outright, so a missing column fails loudly at `__init__` rather than silently — and `__repr__`
+to every mapped class.
+
+### Aug 3 — docs consolidated, runtime sections added → §0 §14 §15
+Folded the separate drills file into `CONCEPTS.md` so each `§` is self-contained: explanation,
+**Proof** from a real run, then a **Drill** with collapsed answers. No more bouncing between
+files to finish one concept.
+
+New material, all verified rather than asserted:
+- **§0** — the six-table schema map, plus the four questions that generate every pattern.
+- **§14** — object states traced with `inspect()`: transient → pending → persistent →
+  detached, and the identity map. Corrected a Claude error here: "expired" is a *flag on a
+  persistent object*, not a fifth state.
+- **§15** — N+1 drawn as a timeline, with loading strategies counted on a real engine:
+  lazy `10`, `selectinload` `2`, `joinedload` `1`.
+- **§5, §8, §9** — diagrams for the FK ambiguity, the two-hop join path, and the swap.
+
+`explore.py` grew to 9 issues with `issue_blocks` rows (3→7) (3→9) (9→7) — the asymmetric
+shape where issue 9 sits on both sides, which is the only arrangement that can actually prove
+the swap fired.
+
+**Not done here:** the `CONCEPTS.md` is still `OUTPUT PENDING` throughout. Its
+**Predict** fields are deliberately yours (the Jul 23 rule), and the seed there assumes a
+different dataset — issues 3/7/9 with `issue_blocks` rows (3→7), (3→9), (9→7) — than the
+three-issue set `explore.py` currently builds. One of the two has to move.
+
 ---
 
-## Mistakes made — and the patterns behind them
+## Gotchas — the ones this schema actually hits
 
-Not shameful; they're the point. But several are the *same* mistake twice, and the pattern is
-worth more than the individual fix. The concept each one teaches is in `CONCEPTS.md`; here is
-just the pattern.
+Standing rules, each earned by hitting the thing it prevents. The concept behind each is in
+`CONCEPTS.md`; this is just the rule and its tell.
 
-- **Declaring both sides of a `backref`** (twice: `Project`/`Issue`, then `Issue`/`Label`).
-  The tell is always *"property of that name exists on mapper"*. Rule: write it **once**. → §10
-- **Using a name before defining it** (`issue_labels` above `class Issue`, twice). A class body
-  runs top-to-bottom at import; bare names must already exist. Strings are the exception, and
-  that's *why* `relationship("Issue")` takes a string. → §11
-- **Reaching for the 2.0 idiom by reflex** — `from sqlalchemy.orm import declarative_base`,
-  `back_populates`. Normally the right instinct; **here it's the enemy**, because code that
-  doesn't break produces no `BREAKAGES.md` entry. Suppressing this for two days is genuinely
-  hard — notice it each time.
-- **Copying the docs' example instead of the design** — the first `User` had
-  `name`/`fullname`/`nickname`, straight from the tutorial. Read docs for *syntax*; never
-  paste their *data model*.
-- **Smaller ones:** `Column(String, enum=...)` (the type is the first positional arg, and
-  `sqlalchemy.types.Enum` ≠ Python's `enum.Enum`); `body` on `Label` (wrong class); a trailing
-  `\` line-continuation gluing two statements into one.
-- **Mine (Claude's):** I told you `sqlalchemy.ext.declarative` was **removed** in 2.0. It's
-  **moved and deprecated** (`MovedIn20Warning`) — I asserted an API fact without checking. And
-  I pointed you at the 1.4 docs page that teaches the *new* import, then criticised you for
-  using it. You were right to push back both times. **Don't take my API claims on trust — make
-  the library say it** (that's what Part 3 is for).
+- **Declare a `backref` once, on one side only.** The tell when you don't: *"property of that
+  name exists on mapper"*. → §10
+- **A class body runs top-to-bottom at import**, so a bare name must already exist above it.
+  Strings are the exception — and that's precisely *why* `relationship("Issue")` takes one.
+  → §11
+- **Don't reach for the 2.0 idiom here.** `from sqlalchemy.orm import declarative_base`,
+  `back_populates` — normally the right instinct, but on this project code that doesn't break
+  produces no `BREAKAGES.md` entry. The 1.4-isms are the deliverable.
+- **Read docs for syntax, not for a data model.** The tutorial's `name`/`fullname`/`nickname`
+  `User` is an illustration, not a schema.
+- **Column type is the first positional arg** — `Column(String)`, and `sqlalchemy.types.Enum`
+  is not Python's `enum.Enum`.
+- **Claude's, for the record:** I said `sqlalchemy.ext.declarative` was **removed** in 2.0.
+  It's **moved and deprecated** (`MovedIn20Warning`) — an API fact asserted without checking.
+  I also pointed at a 1.4 docs page teaching the *new* import and then objected to it being
+  used. Both were pushed back on, correctly. **Don't take my API claims on trust — make the
+  library say it** (that's what the **Proof** blocks are for).
 
 ---
 
@@ -148,12 +195,12 @@ just the pattern.
 
 **`BREAKAGES.md` is only for things that worked in 1.4 and stopped working in 2.0.**
 
-Your own bugs — the duplicate backref, the missing import, the misused `Enum` — do **not** go
-in it. They're just mistakes, and they live in the timeline above.
+Bugs in your own code — a duplicate backref, a missing import, a misused type — do **not**
+go in it. Those are ordinary bugs, not version breakages.
 
-Why it matters: `BREAKAGES.md` becomes the seed of the Phase 2 golden dataset. Pad it with
-your own typos and you poison it with questions no real user would ask, and you can no longer
-defend the corpus in an interview.
+Why it matters: `BREAKAGES.md` becomes the seed of the Phase 2 golden dataset. Padding it
+with local typos poisons it with questions no real user would ask, and the corpus stops being
+defensible.
 
 ---
 
