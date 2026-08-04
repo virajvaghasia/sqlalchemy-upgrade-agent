@@ -65,8 +65,17 @@ networking.
   answer key.
 - **Zero paid API calls.** Local models on the RTX 3060 + free tiers only.
 - **Build machine is the Ubuntu lab PC** (3060, 12GB VRAM, 12GB system RAM), reached over
-  SSH. The Mac is an editor. **Push to GitHub constantly** — it's a shared lab machine that
-  may be reimaged.
+  SSH. **Push to GitHub constantly** — it's a shared lab machine that may be reimaged.
+  - **As of 2026-08-04 the lab machine is not reachable.** All work is happening on the Mac
+    and will be pulled down at the lab later. This *inverts* the risk the "push constantly"
+    rule was written for: GitHub is no longer the backup of the lab machine, it is the
+    **handoff channel to it**, and the Mac is now the only copy of anything uncommitted.
+    Commit and push at the end of every session — an unpushed commit is invisible at the lab.
+  - **What this does and does not unblock.** Phase 0 Part A (Days 0–2: `uv`, the 1.4 app,
+    the 2.0 migration, `BREAKAGES.md`) needs nothing but Python and runs fine here. Parts B
+    and C (Docker, Compose, GPU-in-container, CI, Ollama) need the lab machine and are
+    blocked — those are also precisely the infra items Viraj must write himself, so they
+    cannot be worked around by having Claude produce them early.
 - **Langfuse is deferred to Phase 6 and run on-demand** — ~5 containers won't fit in 12GB
   alongside everything else.
 
@@ -117,3 +126,43 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Fact-checking the answer key caught a wrong answer of Claude's (#13: `issue.project`
   does *not* always emit SQL — many-to-one checks the identity map first). Corrected in
   place, with the measurement.
+
+### 2026-08-04
+- Viraj challenged the provenance of §14's state-trace output. Audit found 2 of 4
+  `# runnable` blocks in `CONCEPTS.md` named no command and had no file behind them —
+  the numbers were real but not reproducible.
+- Added `experiments/sqlalchemy_1_4_vs_2_0/states.py` — the runtime counterpart to
+  `explore.py`: five object states via `inspect()`, the attribute-cache wipe at `commit()`,
+  the identity map, and a `before_cursor_execute` counter for lazy/selectinload/joinedload.
+- First run of `states.py` reported 11 for the lazy loop instead of 10: sections 1–3 shared
+  one in-memory DB with the counting sections, so their throwaway `Issue` made
+  `query(Issue).all()` return 10 rows. Split into two engines and added an
+  `assert n_issues == 9` guard.
+- `CONCEPTS.md` §14/§15 now name real commands; documented that 11 vs 10 is a scope
+  difference (Scope A includes the `apollo.name` re-SELECT), not a typo.
+- Viraj challenged §14 drill answer #2 ("flush vs commit — name two differences"). Testing
+  showed (b) was wrong as written: expiry is `expire_on_commit`, a `Session` flag defaulting
+  to `True`, not a property of `commit()`. Set it `False` and commit expires nothing. The
+  answer also omitted the largest difference — `commit()` flushes for you. Rewrote as three
+  measured points and added `states.py` §6 to back them.
+- Rewrote all 15 drill answer sets to one shape: **short plain-language answer → why →
+  evidence**. Added the desk/filing-cabinet analogy to §14 (session = desk, database =
+  cabinet, objects = photocopies) and an expired-vs-detached comparison table.
+- **Part 4 built out from 4 bare questions into a real chapter** (§16–§19), matching Parts
+  1–3's teach-then-drill shape: §16 why 2.0 exists (unification; `query()` vs `select()`
+  emit near-identical SQL — a rename, not a rewrite), §17 the four warning classes
+  (`RemovedIn20Warning` / `MovedIn20Warning` / `LegacyAPIWarning` / silence), §18
+  `future=True` as the migration bridge, §19 what 2.0 does *not* fix.
+  **The four prediction questions are left unanswered** — per the Days 1–2 design decision,
+  those are settled by running the upgrade. §16–§19 exist so the predictions are informed.
+- Added `experiments/sqlalchemy_1_4_vs_2_0/migration.py` to back Part 4's runnable blocks:
+  measures the `query()`/`select()` SQL diff and demonstrates `future=True` raising
+  `NotImplementedError` on `engine.execute()` under 1.4.52.
+- Viraj caught a hardcoded `issue_id in (1, 3)` in `states.py` §7 — an assertion about the
+  seed dressed up as an observation of the join. Now counted with `Counter` and derived from
+  the returned rows.
+- §15's selectinload/joinedload table described the SQL instead of showing it, so the
+  difference wasn't visualisable. Added `states.py` §7: prints the actual statements for all
+  three strategies (the `params` line makes it obvious — nine `(1,)` `(2,)`… vs one
+  `(1..9)`), plus the 11-raw-rows-for-9-issues output that makes joinedload's row
+  multiplication concrete rather than asserted.
