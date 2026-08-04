@@ -6,6 +6,9 @@ Anthropic, and startups).
 
 - **`ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
 - **`PHASE-0.md`** — the current phase in detail.
+- **`CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
+- **`MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `CONCEPTS.md`'s section
+  numbering, so a reference to "§18" is unambiguous across both files.
 
 ---
 
@@ -148,7 +151,18 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Rewrote all 15 drill answer sets to one shape: **short plain-language answer → why →
   evidence**. Added the desk/filing-cabinet analogy to §14 (session = desk, database =
   cabinet, objects = photocopies) and an expired-vs-detached comparison table.
-- **Part 4 built out from 4 bare questions into a real chapter** (§16–§19), matching Parts
+- **Part 4 split into `MIGRATION-2.0.md`** at Viraj's request (CONCEPTS.md had reached 2161
+  lines). Section numbering continues across the two files — `CONCEPTS.md` §0–§15,
+  `MIGRATION-2.0.md` §16–§22 — so cross-references stay unambiguous. Expanded from 4
+  sections to 7 while moving: added §17 (the Result API — `session.execute()` returns `Row`
+  tuples, hence `.scalars()`), §18 (autobegin — a plain SELECT opens a transaction), and §22
+  (the ordered migration recipe, with modernisation explicitly *after* the version bump).
+- **Measured finding worth keeping:** the 2.0 warnings are off by default. `app.py` emits 1
+  warning normally and 5 under `SQLALCHEMY_WARN_20=1` — and *both* `RemovedIn20Warning`s,
+  the only real breakages, are in the hidden four. A green 1.4 test run is not evidence
+  about 2.0.
+- **Superseded (earlier the same day):** Part 4 was first built out from 4 bare questions
+  into a chapter (§16–§19), matching Parts
   1–3's teach-then-drill shape: §16 why 2.0 exists (unification; `query()` vs `select()`
   emit near-identical SQL — a rename, not a rewrite), §17 the four warning classes
   (`RemovedIn20Warning` / `MovedIn20Warning` / `LegacyAPIWarning` / silence), §18
