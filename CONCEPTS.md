@@ -38,10 +38,15 @@ exactly what made it impossible to read.
 - §14 — The session: staging, flushing, and the unit of work
 - §15 — Expiry and lazy loading: where N+1 comes from
 
-**Part 4 — Looking ahead to 2.0** *(unanswered on purpose)*
+**Part 4 — Looking ahead to 2.0** *(why it changed, and how to triage it)*
+- §16 — Why 2.0 exists: one way to do things, instead of two
+- §17 — Reading the warnings: four classes, only one is an emergency
+- §18 — `future=True`: run 2.0's rules without installing 2.0
+- §19 — What 2.0 does *not* fix
+- Predictions — *deliberately unanswered; you settle these by running the upgrade*
 
-Each `§` is self-contained: the explanation, the **proof** from a real `explore.py` run, and a
-**drill** with collapsed answers. You should never need a second file to finish a concept.
+Each `§` is self-contained: the explanation, the **proof** from a real run, and a **drill**
+with collapsed answers. You should never need a second file to finish a concept.
 
 ---
 
@@ -166,14 +171,32 @@ That is the entire design space. §5 is not a fourth move — it's move 2 applie
 <details>
 <summary>Answers</summary>
 
-**1.** Because a column holds exactly one value, and a list is many values. There is nowhere
-to put the second element. (Postgres arrays and JSON columns exist and do break this — but
-they also give up the FK constraint, indexing behaviour and join semantics that make the
-relational model worth using, which is why the ORM patterns are all built on the one-value
-assumption.)
+**1. Short answer:** a cell holds **one** value. `[4, 7, 12]` is three. There is physically
+nowhere to put the 7 and the 12.
 
-**2.** A single FK on the many side (§2); a junction table whose rows are the links (§3);
-that same junction with extra columns of its own (§4).
+Picture the table. One row, one column, one box:
+
+```
+projects
+| id | name   | issue_ids |
+| 1  | Apollo |    4      |  ← where do 7 and 12 go? There is no second box.
+```
+
+*Side note, not the main point:* Postgres does have array and JSON columns that would let you
+cram a list in. But you lose foreign-key checking, normal indexing, and the ability to join on
+it — the three things that make a relational database worth using. Every ORM pattern in this
+document assumes the one-value rule, so that's the rule we work from.
+
+**2. Short answer:** put the link on the many side, or invent a table for the links, or give
+that table extra columns.
+
+| move | what it looks like | section |
+|---|---|---|
+| one FK column | `issues.project_id` | §2 |
+| a table of links | `issue_labels(issue_id, label_id)` | §3 |
+| that table, plus columns | `issue_assignments(..., role)` | §4 |
+
+Everything else in Part 1 is one of these three.
 
 </details>
 
@@ -236,13 +259,58 @@ let the unit of work resolve the object reference into an integer at flush time.
 <details>
 <summary>Answers</summary>
 
-**1.** One column holds one value. A project has many issues, so an `issue_id` column on `projects` would need many values — illegal. Each issue has exactly one project, so `project_id` fits on `issues` as a single value. The FK lands on the many side because that is the only side where it *fits*.
+**1. Short answer:** because the many side is the only side where it *fits*.
 
-**2.** It works. `issue.project` holds a **reference to the Python object** — plain in-memory identity, no SQL involved. At flush the unit of work walks the graph, inserts `apollo` first if needed, reads its new PK, and uses it as `issue.project_id`. This is why relationship attributes beat hand-written FKs: insert ordering is solved for you.
+Ask "how many of the other thing does each row have?"
 
-**3.** Neither. `apollo.issues` is one SELECT against `issues` filtered by `project_id`; `issue.project` is a SELECT against `projects` by PK. The FK is a column on one table, so no join is needed either way. Joins appear for `secondary=` (§8).
+- A **project** has many issues → an `issue_id` box on `projects` would need to hold many
+  values. Illegal.
+- An **issue** has exactly one project → a `project_id` box on `issues` holds one value. Legal.
 
-    But `issue.project` often emits **nothing at all** — many-to-one has a "use get" optimisation: SQLAlchemy already has `project_id`, so it checks the session's identity map by PK first and only queries on a miss. Measured: first access in a fresh session emits the SELECT, the second emits nothing. So "does this attribute emit SQL?" has no fixed answer — it depends what the session has already seen. It is also why a `.project` loop over nine issues fires **one** query while a `.labels` loop fires nine (§15).
+The FK isn't placed on the many side by convention or by taste. It's the only placement that
+doesn't break the one-value rule.
+
+**2. Short answer:** yes, it works — and at that moment `issue` stores **the Python object
+itself**, not a number.
+
+Walk it through:
+
+```
+1. issue.project = apollo     →  issue now points at the apollo OBJECT in memory.
+                                 No SQL. No id needed. apollo.id is still None.
+2. session.flush()            →  SQLAlchemy sees issue depends on apollo, so:
+                                   INSERT apollo   →  database returns id = 1
+                                   reads that 1 back onto apollo.id
+                                   INSERT issue with project_id = 1
+```
+
+**Why this matters:** SQLAlchemy worked out the *insert order* for you. If you had assigned
+`issue.project_id = apollo.id` by hand, you'd have stored `None`, because `apollo.id` doesn't
+exist until after its INSERT. Using the relationship attribute lets you ignore ordering
+entirely.
+
+**3. Short answer:** neither one joins.
+
+| you write | SQL shape | why no join |
+|---|---|---|
+| `apollo.issues` | `SELECT * FROM issues WHERE project_id = 1` | the FK is a column *on* `issues` |
+| `issue.project` | `SELECT * FROM projects WHERE id = 1` | the FK value is already in hand |
+
+A join is only needed when you must pass *through* a third table to get somewhere — that's
+`secondary=` (§8).
+
+> **A wrinkle worth knowing: `issue.project` often emits no SQL at all.**
+>
+> `issue` already holds `project_id = 1`. Before querying, SQLAlchemy checks the session's
+> identity map — its private "row 1 of projects = this Python object" lookup — and if project 1
+> is already there, it just hands it over. Free.
+>
+> Measured: the **first** `issue.project` in a fresh session emits the SELECT; the **second**
+> emits nothing.
+>
+> This is also why a loop reading `.project` on nine issues costs **1** query, while the same
+> loop reading `.labels` costs **9** (§15). All nine issues share one project, so the map hits
+> eight times out of nine. Labels differ per issue, so nothing can be reused.
 
 </details>
 
@@ -276,7 +344,33 @@ twice.
 <details>
 <summary>Answers</summary>
 
-**1.** One issue has many labels and one label has many issues. `label_id` on `issues` breaks the one-value law for any issue with two labels; `issue_id` on `labels` breaks it the other way. Neither existing table can hold it, so the link needs a table of its own — one row per pair.
+**1. Short answer:** both sides need a list, and neither table can hold one — so the link gets
+its own table.
+
+Try both placements and watch each one fail:
+
+```
+attempt 1: put label_id on issues
+| id | title       | label_id |
+| 1  | Login fails |   bug    |  ← issue 1 also has "urgent". No box for it. ✗
+
+attempt 2: put issue_id on labels
+| id | name | issue_id |
+| 1  | bug  |    1     |  ← "bug" is also on issue 3. No box for it. ✗
+```
+
+Two failures, same cause: one box, two values. Since neither existing table can hold the link,
+you make a table **whose rows *are* the links**:
+
+```
+issue_labels
+| issue_id | label_id |
+| 1        | 1        |  ← issue 1 is "bug"
+| 1        | 2        |  ← issue 1 is ALSO "urgent"   ← the second value now has a home
+| 3        | 1        |  ← "bug" is ALSO on issue 3
+```
+
+Rows are unlimited, so both "lists" fit. That's the whole derivation.
 
 </details>
 
@@ -316,9 +410,40 @@ attributes of its own. In SQL that's just a table with extra columns. The ORM co
 <details>
 <summary>Answers</summary>
 
-**1.** *Does the link itself carry information?* No → bare `Table`. Yes → mapped class. Equivalently §7's phrasing: do I want an object for this row?
+**1. Short answer:** *"Does the link itself carry information?"*
 
-**2.** Permits: the same user on many issues, and many users on one issue. Forbids: the same `(issue, user)` pair twice — so Bob cannot be both owner *and* reviewer on issue 1 under this schema. Confirmed by triggering it: `IntegrityError: UNIQUE constraint failed: issue_assignments.issue_id, issue_assignments.user_id`. A real modelling constraint, not an accident.
+- **No** → bare `Table`. The link is just "these two are connected."
+- **Yes** → mapped class. The link has something to say.
+
+Compare the two in this project:
+
+```
+issue_labels        | issue_id | label_id |              ← nothing but the pairing
+issue_assignments   | issue_id | user_id | role | ...|   ← the pairing KNOWS something
+```
+
+§7 asks the same question from the Python side: *do I want an object I can read `.role` off of?*
+
+**2. Short answer:** it permits many-to-many, and forbids listing the same pair twice.
+
+A composite primary key means **the combination** must be unique — not each column on its own.
+
+| | allowed? | why |
+|---|---|---|
+| alice on issue 1, alice on issue 3 | ✅ | different pairs |
+| alice on issue 1, bob on issue 1 | ✅ | different pairs |
+| bob on issue 1 as `owner`, bob on issue 1 as `reviewer` | ❌ | **same pair, twice** |
+
+That last row is the interesting one. Under this schema **one person gets one role per issue** —
+Bob cannot be owner *and* reviewer of the same issue. Confirmed by actually trying it:
+
+```
+IntegrityError: UNIQUE constraint failed:
+    issue_assignments.issue_id, issue_assignments.user_id
+```
+
+That's a real modelling decision, not an accident. If you needed Bob to hold two roles, the PK
+would have to become `(issue_id, user_id, role)`.
 
 </details>
 
@@ -377,7 +502,30 @@ is which. In the ORM, that's §9.
 <details>
 <summary>Answers</summary>
 
-**1.** In `issue_labels` the two FKs point at **different** tables, so which side is which can be inferred. In `issue_blocks` both point at `issues.id` — genuinely ambiguous. You must say which column means "me" and which means "them".
+**1. Short answer:** in `issue_labels` the two columns point at **different** tables, so
+SQLAlchemy can work out which is which. In `issue_blocks` they point at the **same** table, so
+it can't.
+
+Put yourself in SQLAlchemy's position. You're standing on an `Issue` and you want to walk
+across the junction. You must pick which column is "me":
+
+```
+issue_labels                          issue_blocks
+| issue_id | label_id |               | blocker_id | blocked_id |
+     ↓          ↓                            ↓            ↓
+  issues     labels                       issues       issues
+
+"which is the issue side?"            "which one is ME?"
+Only one points at issues.            BOTH point at issues.
+→ no choice to make. ✅                → two equally valid answers. ✗
+```
+
+**The trap:** the names *look* like they settle it. They don't. `blocker_id` means something
+to you; to SQLAlchemy it's just a string of characters — it has no idea "blocker" implies
+"the one doing the blocking." Meaning lives in names, and **names are not semantics.**
+
+So you have to say it out loud, in code. That's what `primaryjoin` / `secondaryjoin` are for
+(§9), and this is the only place in the whole schema where you need them.
 
 </details>
 
@@ -422,7 +570,20 @@ you objects. That's all it is.
 <details>
 <summary>Answers</summary>
 
-**1.** **Nothing.** It is pure Python-side convenience. `ForeignKey` creates the actual constraint. Delete every `relationship()` and the schema is unchanged; delete the `ForeignKey` and the database stops enforcing anything.
+**1. Short answer: nothing.** Not a column, not a constraint, not a table.
+
+The clearest way to see it is to imagine deleting each one:
+
+| you delete | what happens to the database | what happens to your Python |
+|---|---|---|
+| every `relationship()` | **nothing — schema is identical** | you must hand-write every JOIN |
+| a `ForeignKey` | the column loses its constraint; bad data can get in | mostly still works, until it doesn't |
+
+`ForeignKey` is a rule the **database** enforces, even at 3am with no Python running.
+`relationship()` is a convenience that exists only while your program does — it's the reason
+you can type `issue.project` instead of writing the SELECT yourself.
+
+They are not alternatives. You need both, and they solve different problems.
 
 </details>
 
@@ -504,11 +665,51 @@ object for this row?" — if no, stop at the `Table`.
 <details>
 <summary>Answers</summary>
 
-**1.** Because `secondary=` hands back the **target** objects (`User`) and hides the junction row entirely. `role` describes the *link*, not the user — Bob is not globally "a reviewer", he is a reviewer *on issue 1*. With the row hidden there is no object to hang it on. So the row is promoted to a class: the association object.
+**1. Short answer:** `secondary=` throws the junction row away, so there's nothing left to put
+`role` on.
 
-**2.** One extra hop. No `issue.users`; you go `issue.assignments → .user`. That is the price of the payload.
+Trace what you actually receive:
 
-**3.** Both are `sqlalchemy.sql.schema.Table`. The *only* difference is that a mapper is attached to one (`hasattr(issue_labels, "__mapper__")` → `False`). A mapped class **is** a Table plus a mapper.
+```
+issue.assignments[0]  →  an IssueAssignment object   ← the junction row itself.
+                                                        role has a home. ✅
+
+issue.labels[0]       →  a Label object              ← the junction row was used
+                                                        to GET here, then discarded.
+                                                        Where would role go? ✗
+```
+
+And it can't go on the `User` either, because **`role` isn't a fact about the user.** Bob is
+not "a reviewer" in general — he's a reviewer *on issue 1* and an owner *on issue 3*. The fact
+belongs to the pairing. So the pairing has to become an object you can hold. That's the
+association object.
+
+**2. Short answer:** one extra hop, every single time, forever.
+
+```
+with secondary=          issue.users              ← doesn't exist. There is no shortcut.
+with association object  issue.assignments[0].user
+                         └──── hop 1 ────┘└hop 2┘
+```
+
+That second hop is the price. You pay it on every traversal in exchange for having somewhere
+to keep `role`. It's a real trade, not a free upgrade.
+
+**3. Short answer:** both are exactly the same type — `sqlalchemy.sql.schema.Table`.
+
+```
+type(Label.__table__)               -> sqlalchemy.sql.schema.Table
+type(issue_labels)                  -> sqlalchemy.sql.schema.Table   ← identical
+Label.__mapper__                    -> mapped class Label->labels
+hasattr(issue_labels, "__mapper__") -> False                         ← the only difference
+```
+
+This is the sentence to remember: **a mapped class is a `Table` plus a mapper.** Writing
+`class Label(Base)` doesn't create some different species of thing — it builds the same
+`Table` and clips a mapper onto it. The mapper is the part that turns rows into objects.
+
+So "class or bare `Table`?" is really "do I want objects for these rows?" If no, skip the
+mapper and stop at the `Table`.
 
 </details>
 
@@ -598,9 +799,35 @@ WHERE ? = issue_labels.issue_id AND labels.id = issue_labels.label_id
 <details>
 <summary>Answers</summary>
 
-**1.** Only `issue_labels`, with `INSERT INTO issue_labels (issue_id, label_id)`. **Neither `issues` nor `labels` is touched** — no column on either changes. That is the structural difference from the FK case, where an existing row's column is updated.
+**1. Short answer:** only `issue_labels`. One INSERT, and nothing else is touched.
 
-**2.** From `backref="issues"` on `Issue.labels`. One declaration, two attributes (§10).
+```sql
+INSERT INTO issue_labels (issue_id, label_id) VALUES (1, 1)
+```
+
+Neither `issues` nor `labels` changes — **no column on either row is modified.** That's the
+structural difference from a one-to-many:
+
+| | what changes |
+|---|---|
+| `issue.project = apollo` (§2) | an existing `issues` row gets `project_id = 1` — an **UPDATE** to a column |
+| `issue1.labels.append(bug)` (§8) | a brand-new row appears in the junction — an **INSERT**, no column touched |
+
+Adding a label doesn't alter the issue or the label at all. It only adds a fact *between*
+them.
+
+**2. Short answer:** from `backref="issues"` in `Issue.labels`.
+
+```python
+labels = relationship("Label", secondary=issue_labels, backref="issues")
+                                                       └──────┬───────┘
+                                    this one word creates Label.issues,
+                                    even though Label declares nothing.
+```
+
+`backref` is **one declaration that builds two attributes** — the one you wrote, and the
+reverse one on the other class. That's §10, and it's also why `Label` looks suspiciously empty
+when you read `models.py`.
 
 </details>
 
@@ -718,11 +945,57 @@ way and `[3]` the other, from the same three rows.
 <details>
 <summary>Answers</summary>
 
-**1.** `primaryjoin` = how to get from **me** to the junction table. `secondaryjoin` = how to get from the junction table to **them**.
+**1. Short answer:** they're the two legs of one trip.
 
-**2.** `[7, 9]` · `[]` · `[7]` · `[3]` · `[]`
+```
+   ME  ──── primaryjoin ────►  junction table  ──── secondaryjoin ────►  THEM
+```
 
-**3.** It appears on **both** sides — it blocks 7 and is blocked by 3. So it returns different, non-empty answers in each direction, making it the only row that can actually *prove* the swap fired. Issues 3 and 7 each return `[]` one way, which a broken implementation could produce by accident too.
+- **`primaryjoin`** answers *"which junction rows are mine?"*
+- **`secondaryjoin`** answers *"which column of those rows is the answer I want?"*
+
+Every `secondary=` relationship makes this two-leg trip. For `issue.labels` you never wrote
+them because SQLAlchemy could guess (§5). For `issue_blocks` it can't guess, so you write them.
+
+**2. Short answer:** `[7, 9]` · `[]` · `[7]` · `[3]` · `[]`
+
+Work it by hand against the three rows — cover the answers and do it yourself first:
+
+```
+issue_blocks:   (3,7)  (3,9)  (9,7)
+                 ▲ ▲
+        blocker──┘ └──blocked
+```
+
+| question | how to read it | rows that match | answer |
+|---|---|---|---|
+| `issue3.blocks` | find rows where **blocker** = 3, take **blocked** | (3,**7**) (3,**9**) | `[7, 9]` |
+| `issue3.blocked_by` | rows where **blocked** = 3, take **blocker** | none | `[]` |
+| `issue9.blocks` | rows where **blocker** = 9, take **blocked** | (9,**7**) | `[7]` |
+| `issue9.blocked_by` | rows where **blocked** = 9, take **blocker** | (**3**,9) | `[3]` |
+| `issue7.blocks` | rows where **blocker** = 7, take **blocked** | none | `[]` |
+
+Notice the pattern: `blocks` and `blocked_by` **read the same three rows in opposite
+directions.** Which column you filter on, and which you return, simply trade places.
+
+**3. Short answer:** issue 9 is the only one that appears on **both** sides, so it's the only
+one that can prove the swap actually happened.
+
+Look at what each issue returns in both directions:
+
+| | `.blocks` | `.blocked_by` | proves anything? |
+|---|---|---|---|
+| issue 3 | `[7, 9]` | `[]` | weak — one side is empty |
+| issue 7 | `[]` | `[3, 9]` | weak — one side is empty |
+| **issue 9** | **`[7]`** | **`[3]`** | **strong — different, non-empty, both ways** |
+
+Here's the trap. Suppose `backref` were broken and `blocked_by` just re-ran `blocks`. Issue 3
+would still return `[]` for `blocked_by`, and you'd see nothing wrong. **An empty list is what
+both a correct answer and a broken one look like.**
+
+Issue 9 returns `[7]` one way and `[3]` the other. Two different non-empty answers from the
+same three rows — a broken implementation cannot fake that. This is why the seed data was
+deliberately built asymmetric.
 
 </details>
 
@@ -792,13 +1065,71 @@ exactly why 2.0 prefers `back_populates`.
 <details>
 <summary>Answers</summary>
 
-**1.** `Project` declares `issues = relationship("Issue", backref="project")`. That `backref` generates `.project` **on `Issue`**, from a line in a different class. Nothing in `Issue`'s body reveals it.
+**1. Short answer:** because `Project` created it, from a line inside a different class.
 
-**2.** `ArgumentError: Error creating backref 'X' on relationship 'A.b': property of that name exists on mapper 'mapped class B'` — *I went to auto-create that attribute and found one already there, and I will not silently clobber it.*
+```python
+class Project(Base):
+    issues = relationship("Issue", backref="project")
+                                   └───────┬───────┘
+                                   creates Issue.project
 
-**3.** The two generated attributes land on **different classes** — `Issue.assignments` and `User.assignments`. "Is this name taken?" is a question about a class, not a file.
+class Issue(Base):
+    project_id = Column(...)   # ← this is all you see here.
+                               #   .project is nowhere in this class body.
+```
 
-**4.** `back_populates` is declared explicitly on *both* sides, each naming the other — more typing, no attributes materialising on your class from a line elsewhere. This repo keeps `backref` **on purpose**: it is the 1.4-ism and a future `BREAKAGES.md` entry. Don't "fix" it.
+This is exactly the readability cost §10 warns about: **you cannot learn a class's full
+interface by reading that class.** An attribute can be installed on it by a line you never
+scrolled to. It's the reason 2.0 prefers `back_populates`.
+
+**2. Short answer:** it raises `ArgumentError` at mapper-configuration time.
+
+```
+ArgumentError: Error creating backref 'author' on relationship 'User.comments':
+property of that name exists on mapper 'mapped class Comment->comments'
+```
+
+In plain words: *"I went to create that attribute for you, found one already sitting there,
+and I refuse to silently overwrite it."*
+
+Note **when** this fires — not at import, but the first time the mappers configure (§12). That
+delay is precisely why `check.py` exists.
+
+**3. Short answer:** because the two attributes land on **different classes**.
+
+```python
+class IssueAssignment(Base):
+    issue = relationship("Issue", backref="assignments")  → creates Issue.assignments
+    user  = relationship("User",  backref="assignments")  → creates User.assignments
+```
+
+Same word, two homes. `Issue.assignments` and `User.assignments` are unrelated attributes on
+unrelated classes.
+
+**The rule:** *"is this name taken?"* is a question about **one class**, never about the file.
+Question 2's crash was two declarations fighting over the same attribute on the *same* class —
+a real collision. This is two classes holding one attribute each — no collision at all.
+
+**4. Short answer:** `back_populates` makes you name both sides explicitly, so nothing appears
+by magic.
+
+```python
+# 1.4 style — one line, one invisible attribute
+class Project(Base):
+    issues = relationship("Issue", backref="project")
+
+# 2.0 style — two lines, each pointing at the other, both visible
+class Project(Base):
+    issues  = relationship("Issue",   back_populates="project")
+class Issue(Base):
+    project = relationship("Project", back_populates="issues")
+```
+
+More typing. In exchange, reading `Issue` tells you the truth about `Issue`.
+
+**But do not change this repo.** The `backref` usage here is deliberate — it's the 1.4 idiom
+this project exists to migrate, and a future `BREAKAGES.md` entry. Migrating it early destroys
+the before/after you're building.
 
 </details>
 
@@ -845,7 +1176,30 @@ form is what real 1.4 code uses, so: just put the `Table` above the class.)
 <details>
 <summary>Answers</summary>
 
-**1.** Deferred resolution. When `User` is being defined, `Comment` may not exist yet. The string resolves later, at mapper configuration — which is also why a typo in it surfaces then rather than at import.
+**1. Short answer:** because when `User` is being defined, the `Comment` class doesn't exist
+yet.
+
+Python reads a file top to bottom. Watch the clock:
+
+```python
+class User(Base):
+    comments = relationship(Comment)   # ← Python runs this line NOW.
+                                       #   Comment is defined 40 lines below.
+                                       #   → NameError: name 'Comment' is not defined
+
+class Comment(Base):                   # ← too late.
+    ...
+```
+
+A quoted `"Comment"` sidesteps this because **a string is just text.** Python stores it and
+resolves nothing. Later, when the mappers configure (§12), every class exists and `Base` holds
+a name→class registry — SQLAlchemy looks `"Comment"` up then, and wires it.
+
+> **A quoted name is a promise to resolve later. A bare name is a demand to resolve now.**
+
+**The consequence to remember:** a typo in the string is not caught at import. `"Commnet"`
+imports perfectly happily and blows up at mapper configuration. That's §12, and it's why
+importing cleanly proves so little.
 
 </details>
 
@@ -882,7 +1236,24 @@ single API detail.
 <details>
 <summary>Answers</summary>
 
-**1.** It only forces mapper *configuration*. It proves the mappers can be built — not that they express what you meant. It has printed `OK` while `issue_labels` was wired to nothing at all. Green means "not obviously broken", never "correct".
+**1. Short answer:** it proves the mappers can be **built**, not that they say what you meant.
+
+Two very different questions:
+
+| question | does `check.py` answer it? |
+|---|---|
+| Can SQLAlchemy assemble these relationships without erroring? | ✅ yes |
+| Do these relationships express the thing I intended? | ❌ **no** |
+
+This isn't hypothetical. `check.py` has printed `mappers configured OK` while `issue_labels`
+was wired to nothing at all — a completely broken schema, green light. The wiring was
+*buildable*; it was just wrong.
+
+> **Green means "the thing I ran didn't fail." It never means "correct."** A passing check
+> says nothing whatsoever about the paths it didn't exercise.
+
+That's why `explore.py` exists alongside `check.py`: it actually *inserts rows and reads them
+back*, so a relationship that's wired to nothing has somewhere to visibly fail.
 
 </details>
 
@@ -927,7 +1298,39 @@ blocking graph does not.
 <details>
 <summary>Answers</summary>
 
-**1.** No. `remote_side` is for a self-referential **one**-to-many (adjacency list — the `employee.boss` shape), where one table has an FK into itself and there is no junction table. Yours is a self-referential *many*-to-many, which uses `primaryjoin`/`secondaryjoin`. The runbook originally got this wrong; corrected in `cbc94e1`.
+**1. Short answer: no.** This schema uses `primaryjoin`/`secondaryjoin`. `remote_side` solves a
+different shape entirely.
+
+Both shapes are "a table related to itself" — that's why they get confused. The difference is
+**where the link lives**:
+
+```
+remote_side  (NOT this project)         primaryjoin/secondaryjoin  (this project)
+────────────────────────────────        ──────────────────────────────────────────
+employees                               issues        issue_blocks
+| id | name  | boss_id |                | id |        | blocker_id | blocked_id |
+| 1  | Alice |  NULL   |                | 3  |        |     3      |     7      |
+| 2  | Bob   |    1    |                | 7  |
+        └── FK to itself, ON the row              └── a SEPARATE junction table
+
+ONE foreign key, NO junction.           TWO foreign keys, IN a junction.
+Each employee has ONE boss.             Each issue blocks MANY, is blocked by MANY.
+→ self-referential ONE-to-many          → self-referential MANY-to-many
+```
+
+Both are ambiguous, but about different things:
+
+| | the ambiguity | the fix |
+|---|---|---|
+| adjacency list | in this self-join, which side is the boss? | `remote_side=[id]` |
+| junction (yours) | which junction column means "me"? | `primaryjoin`/`secondaryjoin` |
+
+**When you'd actually need `remote_side` here:** if you added "issue → sub-issues" — a
+`parent_issue_id` column on `issues`. That's one FK pointing at its own table, no junction, so
+it's the adjacency-list shape. The blocking graph isn't that, and never was.
+
+*(Historical note: the runbook originally claimed `blocks` used `remote_side`. It doesn't;
+corrected in `cbc94e1`.)*
 
 </details>
 
@@ -986,8 +1389,29 @@ failure rolls back together.
 > via `apollo.issues.append(...)`, and setting the other direction (`issue.project = apollo`)
 > works the same way, because the `backref` populates `apollo.issues` in memory first.
 
+**First, the picture that makes the rest of this section easy.** Forget SQLAlchemy for a
+moment:
+
+> The database is a **filing cabinet in another room.** You can't work in there. So you walk
+> over, photocopy some rows, and bring the copies back to **your desk**. You scribble on the
+> copies. Later you walk back and file the changes.
+>
+> - the filing cabinet = **the database**
+> - your desk = **the session**
+> - the photocopies on it = **your Python objects** (`issue`, `apollo`, `alice`)
+
+Every confusing thing in §14 and §15 is a question about the **desk**, not the cabinet. Where
+is this photocopy? Is it still trustworthy? Is the desk even there any more?
+
 **The five states an object can be in.** Nearly every confusing SQLAlchemy error is really
 "this object was not in the state you assumed":
+
+| state | in desk terms |
+|---|---|
+| **transient** | a note you wrote by hand — not on the desk, not in the cabinet |
+| **pending** | you put it on the desk; still nothing filed |
+| **persistent** | filed *and* on your desk |
+| **detached** | the desk was taken away; you're holding a loose photocopy |
 
 ```
 # illustration
@@ -1016,32 +1440,55 @@ failure rolls back together.
             └─────────────┘  → unloaded attributes raise DetachedInstanceError
 ```
 
-**Note the shape of that middle box.** "Expired" is *not* a fifth state — it is a flag on a
-persistent object. `inspect(obj)` reports `persistent` both before and after `commit()`; what
-changes is `inspect(obj).expired`. Worth getting right, because "expired" and "detached" sound
-similar and behave completely differently: an expired object silently re-queries, a detached
-one raises.
+**Note the shape of that middle box. "Expired" is *not* a fifth state** — it's a rubber stamp
+on the photocopy reading *STALE, re-copy before trusting.* The object hasn't moved.
+`inspect(obj)` says `persistent` both before and after `commit()`; only
+`inspect(obj).expired` changes.
+
+This matters because "expired" and "detached" sound alike and behave nothing alike:
+
+| | expired | detached |
+|---|---|---|
+| the desk | **still there** | **gone** |
+| reading a missing value | silently re-queries, you get the value | **raises `DetachedInstanceError`** |
+| do you notice? | only in the query log | immediately — it crashes |
+
+Expired can heal itself, because there's still a session to fetch with. Detached can't —
+there's no desk to walk back from.
 
 Traced with `inspect()`, one line per moment — measured, not sketched:
 
 | moment | state | `.expired` | `issue.id` | reading `issue.labels` |
 |---|---|---|---|---|
-| `Issue(...)` | `transient` | — | `None` | `[]` — empty list, no query |
-| `issue.project = p` | `pending` | — | `None` | `[]` |
+| `Issue(...)` | `transient` | `False` | `None` | `[]` — empty list, no query |
+| `issue.project = p` | `pending` | `False` | `None` | `[]` |
 | `session.flush()` | `persistent` | `False` | `1` | SELECT fires |
 | `session.commit()` | `persistent` | **`True`** | re-SELECTs | SELECT fires |
-| `session.close()` | `detached` | — | `1` (already loaded) | **raises** |
+| `session.close()` | `detached` | `False` | `1` (already loaded) | **raises** |
+
+`.expired` reads `False` in four of the five rows, but it only *means* anything in the
+persistent ones — a transient object has no row to be stale against, and a detached one has no
+session to refresh from.
 
 ```
-# runnable   →   the exact output the table above was built from
-constructed : transient  | id: None | labels: []
-after attach: pending    | id: None
-after flush : persistent | id: 1
-after commit: persistent | expired attrs: True
-identity map: a is b -> True
-after close : detached   | id still readable: 1
-   i.labels -> DetachedInstanceError CONFIRMED
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states
+constructed            transient   expired=False  cached=['status', 'title']
+issue.project = p      pending     expired=False  cached=['project', 'status', 'title']
+                       issue.id is None — no INSERT has run yet
+session.flush()        persistent  expired=False  cached=['id', 'project', 'project_id', ...]
+                       issue.id is 1 — the database assigned it
+session.commit()       persistent  expired=True   cached=[]
+                       cached is empty — every loaded value was discarded
+
+session.close()        detached    expired=False  cached=['created_at', 'description', ...]
+    issue.title  -> 'login button broken'   (was loaded before the close)
+    issue.labels -> DetachedInstanceError
 ```
+
+**`cached` is the payoff column.** It's `inspect(obj).dict` — the values actually held on the
+Python object. Watch it go empty at `commit()`: *that* is what expiry physically is. Not a
+move, not a flag with mystical meaning — the cached values are discarded, so the next read has
+nothing to return and must go back to the database.
 
 The last row is the one that bites people, and it is the whole mechanism behind the
 `DetachedInstanceError` question in Part 4: returning an ORM object out of a function whose
@@ -1064,15 +1511,71 @@ loaded, and now there is no session left to load it with.
 <details>
 <summary>Answers</summary>
 
-**1.** Stages it as pending. No SQL, no primary key, no contact with the database.
+**1. Short answer:** it puts the object on the desk. That's all.
 
-**2.** (a) `flush()` leaves the transaction **open**, `commit()` ends it. (b) `commit()` also
-expires every loaded attribute (§15).
+| `add()` does | `add()` does **not** do |
+|---|---|
+| move the object from transient → **pending** | emit any SQL |
+| enroll it so the next flush will insert it | assign a primary key (`obj.id` stays `None`) |
+| | touch the database in any way |
 
-**3.** Yes. The default **`save-update` cascade** — attaching to an object already in the
-session enrolls the attached object too.
+The database has no idea this object exists yet. Nothing reaches it until `flush()` — or a
+`commit()`, which flushes for you (see #2).
 
-**4.** No. Different tables have independent autoincrement counters.
+**2.** They are not two parallel options — `flush()` is a **subset** of `commit()`.
+
+(a) `commit()` **flushes for you.** Measured: `session.add(p); session.commit()` with no
+`flush()` call anywhere still inserts the row. You call `flush()` explicitly only when you
+need the database-assigned primary key *before* you are ready to end the transaction.
+
+(b) `flush()` leaves the transaction **open** — the INSERT has been sent, but a `rollback()`
+still erases it. `commit()` ends the transaction; a new one begins on next use.
+
+(c) `commit()` expires every persistent instance in the session (§15) — **but that is
+`expire_on_commit`, a `Session` flag that merely defaults to `True`, not something intrinsic
+to `commit()`.** Measured, same commit both times:
+
+```
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states     (§6)
+(a) committed without ever calling flush() -> rows: 1
+(b) after flush: rows visible=1, transaction open=True -> after rollback: rows=0
+(c) expire_on_commit=True  -> expired=True  cached=[]              queries reading p.name: 1
+    expire_on_commit=False -> expired=False cached=['id', 'name']  queries reading p.name: 0
+```
+
+**3. Short answer:** yes, it gets inserted. The mechanism is the **`save-update` cascade**,
+which is on by default.
+
+The rule: **attach an object to something that's already in the session, and it joins the
+session too.**
+
+```
+session.add(apollo)              → apollo is on the desk
+apollo.issues.append(issue)      → issue is attached to apollo
+                                 → so issue is dragged onto the desk as well
+                                 → flush inserts BOTH
+```
+
+It works from either direction, too. `issue.project = apollo` does the same thing, because the
+`backref` (§10) puts `issue` into `apollo.issues` in memory first — and then the cascade sees
+it.
+
+This is why `explore.py` calls `session.add()` on only one of its nine issues. The other eight
+arrive by attachment.
+
+**4. Short answer:** nothing is broken. Each table counts from 1 on its own.
+
+```
+projects: id 1 = apollo        users: id 1 = alice
+                                      id 2 = bob
+```
+
+`projects.id` and `users.id` are separate autoincrement counters in separate tables. They
+collide constantly and it means nothing — `apollo.id == alice.id` is comparing a project
+number to a user number, which is not a meaningful question.
+
+Ids are only unique **within one table.** That's exactly why a foreign key must name its
+target (`ForeignKey("projects.id")`) — "id 1" on its own doesn't identify anything.
 
 </details>
 
@@ -1141,17 +1644,28 @@ session.query(Issue).options(joinedload(Issue.labels))     # 1 query total
 **Counted, not claimed** — same 9 issues, same loop, a query counter on the engine:
 
 ```
-# runnable  →  loop 9 issues, touch .labels on each
-lazy (default)           10 queries      ← 1 + 9
-selectinload              2 queries
-joinedload                1 queries
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states
+issues in this database: 9
+
+Scope A — starting from an expired project object:
+  apollo.name + apollo.issues + 9x .labels    11 queries   (1 + 1 + 9)
+
+Scope B — starting from a query, no project read:
+  lazy (default)                              10 queries   (1 + 9)
+  selectinload                                 2 queries
+  joinedload                                   1 queries
 ```
+
+**Two scopes, differing by exactly one query.** The timeline above starts at a `commit()`, so
+it pays an extra SELECT to re-read `apollo.name`; the loading-strategy comparison starts from
+a query and never touches the project. That is the whole difference between **11** and **10**
+— neither is a typo. The N+1 itself is the **9** in both, one per row in the loop.
 
 `selectinload` is the better default for collections precisely because it doesn't multiply
 rows; `joinedload` earns its keep on many-to-one (`issue.project`), where there is exactly one
 row on the far side and no duplication to pay for.
 
-> **Write the number down.** 11 queries for 9 issues is the baseline. Step 5 asks for the same
+> **Write the number down.** 11 queries for 9 issues (Scope A) is the baseline. Step 5 asks for the same
 > count at ~200 rows, and the before/after is the story you tell an interviewer — "I found a
 > 202-query page and made it 2" is a sentence with evidence behind it.
 
@@ -1164,15 +1678,127 @@ row on the far side and no duplication to pay for.
 <details>
 <summary>Answers</summary>
 
-**1.** The `Session` flag that marks loaded attributes stale at commit. Leaving it on trades
-queries for correctness: after a commit another transaction may have changed the row, so
-cached values are no longer guaranteed true.
+**1. Short answer:** it's a `Session` flag (default `True`) that throws away every cached value
+at commit, so the next read re-fetches from the database.
 
-**2.** **11.** One for `apollo.name`, one for `apollo.issues`, nine for the labels.
+Physically, "expiring" means **emptying the object's attribute cache**:
 
-**3.** The 9 label queries — one query for the collection, then N more inside the loop. Fixes:
-`selectinload()` (a second SELECT with `IN (...)`) or `joinedload()` (one SELECT with a JOIN).
-`selectinload` is usually the better default for collections.
+```
+before commit:  cached = ['id', 'name', 'created_at']
+after  commit:  cached = []          ← the values are gone
+next read:      → SELECT ... WHERE id = 1
+```
+
+**The argument for leaving it on: correctness beats speed here.**
+
+Your commit ends your transaction. The moment it does, someone else's transaction may change
+that row. The value on your desk was true *inside* your transaction; outside it, it's just an
+old photocopy. SQLAlchemy would rather cost you a query than hand you a number that quietly
+went stale.
+
+Turn it off (`sessionmaker(expire_on_commit=False)`) and you keep the cached values and emit
+zero queries — but you've accepted that they might be wrong. That's a real trade with real
+uses; just make it deliberately.
+
+**2. Short answer: 11.**
+
+| step | queries | why |
+|---|---|---|
+| `session.commit()` | 0 | commit itself doesn't read anything |
+| `apollo.name` | **1** | expired by the commit → re-SELECT the project row |
+| `apollo.issues` | **1** | relationship never loaded → SELECT the 9 issues |
+| `issue.labels` × 9 | **9** | one SELECT per issue, every time round the loop |
+| | **11** | |
+
+The trap in this question is the first line. It's tempting to answer 10 and forget that
+`apollo.name` — a plain string that was in memory a microsecond ago — costs a query too.
+
+**3. Short answer:** the N+1 is the **9**. The two fixes are `selectinload` and `joinedload`.
+
+Split the number apart:
+
+```
+   1     +     9
+   ▲           ▲
+   │           └── the "+N": one query PER ROW, inside the loop.  ← the problem
+   └── the "1": fetch the collection.  Unavoidable, and fine.
+```
+
+The 1 is honest work. The 9 is the bug — and it scales with your data, which is why it's
+invisible in dev and fatal in production. At 200 issues it's 201 queries; at 200,000 it's
+unusable.
+
+Both fixes work by telling SQLAlchemy the children are wanted **upfront**, so it never has to
+go back per row. Here is the same loop under all three, with the real SQL:
+
+```
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states     (§7)
+
+--- lazy (default): 10 statement(s), 9 Issue objects ---
+  1. SELECT ... FROM issues                          ← get the issues
+  2. SELECT ... FROM labels, issue_labels WHERE ? = issue_labels.issue_id
+     params: (1,)                                    ← "labels for issue 1?"
+  3. ... params: (2,)                                ← "labels for issue 2?"
+  4. ... params: (3,)                                ← and again, and again
+     ...                                                one round trip per issue
+  10. ... params: (9,)
+
+--- selectinload: 2 statement(s), 9 Issue objects ---
+  1. SELECT ... FROM issues                          ← get the issues
+  2. SELECT ... FROM issues AS issues_1 JOIN issue_labels ... JOIN labels
+     params: (1, 2, 3, 4, 5, 6, 7, 8, 9)             ← ALL nine ids in ONE query
+
+--- joinedload: 1 statement(s), 9 Issue objects ---
+  1. SELECT ... FROM issues LEFT OUTER JOIN (issue_labels JOIN labels ...)
+                                                     ← issues and labels together
+```
+
+**Now the difference is visible.** Look at the `params` line:
+
+- **lazy** asks nine separate questions, one id at a time: `(1,)` `(2,)` `(3,)` …
+- **`selectinload`** asks one question containing all nine ids: `(1,2,3,4,5,6,7,8,9)`. That's
+  the `IN (...)` — same information, one round trip instead of nine.
+- **`joinedload`** doesn't ask a second question at all; it glues labels onto the first query
+  with a JOIN.
+
+**So why isn't `joinedload` always the winner?** Because a JOIN *multiplies rows*. An issue
+with two labels comes back twice:
+
+```
+# runnable   →   the same states.py §7
+its JOIN returns 11 raw rows to describe 9 issues:
+    issue 1  label=bug       <-- appears 2x
+    issue 1  label=urgent    <-- appears 2x
+    issue 2  label=ui
+    issue 3  label=bug       <-- appears 2x
+    issue 3  label=ui        <-- appears 2x
+    issue 4  label=None
+    ...
+11 rows for 9 issues = 2 duplicated rows, caused by the
+2 issues that carry more than one label: [1, 3]
+```
+
+**Why exactly issues 1 and 3?** Because a JOIN emits **one row per match**, and those are the
+only two issues carrying more than one label — `(1,1) (1,2)` and `(3,1) (3,3)` in the seed. One
+label → one row. Two labels → two rows, and the issue's columns are copied into both. Issues
+4, 5, 6, 8, 9 have no labels at all and still appear once each, with `label=None`, because it's
+a **LEFT** join — that's what stops a label-less issue from vanishing.
+
+**11 rows to describe 9 issues.** SQLAlchemy quietly folds them back into 9 objects, so you
+never notice in Python — but the database still built and shipped every duplicate, and each
+duplicate carries *all six issue columns* again (title, description, status, created_at…).
+
+At two labels per issue, that's cheap. At **20** labels per issue it's 180 rows, each repeating
+the full issue row. `selectinload` never does this: its second query returns exactly one row
+per label, no repetition.
+
+| fix | queries | rows over the wire | reach for it when |
+|---|---|---|---|
+| `selectinload` | 2 | one per child, no repeats | **collections** (`.labels`, `.issues`) — the default choice |
+| `joinedload` | 1 | parent repeated per child | **many-to-one** (`.project`) — one row on the far side, so nothing repeats |
+
+**The rule in one line:** `joinedload` trades bandwidth for a round trip. That's a good trade
+when the far side is one row (many-to-one) and a bad one when it's a collection.
 
 </details>
 
@@ -1180,14 +1806,356 @@ cached values are no longer guaranteed true.
 
 ## Part 4 — Looking ahead to 2.0
 
-Deliberately unanswered. These get settled by *running* Step 6, not by reading — write your
-predictions in `LEARNING-LOG.md` first so the comparison is real.
+Parts 1–3 are about SQLAlchemy as it is. This part is about **why it changed**, and how to
+tell a real breakage from a style preference — the distinction the whole project rests on.
+
+**A note on how this part ends.** The four prediction questions at the bottom stay unanswered
+on purpose. Everything above them is here so those predictions are *informed* rather than
+guesses; the answers themselves you produce by running the upgrade. That exercise is the
+highest-value hour in Phase 0 and reading the answer destroys it.
+
+### §16 — Why 2.0 exists: one way to do things, instead of two
+
+SQLAlchemy 1.x grew two parallel APIs for the same job:
+
+```
+# illustration — two ways to run one query in 1.x
+
+  CORE                                    ORM
+  ────                                    ───
+  engine.execute("SELECT * FROM issues")  session.query(Issue).all()
+        │                                        │
+        │  returns rows                          │  returns objects
+        │  connection handled invisibly          │  connection from the session
+        │  transaction boundary unclear          │  transaction from the session
+```
+
+Two APIs meant two mental models, two sets of rules, and constant questions of the form *"is
+this a Core thing or an ORM thing?"* Worse, `engine.execute()` did **connectionless
+execution** — it quietly checked out a connection, ran the statement, and returned it. Handy,
+and it made "when did my transaction begin, and when will it end?" genuinely hard to answer.
+
+**2.0's central move is unification.** One way to build a statement (`select()`), one way to
+run it (`.execute()`), whether or not the ORM is involved. Connections and transactions become
+explicit.
+
+```python
+# illustration
+# 1.x style
+session.query(Issue).filter(Issue.status == "open").all()
+
+# 2.0 style
+session.execute(select(Issue).where(Issue.status == "open")).scalars().all()
+```
+
+**But look at what each actually sends** — this is the measurement that tells you whether
+you're facing a rewrite or a rename:
+
+```
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration     (§1)
+1.x  SELECT issues.id AS issues_id, issues.title AS issues_title, ... FROM issues WHERE issues.status = ?
+2.0  SELECT issues.id,              issues.title,                 ... FROM issues WHERE issues.status = ?
+
+     identical from FROM onward:        True
+     identical from WHERE onward:       True
+     identical including column labels: False
+```
+
+**Same tables, same WHERE, same parameters.** The only difference is that `Query` adds `AS
+issues_id` column labels and `select()` doesn't. The database is doing identical work.
+
+That is the single most useful thing to know before you migrate: **`session.query()` → `select()`
+is a change in how you write, not in what runs.** Which is why it emits no warning at all
+(§17), and why calling it a "breakage" would be wrong.
+
+> **Unification is the theme. Most of the 2.0 diff is one API absorbing the other, not
+> behaviour changing underneath you.**
+
+**Drill.**
+
+1. Name the two things 1.x had two of, that 2.0 has one of.
+2. `session.query(Issue)` and `select(Issue)` produce near-identical SQL. What follows from that about how urgent this migration is?
+
+<details>
+<summary>Answers</summary>
+
+**1. Short answer:** two ways to **build** a statement, and two ways to **run** one.
+
+| | 1.x | 2.0 |
+|---|---|---|
+| build | `session.query(Issue)` *or* a Core `select()` | `select(Issue)` — always |
+| run | `engine.execute(...)` *or* `.all()` on a Query | `.execute(...)` — always |
+
+Plus a third, quieter unification: connection handling. `engine.execute()` grabbed and released
+a connection invisibly; 2.0 makes you write `with engine.connect() as conn:` so the boundary is
+on the page.
+
+**2. Short answer:** it is not urgent, and it is not risky. It's a rename, not a rewrite.
+
+The SQL is the same, so no query plan changes, no performance changes, no behaviour changes.
+Nothing silently returns different rows. That's very different from a migration that alters
+what the database does.
+
+The practical consequence: **you can migrate this incrementally, file by file, and nothing
+half-migrated is broken.** Contrast with `engine.execute("...")`, which genuinely stops
+working — that one you must fix before 2.0 will run at all.
+
+Knowing the difference is the whole skill. Treating a style change as an emergency wastes a
+week; treating a real removal as a style change breaks production.
+
+</details>
+
+### §17 — Reading the warnings: four classes, only one is an emergency
+
+SQLAlchemy 1.4 will tell you what 2.0 thinks of your code, *before* you upgrade:
+
+```bash
+SQLALCHEMY_WARN_20=1 python -W always::DeprecationWarning -m your.module
+```
+
+That flag turns on the 2.0 deprecation warnings. Run it on this project's `app.py` and you get
+four distinct messages — and they are **not all the same severity**:
+
+```
+# runnable   →   SQLALCHEMY_WARN_20=1 uv run python -W always::DeprecationWarning \
+#                  -m experiments.sqlalchemy_1_4_vs_2_0.app
+
+models.py:8   MovedIn20Warning:   declarative_base() is now available as
+                                  sqlalchemy.orm.declarative_base()
+app.py:68     LegacyAPIWarning:   Query.get() ... is now available as Session.get()
+app.py:79     RemovedIn20Warning: Engine.execute() ... will be removed in 2.0
+app.py:79     RemovedIn20Warning: Passing a string to Connection.execute() is deprecated
+                                  and will be removed in version 2.0
+```
+
+**The class name is the whole message.** Learn to read it and you can triage a codebase in
+minutes:
+
+| warning class | what it promises | urgency |
+|---|---|---|
+| `RemovedIn20Warning` | **this stops working in 2.0** | fix before upgrading — real breakage |
+| `MovedIn20Warning` | same thing, new import path | one-line fix, do it any time |
+| `LegacyAPIWarning` | still works in 2.0, but is no longer the way | fix at leisure |
+| *(no warning at all)* | fully supported in 2.0 | not a migration item |
+
+**The fourth row is the one people miss.** `session.query(Model)` — the most obviously
+"1.4-looking" thing in this codebase — emits **nothing**, even under `WARN_20`, because 1.x
+`Query` is still supported in 2.0. It looks the most legacy and is the least broken.
+
+> **"Looks old" is not a measurement. Run the flag.**
+
+This project's own Step 4 nearly got this wrong in both directions: two of the five suspicious
+patterns turned out not to be version issues at all, and the one that reads most innocently
+(`engine.execute("SELECT ...")`) turned out to emit *two* `RemovedIn20Warning`s from a single
+line — one for the connectionless execution, one for the bare string.
+
+**Drill.**
+
+1. `RemovedIn20Warning` vs `LegacyAPIWarning` — what does each promise about 2.0?
+2. `session.query(Model)` looks like the most 1.4-ish thing in the codebase and emits no warning at all. What does that tell you?
+3. One line produced *two* `RemovedIn20Warning`s. Why would a single call be two separate problems?
+
+<details>
+<summary>Answers</summary>
+
+**1. Short answer:** `RemovedIn20Warning` = *it will stop working.* `LegacyAPIWarning` = *it
+will keep working, but it's no longer the recommended way.*
+
+One is a deadline; the other is advice. Only the first belongs in `BREAKAGES.md` — that file
+is for things that worked in 1.4 and **stopped working** in 2.0. Filling it with style
+preferences would seed the Phase 2 corpus with questions no upgrading developer actually asks.
+
+**2. Short answer:** that appearance and compatibility are unrelated, and only one of them is
+measurable.
+
+`session.query()` is 1.x *style* but not 1.x-*only*. It is fully supported in 2.0, so there is
+no warning to emit. Had you triaged by eye you'd have flagged it as a breakage — and been
+wrong twice over: wrong that it breaks, and wrong to spend migration time on it before fixing
+`engine.execute()`, which actually does break.
+
+**3. Short answer:** because `engine.execute("SELECT ...")` does **two** deprecated things at
+once.
+
+```python
+engine.execute("SELECT count(*) FROM issues")
+#      ▲        ▲
+#      │        └── problem 2: a bare string instead of text(...)
+#      └── problem 1: connectionless execution — no explicit connection
+```
+
+Each has its own 2.0 replacement, so each gets its own warning:
+
+```python
+# the 2.0 form fixes both
+with engine.connect() as conn:                     # ← explicit connection
+    conn.execute(text("SELECT count(*) FROM issues"))   # ← explicit text()
+```
+
+Worth internalising: **warning count ≠ line count.** One call site can hold several
+independent migration problems, and a naive "how many lines must I change" estimate misses
+them.
+
+</details>
+
+### §18 — `future=True`: run 2.0's rules without installing 2.0
+
+The most useful migration fact in this document, and it needs no upgrade at all.
+
+SQLAlchemy **1.4 ships 2.0's behaviour behind a flag.** Pass `future=True` and that engine or
+session enforces 2.0 rules immediately:
+
+```python
+# illustration
+engine  = create_engine("sqlite://", future=True)
+Session = sessionmaker(bind=engine, future=True)
+```
+
+Measured on 1.4.52 — the same call, with and without the flag:
+
+```
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration     (§2)
+normal engine : sqlalchemy.engine.base.Engine
+future engine : sqlalchemy.future.engine.Engine
+
+engine.execute("SELECT 1") on normal 1.4 engine   -> worked
+engine.execute("SELECT 1") on future=True engine  -> NotImplementedError:
+                                 This method is not implemented for SQLAlchemy 2.0.
+```
+
+**You can experience the 2.0 breakage today, on the version you already have.** No upgrade, no
+reinstall, no risk to the rest of the project.
+
+Which makes the real migration strategy incremental rather than a big-bang rewrite:
+
+```
+1. SQLALCHEMY_WARN_20=1     →  get the full list of what 2.0 objects to      (§17)
+2. fix every RemovedIn20Warning  →  the things that actually break
+3. flip future=True         →  prove the fixes hold under 2.0 rules,
+                               while still running 1.4
+4. only then bump to 2.0    →  by which point nothing should be left to find
+```
+
+Step 3 is the one people skip, and it's the one that converts "I hope this works" into "I
+watched it work." You get the errors on your own schedule instead of during an upgrade with
+everything moving at once.
+
+> **You do not have to choose between "still on 1.4" and "already on 2.0." `future=True` is
+> the bridge, and it makes the upgrade boring — which is what you want an upgrade to be.**
+
+**Drill.**
+
+1. What does `future=True` do, and why would you use it *before* upgrading?
+2. Order these correctly: bump to 2.0 · fix `RemovedIn20Warning`s · flip `future=True` · run `SQLALCHEMY_WARN_20=1`. Justify the position of the last two.
+
+<details>
+<summary>Answers</summary>
+
+**1. Short answer:** it makes a 1.4 engine or session enforce 2.0's rules, so you can hit 2.0's
+errors while still running 1.4.
+
+Measured: `engine.execute("SELECT 1")` works on a normal 1.4 engine and raises
+`NotImplementedError: This method is not implemented for SQLAlchemy 2.0.` on a `future=True`
+one.
+
+**Why before upgrading:** it separates *finding* problems from *being broken by* them. An
+upgrade changes every behaviour at once, so when something fails you're debugging against a
+moving target. `future=True` lets you change one thing, watch it break, fix it, and repeat —
+with a working 1.4 environment underneath the whole time. It also reverses instantly: delete
+the flag.
+
+**2. Short answer:**
+
+```
+1. run SQLALCHEMY_WARN_20=1      ← inventory first: you can't plan what you haven't listed
+2. fix the RemovedIn20Warnings   ← the only tier that actually breaks
+3. flip future=True              ← verification: prove the fixes hold under 2.0 rules
+4. bump to 2.0                   ← should be uneventful by now
+```
+
+**Why the warning flag is first:** it's read-only. It changes nothing and costs one command,
+so there is no reason to guess at scope when you can measure it.
+
+**Why `future=True` sits before the version bump:** it's the only step that gives you 2.0's
+errors while you still have a working 1.4 environment to fall back to. Skip it and step 4
+becomes the moment you discover what you missed — with the old version already uninstalled.
+
+Steps 1 and 3 are both verification, at opposite ends: one tells you what to do, the other
+tells you whether you did it.
+
+</details>
+
+### §19 — What 2.0 does *not* fix
+
+Not every problem in a 1.4 codebase is a 1.4 problem. Two of the ugliest things in this
+project survive the upgrade completely untouched:
+
+| looks like a version problem | actually is | proof |
+|---|---|---|
+| the N+1 in `issue_report()` | a **loading-strategy** bug — equally slow in both | §15 |
+| `DetachedInstanceError` | a **session-lifecycle** bug — fires identically in 1.4 | §14 |
+
+Both were *measured* under 1.4 in Part 3, before either was blamed on the version. Neither
+emits a migration warning, because neither is a migration issue. Upgrade to 2.0 and the N+1
+still fires 201 queries; the detached object still raises.
+
+**Why this matters more than it sounds.** `BREAKAGES.md` becomes the Phase 2 golden dataset.
+Every entry is a question a real developer asks while upgrading. Put "why is my loop slow?" in
+it and you have seeded your retrieval corpus with a question that has nothing to do with
+upgrading — and you will then evaluate your system against it and score yourself on the wrong
+thing.
+
+> **A breakage is something that worked in 1.4 and stopped working in 2.0. Not "something bad
+> I found while migrating."**
+
+Of the five suspicious patterns Step 4 examined, measurement moved **two** out of the breakage
+list entirely. Both would have looked perfectly plausible in the corpus.
+
+**Drill.**
+
+1. Give the one-sentence test for whether something belongs in `BREAKAGES.md`.
+2. The N+1 and `DetachedInstanceError` both surfaced during migration work. Why does neither qualify?
+
+<details>
+<summary>Answers</summary>
+
+**1. Short answer:** *did this work in 1.4 and stop working in 2.0?* Yes → it belongs. Anything
+else → it doesn't.
+
+Note what the test excludes: things that are slow in both, things that were always wrong,
+things that merely became unfashionable. "I encountered it during the upgrade" is not the test.
+
+**2. Short answer:** both fail identically in 1.4, so the version changed nothing about them.
+
+| | in 1.4 | in 2.0 | version-dependent? |
+|---|---|---|---|
+| N+1 in a loop | 201 queries | 201 queries | no — a loading-strategy bug |
+| `DetachedInstanceError` | raises (§14 traced it) | raises | no — a lifecycle bug |
+
+They're real bugs and worth fixing. They're just not *upgrade* bugs, and the corpus is
+specifically about upgrading.
+
+The failure mode to guard against: you spend a week migrating, you meet several problems, and
+they all get filed under "2.0 issues" because that's what you were doing at the time.
+Measurement is what separates them — which is why Part 3 traced both under 1.4 *before* any
+2.0 work started.
+
+</details>
+
+### Predictions — write these down before you run anything
+
+These four stay unanswered on purpose. Put your answers in `LEARNING-LOG.md` **first**, then
+run the upgrade and diff your predictions against what actually happened. A prediction you
+wrote and got wrong teaches more than an answer you read.
+
+Everything you need to reason about them is in §16–§19. That's the point — these are
+predictions, not guesses.
 
 1. `SQLALCHEMY_WARN_20=1` on the current code — which lines do you expect it to flag? List
    them by file and construct **before** running.
 2. Which of these breaks in 2.0, and what replaces each: `session.query(Issue)`,
    `Query.get(id)`, `engine.execute("SELECT ...")`, `declarative_base()` imported from
-   `sqlalchemy.ext.declarative`?
+   `sqlalchemy.ext.declarative`? For each, name the **tier** (§17), not just the fix.
 3. Predict the `DetachedInstanceError` scenario: what must happen, in what order, for it to
-   fire?
-4. Does `backref` still work in 2.0? Is "still works" the same as "still recommended"?
+   fire? Does the version matter (§19)?
+4. Does `backref` still work in 2.0? Which tier is it, and is "still works" the same as "still
+   recommended"?
