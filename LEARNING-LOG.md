@@ -29,13 +29,12 @@ This split is why the log stays readable: an idea gets one explanation in `CONCE
   **Drill** (42 questions, collapsed answers). §0 schema map and §14/§15 runtime added.
 - ✅ **Step 3** — `seed.py` builds `issues.db`: 200 issues, 710 comments, 387 label links,
   303 assignments, 60 blocking pairs. Deterministic and idempotent.
-- ⬜ **Steps 4–10** — the 1.4 query layer, baseline query counts, `SQLALCHEMY_WARN_20`, the
-  2.0 upgrade, `BREAKAGES.md`. **← you are here. No breakage work has started.**
+- ✅ **Step 4** — `app.py`: five functions in deliberately bad 1.4 style, all green.
+- ⬜ **Steps 5–10** — baseline query counts, `SQLALCHEMY_WARN_20`, the 2.0 upgrade,
+  `BREAKAGES.md`. **← you are here.**
 
-**Immediate next action:** Step 4 — `app.py`, half a dozen functions in deliberately bad 1.4
-style: `session.query(...)`, `Query.get()`, a raw `engine.execute("SELECT ...")` without
-`text()`, an N+1 report loop, and a function that returns an `Issue` after its session closed
-(the future `DetachedInstanceError`, → §14).
+**Immediate next action:** Step 5 — re-run `issue_report()` with `echo=True` and count the
+SELECTs. Expect roughly 1 + 200 + 200. Write the number down; Step 9 compares against it.
 
 ---
 
@@ -145,6 +144,27 @@ Also: added `description` to `Issue` — the declarative constructor rejects unk
 outright, so a missing column fails loudly at `__init__` rather than silently — and `__repr__`
 to every mapped class.
 
+### Aug 3 — Step 4, and a correction worth more than the code `(→ Step 4)`
+`app.py`: five functions, all green under 1.4.52, all deliberately bad. Legacy `Query` API,
+`Query.get()`, a raw `engine.execute()` with an unwrapped string, an N+1 report over all 200
+issues, and a function returning a detached `Issue`.
+
+**The finding.** The first draft's docstring claimed all of these were "2.0 problems". Testing
+each one under `SQLALCHEMY_WARN_20=1` instead of assuming produced three different answers:
+
+```
+session.query(...).all()     -> NO WARNING        legacy, still works in 2.0
+Query.get(42)                -> LegacyAPIWarning  deprecated, still works
+engine.execute(str)          -> RemovedIn20Warning  actually removed
+```
+
+Only the third genuinely breaks. `DetachedInstanceError` isn't a version issue at all — it
+fires identically in 1.4 (§14 has it traced). Neither is the N+1.
+
+This is exactly the trap the boundary rule below exists for: three plausible-looking
+"breakages", two of which would have poisoned the Phase 2 golden dataset with questions no
+upgrading user would ask. Assertion caught by measurement, before it reached `BREAKAGES.md`.
+
 ### Aug 3 — Step 3, the seed that hurts `(event only, → Step 3)`
 `seed.py` writes a real SQLite **file** (`issues.db`), not in-memory — Step 4 opens the same
 database from a separate process. Generated in a loop from a fixed `RANDOM_SEED`, so the
@@ -231,7 +251,25 @@ defensible.
 Target is ≥10. These get written up properly — exact error text, 2.0 fix, migration-guide
 link — in Step 7, after the real 2.0 run in Step 8.
 
-1. **`declarative_base()` imported from `sqlalchemy.ext.declarative`** → `MovedIn20Warning`;
-   now lives at `sqlalchemy.orm.declarative_base`. *Found by argument + test, not by reading.*
-2. **`backref=`** → discouraged in 2.0 in favour of explicit `back_populates` on both sides.
-   *(Not yet verified against a real 2.0 run — confirm in Step 8 before writing it up.)*
+Sorted by severity, because the distinction turned out to matter more than expected — see
+the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
+
+**Removed — these actually fail in 2.0:**
+1. **`engine.execute("SELECT ...")`** → two `RemovedIn20Warning`s from one line: connectionless
+   execution *and* the bare string. Fix: `with engine.connect() as c: c.execute(text(...))`.
+   *Measured under 1.4.52 with `SQLALCHEMY_WARN_20=1`.*
+2. **`declarative_base()` imported from `sqlalchemy.ext.declarative`** → `MovedIn20Warning`;
+   now at `sqlalchemy.orm.declarative_base`. Moved and deprecated, **not** removed.
+
+**Deprecated — warns, still runs:**
+3. **`Query.get(pk)`** → `LegacyAPIWarning`. Fix: `session.get(Model, pk)`.
+
+**Legacy — silent, still runs. Probably NOT `BREAKAGES.md` material:**
+4. **`session.query(Model)`** → emits **no warning at all**, even under `WARN_20`, and works
+   in 2.0. The 2.0 *style* is `select()`, but 1.x `Query` remains supported. Listed here so
+   the eventual write-up says "style migration", not "breakage".
+5. **`backref=`** → discouraged in favour of `back_populates`. *(Still unverified against a
+   real 2.0 run — confirm in Step 8.)*
+
+**Not version issues — do not put these in `BREAKAGES.md`:** the N+1 in `issue_report()`
+(equally slow in both) and `DetachedInstanceError` (fires in 1.4 too, → §14).
