@@ -125,7 +125,7 @@ your fault.
 
 ---
 
-# Steps
+## Steps
 
 Ten steps. Commit after each one — the lab PC is shared and may be reimaged, and a granular
 history is also the thing you'll walk an interviewer through.

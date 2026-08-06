@@ -1,6 +1,8 @@
-# SQLAlchemy Migration Assistant — Project Roadmap
+# Roadmap — the six-phase arc
 
-**Last updated:** 2026-07-11
+The long view for [`sqlalchemy-upgrade-agent`](README.md): what gets built, in what order,
+and why each phase exists. Start at [`README.md`](README.md); the current phase is detailed
+in [`PHASE-0.md`](PHASE-0.md).
 
 ---
 

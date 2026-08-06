@@ -1,5 +1,8 @@
 # Phase 0 — Remediation & Environment (~2 weeks)
 
+The current phase, in detail. See [`README.md`](README.md) for the repo map and
+[`ROADMAP.md`](ROADMAP.md) for the phases either side of this one.
+
 ## Context
 
 Viraj is building a flagship portfolio project (a RAG system for SQLAlchemy 1.4→2.0

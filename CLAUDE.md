@@ -1,14 +1,36 @@
-# sqlalchemy-upgrade-agent
+# Working agreement — how Claude works on this repo
 
-A RAG system that helps developers upgrade Python code from **SQLAlchemy 1.4 → 2.0**.
-Portfolio project targeting Applied AI Engineer roles (Nvidia, Meta, Google, Apple,
-Anthropic, and startups).
+Instructions for the AI assistant. Humans want [`README.md`](README.md), which maps the repo;
+this file is about *how the work gets done*, not what the work is.
 
+The project: a RAG system that helps developers upgrade Python code from
+**SQLAlchemy 1.4 → 2.0**. Portfolio project targeting Applied AI Engineer roles (Nvidia,
+Meta, Google, Apple, Anthropic, and startups).
+
+- **`README.md`** — the front door and the map: every doc, every script, and what each proves.
+  **Keep it current** — it is the only file that indexes the whole repo.
 - **`ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
 - **`PHASE-0.md`** — the current phase in detail.
 - **`CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
 - **`MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `CONCEPTS.md`'s section
   numbering, so a reference to "§18" is unambiguous across both files.
+- **`BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
+  the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
+  Never regenerate over it once filled — diff instead (the file's own header says how).
+- **`experiments/sqlalchemy_1_4_vs_2_0/__init__.py`** — the package manifest: what each of the
+  eleven modules is for, in run order.
+
+### The measurement rule — applies to every doc and every script
+
+**Never assert a number, a count, or an output you did not derive.** If a doc shows output, a
+`# runnable` command must reproduce it verbatim — folding, wrapping and annotations are the
+*script's* job, never hand-editing in the markdown. If a script prints a count, it must compute
+it, not carry a literal someone typed once.
+
+This is not style. Every time it has been violated in this repo, Viraj caught it and the
+underlying claim turned out to be wrong or unreproducible — the §14 state trace with no file
+behind it, the hardcoded `issue_id in (1, 3)`, the flush/commit answer, the `1013 / 7 / 8`
+table. Assume the same will happen again.
 
 ---
 
@@ -180,3 +202,33 @@ Append a dated entry each session; keep each entry to a few bullets.
   three strategies (the `params` line makes it obvious — nine `(1,)` `(2,)`… vs one
   `(1..9)`), plus the 11-raw-rows-for-9-issues output that makes joinedload's row
   multiplication concrete rather than asserted.
+
+### 2026-08-05 / 08-06
+- **Provenance audit of `MIGRATION-2.0.md`.** Viraj asked whether code and docs were in sync.
+  40 doc lines didn't match real output; now 0 across 106 blocks. Fixes went into the *scripts*
+  — `states.py` §7 derives its `←` notes and folds its own N+1 middle, `migration.py` folds
+  column lists and wraps long errors — so a `# runnable` block is a literal paste. Added a third
+  block label, `# summary of`, for the two blocks that honestly can't be.
+- **Claim-by-claim review of §16–§22 found six errors.** The `-W` explanation (PEP 565: the
+  flag reveals *imported-module* warnings, not all of them), `Query.where()` exists in 1.4,
+  `MovedIn20Warning` **subclasses** `RemovedIn20Warning` (so `isinstance` triage over-reports),
+  §19's inventory was one file, and `.scalars()` truncates *silently* with the index as a
+  parameter.
+- **`cascade_backrefs` — the biggest finding, and it wasn't in the chapter at all.** Under 2.0
+  an object attached by the *many-to-one* side is never enrolled: no exception, the `INSERT`
+  just never runs. The collection side survives. Applied to `seed.py`'s own pattern, every
+  comment and assignment vanishes while the seed reports success. Confirmed on real 2.0.51.
+- **New tooling.** `sweep.py` (warning inventory across every module — 1042 occurrences collapse
+  to 4 distinct problems), `patterns.py` (shared case list so prediction and verification can't
+  drift), `candidates.py` (classifies by which tool can see it), `verify_2_0.py` (runs the
+  patterns on real 2.0 via `uv run --no-project --with`, no upgrade needed; `--stubs` emits the
+  `BREAKAGES.md` skeleton).
+- **`BREAKAGES.md` created: 23 entries, target was ≥10.** 22 of 24 patterns fail on 2.0.51.
+  Notably one pattern (`row["col"]`) is called *safe* by both 1.4-side tools and still fails —
+  the empirical argument for running the real thing.
+- **Repo structure pass.** `README.md` was 0 bytes and is now the map; `pyproject.toml`
+  description was still the `uv` placeholder; added the package `__init__.py` manifest; deleted
+  `CLAUDE.md.bak`. Kept `PRACTICE-APP.md` and `DOCKER-STUDY.md` — checked, both current.
+- **Deliberately NOT done:** the actual version bump (Viraj's call), and renaming
+  `experiments/sqlalchemy_1_4_vs_2_0/` — ~180 cross-references for modest gain, and the name is
+  defensible once `__init__.py` explains the contents.
