@@ -1,7 +1,7 @@
 [project]
 name = "sqlalchemy-upgrade-agent"
 version = "0.1.0"
-description = "Add your description here"
+description = "RAG system that helps developers upgrade Python code from SQLAlchemy 1.4 to 2.0"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

@@ -1,5 +1,8 @@
 # Docker — study notes
 
+Part of [`sqlalchemy-upgrade-agent`](README.md); see [`PHASE-0.md`](PHASE-0.md) for where
+this sits in the plan.
+
 Reading material for Phase 0 Part C (Days 4–7). **Mobile-friendly: read it away from the
 keyboard.**
 
