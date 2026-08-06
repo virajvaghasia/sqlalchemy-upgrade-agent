@@ -65,8 +65,16 @@ answers are collapsed — attempt them before expanding.
 > fallible author (human and AI both). The **Proof** blocks are where the library speaks
 > for itself.
 
-Code blocks are labelled: `# runnable` means it executes as written; `# illustration` means
-it's a fragment or a "what SQL this becomes" sketch, not something to paste and run.
+Code blocks are labelled three ways:
+
+| Label | Contract |
+|---|---|
+| `# runnable` | Paste the named command and you get **exactly this text**. Nothing here was typed by hand — where output is folded, wrapped or annotated, the *script* does it. |
+| `# summary of` | Real output from the named command, but **abridged by hand** because the raw form is too noisy to read. The numbers are measured; the layout is not a paste. |
+| `# illustration` | A fragment or a "what SQL this becomes" sketch. Not something to paste and run. |
+
+The distinction is the point. A block that claims `# runnable` and can't be reproduced is worse
+than no block, because it looks like evidence.
 
 ---
 
@@ -1385,6 +1393,12 @@ failure rolls back together.
 > enrolls it too. `explore.py` never calls `session.add()` on 8 of its 9 issues — they arrive
 > via `apollo.issues.append(...)`, and setting the other direction (`issue.project = apollo`)
 > works the same way, because the `backref` populates `apollo.issues` in memory first.
+>
+> **⚠ Those two directions stop being equivalent in 2.0.** `apollo.issues.append(issue)`
+> survives; `issue.project = apollo` does not — 2.0 drops the backref leg, so the object is
+> never enrolled, the `INSERT` never runs, and **nothing is raised**. It is the most dangerous
+> item in this repo's upgrade. Measured in `MIGRATION-2.0.md` §17; the sentence above is
+> 1.4-only, and is left that way on purpose because this file documents 1.4.
 
 **First, the picture that makes the rest of this section easy.** Forget SQLAlchemy for a
 moment:
@@ -1472,12 +1486,12 @@ session to refresh from.
 constructed            transient   expired=False  cached=['status', 'title']
 issue.project = p      pending     expired=False  cached=['project', 'status', 'title']
                        issue.id is None — no INSERT has run yet
-session.flush()        persistent  expired=False  cached=['id', 'project', 'project_id', ...]
+session.flush()        persistent  expired=False  cached=['id', 'project', 'project_id', 'status', 'title']
                        issue.id is 1 — the database assigned it
 session.commit()       persistent  expired=True   cached=[]
                        cached is empty — every loaded value was discarded
 
-session.close()        detached    expired=False  cached=['created_at', 'description', ...]
+session.close()        detached    expired=False  cached=['created_at', 'description', 'id', 'project_id', 'status', 'title']
     issue.title  -> 'login button broken'   (was loaded before the close)
     issue.labels -> DetachedInstanceError
 ```
@@ -1536,8 +1550,9 @@ to `commit()`.** Measured, same commit both times:
 # runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states     (§6)
 (a) committed without ever calling flush() -> rows: 1
 (b) after flush: rows visible=1, transaction open=True -> after rollback: rows=0
-(c) expire_on_commit=True  -> expired=True  cached=[]              queries reading p.name: 1
-    expire_on_commit=False -> expired=False cached=['id', 'name']  queries reading p.name: 0
+(c) expiry is a Session flag, not a property of commit():
+    expire_on_commit=True  -> expired=True  cached=[]                   queries reading p.name: 1
+    expire_on_commit=False -> expired=False cached=['id', 'name']       queries reading p.name: 0
 ```
 
 **3. Short answer:** yes, it gets inserted. The mechanism is the **`save-update` cascade**,
@@ -1559,6 +1574,18 @@ it.
 
 This is why `explore.py` calls `session.add()` on only one of its nine issues. The other eight
 arrive by attachment.
+
+**⚠ "Either direction" is a 1.4 fact, and it's the one to remember when you upgrade.** The two
+directions are not the same mechanism — they only look the same here:
+
+| | mechanism | 2.0 |
+|---|---|---|
+| `apollo.issues.append(issue)` | the save-update cascade itself | **survives** |
+| `issue.project = apollo` | the *backref* populating `apollo.issues`, then the cascade | **dropped — silently** |
+
+Under 2.0 the second form enrolls nothing: no `INSERT`, no exception, no warning at runtime.
+`MIGRATION-2.0.md` §17 measures it and shows what it does to `seed.py` (every comment and
+assignment vanishes). Learn the mechanism here; learn which half survives there.
 
 **4. Short answer:** nothing is broken. Each table counts from 1 on its own.
 
@@ -1619,8 +1646,12 @@ load on first touch, one query each. Put a loop around them and you have N+1:
 ```
 
 **The "1" is the collection query. The "+N" is one query per row inside the loop.** That is
-the whole definition, and the reason it scales so badly: at 200 issues (Step 3) this same
-loop becomes **202 queries**, and each one is a full network round trip.
+the whole definition, and the reason it scales so badly: at 200 issues this same loop would
+become **202 queries** (1 + 1 + 200), and each one is a full network round trip.
+
+*That 202 is arithmetic, not a measurement* — it's this loop's 11 with 200 substituted for 9.
+For a number that was actually counted at 200 rows, see `app.issue_report()`: **204 queries**,
+and the breakdown is not the one you'd predict (`MIGRATION-2.0.md` §21).
 
 **The two standard fixes**, both one keyword:
 
@@ -1662,9 +1693,11 @@ a query and never touches the project. That is the whole difference between **11
 rows; `joinedload` earns its keep on many-to-one (`issue.project`), where there is exactly one
 row on the far side and no duplication to pay for.
 
-> **Write the number down.** 11 queries for 9 issues (Scope A) is the baseline. Step 5 asks for the same
-> count at ~200 rows, and the before/after is the story you tell an interviewer — "I found a
-> 202-query page and made it 2" is a sentence with evidence behind it.
+> **Write the number down.** 11 queries for 9 issues (Scope A) is the baseline. Step 5 asks for
+> the same count at ~200 rows, and the before/after is the story you tell an interviewer — "I
+> found a 204-query page and made it *n*" is a sentence with evidence behind it, where 204 is
+> counted (`MIGRATION-2.0.md` §21) and *n* is whatever Step 9 measures. Quote counted numbers,
+> not extrapolated ones; the difference is exactly what an interviewer will probe.
 
 **Drill.**
 
@@ -1722,8 +1755,15 @@ Split the number apart:
 ```
 
 The 1 is honest work. The 9 is the bug — and it scales with your data, which is why it's
-invisible in dev and fatal in production. At 200 issues it's 201 queries; at 200,000 it's
-unusable.
+invisible in dev and fatal in production. At 200 issues this loop is 201 queries; at 200,000
+it's unusable.
+
+**Careful with that extrapolation, though.** It holds here because `labels` is a *collection*,
+and a collection is never in the identity map as a whole, so every row pays. Substitute a
+many-to-one (`issue.project`) and the scaling collapses: SQLAlchemy checks the identity map by
+primary key first, so 200 issues across 3 projects cost **3** queries, not 200. Measured in
+`MIGRATION-2.0.md` §21. *Which side of that line a relationship sits on decides whether it is
+an N+1 at all.*
 
 Both fixes work by telling SQLAlchemy the children are wanted **upfront**, so it never has to
 go back per row. Here is the same loop under all three, with the real SQL:
@@ -1732,23 +1772,28 @@ go back per row. Here is the same loop under all three, with the real SQL:
 # runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states     (§7)
 
 --- lazy (default): 10 statement(s), 9 Issue objects ---
-  1. SELECT ... FROM issues                          ← get the issues
+  1. SELECT ... FROM issues                                                 ← get the issues
   2. SELECT ... FROM labels, issue_labels WHERE ? = issue_labels.issue_id
-     params: (1,)                                    ← "labels for issue 1?"
-  3. ... params: (2,)                                ← "labels for issue 2?"
-  4. ... params: (3,)                                ← and again, and again
-     ...                                                one round trip per issue
-  10. ... params: (9,)
+     params: (1,)                                                           ← "labels for issue 1?"
+  3. SELECT ... FROM labels, issue_labels WHERE ? = issue_labels.issue_id
+     params: (2,)                                                           ← "labels for issue 2?"
+     ... statements 4-9 identical, params (3,) through (8,)                 ← one round trip per issue
+  10. SELECT ... FROM labels, issue_labels WHERE ? = issue_labels.issue_id
+     params: (9,)                                                           ← "labels for issue 9?"
 
 --- selectinload: 2 statement(s), 9 Issue objects ---
-  1. SELECT ... FROM issues                          ← get the issues
-  2. SELECT ... FROM issues AS issues_1 JOIN issue_labels ... JOIN labels
-     params: (1, 2, 3, 4, 5, 6, 7, 8, 9)             ← ALL nine ids in ONE query
+  1. SELECT ... FROM issues                                                 ← get the issues
+  2. SELECT ... FROM issues AS issues_1 JOIN issue_labels AS issue_labels_
+     params: (1, 2, 3, 4, 5, 6, 7, 8, 9)                                    ← ALL 9 ids in ONE query
 
 --- joinedload: 1 statement(s), 9 Issue objects ---
-  1. SELECT ... FROM issues LEFT OUTER JOIN (issue_labels JOIN labels ...)
-                                                     ← issues and labels together
+  1. SELECT ... FROM issues LEFT OUTER JOIN (issue_labels AS issue_labels_  ← issues and labels together
 ```
+
+Every `←` above is printed by `states.py`, not added here — including the `... statements 4-9`
+fold, which the script writes and which names exactly the range it covers. The SQL is truncated
+by the script too. A `# runnable` block you can't reproduce by running it is worth less than no
+block at all.
 
 **Now the difference is visible.** Look at the `params` line:
 
@@ -1770,7 +1815,11 @@ its JOIN returns 11 raw rows to describe 9 issues:
     issue 3  label=bug       <-- appears 2x
     issue 3  label=ui        <-- appears 2x
     issue 4  label=None
-    ...
+    issue 5  label=None
+    issue 6  label=None
+    issue 7  label=urgent
+    issue 8  label=None
+    issue 9  label=None
 11 rows for 9 issues = 2 duplicated rows, caused by the
 2 issues that carry more than one label: [1, 3]
 ```

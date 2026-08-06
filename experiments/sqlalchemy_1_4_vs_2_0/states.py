@@ -106,6 +106,16 @@ describe("constructed", issue)
 # TRANSIENT -> PENDING. Note that session.add() is never called on `issue`:
 # assigning .project attaches it to something already in the session, and the
 # save-update cascade enrolls it. explore.py relies on the same mechanism.
+#
+# THIS PARTICULAR DIRECTION IS VERSION-DEPENDENT, and it is the repo's most
+# dangerous 2.0 item. Writing the MANY-TO-ONE side (issue.project = p) works in
+# 1.4 only because the backref populates project.issues first, and 2.0 drops
+# that leg: `issue` would stay transient, no INSERT would run, and NOTHING
+# would be raised — describe() below would print `pending` on 1.4 and
+# `transient` on 2.0. Writing the COLLECTION side (project.issues.append(issue))
+# survives both. Measured in migration.py §8; written up in MIGRATION-2.0.md
+# §17. Left as-is deliberately — this file documents 1.4 — but do not copy the
+# many-to-one form into new code.
 issue.project = project
 session.add(project)
 describe("issue.project = p", issue)
@@ -314,6 +324,37 @@ section("7. What each loading strategy actually sends")
 
 seen_sql = []
 
+# Where the "←" notes start, so they line up into a readable column.
+NOTE_COL = 76
+
+
+def annotate(stmt, params):
+    """Say what a statement is FOR, derived from the statement itself.
+
+    Deriving beats hardcoding for the same reason show_join_multiplication()
+    counts instead of asserting: a note keyed to "this is the selectinload run"
+    keeps printing confidently after the strategy or the seed changes. A note
+    read off the params can't.
+    """
+    if not params:
+        return "issues and labels together" if "JOIN" in stmt else "get the issues"
+    if len(params) == 1:
+        return f'"labels for issue {params[0]}?"'
+    return f"ALL {len(params)} ids in ONE query"
+
+
+def print_stmt(n, stmt, params):
+    flat = " ".join(stmt.split())
+    # Column lists are noise here; the FROM/WHERE shape is the point.
+    body = flat[flat.index("FROM"):] if "FROM" in flat else flat
+    note = annotate(flat, params)
+    head = f"  {n}. SELECT ... {body[:58].rstrip()}"
+    if params:
+        print(head)
+        print(f"     params: {params}".ljust(NOTE_COL) + f"← {note}")
+    else:
+        print(head.ljust(NOTE_COL) + f"← {note}")
+
 
 def show(strategy, option):
     """Run the identical loop under one loading strategy and print its SQL."""
@@ -328,13 +369,18 @@ def show(strategy, option):
         _ = i.labels
 
     print(f"--- {strategy}: {len(seen_sql)} statement(s), {len(issues)} Issue objects ---")
+    # The repetitive middle of an N+1 is folded HERE, in the program, and the
+    # fold line names exactly which statements it covers. Doing it in the script
+    # rather than by hand in CONCEPTS.md is the point: a block labelled
+    # "# runnable" has to be something you can actually get by running it.
+    fold = len(seen_sql) > 5
     for n, (stmt, params) in enumerate(seen_sql, 1):
-        flat = " ".join(stmt.split())
-        # Column lists are noise here; the FROM/WHERE shape is the point.
-        body = flat[flat.index("FROM"):] if "FROM" in flat else flat
-        print(f"  {n}. SELECT ... {body[:150]}")
-        if params:
-            print(f"     params: {params}")
+        if fold and 4 <= n < len(seen_sql):
+            if n == 4:
+                span = f"     ... statements 4-{len(seen_sql) - 1} identical, params {seen_sql[3][1]} through {seen_sql[-2][1]}"
+                print(span.ljust(NOTE_COL) + "← one round trip per issue")
+            continue
+        print_stmt(n, stmt, params)
     print()
 
 
@@ -371,7 +417,7 @@ def show_join_multiplication():
     print(f"  its JOIN returns {len(raw)} raw rows to describe {n_issues} issues:")
     for issue_id, label_name in raw:
         note = f"  <-- appears {appearances[issue_id]}x" if issue_id in repeated else ""
-        print(f"    issue {issue_id}  label={str(label_name):<8}{note}")
+        print(f"    issue {issue_id}  label={str(label_name):<8}{note}".rstrip())
 
     extra = len(raw) - n_issues
     print(f"  {len(raw)} rows for {n_issues} issues = {extra} duplicated rows, caused by the")

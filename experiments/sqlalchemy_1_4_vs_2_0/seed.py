@@ -27,7 +27,10 @@ DB_PATH = "issues.db"
 DB_URL = f"sqlite:///{DB_PATH}"
 
 # Fixed so the counts never move between runs. If this changed run to run, the
-# "202 queries before, 2 after" comparison in Step 9 would be meaningless.
+# before/after comparison in Step 9 would be meaningless. The "before" is
+# counted, not estimated: issue_report() fires 204 queries against this data
+# (200 for .comments, 3 for .project, 1 for the issues themselves) — see
+# migration.py §7.
 RANDOM_SEED = 20260803
 
 N_ISSUES = 200

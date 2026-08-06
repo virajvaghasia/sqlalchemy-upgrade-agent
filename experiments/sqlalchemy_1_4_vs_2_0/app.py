@@ -82,11 +82,18 @@ def count_issues_raw(engine):
 
 def issue_report(session):
     """
-    The N+1. Both attribute reads inside the loop are lazy loads: one query per
-    issue for .project, one per issue for .comments.
+    The N+1. Both attribute reads inside the loop are lazy loads, but only ONE of
+    them is an N+1, and the difference is worth knowing before you "fix" it:
 
-    Left deliberately unoptimised — Step 5 counts what this costs, Step 9 fixes it
-    and compares. See CONCEPTS §15.
+      .comments  one-to-many  -> 200 queries. A collection is never in the
+                                 identity map as a collection, so every issue pays.
+      .project   many-to-one  -> 3 queries. One object with a known PK, so the
+                                 identity map answers after the first miss per
+                                 project — and there are 3 projects in the seed.
+
+    204 total, counted (migration.py §7), not the 401 the obvious arithmetic
+    suggests. Left deliberately unoptimised — Step 5 counts what this costs, Step 9
+    fixes it and compares. See CONCEPTS §15 and MIGRATION-2.0 §21.
     """
     lines = []
     for issue in session.query(models.Issue).all():
