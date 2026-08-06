@@ -102,6 +102,13 @@ issue2, issue3, issue7, issue9 = issues[1], issues[2], issues[6], issues[8]
 # None of the nine were passed to session.add(). They got pulled in anyway:
 # the default "save-update" cascade enrolls anything attached to an object that
 # is already in the session.
+#
+# 2.0 CAVEAT: only the direction used just above survives. These issues are
+# attached with apollo.issues.append(iss) — the collection side — which 2.0
+# keeps. The many-to-one side used further down (c2.issue = issue1,
+# a1.user = alice, and issue1.project = apollo on line 88) relies on the
+# backref leg, which 2.0 drops SILENTLY: those objects would never be
+# inserted and nothing would be raised. Measured in migration.py §8.
 print("issue1 in session?", issue1 in session)
 print("issue9 in session?", issue9 in session)
 print("objects staged for INSERT:", len(session.new))
