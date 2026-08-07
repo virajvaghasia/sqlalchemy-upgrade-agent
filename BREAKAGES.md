@@ -17,9 +17,11 @@ that ran clean on 1.4.52 and fails on 2.0.
 | Docs | in-repo section refs, **checked against the files at generation time**, plus 1.4's own deprecation text |
 | Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |
 
-A draft fix runs. That is not the same as it being the *right* fix: several entries
-have more than one defensible answer, and choosing is the part worth doing yourself.
-Edit them into your own words as you work through the upgrade.
+A draft fix runs. That is not the same as it being the *right* fix. Six entries carry
+an **Also defensible** block listing the other answers that work — because presenting
+one option where several exist hides the decision instead of making it. Every option
+shown is executed here too, so the choice is between things that all provably run.
+Choosing is the judgement `PHASE-0.md` asks for; edit them into your own words.
 
 > **Do not regenerate over this file once you have edited it.** The generator
 > prints fresh drafts; redirecting it onto `BREAKAGES.md` would erase every word
@@ -61,6 +63,7 @@ with engine.connect() as conn:
 
 Connectionless execution is gone. The connection — and therefore the transaction boundary — becomes visible in the source.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -98,6 +101,7 @@ with engine.connect() as conn:
 
 Same removal as engine.execute(); .scalar() still exists on Connection.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -134,6 +138,7 @@ conn.execute(text("SELECT 1"))
 
 A bare string is no longer coerced. text() makes 'this is raw SQL, I mean it' explicit — and greppable during an audit.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -168,6 +173,7 @@ session.execute(text("SELECT 1"))
 ```
 
 Same rule on the Session as on the Connection.
+
 
 **Docs**
 
@@ -207,6 +213,7 @@ inspect(engine).get_table_names()
 
 Reflection helpers moved off Engine and onto the Inspector, which is where the rest of them already lived.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -235,6 +242,7 @@ inspect(engine).has_table("issues")
 ```
 
 Same move to the Inspector.
+
 
 **Docs**
 
@@ -265,6 +273,7 @@ metadata.create_all(engine)
 ```
 
 Implicit binding is gone everywhere. The engine is passed at the point of use, so you can read which database a statement goes to.
+
 
 **Docs**
 
@@ -305,6 +314,7 @@ select(Issue.id)
 
 Columns are positional now, not a list. 2.0's own error suggests this fix.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -339,6 +349,7 @@ case((Issue.id == 1, "a"), else_="b")
 
 The whens became positional, matching select().
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -371,6 +382,7 @@ sqlalchemy.orm.relationship(Comment)
 ```
 
 relation() was an alias for relationship() kept since 0.x. Only the long name survives.
+
 
 **Docs**
 
@@ -412,6 +424,16 @@ query(Issue).filter(Issue.status == "open")
 
 The column expression is better than text() here: it is checked, and it composes. text() is the escape hatch, not the fix.
 
+
+**Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
+
+```python
+query(Issue).filter(text("status='open'"))
+```
+
+when the SQL genuinely has to stay SQL — a dialect feature, or a WHERE clause assembled elsewhere. You keep raw SQL, and text() makes it greppable. You lose the checking the column expression gives you.  
+_(runs OK)_
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
@@ -442,6 +464,7 @@ session.execute(select(inner)).scalars().all()
 ```
 
 from_self() was removed as too implicit. You now name the subquery and alias the entity onto it, which is what it was doing invisibly.
+
 
 **Docs**
 
@@ -478,6 +501,7 @@ query(Issue).join(target, Issue.comments)
 ```
 
 The implicit aliasing flag is gone; you create the alias and join to it.
+
 
 **Docs**
 
@@ -518,6 +542,7 @@ query(Issue).options(joinedload(Issue.comments))
 
 Strings are not accepted for attribute names in loader options. The class-bound attribute is checked at construction instead of at query time.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
@@ -552,6 +577,7 @@ query(Issue).options(subqueryload(Issue.comments))
 ```
 
 Same rule for every loader option.
+
 
 **Docs**
 
@@ -591,6 +617,16 @@ session.execute(select(Issue)).scalars().all()[0].title
 
 execute() returns Rows; .scalars() projects to the first column. Only add it when you selected ONE thing — on a wider select it silently discards the rest.
 
+
+**Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
+
+```python
+session.execute(select(Issue)).all()[0][0].title
+```
+
+when you selected several columns and still want the Row — index into it instead of projecting. .scalars() would throw the other columns away, silently.  
+_(runs OK)_
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
@@ -620,6 +656,16 @@ row._mapping["id"]
 
 Row is a named tuple in 2.0. The dict-like view moved to ._mapping, so the two access styles stopped overlapping.
 
+
+**Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
+
+```python
+row.id
+```
+
+when the column name is a valid Python identifier — Row is a named tuple in 2.0, so attribute access is the natural spelling. ._mapping is for names that are not identifiers, or when you need the whole dict.  
+_(runs OK)_
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
@@ -648,6 +694,16 @@ row._mapping.keys()
 ```
 
 Same move. On 2.0 a bare .keys() is read as a COLUMN lookup, which is why the error says 'Could not locate column'.
+
+
+**Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
+
+```python
+row._fields
+```
+
+the named-tuple field names, without building the mapping view. Same information; ._mapping.keys() is the closer analogue if you were treating the row as a dict.  
+_(runs OK)_
 
 **Docs**
 
@@ -683,6 +739,16 @@ session.execute(stmt).unique().scalars().all()
 ```
 
 Only for joined eager loads against a COLLECTION. On entities .unique() dedupes by primary key, so it can only remove copies the JOIN invented.
+
+
+**Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
+
+```python
+session.execute(select(Issue).options(selectinload(Issue.comments))).scalars().all()
+```
+
+the better answer in most cases: selectinload does not JOIN, so it never multiplies rows, so .unique() is not needed at all. Prefer this unless you specifically want one round trip — see CONCEPTS.md §15 for the tradeoff.  
+_(runs OK)_
 
 **Docs**
 
@@ -720,6 +786,7 @@ session.commit()          # and you end it explicitly
 
 Library-level autocommit is removed outright — there is no replacement flag. The transaction now begins on first use and ends where you say.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §18
@@ -756,6 +823,7 @@ session.begin_nested()    # a real SAVEPOINT
 
 Subtransactions were a bookkeeping fiction that emitted no SQL. begin_nested() issues an actual SAVEPOINT.
 
+
 **Docs**
 
 - [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §18
@@ -789,6 +857,7 @@ session.get_transaction()        # or session.in_transaction()
 ```
 
 The attribute became a method, so 'is there a transaction?' is a question you ask rather than an object you poke at.
+
 
 **Docs**
 
@@ -834,10 +903,27 @@ issue.project = project
 session.add(issue)          # <- the line 1.4 let you leave out
 ```
 
-Writing the COLLECTION side (`project.issues.append(issue)`) also works and needs no
-`session.add()` — the save-update cascade proper survives 2.0. `cascade_backrefs=False`
-on the relationship adopts the 2.0 behaviour while still on 1.4, which is how you find
-every site before upgrading.
+The one line 1.4 let you omit. Explicit, local, and works on both versions.
+
+**Also defensible** — _all three work; they differ in what they cost you._
+
+```python
+project.issues.append(issue)     # write the COLLECTION side instead
+```
+
+The save-update cascade proper survives 2.0, so this needs no `session.add()` at all.
+Prefer it when you are already building the parent's collection — but note it reads
+as identical to the broken form on 1.4, so it does not help you FIND the other sites.
+
+```python
+# in models.py, while still on 1.4
+issues = relationship('Issue', backref=backref('project', cascade_backrefs=False))
+```
+
+Adopts the 2.0 behaviour before upgrading, which turns a silent 2.0 data loss into a
+loud 1.4 failure you can chase down. The most useful of the three if you have a large
+codebase and no idea how many sites rely on the cascade — and the least useful if you
+already know, because it changes runtime behaviour to find them.
 
 **Docs**
 
