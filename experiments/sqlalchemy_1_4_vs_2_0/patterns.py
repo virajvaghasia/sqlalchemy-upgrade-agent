@@ -303,3 +303,53 @@ DOC_SECTIONS = {
     "session.begin(subtransactions)":      ["MIGRATION-2.0.md §18"],
     "session.transaction attribute":       ["MIGRATION-2.0.md §18"],
 }
+
+
+# ---------------------------------------------------------------------------
+# Where more than one fix is defensible.
+# ---------------------------------------------------------------------------
+# FIXES above gives one answer per pattern, which quietly hides a choice on the
+# entries that have several. Presenting a single draft as "the" fix is the same
+# failure as an asserted number: it looks settled when it isn't.
+#
+# Every alternative here is executed on real 2.0 by verify_2_0.py, exactly like
+# the primary fix — so what is offered is a set of options that all provably
+# run, and the pick between them is a judgement about YOUR code.
+#
+# label -> [(code, when you would prefer this, callable), ...]
+ALTERNATIVES = {
+    "Query.filter(raw string)": [
+        ('query(Issue).filter(text("status=\'open\'"))',
+         "when the SQL genuinely has to stay SQL — a dialect feature, or a WHERE clause "
+         "assembled elsewhere. You keep raw SQL, and text() makes it greppable. You lose "
+         "the checking the column expression gives you.",
+         lambda e, s: s.query(Issue).filter(sa.text("status='open'")).all()),
+    ],
+    "Row attr access, no .scalars()": [
+        ("session.execute(select(Issue)).all()[0][0].title",
+         "when you selected several columns and still want the Row — index into it instead "
+         "of projecting. .scalars() would throw the other columns away, silently.",
+         lambda e, s: s.execute(select(Issue)).all()[0][0].title),
+    ],
+    "row['colname'] mapping access": [
+        ("row.id",
+         "when the column name is a valid Python identifier — Row is a named tuple in 2.0, "
+         "so attribute access is the natural spelling. ._mapping is for names that are not "
+         "identifiers, or when you need the whole dict.",
+         lambda e, s: e.connect().execute(sa.text("SELECT id FROM issues")).fetchone().id),
+    ],
+    "row.keys()": [
+        ("row._fields",
+         "the named-tuple field names, without building the mapping view. Same information; "
+         "._mapping.keys() is the closer analogue if you were treating the row as a dict.",
+         lambda e, s: e.connect().execute(sa.text("SELECT id FROM issues")).fetchone()._fields),
+    ],
+    "joinedload(coll), no .unique()": [
+        ("session.execute(select(Issue).options(selectinload(Issue.comments))).scalars().all()",
+         "the better answer in most cases: selectinload does not JOIN, so it never multiplies "
+         "rows, so .unique() is not needed at all. Prefer this unless you specifically want "
+         "one round trip — see CONCEPTS.md §15 for the tradeoff.",
+         lambda e, s: s.execute(
+             select(Issue).options(sa.orm.selectinload(Issue.comments))).scalars().all()),
+    ],
+}

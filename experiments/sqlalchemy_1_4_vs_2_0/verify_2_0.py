@@ -81,9 +81,11 @@ def emit_stubs(failures):
           "plus 1.4's own deprecation text |")
     print("| Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |")
     print()
-    print("A draft fix runs. That is not the same as it being the *right* fix: several entries")
-    print("have more than one defensible answer, and choosing is the part worth doing yourself.")
-    print("Edit them into your own words as you work through the upgrade.")
+    print("A draft fix runs. That is not the same as it being the *right* fix. Six entries carry")
+    print("an **Also defensible** block listing the other answers that work — because presenting")
+    print("one option where several exist hides the decision instead of making it. Every option")
+    print("shown is executed here too, so the choice is between things that all provably run.")
+    print("Choosing is the judgement `PHASE-0.md` asks for; edit them into your own words.")
     print()
     print("> **Do not regenerate over this file once you have edited it.** The generator")
     print("> prints fresh drafts; redirecting it onto `BREAKAGES.md` would erase every word")
@@ -134,6 +136,19 @@ def emit_stubs(failures):
             print(why)
         else:
             print("**Fix:** _TODO._")
+        print()
+        alts = patterns.ALTERNATIVES.get(label, [])
+        if alts:
+            print()
+            print("**Also defensible** — _each verified to run on "
+                  f"{sa.__version__}. Pick deliberately; this is the judgement, not the typing._")
+            for i, (acode, awhen, _fn) in enumerate(alts):
+                print()
+                print("```python")
+                print(acode)
+                print("```")
+                print()
+                print(f"{awhen}  \n_({alt_results.get((label, i), '?')})_")
         print()
         # Docs. Section refs are CHECKED against the files here, so a stale
         # pointer becomes a visible "(section not found)" rather than a
@@ -200,10 +215,27 @@ def emit_stubs(failures):
     print("session.add(issue)          # <- the line 1.4 let you leave out")
     print("```")
     print()
-    print("Writing the COLLECTION side (`project.issues.append(issue)`) also works and needs no")
-    print("`session.add()` — the save-update cascade proper survives 2.0. `cascade_backrefs=False`")
-    print("on the relationship adopts the 2.0 behaviour while still on 1.4, which is how you find")
-    print("every site before upgrading.")
+    print("The one line 1.4 let you omit. Explicit, local, and works on both versions.")
+    print()
+    print("**Also defensible** — _all three work; they differ in what they cost you._")
+    print()
+    print("```python")
+    print("project.issues.append(issue)     # write the COLLECTION side instead")
+    print("```")
+    print()
+    print("The save-update cascade proper survives 2.0, so this needs no `session.add()` at all.")
+    print("Prefer it when you are already building the parent's collection — but note it reads")
+    print("as identical to the broken form on 1.4, so it does not help you FIND the other sites.")
+    print()
+    print("```python")
+    print("# in models.py, while still on 1.4")
+    print("issues = relationship('Issue', backref=backref('project', cascade_backrefs=False))")
+    print("```")
+    print()
+    print("Adopts the 2.0 behaviour before upgrading, which turns a silent 2.0 data loss into a")
+    print("loud 1.4 failure you can chase down. The most useful of the three if you have a large")
+    print("codebase and no idea how many sites rely on the cascade — and the least useful if you")
+    print("already know, because it changes runtime behaviour to find them.")
     print()
     print("**Docs**")
     print()
@@ -222,6 +254,7 @@ def emit_stubs(failures):
 
 broke, survived, failures = 0, 0, []
 fix_results = {}
+alt_results = {}
 if not STUBS:
     print("=" * 84)
     print(f"REAL SQLAlchemy {sa.__version__} — what actually happens")
@@ -265,6 +298,16 @@ for group, label, source, case in patterns.all_cases():
         except Exception:
             pass
     fix_results[label] = fix_status
+    for i, (acode, awhen, afn) in enumerate(patterns.ALTERNATIVES.get(label, [])):
+        ae, asx = patterns.fixture()
+        try:
+            afn(ae, asx); alt_results[(label, i)] = "runs OK"
+        except Exception as exc:
+            alt_results[(label, i)] = f"FAILED: {type(exc).__name__}: {exc}"[:60]
+        try:
+            asx.close()
+        except Exception:
+            pass
     if not STUBS:
         print(f"  {label:<34}{outcome:<26}{fix_status}")
 
