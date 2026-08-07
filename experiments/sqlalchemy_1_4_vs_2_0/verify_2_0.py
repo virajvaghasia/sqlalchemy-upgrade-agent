@@ -77,6 +77,8 @@ def emit_stubs(failures):
     print("| 1.4 code | `patterns.py` |")
     print(f"| 2.0 error | this run, on {sa.__version__} |")
     print("| Fix | `patterns.py` — **executed on 2.0 here**, so it provably runs |")
+    print("| Docs | in-repo section refs, **checked against the files at generation time**, "
+          "plus 1.4's own deprecation text |")
     print("| Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |")
     print()
     print("A draft fix runs. That is not the same as it being the *right* fix: several entries")
@@ -133,6 +135,27 @@ def emit_stubs(failures):
         else:
             print("**Fix:** _TODO._")
         print()
+        # Docs. Section refs are CHECKED against the files here, so a stale
+        # pointer becomes a visible "(section not found)" rather than a
+        # confident link to nothing.
+        refs = patterns.DOC_SECTIONS.get(label, [])
+        guidance = (TIERS.get(label) or {}).get("guidance") or []
+        print("**Docs**")
+        print()
+        if refs:
+            for ref in refs:
+                fname, _, sec = ref.partition(" ")
+                found = pathlib.Path(fname).exists() and sec in pathlib.Path(fname).read_text()
+                mark = "" if found else "  _(section not found — fix the ref)_"
+                print(f"- [`{fname}`]({fname}) {sec}{mark}")
+        if guidance:
+            print("- what 1.4 itself says, verbatim:")
+            for g in guidance[:1]:
+                for line in textwrap.wrap(g, width=84):
+                    print(f"  > {line}")
+        if not refs and not guidance:
+            print("- _no in-repo section yet, and 1.4 emits no guidance for this one._")
+        print()
         tier = TIERS.get(label)
         if tier:
             print(f"**Tier** — `SQLALCHEMY_WARN_20` says **{tier['warns']}**; "
@@ -182,8 +205,19 @@ def emit_stubs(failures):
     print("on the relationship adopts the 2.0 behaviour while still on 1.4, which is how you find")
     print("every site before upgrading.")
     print()
-    print("**Tier:** `RemovedIn20Warning` — but only in modules that WRITE data; "
-          "`app.py`'s sweep\nmisses it entirely. See `MIGRATION-2.0.md` §17 and `sweep.py`.")
+    print("**Docs**")
+    print()
+    print("- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py")
+    print("- [`CONCEPTS.md`](CONCEPTS.md) §14 — the save-update cascade this is half of")
+    print("- what 1.4 itself says, verbatim:")
+    print("  > \"X\" object is being merged into a Session along the backref cascade path for")
+    print("  > relationship \"X\"; in SQLAlchemy 2.0, this reverse cascade will not take place.")
+    print("  > Set cascade_backrefs to False in either the relationship() or backref() function")
+    print("  > for the 2.0 behavior; or to set globally for the whole Session, set the")
+    print("  > future=True flag")
+    print()
+    print("**Tier** — `RemovedIn20Warning`, but only in modules that WRITE data; `app.py`'s")
+    print("sweep misses it entirely. See `sweep.py`.")
 
 
 broke, survived, failures = 0, 0, []

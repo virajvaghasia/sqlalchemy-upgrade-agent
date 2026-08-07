@@ -14,6 +14,7 @@ that ran clean on 1.4.52 and fails on 2.0.
 | 1.4 code | `patterns.py` |
 | 2.0 error | this run, on 2.0.51 |
 | Fix | `patterns.py` — **executed on 2.0 here**, so it provably runs |
+| Docs | in-repo section refs, **checked against the files at generation time**, plus 1.4's own deprecation text |
 | Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |
 
 A draft fix runs. That is not the same as it being the *right* fix: several entries
@@ -60,6 +61,17 @@ with engine.connect() as conn:
 
 Connectionless execution is gone. The connection — and therefore the transaction boundary — becomes visible in the source.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §19
+- what 1.4 itself says, verbatim:
+  > The Engine.execute() method is considered legacy as of the 1.x series of SQLAlchemy
+  > and will be removed in 2.0. All statement execution in SQLAlchemy 2.0 is performed
+  > by the Connection.execute() method of Connection, or in the ORM by the
+  > Session.execute() method of Session. (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **NotImplementedError**  
 _both tools agree_ (measured on 1.4 by `candidates.py`)
 
@@ -86,6 +98,17 @@ with engine.connect() as conn:
 
 Same removal as engine.execute(); .scalar() still exists on Connection.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- what 1.4 itself says, verbatim:
+  > The Engine.scalar() method is considered legacy as of the 1.x series of SQLAlchemy
+  > and will be removed in 2.0. All statement execution in SQLAlchemy 2.0 is performed
+  > by the Connection.execute() method of Connection, or in the ORM by the
+  > Session.execute() method of Session; the Result.scalar() method can then be used to
+  > return a scalar result. (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **NotImplementedError**  
 _both tools agree_ (measured on 1.4 by `candidates.py`)
 
@@ -111,6 +134,16 @@ conn.execute(text("SELECT 1"))
 
 A bare string is no longer coerced. text() makes 'this is raw SQL, I mean it' explicit — and greppable during an audit.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §19
+- what 1.4 itself says, verbatim:
+  > Passing a string to Connection.execute() is deprecated and will be removed in
+  > version 2.0. Use the text() construct, or the Connection.exec_driver_sql() method to
+  > invoke a driver-level SQL string. (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ObjectNotExecutableError**  
 _both tools agree_ (measured on 1.4 by `candidates.py`)
 
@@ -135,6 +168,15 @@ session.execute(text("SELECT 1"))
 ```
 
 Same rule on the Session as on the Connection.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- what 1.4 itself says, verbatim:
+  > Using plain strings to indicate SQL statements without using the text() construct is
+  > deprecated and will be removed in version 2.0. Ensure plain SQL statements are
+  > passed using the text() construct. (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
 
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
@@ -165,6 +207,10 @@ inspect(engine).get_table_names()
 
 Reflection helpers moved off Engine and onto the Inspector, which is where the rest of them already lived.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **NotImplementedError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
 
@@ -189,6 +235,10 @@ inspect(engine).has_table("issues")
 ```
 
 Same move to the Inspector.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **NotImplementedError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -215,6 +265,14 @@ metadata.create_all(engine)
 ```
 
 Implicit binding is gone everywhere. The engine is passed at the point of use, so you can read which database a statement goes to.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §18
+- what 1.4 itself says, verbatim:
+  > The MetaData.bind argument is deprecated and will be removed in SQLAlchemy 2.0.
+  > (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
 
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
@@ -247,6 +305,14 @@ select(Issue.id)
 
 Columns are positional now, not a list. 2.0's own error suggests this fix.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- what 1.4 itself says, verbatim:
+  > The legacy calling style of select() is deprecated and will be removed in SQLAlchemy
+  > 2.0. Please use the new calling style described at select(). (Background on
+  > SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
@@ -273,6 +339,14 @@ case((Issue.id == 1, "a"), else_="b")
 
 The whens became positional, matching select().
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- what 1.4 itself says, verbatim:
+  > The "whens" argument to case(), when referring to a sequence of items, is now passed
+  > as a series of positional elements, rather than as a list. (Background on SQLAlchemy
+  > 2.0 at: https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
@@ -297,6 +371,15 @@ sqlalchemy.orm.relationship(Comment)
 ```
 
 relation() was an alias for relationship() kept since 0.x. Only the long name survives.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- [`CONCEPTS.md`](CONCEPTS.md) §6
+- what 1.4 itself says, verbatim:
+  > The relation construct is considered legacy as of the 1.x series of SQLAlchemy and
+  > will be removed in 2.0. Please use relationship(). (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
 
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
@@ -329,6 +412,10 @@ query(Issue).filter(Issue.status == "open")
 
 The column expression is better than text() here: it is checked, and it composes. text() is the escape hatch, not the fix.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **ArgumentError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
 
@@ -356,6 +443,16 @@ session.execute(select(inner)).scalars().all()
 
 from_self() was removed as too implicit. You now name the subquery and alias the entity onto it, which is what it was doing invisibly.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- what 1.4 itself says, verbatim:
+  > The Query.from_self() method is considered legacy as of the 1.x series of SQLAlchemy
+  > and will be removed in 2.0. The new approach is to use the orm.aliased() construct
+  > in conjunction with a subquery. See the section "Selecting from the query itself as
+  > a subquery" in the 2.0 migration notes for an example. (Background on SQLAlchemy 2.0
+  > at: https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
@@ -381,6 +478,15 @@ query(Issue).join(target, Issue.comments)
 ```
 
 The implicit aliasing flag is gone; you create the alias and join to it.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16
+- [`CONCEPTS.md`](CONCEPTS.md) §9
+- what 1.4 itself says, verbatim:
+  > The ``aliased`` and ``from_joinpoint`` keyword arguments to Query.join() are
+  > deprecated and will be removed in SQLAlchemy 2.0. (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
 
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
@@ -412,6 +518,15 @@ query(Issue).options(joinedload(Issue.comments))
 
 Strings are not accepted for attribute names in loader options. The class-bound attribute is checked at construction instead of at query time.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
+- [`CONCEPTS.md`](CONCEPTS.md) §15
+- what 1.4 itself says, verbatim:
+  > Using strings to indicate column or relationship paths in loader options is
+  > deprecated and will be removed in SQLAlchemy 2.0. Please use the class-bound
+  > attribute directly. (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
@@ -437,6 +552,15 @@ query(Issue).options(subqueryload(Issue.comments))
 ```
 
 Same rule for every loader option.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
+- [`CONCEPTS.md`](CONCEPTS.md) §15
+- what 1.4 itself says, verbatim:
+  > Using strings to indicate column or relationship paths in loader options is
+  > deprecated and will be removed in SQLAlchemy 2.0. Please use the class-bound
+  > attribute directly. (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
 
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
@@ -467,6 +591,10 @@ session.execute(select(Issue)).scalars().all()[0].title
 
 execute() returns Rows; .scalars() projects to the first column. Only add it when you selected ONE thing — on a wider select it silently discards the rest.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
+
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **AttributeError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
 
@@ -491,6 +619,10 @@ row._mapping["id"]
 ```
 
 Row is a named tuple in 2.0. The dict-like view moved to ._mapping, so the two access styles stopped overlapping.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **ok**  
 _not a breakage (works in 2.0)_ (measured on 1.4 by `candidates.py`)
@@ -517,6 +649,15 @@ row._mapping.keys()
 
 Same move. On 2.0 a bare .keys() is read as a COLUMN lookup, which is why the error says 'Could not locate column'.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
+- what 1.4 itself says, verbatim:
+  > The Row.keys() method is considered legacy as of the 1.x series of SQLAlchemy and
+  > will be removed in 2.0. Use the namedtuple standard accessor Row._fields, or for
+  > full mapping behavior use row._mapping.keys() (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
@@ -542,6 +683,11 @@ session.execute(stmt).unique().scalars().all()
 ```
 
 Only for joined eager loads against a COLLECTION. On entities .unique() dedupes by primary key, so it can only remove copies the JOIN invented.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17
+- [`CONCEPTS.md`](CONCEPTS.md) §15
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **InvalidRequestError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -574,6 +720,17 @@ session.commit()          # and you end it explicitly
 
 Library-level autocommit is removed outright — there is no replacement flag. The transaction now begins on first use and ends where you say.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §18
+- [`CONCEPTS.md`](CONCEPTS.md) §14
+- what 1.4 itself says, verbatim:
+  > The Session.autocommit parameter is deprecated and will be removed in SQLAlchemy
+  > version 2.0. The Session now features "autobegin" behavior such that the
+  > Session.begin() method may be called if a transaction has not yet been started yet.
+  > See the section session_explicit_begin for background. (Background on SQLAlchemy 2.0
+  > at: https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
@@ -599,6 +756,15 @@ session.begin_nested()    # a real SAVEPOINT
 
 Subtransactions were a bookkeeping fiction that emitted no SQL. begin_nested() issues an actual SAVEPOINT.
 
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §18
+- what 1.4 itself says, verbatim:
+  > The Session.begin.subtransactions flag is deprecated and will be removed in
+  > SQLAlchemy version 2.0. See the documentation at session_subtransactions for
+  > background on a compatible alternative pattern. (Background on SQLAlchemy 2.0 at:
+  > https://sqlalche.me/e/b8d9)
+
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **NotImplementedError**  
 _both tools agree_ (measured on 1.4 by `candidates.py`)
 
@@ -623,6 +789,15 @@ session.get_transaction()        # or session.in_transaction()
 ```
 
 The attribute became a method, so 'is there a transaction?' is a question you ask rather than an object you poke at.
+
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §18
+- what 1.4 itself says, verbatim:
+  > The Session.transaction attribute is considered legacy as of the 1.x series of
+  > SQLAlchemy and will be removed in 2.0. For context manager use, use Session.begin().
+  > To access the current root transaction, use Session.get_transaction(). (Background
+  > on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
 
 **Tier** — `SQLALCHEMY_WARN_20` says **RemovedIn20**; `future=True` says **ok**  
 _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
@@ -664,5 +839,16 @@ Writing the COLLECTION side (`project.issues.append(issue)`) also works and need
 on the relationship adopts the 2.0 behaviour while still on 1.4, which is how you find
 every site before upgrading.
 
-**Tier:** `RemovedIn20Warning` — but only in modules that WRITE data; `app.py`'s sweep
-misses it entirely. See `MIGRATION-2.0.md` §17 and `sweep.py`.
+**Docs**
+
+- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py
+- [`CONCEPTS.md`](CONCEPTS.md) §14 — the save-update cascade this is half of
+- what 1.4 itself says, verbatim:
+  > "X" object is being merged into a Session along the backref cascade path for
+  > relationship "X"; in SQLAlchemy 2.0, this reverse cascade will not take place.
+  > Set cascade_backrefs to False in either the relationship() or backref() function
+  > for the 2.0 behavior; or to set globally for the whole Session, set the
+  > future=True flag
+
+**Tier** — `RemovedIn20Warning`, but only in modules that WRITE data; `app.py`'s
+sweep misses it entirely. See `sweep.py`.

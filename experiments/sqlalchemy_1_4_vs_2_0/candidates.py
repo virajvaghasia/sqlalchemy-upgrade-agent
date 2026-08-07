@@ -32,6 +32,8 @@ from experiments.sqlalchemy_1_4_vs_2_0 import patterns
 
 
 def classify(case):
+    guidance = []
+
     def run(**kwargs):
         engine, session = patterns.fixture(**kwargs)
         with warnings.catch_warnings(record=True) as caught:
@@ -43,6 +45,10 @@ def classify(case):
                 outcome = type(exc).__name__
         classes = sorted({w.category.__name__ for w in caught
                           if "In20" in w.category.__name__ or "LegacyAPI" in w.category.__name__})
+        msgs = [" ".join(str(w.message).split()) for w in caught
+                if "In20" in w.category.__name__ or "LegacyAPI" in w.category.__name__]
+        guidance.clear()
+        guidance.extend(msgs)
         try:
             session.close()
         except Exception:
@@ -54,8 +60,10 @@ def classify(case):
         warned, _ = run()
     finally:
         deprecations.SQLALCHEMY_WARN_20 = False
+    said = list(guidance)
     _, under_20 = run(future=True)
-    return ",".join(c.replace("Warning", "") for c in warned) or "—", under_20
+    guidance[:] = said
+    return ",".join(c.replace("Warning", "") for c in warned) or "—", under_20, list(guidance)
 
 
 print("=" * 88)
@@ -72,7 +80,7 @@ for group, label, _source, case in patterns.all_cases():
     if group != current:
         current = group
         print(f"\n  {group.upper()}")
-    warned, under_20 = classify(case)
+    warned, under_20, guide = classify(case)
     breaks = under_20 != "ok"
     # LegacyAPI and Moved are real migration items but not breakages: the
     # code keeps working. Only Removed-tier or an actual failure counts.
@@ -86,7 +94,8 @@ for group, label, _source, case in patterns.all_cases():
     else:
         verdict, key = "not a breakage (works in 2.0)", "not a breakage"
     tally[key] += 1
-    tiers[label] = {"warns": warned, "future": under_20, "verdict": verdict}
+    tiers[label] = {"warns": warned, "future": under_20, "verdict": verdict,
+                    "guidance": guide}
     print(f"  {label:<38}{warned:<14}{under_20:<26}{verdict}")
 
 total = tally["both"] + tally["warn-only"] + tally["silent"]
