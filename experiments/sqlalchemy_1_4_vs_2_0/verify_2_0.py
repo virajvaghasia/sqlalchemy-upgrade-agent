@@ -50,6 +50,12 @@ STUBS = "--stubs" in sys.argv
 _TIERS_PATH = pathlib.Path(__file__).with_name("tiers.json")
 TIERS = json.loads(_TIERS_PATH.read_text()) if _TIERS_PATH.exists() else {}
 
+# The cascade_backrefs entry is appended by hand at the end of emit_stubs — the
+# battery only catches exceptions and that one raises none — and it carries its
+# own "Also defensible" block. It is not in patterns.ALTERNATIVES, so the header
+# count has to add it back. A structural fact about this file, not a tally.
+HAND_APPENDED_WITH_ALTERNATIVES = 1
+
 
 def emit_stubs(failures):
     """Print a BREAKAGES.md skeleton with the two halves we actually measured.
@@ -81,7 +87,10 @@ def emit_stubs(failures):
           "plus 1.4's own deprecation text |")
     print("| Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |")
     print()
-    print("A draft fix runs. That is not the same as it being the *right* fix. Six entries carry")
+    n_alternatives = sum(
+        1 for _g, label, _s, _o, _d in failures if patterns.ALTERNATIVES.get(label)
+    ) + HAND_APPENDED_WITH_ALTERNATIVES
+    print(f"A draft fix runs. That is not the same as it being the *right* fix. {n_alternatives} entries carry")
     print("an **Also defensible** block listing the other answers that work — because presenting")
     print("one option where several exist hides the decision instead of making it. Every option")
     print("shown is executed here too, so the choice is between things that all provably run.")

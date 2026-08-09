@@ -17,7 +17,7 @@ that ran clean on 1.4.52 and fails on 2.0.
 | Docs | in-repo section refs, **checked against the files at generation time**, plus 1.4's own deprecation text |
 | Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |
 
-A draft fix runs. That is not the same as it being the *right* fix. Six entries carry
+A draft fix runs. That is not the same as it being the *right* fix. 6 entries carry
 an **Also defensible** block listing the other answers that work — because presenting
 one option where several exist hides the decision instead of making it. Every option
 shown is executed here too, so the choice is between things that all provably run.
@@ -38,7 +38,30 @@ Choosing is the judgement `PHASE-0.md` asks for; edit them into your own words.
 
 ---
 
-## Raw SQL / connectionless
+## How to read an entry
+
+Eight groups (A–H). One idea per group. Each entry: measured **1.4 code**, the **2.0 error**
+(or silence), a **fix that runs on 2.0.51**, then **What 1.4 did / What 2.0 does / Fix** so
+this file is still readable when you come back cold.
+
+**Tier** was measured on 1.4 by `candidates.py`, before any upgrade:
+
+| What the tier line says | Meaning |
+|---|---|
+| _both tools agree_ | `SQLALCHEMY_WARN_20` warns **and** `future=True` already fails. Easy to find. |
+| _sweep only – flag misses it_ | A warning exists; `future=True` still runs. A green future session is not "ready to upgrade." |
+| _SILENT to the sweep_ | No warning. Only `future=True` or real 2.0 blows up. |
+| _not a breakage (works in 2.0)_ | The 1.4 tools called it safe. Check the **2.0 error** anyway — #17 is the counter-example: tools said safe, 2.0.51 still failed. |
+
+`SQLALCHEMY_WARN_20=1` answers "does 1.4 warn?" `future=True` answers "does 1.4 already fail
+under 2.0 rules?" Neither replaces running real 2.0.
+
+---
+
+## Group A — Raw SQL (#1–4)
+
+**One idea:** 2.0 stops treating Engine / Session as "just run this string." You must show
+*who* executes (a Connection or Session) and *what* the string is (`text(...)`).
 
 ### 1. engine.execute(string)
 
@@ -61,7 +84,25 @@ with engine.connect() as conn:
     conn.execute(text("SELECT 1"))
 ```
 
-Connectionless execution is gone. The connection — and therefore the transaction boundary — becomes visible in the source.
+**What 1.4 did:** Engine secretly opened a connection, ran the string, closed it. You never
+saw the connection or the transaction.
+
+```
+you → engine.execute("SELECT 1") → (hidden conn) → DB
+```
+
+**What 2.0 does:** Engine has no `.execute`. Crash: `AttributeError`.
+
+**Fix flow:**
+
+```
+you → engine.connect() → conn → conn.execute(text("SELECT 1")) → DB
+         ↑
+    you now SEE the connection (and can commit/close it)
+```
+
+`text()` = "this string is SQL, not a Python object." Connectionless execution is gone;
+the transaction boundary becomes visible.
 
 
 **Docs**
@@ -99,7 +140,16 @@ with engine.connect() as conn:
     conn.scalar(text("SELECT 1"))
 ```
 
-Same removal as engine.execute(); .scalar() still exists on Connection.
+**Same as #1, different return.** `.execute` → a result set. `.scalar` → **one value**
+(first column of first row, e.g. `SELECT 1` → `1`).
+
+2.0: Engine lost `.scalar` too. Connection still has it — don't look for a new Engine
+method; move to Connection:
+
+```python
+with engine.connect() as conn:
+    n = conn.scalar(text("SELECT COUNT(*) FROM issues"))
+```
 
 
 **Docs**
@@ -136,7 +186,16 @@ Not an executable object: 'SELECT 1'
 conn.execute(text("SELECT 1"))
 ```
 
-A bare string is no longer coerced. text() makes 'this is raw SQL, I mean it' explicit — and greppable during an audit.
+**Different error, same theme.** You *have* a connection. 1.4 still accepted `"SELECT 1"`.
+2.0: a string is not executable.
+
+```
+conn.execute("SELECT 1")       → ObjectNotExecutableError
+conn.execute(text("SELECT 1")) → OK
+```
+
+**Why `text()`:** audits can grep `text(` and find every raw SQL site. Silent string
+coercion in 1.4 hid them.
 
 
 **Docs**
@@ -172,7 +231,16 @@ Textual SQL expression 'SELECT 1' should be explicitly declared as text('SELECT 
 session.execute(text("SELECT 1"))
 ```
 
-Same rule on the Session as on the Connection.
+**Same rule on Session.**
+
+```python
+session.execute("SELECT 1")           # 2.0 ArgumentError
+session.execute(text("SELECT 1"))     # OK
+```
+
+The error text even tells you the fix. **Tier note:** `future=True` on 1.4 still says
+**ok** — the warning sweep sees it, the future engine does not. Don't use only
+`future=True` as your gate.
 
 
 **Docs**
@@ -189,7 +257,27 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## Schema / reflection helpers
+## Group B — Schema helpers (#5–7)
+
+**One idea:** "What's in the database?" is **inspection**, not "Engine convenience."
+MetaData no longer secretly owns an engine.
+
+**Inspection** = asking the DB about its catalog: what tables exist, does `issues` exist,
+what columns, FKs. Engine's real job is **how to connect** (URL, pooling) — not "list my
+tables." 1.4 hung those helpers on Engine anyway (`table_names()`, `has_table()`). 2.0
+moves them to **Inspector**: `inspect(engine)` = "give me the catalog-asker for this
+engine."
+
+**MetaData** = Python's picture of your tables (`users`, `issues`, …), used for
+`create_all` / reflection. 1.4 let you `MetaData(bind=engine)` so MetaData remembered the
+engine and later `create_all()` used that hidden bind. 2.0: no `bind=`; pass the engine at
+the call site. Same smell as #1 — stop hiding the engine inside another object.
+
+```
+Engine     → how to talk to the DB (connect, pool)
+Inspector  → "what tables/columns exist?"     ← #5 #6 moved here
+MetaData   → your table definitions in Python ← #7 no longer stores Engine
+```
 
 ### 5. engine.table_names()
 
@@ -211,7 +299,25 @@ engine.table_names()
 inspect(engine).get_table_names()
 ```
 
-Reflection helpers moved off Engine and onto the Inspector, which is where the rest of them already lived.
+**What 1.4 did:** Engine pretended to know the catalog — a convenience copy of Inspector.
+
+**What 2.0 does:** catalog questions go through Inspector only. Engine copies were deleted.
+
+```python
+from sqlalchemy import inspect
+inspect(engine).get_table_names()   # ["users", "issues", ...]
+```
+
+Those are **not two errors for the same run**. Same call, three environments:
+
+| Where you run it | What happens |
+|---|---|
+| 1.4, no flags | works (and **no warning** — that's "SILENT to the sweep") |
+| 1.4 + `future=True` | `NotImplementedError` — method still exists, refuses to run |
+| real 2.0.51 | `AttributeError` — method is gone (the **2.0 error** box above) |
+
+The **Tier** line below is measured on **1.4 only** (`candidates.py`). The **2.0 error** box
+is measured on **real 2.0**. Easy to miss if you only run `SQLALCHEMY_WARN_20`.
 
 
 **Docs**
@@ -241,7 +347,9 @@ engine.has_table("issues")
 inspect(engine).has_table("issues")
 ```
 
-Same move to the Inspector.
+**Identical move to #5** ("does this table exist?" instead of "list all tables").
+Same split: 1.4 silent → `future=True` `NotImplementedError` → real 2.0 `AttributeError`.
+WARN_20 alone will not find this.
 
 
 **Docs**
@@ -272,7 +380,22 @@ MetaData()   # then pass the engine explicitly:
 metadata.create_all(engine)
 ```
 
-Implicit binding is gone everywhere. The engine is passed at the point of use, so you can read which database a statement goes to.
+**What 1.4 did:** MetaData remembered the engine. Later `create_all()` used that hidden bind.
+
+```
+MetaData(bind=engine) → metadata secretly knows the DB
+create_all()          → uses the secret engine
+```
+
+**What 2.0 does:** `bind=` is not a valid argument (`TypeError`).
+
+```python
+metadata = MetaData()           # no engine
+metadata.create_all(engine)     # engine at the call site
+```
+
+**Why:** you can read which DB a call hits. Implicit bind was the same "hidden connection"
+smell as #1: MetaData no longer secretly owns an engine.
 
 
 **Docs**
@@ -288,7 +411,15 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## Statement construction
+## Group C — Statement construction (#8–10)
+
+**One idea:** old "pass a list" / short aliases die. Arguments are positional; names are
+the long ones. You are not changing what SQL you *mean* — only how you *write* the Python
+that builds the statement.
+
+- `#8` `select([col])` → `select(col)`
+- `#9` `case([(cond, val)], ...)` → `case((cond, val), ...)`  (same list → args change)
+- `#10` `relation()` → `relationship()`  (old nickname deleted)
 
 ### 8. select([...]) list form
 
@@ -312,7 +443,14 @@ select(<sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x...>)?
 select(Issue.id)
 ```
 
-Columns are positional now, not a list. 2.0's own error suggests this fix.
+**What 1.4 did:** one list. **What 2.0 does:** the column itself as an argument. 2.0's error
+literally says "Did you mean `select(<that column>)`?"
+
+```python
+select([Issue.id])                 # 1.4: one list
+select(Issue.id)                   # 2.0: the column itself
+select(Issue.id, Issue.title)      # more columns = more arguments, not a bigger list
+```
 
 
 **Docs**
@@ -347,7 +485,18 @@ a series of positional elements, rather than as a list.
 case((Issue.id == 1, "a"), else_="b")
 ```
 
-The whens became positional, matching select().
+**Same list → positional change as #8.** SQL `CASE WHEN issue.id = 1 THEN 'a' ELSE 'b' END`.
+Drop the outer list; each `(condition, result)` is an argument:
+
+```python
+case([(Issue.id == 1, "a")], else_="b")     # 1.4
+case((Issue.id == 1, "a"), else_="b")       # 2.0
+case(
+    (Issue.status == "open", "OPEN"),
+    (Issue.status == "closed", "DONE"),
+    else_="OTHER",
+)
+```
 
 
 **Docs**
@@ -381,7 +530,9 @@ module 'sqlalchemy.orm' has no attribute 'relation'
 sqlalchemy.orm.relationship(Comment)
 ```
 
-relation() was an alias for relationship() kept since 0.x. Only the long name survives.
+`relation` was a 0.x nickname. Deleted. This repo's `models.py` already uses
+`relationship` — this breakage is for old tutorials / codebases that still import
+`relation`.
 
 
 **Docs**
@@ -398,7 +549,9 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## Query API
+## Group D — Query leftovers (#11–13)
+
+`Query` still exists in 2.0, but string filters and magic kwargs are gone.
 
 ### 11. Query.filter(raw string)
 
@@ -422,7 +575,19 @@ query(Issue).filter(Issue.status == "open")
 # or, if it really must be SQL:  .filter(text("status='open'"))
 ```
 
-The column expression is better than text() here: it is checked, and it composes. text() is the escape hatch, not the fix.
+**What 1.4 did:** string dumped into WHERE. **What 2.0 prefers:** a Python expression
+(typo-checked). Escape hatch: still raw SQL, but marked with `text()`.
+
+```python
+query(Issue).filter(Issue.status == "open")           # preferred — typo-checked
+query(Issue).filter(text("status='open'"))            # still raw SQL, but marked
+```
+
+**Also defensible is real:** if the WHERE is assembled elsewhere or uses dialect SQL,
+`text()` is correct. If you just mean "status is open," use the column. That is the
+judgement this entry wants you to pick.
+
+**Tier:** SILENT to WARN_20; `future=True` already `ArgumentError`.
 
 
 **Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
@@ -463,7 +628,21 @@ inner = aliased(Issue, subq)
 session.execute(select(inner)).scalars().all()
 ```
 
-from_self() was removed as too implicit. You now name the subquery and alias the entity onto it, which is what it was doing invisibly.
+**What it meant:** "Take this query, wrap it as a subquery, query *that*." Used for
+DISTINCT-then-LIMIT, window-ish patterns, etc.
+
+```
+1.4:  query(Issue).filter(...).from_self()
+         → SELECT * FROM (SELECT issues ... WHERE ...) AS anon
+
+2.0:  you write that wrapping yourself
+         subq  = select(Issue).subquery()      # the inner SELECT
+         inner = aliased(Issue, subq)          # "treat subquery rows as Issue"
+         session.execute(select(inner)).scalars().all()
+```
+
+`aliased(Issue, subq)` = "these subquery rows should still look like Issue objects."
+`from_self()` did that invisibly; 2.0 makes you name it.
 
 
 **Docs**
@@ -500,7 +679,20 @@ target = aliased(Comment)
 query(Issue).join(target, Issue.comments)
 ```
 
-The implicit aliasing flag is gone; you create the alias and join to it.
+**Problem:** joining a table to itself (or joining Comment twice) needs an **alias** so SQL
+can say `comments AS c1` vs `comments AS c2`.
+
+```python
+# 1.4 — Query invented the alias
+query(Issue).join(Comment, aliased=True)
+
+# 2.0 — you create it
+target = aliased(Comment)
+query(Issue).join(target, Issue.comments)
+```
+
+`Issue.comments` tells SQLAlchemy *how* to join (the FK). `target` is the extra name for
+Comment in that query.
 
 
 **Docs**
@@ -517,7 +709,16 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## Loader options as strings
+## Group E — Loader strings (#14–15)
+
+**One idea:** `"comments"` is a string. A typo (`"commnets"`) fails at query time.
+`Issue.comments` fails when you *build* the option.
+
+#14 and #15 are the **same rule** on two loaders (`joinedload` = JOIN in one query;
+`subqueryload` = second query). `selectinload` would break the same way with a string.
+
+This is **not** the N+1 fix itself — only "how you spell the option." N+1 is not a
+BREAKAGES entry.
 
 ### 14. joinedload(string)
 
@@ -540,7 +741,15 @@ attributes directly.
 query(Issue).options(joinedload(Issue.comments))
 ```
 
-Strings are not accepted for attribute names in loader options. The class-bound attribute is checked at construction instead of at query time.
+```python
+# 1.4
+.query(Issue).options(joinedload("comments"))
+
+# 2.0
+.query(Issue).options(joinedload(Issue.comments))
+```
+
+A typo `"commnets"` now fails when you build the option, not later at query time.
 
 
 **Docs**
@@ -576,7 +785,11 @@ attributes directly.
 query(Issue).options(subqueryload(Issue.comments))
 ```
 
-Same rule for every loader option.
+Same rule as #14 on `subqueryload` (second query for the collection instead of a JOIN).
+
+```python
+.query(Issue).options(subqueryload(Issue.comments))
+```
 
 
 **Docs**
@@ -593,7 +806,11 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## Results and rows
+## Group F — Rows / Result (#16–19)
+
+`session.execute(select(...))` returns a **Result of Rows**, not ORM objects. Extra steps
+unwrap (`.scalars()`) or dedupe (`.unique()`). These two methods are not substitutes —
+they act on different axes.
 
 ### 16. Row attr access, no .scalars()
 
@@ -615,7 +832,21 @@ title
 session.execute(select(Issue)).scalars().all()[0].title
 ```
 
-execute() returns Rows; .scalars() projects to the first column. Only add it when you selected ONE thing — on a wider select it silently discards the rest.
+**Forgot `.scalars()`.** `execute()` returns Rows, not Issues.
+
+```
+select(Issue) → execute → [ Row(Issue,), Row(Issue,), ... ]
+                              ↑
+                         a 1-tuple wrapper, not an Issue
+
+row.title        → AttributeError   (Row has no .title)
+row[0].title     → OK               (unwrap by index)
+.scalars() → [Issue, Issue, ...]
+issue.title      → OK
+```
+
+**Trap:** `.scalars()` on `select(Issue.id, Issue.title)` keeps **only column 0**, drops
+`title`, often silently. Rule: `.scalars()` when you selected **one** thing.
 
 
 **Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
@@ -654,7 +885,20 @@ tuple indices must be integers or slices, not str
 row._mapping["id"]
 ```
 
-Row is a named tuple in 2.0. The dict-like view moved to ._mapping, so the two access styles stopped overlapping.
+**The tier lie.** 2.0 Row is a named tuple. `row["id"]` looks like dict access; tuples only
+take integer indices → `TypeError`.
+
+```python
+row = conn.execute(text("SELECT id FROM issues")).fetchone()
+row["id"]            # 1.4 OK; 2.0 TypeError
+row._mapping["id"]   # dict view
+row.id               # namedtuple, if the name is a valid identifier
+```
+
+**Why `_mapping`:** the dict-like view moved off the Row itself.
+
+**Tier contradiction:** 1.4 tools called this **safe / not a breakage**. Real 2.0.51 still
+failed. Flags are not a substitute for running 2.0.
 
 
 **Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
@@ -693,7 +937,13 @@ Could not locate column in row for column 'keys'
 row._mapping.keys()
 ```
 
-Same move. On 2.0 a bare .keys() is read as a COLUMN lookup, which is why the error says 'Could not locate column'.
+On 2.0, `row.keys` is treated as "give me the column named `keys`," not "dict `.keys()`."
+Hence: `Could not locate column in row for column 'keys'`.
+
+```python
+row._mapping.keys()   # dict-like names
+row._fields           # namedtuple field names
+```
 
 
 **Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
@@ -738,8 +988,29 @@ joined eager loads against collections
 session.execute(stmt).unique().scalars().all()
 ```
 
-Only for joined eager loads against a COLLECTION. On entities .unique() dedupes by primary key, so it can only remove copies the JOIN invented.
+**`joinedload` on a collection without `.unique()`.** A JOIN multiplies SQL rows
+(one issue × N comments). 1.4 `Query` silently collapsed them; 2.0 `select()` refuses
+until `.unique()`.
 
+```
+JOIN issues ⨯ comments → extra SQL rows
+Issue1+c1, Issue1+c2, Issue2+c3, ...   (more SQL rows than Issues)
+
+1.4 Query: silently collapse to unique Issues
+2.0 select(): InvalidRequestError until .unique()
+```
+
+```python
+session.execute(stmt).all()                      # raises
+session.execute(stmt).scalars().all()            # still raises — .unique() is on Result
+session.execute(stmt).unique().scalars().all()   # OK
+
+# often better: no JOIN multiplication
+select(Issue).options(selectinload(Issue.comments))
+```
+
+`.unique()` dedupes **entities by PK** (JOIN copies). Don't blindly unique a column-only
+select — that dedupes by **value** and can delete real rows.
 
 **Also defensible** — _each verified to run on 2.0.51. Pick deliberately; this is the judgement, not the typing._
 
@@ -760,7 +1031,10 @@ _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## Session lifecycle
+## Group G — Session lifecycle (#20–22)
+
+Transactions are explicit. Fake "autocommit / subtransactions" are gone; "is there a
+transaction?" becomes a question you ask.
 
 ### 20. Session(autocommit=True)
 
@@ -784,7 +1058,24 @@ Session(bind=engine)      # autobegin: the transaction opens on first use
 session.commit()          # and you end it explicitly
 ```
 
-Library-level autocommit is removed outright — there is no replacement flag. The transaction now begins on first use and ends where you say.
+**No replacement flag.** 1.4 `autocommit=True` ≈ Session tries not to hold a transaction.
+2.0: **autobegin** instead.
+
+```
+Session created     → no transaction yet
+first SELECT/INSERT → transaction starts automatically
+you commit/rollback → you end it
+```
+
+```python
+Session(bind=engine)   # no autocommit=True
+...
+session.commit()       # even for read-only: end the txn (vacuum / expiry)
+```
+
+Same story as "read-only session still needs commit": on Postgres a long-open read blocks
+vacuum (table bloat); `expire_on_commit` only fires at commit, so cached attributes never
+refresh. See `MIGRATION-2.0.md` §18 and `CONCEPTS.md` §14–§15.
 
 
 **Docs**
@@ -821,7 +1112,21 @@ Session.begin() got an unexpected keyword argument 'subtransactions'
 session.begin_nested()    # a real SAVEPOINT
 ```
 
-Subtransactions were a bookkeeping fiction that emitted no SQL. begin_nested() issues an actual SAVEPOINT.
+**Subtransaction (1.4):** fake nesting in Python. **No SQL.** Outer rollback still undoes
+everything; inner "commit" was bookkeeping.
+
+**`begin_nested()`:** real DB `SAVEPOINT`. Inner rollback undoes only work after that
+savepoint.
+
+```python
+session.begin_nested()  # SAVEPOINT foo
+# ... risky work ...
+# rollback → back to savepoint, outer txn still open
+```
+
+If you only wanted "nested begin() so I can commit inner without ending the session," the
+2.0 answer is usually: don't fake it — one transaction + `flush()`, or a real savepoint if
+you need partial undo.
 
 
 **Docs**
@@ -856,7 +1161,14 @@ session.transaction
 session.get_transaction()        # or session.in_transaction()
 ```
 
-The attribute became a method, so 'is there a transaction?' is a question you ask rather than an object you poke at.
+```python
+session.transaction          # gone
+session.get_transaction()    # the txn object, or None
+session.in_transaction()     # True/False
+```
+
+2.0: "is there a txn?" is a **question** (`in_transaction()`), not an attribute you poke.
+Pairs with autobegin (#20): right after `Session()`, there may be no transaction yet.
 
 
 **Docs**
@@ -873,7 +1185,7 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ---
 
-## The one that raises nothing
+## Group H — #23 cascade_backrefs (silent)
 
 ### 23. cascade_backrefs — object attached by the many-to-one side
 
@@ -904,6 +1216,20 @@ session.add(issue)          # <- the line 1.4 let you leave out
 ```
 
 The one line 1.4 let you omit. Explicit, local, and works on both versions.
+
+```
+project in session
+
+project.issues.append(issue)   → 2.0 still INSERTs
+issue.project = project        → 2.0: no add, no INSERT, no error
+```
+
+**Fixes:** `session.add(issue)` / append on the collection / `cascade_backrefs=False` on
+1.4 to find sites early.
+
+This repo's `seed.py` used `comment.issue = issue` → comments/assignments can vanish on
+2.0 while the script still "succeeds." A passing test suite does not see this unless it
+asserts on row counts.
 
 **Also defensible** — _all three work; they differ in what they cost you._
 
