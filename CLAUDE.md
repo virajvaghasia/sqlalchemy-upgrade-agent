@@ -232,3 +232,21 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **Deliberately NOT done:** the actual version bump (Viraj's call), and renaming
   `experiments/sqlalchemy_1_4_vs_2_0/` — ~180 cross-references for modest gain, and the name is
   defensible once `__init__.py` explains the contents.
+
+### 2026-08-08
+- Walked BREAKAGES.md entry-by-entry in chat. Viraj asked for more explanation *in the file*;
+  first refused (fix/docs are his golden-set seed), then he explicitly permitted importing
+  the explanations. Expanded BREAKAGES.md, then reshaped to the Group A–H "What 1.4 did /
+  What 2.0 does" layout he said is easier to reread later. Measured 1.4 code, 2.0 errors,
+  fix snippets, Also-defensible blocks, docs links, and tier lines untouched. #17 tier
+  contradiction (`row["col"]` looks safe on 1.4 tools, fails on real 2.0) is in the file.
+- **Verified the expansion by diffing, not by trusting it.** Regenerated the skeleton on real
+  2.0.51 and compared: all 23 entry headings and every `Fix`/`Tier`/`Docs` line byte-identical;
+  the 30 diverging lines are old prose the Group A–H rewrite replaced. No measured field moved.
+- **Measurement-rule violation found and fixed.** `verify_2_0.py` printed the literal
+  *"Six entries carry an Also defensible block"* — right by luck, typed by hand. Now derived:
+  counts `patterns.ALTERNATIVES` hits among the failures plus the one hand-appended
+  cascade_backrefs entry (`HAND_APPENDED_WITH_ALTERNATIVES`). Prints `6`, and 6 blocks are
+  emitted. `BREAKAGES.md` header synced so the diff workflow stays clean.
+- Full regression re-run: 10 modules pass on 1.4.52; 22 of 24 patterns fail on 2.0.51; no
+  `FIX FAILED`. Part A committed and pushed — the Mac is the only copy until the lab is back.
