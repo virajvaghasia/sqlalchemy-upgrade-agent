@@ -9,9 +9,8 @@ is given — so you can check it rather than believe it.
 
 ## How this doc is split, and why
 
-**Part 1–3 cover what you have already built.** They use your own `Dockerfile`, your own build
-output, and your own image as the worked example. Nothing here is a snippet to copy — it's a
-walkthrough of a file you wrote from an empty buffer on 2026-08-09.
+**Part 1–3 cover the container in this repo.** They use its `Dockerfile`, its build output and
+its image as the worked example, so every claim has something behind it.
 
 **Part 4 covers what you have not built yet** — Compose, container networking, volumes, GPU.
 Those are concepts only. **There is deliberately no `docker-compose.yml` in this file.** You
@@ -153,7 +152,7 @@ When you run `docker build .`, the CLI **tarballs the directory you pointed at a
 whole thing to the Docker daemon** before a single instruction runs. That directory is the
 *build context*.
 
-You watched this happen:
+Measured on this repo:
 
 ```
 # runnable: docker build -t sqlagent .
@@ -175,7 +174,7 @@ You watched this happen:
 
 #### Two programs, not one — and why "not found" is literally true
 
-Injected failure, diagnosed 2026-08-10. A single line was added to `.dockerignore`:
+Consider a single line added to `.dockerignore`:
 
 ```
 *.txt
@@ -238,7 +237,7 @@ So `__pycache__/` in a `.dockerignore` silently misses
 **/__pycache__
 ```
 
-You found this by looking, not by being told:
+Confirmed by looking inside the image:
 
 ```
 # runnable: docker run --rm sqlagent ls -a /app/experiments/sqlalchemy_1_4_vs_2_0
@@ -264,9 +263,9 @@ with it.
 
 ---
 
-## Part 2 — The instructions, walked through your own file
+## Part 2 — The instructions, walked through this repo's Dockerfile
 
-This is what you wrote:
+The file:
 
 ```dockerfile
 FROM python:3.11-slim
@@ -583,7 +582,7 @@ PID 2  python …     ← often never hears it → ~10s then force kill
 
 Use the JSON array so your app *is* PID 1.
 
-#### Your personal trap (not about ENTRYPOINT)
+#### A related trap (not about ENTRYPOINT)
 
 ```dockerfile
 CMD ["python", "-m", "app.py"]    # wrong: -m wants a module path, not a filename
@@ -592,7 +591,7 @@ CMD ["python", "-m", "app.py"]    # wrong: -m wants a module path, not a filenam
 Built green three times. Failed only at `docker run`. `CMD` is metadata — build never runs it.
 Green build ≠ works. Same shape as a passing 1.4 suite saying nothing about 2.0.
 
-Correct line (what you fixed to):
+Correct line:
 
 ```dockerfile
 CMD ["python", "-m", "experiments.sqlalchemy_1_4_vs_2_0.app"]
@@ -602,8 +601,8 @@ CMD ["python", "-m", "experiments.sqlalchemy_1_4_vs_2_0.app"]
 
 **Not needed for Days 4–5.** `app.py` is a batch script: it runs, prints, exits, and nothing
 ever asks it to stop. This becomes real in Phase 1, with a long-lived server that has open
-connections when a deploy tells it to shut down. It is here because the common explanation of
-it — including the one given in this session — is wrong.
+connections when a deploy tells it to shut down. It is here because the usual one-line
+explanation of it is wrong.
 
 The common claim is *"use `exec` so your process becomes PID 1 and receives the stop signal."*
 Measured on this image, `docker stop`:
@@ -667,7 +666,7 @@ uid=0(root) gid=0(root) groups=0(root)
 ```
 
 **Nobody chose that.** No instruction asked for root — it's the default when you don't say
-otherwise. pip warned you during the build and you scrolled past it.
+otherwise. pip says so during the build, in a warning that is easy to scroll past.
 
 Why it matters: a container is **not** a security boundary the way a VM is — processes inside
 share the host kernel. If an attacker gets code execution in your app, uid 0 turns several
@@ -734,7 +733,7 @@ scaffolding someone forgot to leave behind.
 
 ### 3.4 The image is not self-sufficient — and the first "working" one was a fluke
 
-The most instructive bug of the session, and nobody injected it.
+The most instructive failure in this build, and nothing was deliberately broken to produce it.
 
 ```
 # runnable: docker run --rm sqlagent
