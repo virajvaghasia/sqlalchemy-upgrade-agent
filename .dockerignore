@@ -1,0 +1,6 @@
+.venv
+.git
+*.db
+**/__pycache__
+**/.DS_Store
+.claude/
