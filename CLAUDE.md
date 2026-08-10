@@ -250,3 +250,32 @@ Append a dated entry each session; keep each entry to a few bullets.
   emitted. `BREAKAGES.md` header synced so the diff workflow stays clean.
 - Full regression re-run: 10 modules pass on 1.4.52; 22 of 24 patterns fail on 2.0.51; no
   `FIX FAILED`. Part A committed and pushed — the Mac is the only copy until the lab is back.
+
+### 2026-08-09 — Docker session 1 (Part C, Days 4–5)
+- **Viraj wrote `Dockerfile` and `.dockerignore` himself, line by line.** Claude explained each
+  instruction before he typed it and never produced the file. Collaboration rule held.
+- **Base image chosen on measurement, not vibes.** First answer was `python:3.11` "because it
+  has everything"; pushed back. He pulled both and measured: **1.62GB vs 214MB on disk, 416MB
+  vs 48MB to download** — 7.6× / 8.7×. Then verified on PyPI that 1.4.52 ships a
+  `manylinux_2_17_aarch64` cp311 wheel, so `-slim` needs no compiler. Build confirmed it:
+  wheel downloaded by that exact filename, install in **4.3s**, no gcc.
+- **He caught a Claude overstatement.** Highlighted `musllinux` in `uv.lock` against the claim
+  that Alpine has no wheels. Checked: SQLAlchemy 1.4.52 publishes **0** musllinux wheels, but
+  *greenlet* does. Real lesson is sharper than the original: **platform coverage is per-package,
+  not per-project** — one holdout dependency puts you back on compile-from-source.
+- **Layer cache demonstrated, not asserted.** After the source-only edit: `COPY requirements.txt`
+  and `RUN pip install` both `CACHED`, `COPY . .` rebuilt. Drill question #1 answered from his
+  own build output.
+- **Two failures he diagnosed.** `CMD ["python","-m","app.py"]` built green three times and only
+  failed at `docker run` — `CMD` is metadata, never validated at build time. And `__pycache__/`
+  in `.dockerignore` silently missed nested dirs: **docker-ignore matches full paths from the
+  context root, gitignore matches slash-less patterns at any depth.** Fixed with `**/__pycache__`.
+- Build context **13.51MB → 1.53kB**. `.venv` (macOS `*-darwin.so`, unloadable on Linux), `.git`
+  (history carries deleted secrets) and `issues.db` no longer ship. `tiers.json` kept on purpose
+  — `verify_2_0.py` reads it at runtime.
+- **`requirements.txt` is generated** (`uv export --no-hashes --no-emit-project -o
+  requirements.txt`) and committed, because the image build needs it. Regenerate it whenever
+  dependencies change or the build installs stale versions.
+- **Deliberately NOT done (next session):** non-root user, `pip --no-cache-dir`, `CMD` vs
+  `ENTRYPOINT`, multi-stage builds, and the hard-gate drill — a build failure Claude injects for
+  him to diagnose cold. Day 6 (Compose + Postgres) after that.
