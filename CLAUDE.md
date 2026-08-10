@@ -289,3 +289,27 @@ Append a dated entry each session; keep each entry to a few bullets.
   builds — all three now explained in `DOCKER-STUDY.md` §3 so he implements them knowing why.
   Then the hard-gate drill: a build failure Claude injects for him to diagnose cold. Day 6
   (Compose + Postgres) after that.
+
+### 2026-08-10 — the injected-failure drill, and a real bug it uncovered
+- **Injected break #1: `*.txt` added to `.dockerignore`.** Build failed at `COPY
+  requirements.txt` with `"/requirements.txt": not found` while the file sat on disk. **Viraj
+  diagnosed it correctly and fast.** Follow-up question (why "not found" rather than
+  "excluded") got him to the CLI/daemon split: the CLI filters and tars the context on the Mac,
+  the daemon runs `COPY` inside the VM, and the file never crossed. Restored cleanly — `git
+  diff` against `5c8301f` is empty.
+- **A real bug surfaced during the restore, and Claude had asserted the opposite.** The
+  container had been broken since `.dockerignore` was added: `no such table: issues`. After
+  that rebuild only `ls` was ever run, never the app, and Claude wrote it up as working in both
+  the commit message and `DOCKER-STUDY.md`. Corrected in place.
+- **The first "working" container was working for the wrong reason** — it had picked up a stale
+  `issues.db` from the Mac via `COPY . .`. Excluding `*.db` was right; it exposed that the image
+  was never self-sufficient. `app.py` does not create its schema (`seed.py` does), which its own
+  docstring states.
+- **Measured the ephemeral writable layer** rather than asserting it: seeding in one container
+  (106/40/54 rows) leaves the next container still reporting `no such table`; both commands in
+  *one* container gives the expected 38 open issues.
+- `DOCKER-STUDY.md` → 806 lines: §1.1 gained the per-container writable-layer proof, §1.4 the
+  CLI-vs-daemon model from the injected break, §3.4 the not-self-sufficient finding. Drill list
+  11 → 14.
+- **Open decision, his to make:** ship the seeded `.db` in the image, or seed at container
+  start. Only the second survives Day 6 when the database moves to Postgres.
