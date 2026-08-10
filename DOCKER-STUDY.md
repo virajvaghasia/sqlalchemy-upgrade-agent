@@ -460,6 +460,44 @@ COPY . .                           # changes every commit
 
 One fat `COPY . .` *before* `pip install` would bust the install layer on every source edit.
 
+#### The last layer to touch a path wins — measured
+
+`COPY` **preserves the source file's mode**, and layers apply in order. Put those two facts
+together and this Dockerfile is broken in a way that looks impossible:
+
+```dockerfile
+COPY entrypoint.sh .        # /app/entrypoint.sh, mode 644 (as it is on macOS)
+RUN chmod +x entrypoint.sh  # now 755  ✓
+COPY . .                    # copies entrypoint.sh AGAIN from the host — back to 644  ✗
+```
+
+```
+# runnable: docker run --rm --entrypoint ls sqlagent -l /app/entrypoint.sh
+-rw-r--r-- 1 root root 102 /app/entrypoint.sh      ← the chmod ran, then was overwritten
+```
+
+The container would have died at startup with `permission denied` while a `chmod +x` sat
+plainly in the Dockerfile two lines above. **A later `COPY` silently reverted an earlier
+`RUN`.**
+
+Four ways out, all defensible:
+
+1. `chmod +x` on the host and drop the `RUN` — git records the executable bit, so a clone on
+   the lab machine gets it too
+2. move the `chmod` *after* the wide `COPY . .`
+3. `COPY --chmod=755 entrypoint.sh .` placed after `COPY . .` — one instruction instead of two
+4. keep the dedicated copy, but ensure nothing later overwrites the path
+
+Option 3, verified:
+
+```
+# runnable: docker run --rm --entrypoint ls sqlagent -l /app/entrypoint.sh
+-rwxr-xr-x 1 root root 102 /app/entrypoint.sh
+```
+
+**The general rule:** when a file appears in more than one `COPY`, only the last one matters.
+Any `RUN` that modified it in between is discarded without a word.
+
 ### 2.4 `RUN`
 
 Executes a command *at build time*, in a new layer; whatever changed on disk is kept.
@@ -733,6 +771,82 @@ The fix is a real design decision, not a typo:
   Survives Day 6, because "start the app" becomes "connect, ensure schema, go" either way.
 
 Only one of those is still a valid design when the database lives in another container.
+
+#### The seductive third option, and why it is the first one wearing a hat
+
+There is an obvious-looking middle road: seed at **build** time with a `RUN`.
+
+```dockerfile
+RUN python -m experiments.sqlalchemy_1_4_vs_2_0.seed   # tested, works
+```
+
+It works. The app runs, 38 open issues, no error. And it is option A, because `RUN` keeps its
+filesystem changes as a layer:
+
+```
+# runnable: docker run --rm sqlagent-opt3 ls -l /app/issues.db
+-rw-r--r-- 1 root root 167936 /app/issues.db     ← the database is IN the image
+```
+
+Which produces a thing that behaves like a database and is actually a **fixture**:
+
+```
+# every container starts from the same frozen snapshot
+container 1 sees 200 issues
+container 2 sees 200 issues
+
+# container A inserts a row
+after insert, this container sees 201
+# container B, moments later
+a new container sees 200
+```
+
+**The write vanished.** It landed in container A's writable layer, which `--rm` deleted (§1.1).
+Nothing raised an error. Data silently fails to persist — the kind of thing found in production
+rather than in testing.
+
+#### What was actually built (option B)
+
+An `ENTRYPOINT` script that seeds, then hands off:
+
+```sh
+#!/bin/sh
+set -e
+python -m experiments.sqlalchemy_1_4_vs_2_0.seed
+exec "$@"
+```
+
+`set -e` stops the script if the seed fails, rather than launching an app at a half-built
+database. `exec "$@"` replaces the shell with whatever `CMD` supplied — so `CMD` keeps working
+as an overridable default instead of being hardcoded away.
+
+Verified four ways:
+
+```
+# runnable: docker run --rm sqlagent
+38 open issues
+
+# runnable: docker run --rm sqlagent ls /app          ← CMD overridden, proves exec "$@"
+README.md  entrypoint.sh  experiments  issues.db  ...
+
+# runnable: docker run --rm --entrypoint sh sqlagent -c 'ls /app/issues.db'
+ls: cannot access '/app/issues.db': No such file or directory     ← NOT in the image
+
+# runnable: docker run --rm sqlagent sh -c 'ls -l /app/issues.db'
+-rw-r--r-- 1 root root 167936 /app/issues.db                      ← created at runtime
+```
+
+The last two are the point of the whole exercise: **the image contains code, the container
+contains data.** That property is what survives Day 6, when the database moves to Postgres and
+"seed at startup" becomes "connect, ensure schema, go."
+
+Two consequences worth knowing:
+
+- **Every `docker run` now seeds**, including `docker run sqlagent ls`. Harmless here — fast,
+  and the data is disposable — but production entrypoints usually guard it with "only seed if
+  the schema is missing."
+- **`--entrypoint` is the escape hatch.** `docker run --entrypoint ls sqlagent /app` skips the
+  script entirely. Needing it is the tell that you understand `ENTRYPOINT` (§2.5).
 
 ---
 
