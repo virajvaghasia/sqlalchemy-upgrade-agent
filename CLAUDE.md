@@ -258,21 +258,22 @@ Append a dated entry each session; keep each entry to a few bullets.
   `FIX FAILED`. Part A committed and pushed — the Mac is the only copy until the lab is back.
 
 ### 2026-08-09 — Docker, Days 4–5
-- `Dockerfile` and `.dockerignore` written from blank, line by line (Claude explained, did not
-  produce). Base image `python:3.11-slim`, chosen against measured sizes and a PyPI wheel check.
+- `Dockerfile` and `.dockerignore` written from blank, line by line — explained before each
+  line, not produced. Base image `python:3.11-slim`, chosen against measured sizes and a PyPI
+  wheel check.
 - `requirements.txt` is **generated and committed** — `uv export --no-hashes --no-emit-project
   -o requirements.txt`. The image build needs it; regenerate it whenever dependencies change.
 - `DOCKER-STUDY.md` rewritten from scratch. **Rule narrowed, not dropped:** it now quotes the
   repo's own `Dockerfile`, since that one is written, and still contains no
   `docker-compose.yml`, because Day 6 is his to write from blank.
-- Two `# runnable` blocks of Claude's own didn't paste back verbatim (a `grep -c` standing in
-  for a count); replaced with a command that computes it. Heading structure fixed to one H1.
+- Two `# runnable` blocks didn't paste back verbatim (a `grep -c` standing in for a count);
+  replaced with a command that computes it. Heading structure fixed to one H1.
 
 ### 2026-08-10 — injected-failure drill, Days 4–5 complete
 - Injected break: `*.txt` in `.dockerignore`. Diagnosed, restored, `git diff` clean.
 - **Found: the container had been broken since `.dockerignore` was added** (`no such table:
-  issues`), and Claude had written it up as working on the strength of a green build and an
-  `ls`. Corrected in the doc and the commit record.
+  issues`). It had been recorded as working on the strength of a green build and an `ls`, with
+  the app itself never re-run. Corrected in the doc and the commit record.
 - `entrypoint.sh` added — seeds, then `exec "$@"`. `Dockerfile` gains `COPY --chmod=755` and
   `ENTRYPOINT`. Verified: `issues.db` absent from the image, present at runtime.
 - `DOCKER-STUDY.md` → 999 lines, drill list 7 → 14. **Explanations for all of the above live
