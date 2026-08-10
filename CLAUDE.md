@@ -103,6 +103,12 @@ networking.
     cannot be worked around by having Claude produce them early.
 - **Langfuse is deferred to Phase 6 and run on-demand** — ~5 containers won't fit in 12GB
   alongside everything else.
+- **The image holds code; the container holds data.** `issues.db` is created at container
+  start by `entrypoint.sh`, never baked in — not by `COPY`, and not by seeding at build time
+  with `RUN` (which looks like it works and quietly produces a fixture: writes disappear with
+  the container). Reason it survives Day 6: once Postgres has its own container, "ship the
+  database inside the app image" isn't a worse option, it stops being expressible.
+  Measured in `DOCKER-STUDY.md` §3.4.
 
 ## Naming conventions
 
@@ -251,83 +257,28 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Full regression re-run: 10 modules pass on 1.4.52; 22 of 24 patterns fail on 2.0.51; no
   `FIX FAILED`. Part A committed and pushed — the Mac is the only copy until the lab is back.
 
-### 2026-08-09 — Docker session 1 (Part C, Days 4–5)
-- **Viraj wrote `Dockerfile` and `.dockerignore` himself, line by line.** Claude explained each
-  instruction before he typed it and never produced the file. Collaboration rule held.
-- **Base image chosen on measurement, not vibes.** First answer was `python:3.11` "because it
-  has everything"; pushed back. He pulled both and measured: **1.62GB vs 214MB on disk, 416MB
-  vs 48MB to download** — 7.6× / 8.7×. Then verified on PyPI that 1.4.52 ships a
-  `manylinux_2_17_aarch64` cp311 wheel, so `-slim` needs no compiler. Build confirmed it:
-  wheel downloaded by that exact filename, install in **4.3s**, no gcc.
-- **He caught a Claude overstatement.** Highlighted `musllinux` in `uv.lock` against the claim
-  that Alpine has no wheels. Checked: SQLAlchemy 1.4.52 publishes **0** musllinux wheels, but
-  *greenlet* does. Real lesson is sharper than the original: **platform coverage is per-package,
-  not per-project** — one holdout dependency puts you back on compile-from-source.
-- **Layer cache demonstrated, not asserted.** After the source-only edit: `COPY requirements.txt`
-  and `RUN pip install` both `CACHED`, `COPY . .` rebuilt. Drill question #1 answered from his
-  own build output.
-- **Two failures he diagnosed.** `CMD ["python","-m","app.py"]` built green three times and only
-  failed at `docker run` — `CMD` is metadata, never validated at build time. And `__pycache__/`
-  in `.dockerignore` silently missed nested dirs: **docker-ignore matches full paths from the
-  context root, gitignore matches slash-less patterns at any depth.** Fixed with `**/__pycache__`.
-- Build context **13.51MB → 1.53kB**. `.venv` (macOS `*-darwin.so`, unloadable on Linux), `.git`
-  (history carries deleted secrets) and `issues.db` no longer ship. `tiers.json` kept on purpose
-  — `verify_2_0.py` reads it at runtime.
-- **`requirements.txt` is generated** (`uv export --no-hashes --no-emit-project -o
-  requirements.txt`) and committed, because the image build needs it. Regenerate it whenever
-  dependencies change or the build installs stale versions.
-- **`DOCKER-STUDY.md` rewritten from scratch** at his request — he had never read the old one.
-  Now built around what he actually did: Part 1 the model (image/container, layers, cache,
-  context), Part 2 every instruction walked through *his own* `Dockerfile` with real output,
-  Part 3 what the image still gets wrong, Part 4 concepts-only for Days 6–7. **The
-  "no snippets to copy" rule now applies only to what he hasn't built yet** — his own Dockerfile
-  is quoted because he wrote it; there is still deliberately no `docker-compose.yml` in the file.
-  Drill list grew 7 → 11. Two of Claude's own `# runnable` blocks didn't paste back verbatim
-  (a `grep -c` standing in for a count) and were replaced with a command that computes it.
-  Heading structure fixed to the repo's one-H1 convention; stale `README.md` row updated.
-- **Deliberately NOT done (next session):** non-root user, `pip --no-cache-dir`, multi-stage
-  builds — all three now explained in `DOCKER-STUDY.md` §3 so he implements them knowing why.
-  Then the hard-gate drill: a build failure Claude injects for him to diagnose cold. Day 6
-  (Compose + Postgres) after that.
+### 2026-08-09 — Docker, Days 4–5
+- `Dockerfile` and `.dockerignore` written from blank, line by line (Claude explained, did not
+  produce). Base image `python:3.11-slim`, chosen against measured sizes and a PyPI wheel check.
+- `requirements.txt` is **generated and committed** — `uv export --no-hashes --no-emit-project
+  -o requirements.txt`. The image build needs it; regenerate it whenever dependencies change.
+- `DOCKER-STUDY.md` rewritten from scratch. **Rule narrowed, not dropped:** it now quotes the
+  repo's own `Dockerfile`, since that one is written, and still contains no
+  `docker-compose.yml`, because Day 6 is his to write from blank.
+- Two `# runnable` blocks of Claude's own didn't paste back verbatim (a `grep -c` standing in
+  for a count); replaced with a command that computes it. Heading structure fixed to one H1.
 
-### 2026-08-10 — the injected-failure drill, and a real bug it uncovered
-- **Injected break #1: `*.txt` added to `.dockerignore`.** Build failed at `COPY
-  requirements.txt` with `"/requirements.txt": not found` while the file sat on disk. **Viraj
-  diagnosed it correctly and fast.** Follow-up question (why "not found" rather than
-  "excluded") got him to the CLI/daemon split: the CLI filters and tars the context on the Mac,
-  the daemon runs `COPY` inside the VM, and the file never crossed. Restored cleanly — `git
-  diff` against `5c8301f` is empty.
-- **A real bug surfaced during the restore, and Claude had asserted the opposite.** The
-  container had been broken since `.dockerignore` was added: `no such table: issues`. After
-  that rebuild only `ls` was ever run, never the app, and Claude wrote it up as working in both
-  the commit message and `DOCKER-STUDY.md`. Corrected in place.
-- **The first "working" container was working for the wrong reason** — it had picked up a stale
-  `issues.db` from the Mac via `COPY . .`. Excluding `*.db` was right; it exposed that the image
-  was never self-sufficient. `app.py` does not create its schema (`seed.py` does), which its own
-  docstring states.
-- **Measured the ephemeral writable layer** rather than asserting it: seeding in one container
-  (106/40/54 rows) leaves the next container still reporting `no such table`; both commands in
-  *one* container gives the expected 38 open issues.
-- `DOCKER-STUDY.md` → 806 lines: §1.1 gained the per-container writable-layer proof, §1.4 the
-  CLI-vs-daemon model from the injected break, §3.4 the not-self-sufficient finding. Drill list
-  11 → 14.
-- **Decision made and implemented: seed at container start.** He first justified it as "less
-  time during build" — pushed back, that's the `python:3.11` "it has everything" move again
-  (the `.db` is 164KB). The real reason is that shipping a database inside the app image
-  **isn't expressible** once Postgres has its own container on Day 6.
-- **He wrote `entrypoint.sh` himself** — asked Claude to write it, Claude declined per the
-  collaboration rule and went line-by-line instead, same method as the Dockerfile. Got all four
-  constructs right unaided: shebang, `set -e`, the seed, `exec "$@"`.
-- **A third option was tested and rejected with evidence:** seeding at build time with `RUN`.
-  It *works*, which is what makes it a trap — the `.db` lands in a layer, so it is option A
-  wearing a hat. Measured: every container sees the same frozen 200 rows, and an insert
-  (201) is gone in the next container (200). Behaves like a database, is actually a fixture.
-- **`RUN chmod +x` silently reverted by a later `COPY . .`.** Measured `-rw-r--r--` inside the
-  image with the `chmod` sitting two lines above it in the Dockerfile. `COPY` preserves the
-  *source* mode and the last layer to touch a path wins. He fixed it with `COPY --chmod=755`
-  placed after the wide copy.
-- **Option B verified four ways**, the last two being the point: `issues.db` is absent from the
-  image (`--entrypoint` bypass) and present at runtime. Image holds code, container holds data.
-- `DOCKER-STUDY.md` → 999 lines. `tini`/PID-1 footnote rewritten around measurements after
-  Claude's `exec` claim was disproved (`exec` alone changed nothing; only a SIGTERM handler did;
-  this machine's `StopTimeout` is 1s, not the documented 10).
+### 2026-08-10 — injected-failure drill, Days 4–5 complete
+- Injected break: `*.txt` in `.dockerignore`. Diagnosed, restored, `git diff` clean.
+- **Found: the container had been broken since `.dockerignore` was added** (`no such table:
+  issues`), and Claude had written it up as working on the strength of a green build and an
+  `ls`. Corrected in the doc and the commit record.
+- `entrypoint.sh` added — seeds, then `exec "$@"`. `Dockerfile` gains `COPY --chmod=755` and
+  `ENTRYPOINT`. Verified: `issues.db` absent from the image, present at runtime.
+- `DOCKER-STUDY.md` → 999 lines, drill list 7 → 14. **Explanations for all of the above live
+  there, not here:** §1.1 writable layer, §1.4 CLI-vs-daemon, §2.3 `COPY` mode reversion,
+  §2.5 PID 1 and `tini`, §3.4 the build-time-seed trap.
+- **Days 4–5 gate met:** Dockerfile from an empty file unaided, plus an injected failure
+  diagnosed with the mechanism explained rather than merely fixed.
+- **Next:** non-root user and `pip --no-cache-dir` (both explained in `DOCKER-STUDY.md` §3),
+  then Day 6 — Compose + Postgres.
