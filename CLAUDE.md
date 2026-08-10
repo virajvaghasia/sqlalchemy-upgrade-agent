@@ -276,6 +276,16 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **`requirements.txt` is generated** (`uv export --no-hashes --no-emit-project -o
   requirements.txt`) and committed, because the image build needs it. Regenerate it whenever
   dependencies change or the build installs stale versions.
-- **Deliberately NOT done (next session):** non-root user, `pip --no-cache-dir`, `CMD` vs
-  `ENTRYPOINT`, multi-stage builds, and the hard-gate drill — a build failure Claude injects for
-  him to diagnose cold. Day 6 (Compose + Postgres) after that.
+- **`DOCKER-STUDY.md` rewritten from scratch** at his request — he had never read the old one.
+  Now built around what he actually did: Part 1 the model (image/container, layers, cache,
+  context), Part 2 every instruction walked through *his own* `Dockerfile` with real output,
+  Part 3 what the image still gets wrong, Part 4 concepts-only for Days 6–7. **The
+  "no snippets to copy" rule now applies only to what he hasn't built yet** — his own Dockerfile
+  is quoted because he wrote it; there is still deliberately no `docker-compose.yml` in the file.
+  Drill list grew 7 → 11. Two of Claude's own `# runnable` blocks didn't paste back verbatim
+  (a `grep -c` standing in for a count) and were replaced with a command that computes it.
+  Heading structure fixed to the repo's one-H1 convention; stale `README.md` row updated.
+- **Deliberately NOT done (next session):** non-root user, `pip --no-cache-dir`, multi-stage
+  builds — all three now explained in `DOCKER-STUDY.md` §3 so he implements them knowing why.
+  Then the hard-gate drill: a build failure Claude injects for him to diagnose cold. Day 6
+  (Compose + Postgres) after that.
