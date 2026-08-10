@@ -470,71 +470,150 @@ cleanup provably did nothing.
 
 ### 2.5 `CMD` vs `ENTRYPOINT`
 
-Both say what runs when the container starts. The difference is **what happens when someone
-appends arguments to `docker run`.**
+You only need your own image for this section. Ignore other products until the footnote
+at the end.
 
-**`CMD` is a default that gets replaced.** Measured on your image:
+Both answer: **when the container starts, what process starts?**
+
+The difference is only what happens when you type something *after* the image name:
+
+```bash
+docker run --rm sqlagent ls -a /app
+#                         ^^^^^^^^^^ extra args
+```
+
+| | Plain English | Extra args do this |
+|---|---|---|
+| **`CMD`** | Default: run this if nobody says otherwise | **Replace** the whole command |
+| **`ENTRYPOINT`** | Always run this program | **Append** as arguments to that program |
+
+Your image uses **only `CMD`** (no `ENTRYPOINT`). Measured:
 
 ```
 # runnable: docker run --rm sqlagent echo "this replaced the CMD"
 this replaced the CMD
 ```
 
-Your app never ran. That's also why `docker run --rm sqlagent ls -a /app` worked — you replaced
-`CMD` with `ls`.
+Python never ran. Extra args became the command. Same reason `ls -a /app` worked.
 
-**`ENTRYPOINT` is a command that gets appended to.** Args on the command line become args *to*
-the entrypoint rather than a replacement for it.
-
-Your image versus a real-world one already on your machine:
+Your config is just:
 
 ```
-# runnable: docker image inspect <id> --format 'Entrypoint: {{.Config.Entrypoint}} Cmd: {{.Config.Cmd}}'
-sqlagent   Entrypoint: []                              Cmd: [python -m experiments...app]
-n8n        Entrypoint: [tini -- /docker-entrypoint.sh] Cmd: []
+Entrypoint: []
+Cmd: [python, -m, experiments.sqlalchemy_1_4_vs_2_0.app]
 ```
 
-n8n **always** runs its entrypoint script; you cannot accidentally replace it. Together the two
-mean *"this image always runs this program, and `CMD` supplies its default arguments"* — how
-well-behaved images behave.
+So: no fixed program. Whatever you put after `sqlagent` *is* the program.
 
-#### Where it bites
-
-- The image works locally and does nothing in production, because someone passed an argument
-  and silently replaced your `CMD`.
-- You set an `ENTRYPOINT` and now `docker run myimage bash` doesn't give you a shell — `bash`
-  is passed as an *argument* to the entrypoint. **`--entrypoint` is the escape hatch, and
-  knowing you need one is the tell that you actually understand this.**
-
-#### Shell form vs exec form — a real production bug
+If you later add an entrypoint, the usual good shape is:
 
 ```dockerfile
-CMD ["python", "-m", "myapp"]     # exec form  — your process is PID 1
-CMD python -m myapp               # shell form — wrapped in /bin/sh -c
+ENTRYPOINT ["python", "-m", "experiments.sqlalchemy_1_4_vs_2_0.app"]
+CMD []
 ```
 
-In shell form your process is **not PID 1** and **does not receive the shutdown signal**. Your
-container then takes ten seconds to die every time, because Docker gives up waiting and kills
-it. Use the array form.
+Then extra args cannot accidentally replace the app — they become args *to* Python. To get a
+shell you'd need the escape hatch: `docker run --entrypoint bash sqlagent`.
 
-(That `tini` in n8n's entrypoint is exactly this problem solved properly — a tiny init that
-sits at PID 1, forwards signals and reaps zombies.)
+#### Where it bites (with only `CMD`, like yours)
 
-#### And the trap you hit personally
+Someone passes an argument in production → your app never starts → silent replace. You already
+saw that locally with `echo` and `ls`.
+
+#### Shell form vs exec form — "PID 1"
+
+**PID** = process ID. **PID 1** = first process in the container. `docker stop` signals **only
+PID 1**.
 
 ```dockerfile
-CMD ["python", "-m", "app.py"]    # -m takes a MODULE PATH, not a filename
+CMD ["python", "-m", "myapp"]     # exec form — use this (you already do)
+CMD python -m myapp               # shell form — avoid
 ```
 
-**This built successfully three times.** It only failed at `docker run`:
+Exec form:
 
 ```
-Error while finding module specification for 'app.py' (ModuleNotFoundError: No module named 'app')
+PID 1  python …     ← hears "please stop"
 ```
 
-`CMD` is metadata — **Docker never executes or validates it at build time.** A green build
-tells you the image assembled, not that it works. Same shape as `MIGRATION-2.0.md`'s finding
-that a passing 1.4 test suite says nothing about 2.0.
+Shell form (Docker wraps in `/bin/sh -c`):
+
+```
+PID 1  sh           ← hears "please stop"
+PID 2  python …     ← often never hears it → ~10s then force kill
+```
+
+Use the JSON array so your app *is* PID 1.
+
+#### Your personal trap (not about ENTRYPOINT)
+
+```dockerfile
+CMD ["python", "-m", "app.py"]    # wrong: -m wants a module path, not a filename
+```
+
+Built green three times. Failed only at `docker run`. `CMD` is metadata — build never runs it.
+Green build ≠ works. Same shape as a passing 1.4 suite saying nothing about 2.0.
+
+Correct line (what you fixed to):
+
+```dockerfile
+CMD ["python", "-m", "experiments.sqlalchemy_1_4_vs_2_0.app"]
+```
+
+#### Footnote — PID 1, and a correction. Skip until you run a server.
+
+**Not needed for Days 4–5.** `app.py` is a batch script: it runs, prints, exits, and nothing
+ever asks it to stop. This becomes real in Phase 1, with a long-lived server that has open
+connections when a deploy tells it to shut down. It is here because the common explanation of
+it — including the one given in this session — is wrong.
+
+The common claim is *"use `exec` so your process becomes PID 1 and receives the stop signal."*
+Measured on this image, `docker stop`:
+
+| case | PID 1 | stop took | exit code |
+|---|---|---|---|
+| `sh` stays PID 1, python is its child | `sh` | 1.13s | **137** (SIGKILL) |
+| `exec` → python is PID 1, no handler | `python` | 1.13s | **137** (SIGKILL) |
+| python is PID 1 **and handles SIGTERM** | `python` | 0.12s | **0** (clean) |
+
+**`exec` changed nothing.** Rows 1 and 2 are identical. Only installing a handler helped.
+
+**Why:** the kernel special-cases PID 1. Any other process receiving a signal it hasn't handled
+gets the *default* action — SIGTERM terminates it. **PID 1 gets no default actions**; an
+unhandled signal is discarded. So a process at PID 1 that never installed a SIGTERM handler
+ignores the polite request, and Docker kills it when the grace period runs out.
+
+Check the PIDs yourself:
+
+```
+# runnable: docker run --rm sqlagent python -c "import os; print(os.getpid())"
+1
+# runnable: docker run --rm sqlagent sh -c 'echo "sh pid = $$"; python -c "import os; print(os.getpid())"'
+sh pid = 1
+python pid = 7
+```
+
+The famous "ten second hang" is the grace period expiring. It didn't reproduce here at first
+because **this Docker sets the grace period to 1 second, not the documented 10**:
+
+```
+# runnable: docker inspect -f '{{.Config.StopTimeout}}' <container>
+1
+# runnable: docker stop --timeout 10 <container>
+stop took 10.14s, exit=137
+```
+
+**This is what `tini` is for.** Product images — n8n on this machine sets
+`ENTRYPOINT ["tini","--","/docker-entrypoint.sh"]` — put a ~10KB init at PID 1 whose only jobs
+are to **forward signals** to the real process and to **reap zombies** (when a child exits,
+something must collect its exit status or it lingers as a defunct entry; normally the system's
+init does this, and a container has no init). Rather than demand every app implement signal
+handling correctly, they put one small program in front that already does. Docker ships this:
+**`docker run --init`**.
+
+So the honest version of the `exec` rule: **`exec` gets the shell out of the way** so it isn't a
+useless middleman holding PID 1. Whether shutdown is *graceful* then depends on your app
+handling SIGTERM, or on an init like tini doing it for you.
 
 ---
 
