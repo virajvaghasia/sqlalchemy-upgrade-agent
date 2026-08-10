@@ -311,5 +311,23 @@ Append a dated entry each session; keep each entry to a few bullets.
 - `DOCKER-STUDY.md` → 806 lines: §1.1 gained the per-container writable-layer proof, §1.4 the
   CLI-vs-daemon model from the injected break, §3.4 the not-self-sufficient finding. Drill list
   11 → 14.
-- **Open decision, his to make:** ship the seeded `.db` in the image, or seed at container
-  start. Only the second survives Day 6 when the database moves to Postgres.
+- **Decision made and implemented: seed at container start.** He first justified it as "less
+  time during build" — pushed back, that's the `python:3.11` "it has everything" move again
+  (the `.db` is 164KB). The real reason is that shipping a database inside the app image
+  **isn't expressible** once Postgres has its own container on Day 6.
+- **He wrote `entrypoint.sh` himself** — asked Claude to write it, Claude declined per the
+  collaboration rule and went line-by-line instead, same method as the Dockerfile. Got all four
+  constructs right unaided: shebang, `set -e`, the seed, `exec "$@"`.
+- **A third option was tested and rejected with evidence:** seeding at build time with `RUN`.
+  It *works*, which is what makes it a trap — the `.db` lands in a layer, so it is option A
+  wearing a hat. Measured: every container sees the same frozen 200 rows, and an insert
+  (201) is gone in the next container (200). Behaves like a database, is actually a fixture.
+- **`RUN chmod +x` silently reverted by a later `COPY . .`.** Measured `-rw-r--r--` inside the
+  image with the `chmod` sitting two lines above it in the Dockerfile. `COPY` preserves the
+  *source* mode and the last layer to touch a path wins. He fixed it with `COPY --chmod=755`
+  placed after the wide copy.
+- **Option B verified four ways**, the last two being the point: `issues.db` is absent from the
+  image (`--entrypoint` bypass) and present at runtime. Image holds code, container holds data.
+- `DOCKER-STUDY.md` → 999 lines. `tini`/PID-1 footnote rewritten around measurements after
+  Claude's `exec` claim was disproved (`exec` alone changed nothing; only a SIGTERM handler did;
+  this machine's `StopTimeout` is 1s, not the documented 10).
