@@ -44,6 +44,37 @@ Consequences you will meet:
   it's a catastrophe the first time it eats a database. (That's what volumes are for, §4.4.)
 - **Rebuilding an image never changes a running container.** It's still running the old one.
 
+#### The writable layer really is per-container — measured
+
+Seed a database in one container, then run the app in another:
+
+```
+# runnable: docker run --rm sqlagent python -m experiments.sqlalchemy_1_4_vs_2_0.seed
+  open            106
+  in_progress      40
+  closed           54
+```
+
+```
+# runnable: docker run --rm sqlagent
+sqlite3.OperationalError: no such table: issues
+```
+
+**The seed worked. The app still can't see it.** Container 1 wrote `issues.db` into *its own*
+writable layer and `--rm` deleted the whole layer on exit. Container 2 started from the same
+read-only image and got a fresh, empty writable layer of its own.
+
+Do both in **one** container and it works:
+
+```
+# runnable: docker run --rm sqlagent sh -c 'python -m experiments...seed >/dev/null 2>&1 && python -m experiments...app'
+38 open issues
+```
+
+This is the single most common source of *"but I already ran that command"* confusion. Each
+`docker run` is a **new container**. Anything the previous one wrote is gone unless it went to
+a volume or a real database elsewhere.
+
 ### 1.2 Layers — the idea everything hangs off
 
 An image is not a folder. It's a **stack of read-only layers**, each one the filesystem diff
@@ -141,6 +172,55 @@ You watched this happen:
   there is no outside — it only ever received the tarball.
 - **`.dockerignore` is not cosmetic.** It's what keeps your virtualenv, your git history and
   your secrets out of the image and off the wire.
+
+#### Two programs, not one — and why "not found" is literally true
+
+Injected failure, diagnosed 2026-08-10. A single line was added to `.dockerignore`:
+
+```
+*.txt
+```
+
+The build then failed at line 5 of the Dockerfile:
+
+```
+# runnable: docker build -t sqlagent .
+#6 [3/5] COPY requirements.txt .
+#6 ERROR: failed to calculate checksum of ref ...: "/requirements.txt": not found
+```
+
+The file was **right there on disk.** `ls` found it. Docker said it didn't exist. Resolving
+that contradiction is the whole build-context model:
+
+```
+1. the docker CLI reads .dockerignore              ← on your Mac
+2. the CLI walks your directory, SKIPS matches,
+   and tars up whatever survives                   ← the filter happens HERE
+3. the CLI ships that tarball to the daemon        ← "transferring context: 1.44kB"
+4. the daemon runs your instructions, incl. COPY   ← inside the Linux VM
+```
+
+`COPY` executes at **step 4**, inside the daemon. `requirements.txt` was filtered out at step 2
+and **never crossed**. The daemon isn't refusing to copy it — it has no idea the file exists.
+So the correct mental model is not *"`.dockerignore` means don't copy this"*:
+
+> **`.dockerignore` means this file does not exist, as far as the build is concerned.**
+
+Same reason you can't `COPY ../something` from outside the context. There is no outside; the
+daemon only ever received a tarball.
+
+**Read the whole output, not the last line.** BuildKit said so explicitly, above the error,
+where most people never look:
+
+```
+1 warning found:
+ - CopyIgnoredFile: Attempting to Copy file "requirements.txt" that is excluded by
+   .dockerignore (line 5)
+```
+
+Note also *where* it surfaced: at `COPY` on line 5, because that's the first instruction that
+needed the file. Had it only been used by `pip install` on line 7, the error would have been
+far stranger.
 
 #### `.dockerignore` is not `.gitignore` — a trap you already hit
 
@@ -332,23 +412,53 @@ runtime: `docker exec` into a running container and that's where you land.
 
 ### 2.3 `COPY` — and why `COPY` and not `ADD`
 
-`COPY <source on your machine> <destination in the image>`. Sources are relative to the build
-context; destinations relative to `WORKDIR`. So in your file, `.` means `/app/`.
+Both instructions use the same shape: **source → destination**.
 
-**`ADD` also copies — plus it auto-extracts tar archives and fetches remote URLs.** Both are
-surprising, and the URL fetch means your build silently depends on the network.
+```dockerfile
+COPY <src> <dest>
+ADD  <src> <dest>
+```
 
-**Use `COPY` unless you specifically want tar auto-extraction.** If asked the difference and
-you say "basically the same," you've said you've only ever copied Dockerfiles off Stack
-Overflow.
+For `COPY`, sources are relative to the build context; destinations relative to `WORKDIR`.
+So in your file, the second `.` in `COPY . .` means `/app/`.
 
-**The two-stage copy in your file is the whole cache lesson:**
+**`ADD` can do two extra things. That is the whole difference.**
+
+| Extra | Example | What actually happens | Why it bites |
+|---|---|---|---|
+| Tar auto-extraction | `ADD app.tar.gz /app/` | unpacks into `/app/` instead of leaving a `.tar.gz` file | same instruction, different result depending on the filename — easy to miss |
+| URL fetch | `ADD https://example.com/x.whl /tmp/` | downloads during **build** | build silently needs the network; the URL can change; not a file you control in the context |
+
+Local file vs URL still look like `src dest` — the src just happens to be a URL:
+
+```dockerfile
+COPY requirements.txt .                      # src in context → dest in image
+ADD  https://example.com/thing.whl /tmp/     # src is a URL → Docker fetches it
+```
+
+What each allows:
+
+| | `COPY` | `ADD` |
+|---|---|---|
+| Local path in the build context | yes | yes |
+| `http://` / `https://` URL | **no** | yes (downloads) |
+| Local `.tar` / `.tar.gz` | copies as a file | may **extract** into dest |
+
+**Use `COPY` unless you specifically want tar auto-extraction.** Almost never want URL fetch
+via `ADD` — download in an explicit `RUN`, or put the file in the context. If asked the
+difference and you say "basically the same," you've said you've only ever copied Dockerfiles
+off Stack Overflow.
+
+**The two-stage copy in your file is the whole cache lesson** — two `COPY` instructions, not
+a multi-stage build (§3.3). Order least-changed first:
 
 ```dockerfile
 COPY requirements.txt .            # changes ~monthly
 RUN pip install -r requirements.txt
 COPY . .                           # changes every commit
 ```
+
+One fat `COPY . .` *before* `pip install` would bust the install layer on every source edit.
 
 ### 2.4 `RUN`
 
@@ -505,6 +615,46 @@ dependency doesn't, and then the choice isn't "slim or safe," it's both.
 Usually the installed packages and your source, nothing else. Every byte beyond that is
 scaffolding someone forgot to leave behind.
 
+### 3.4 The image is not self-sufficient — and the first "working" one was a fluke
+
+The most instructive bug of the session, and nobody injected it.
+
+```
+# runnable: docker run --rm sqlagent
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: issues
+```
+
+`app.py` never creates its own tables — it says so in its own docstring (*"seed it first"*).
+`seed.py` is a separate entry point that does `drop_all` + `create_all` + populate.
+
+So compare the two builds:
+
+| build | `issues.db` | result |
+|---|---|---|
+| before `.dockerignore` existed | copied in from the Mac | **"worked"** — on a stale database that happened to be lying around |
+| after `*.db` was excluded | absent | `no such table: issues` |
+
+**Excluding `*.db` was correct.** A database file has no business being baked into an image:
+it's data, not code; it goes stale the moment anyone writes to it; and it makes the image
+change every time you re-seed. What the exclusion did was *expose* that the image had never
+been self-sufficient — it had been silently depending on a build artifact from the host.
+
+**And it went unnoticed for a full build cycle**, because after adding `.dockerignore` the only
+thing anyone ran was `ls`. The image was declared working on the strength of a green build and
+a directory listing. That is the same trap as §2.5's `CMD` typo and the same trap as
+`MIGRATION-2.0.md`'s green 1.4 test suite. Three times, one lesson:
+
+> **Verify the thing you actually care about, not the thing that's easy to check.**
+
+The fix is a real design decision, not a typo:
+
+- **Ship the seeded `.db` in the image** — works immediately, bakes data into code, and dies
+  the moment the database moves to Postgres on Day 6.
+- **Seed at container start** — the image holds only code, data is created fresh at runtime.
+  Survives Day 6, because "start the app" becomes "connect, ensure schema, go" either way.
+
+Only one of those is still a valid design when the database lives in another container.
+
 ---
 
 ## Part 4 — Not built yet (Days 6–7)
@@ -626,6 +776,11 @@ Answer cold, no notes, or the phase isn't done. Questions 1–5 are from
 9. *"Why is Alpine not automatically the right choice for a Python image?"*
 10. *"Your `.dockerignore` has `__pycache__/` and they're still in the image. Why?"*
 11. *"Who is your container running as, and why should you care?"*
+12. *"`COPY requirements.txt .` says the file isn't found. `ls` says it's there. Explain."*
+13. *"You ran the seed command in a container. The next container says the table doesn't exist.
+    Why?"*
+14. *"Your container worked last week and the only thing you changed was adding a
+    `.dockerignore`. What kind of dependency did you just discover?"*
 
 **Every one is a "why," not a "how."** Deliberate — anyone can `docker run`. These are built so
 that copied knowledge fails them.
