@@ -1063,6 +1063,62 @@ reporting CUDA is actually available.
 That's why the Day 7 gate says *"`docker run --gpus all ...` reports the 3060 from inside a
 container"* rather than "the model ran."
 
+### 4.6 `POSTGRES_USER` does not give you a limited account
+
+A fresh Postgres container has three databases:
+
+```
+# runnable: docker compose exec db psql -U sqlagent -d issues -c "\l"
+issues  postgres  template0  template1
+```
+
+`postgres` is the server's **maintenance database** — it exists so a superuser always has
+somewhere to connect. Leaving application tables in it works and is a smell: no separation
+between the server's own bookkeeping and your data.
+
+`POSTGRES_DB` fixes that for one line. `POSTGRES_USER` looks like it fixes privileges too.
+**It does not:**
+
+```
+# runnable: docker compose exec db psql -U sqlagent -d issues \
+#             -c "select rolname, rolsuper from pg_roles where rolcanlogin;"
+ rolname  | rolsuper
+ sqlagent | t
+```
+
+`rolsuper = t`. `POSTGRES_USER` **renames the superuser**; it does not create a restricted
+role. So this stack now has clean *data* separation and no *privilege* separation — the app
+can still drop any database on the server.
+
+Real least privilege needs more than env vars: a script in
+`/docker-entrypoint-initdb.d/` (the Postgres image runs `.sql` and `.sh` files there on first
+init) that creates a second, non-superuser role and grants it rights on the app database only.
+Two wrinkles make it more than a one-liner — since **PG15** the `public` schema no longer grants
+`CREATE` to everyone, so `create_all()` fails without an explicit grant; and the app role needs
+privileges on *future* tables, which is `ALTER DEFAULT PRIVILEGES`, not a one-time `GRANT`.
+
+**Deliberately not done here.** Worth knowing the gap exists rather than believing an env var
+closed it.
+
+#### The healthcheck that hangs forever
+
+Setting `POSTGRES_USER` breaks this, silently:
+
+```yaml
+test: ["CMD-SHELL", "pg_isready -U postgres"]     # role no longer exists
+```
+
+`pg_isready` never succeeds, `db` never becomes healthy, and `app` waits on
+`condition: service_healthy` — **which can now never be met.** No error is printed anywhere;
+Compose simply hangs. The fix is to interpolate the same variable:
+
+```yaml
+test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+```
+
+General rule: **a healthcheck that hardcodes a value configured elsewhere is a hang waiting to
+happen**, because a failing healthcheck looks identical to a slow one.
+
 ---
 
 ## Everything measured on this project

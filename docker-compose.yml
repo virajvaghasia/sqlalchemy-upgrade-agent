@@ -21,7 +21,14 @@ services:
       # ${...} is substituted by Compose from the .env file sitting next to this
       # one. It does NOT automatically reach the container — it is filled in here,
       # and it reaches the container because this `environment:` block passes it.
+      #
+      # All three are read ONLY on first initialisation of the volume. Change one
+      # later and nothing happens until `docker compose down -v`.
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Without this, app tables land in the server's own `postgres` maintenance
+      # database. Giving the app its own database costs one line.
+      POSTGRES_DB: ${POSTGRES_DB}
 
     # Postgres writes its data here. Without this line that directory lives in the
     # container's writable layer and `docker compose down` destroys the database.
@@ -33,7 +40,11 @@ services:
     # gets "connection refused". This healthcheck is what turns "started" into
     # "actually ready" — see the `condition:` under app.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      # -U must be the role that actually exists. Leaving this as the default
+      # `postgres` after setting POSTGRES_USER makes the check fail forever, the
+      # service never turns healthy, and `app` waits on a condition that can
+      # never be met — a hang with no error anywhere.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 2s
       timeout: 3s
       retries: 15
