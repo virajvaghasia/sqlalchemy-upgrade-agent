@@ -53,7 +53,7 @@ to "§18" is unambiguous in either file.
 | [`MIGRATION-2.0.md`](MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
 | [`BREAKAGES.md`](BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages; seeds the Phase 2 golden dataset |
 | [`PRACTICE-APP.md`](PRACTICE-APP.md) | the design of the app under test, and why this schema |
-| [`DOCKER-STUDY.md`](DOCKER-STUDY.md) | Phase 0 Part C notes — the layer/cache/context model, walked through this repo's own `Dockerfile` and measured output. Days 6–7 stay concepts-only, deliberately |
+| [`DOCKER-STUDY.md`](DOCKER-STUDY.md) | Phase 0 Part C notes. **Starts with a one-page plain-language summary of every idea**, then the long version: layers, cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root, Compose, networking and volumes — each measured against this repo |
 | [`LEARNING-LOG.md`](LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
