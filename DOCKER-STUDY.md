@@ -12,10 +12,14 @@ is given — so you can check it rather than believe it.
 **Part 1–3 cover the container in this repo.** They use its `Dockerfile`, its build output and
 its image as the worked example, so every claim has something behind it.
 
-**Part 4 covers what you have not built yet** — Compose, container networking, volumes, GPU.
-Those are concepts only. **There is deliberately no `docker-compose.yml` in this file.** You
-write that one from blank too, on Day 6. Reading a Compose file and writing one are different
-skills and only the second survives an interview.
+**Part 4 covers the Compose stack** — two services, container networking, volumes — and ends
+with GPU (§4.5), which is still concepts-only because the lab machine isn't reachable yet.
+
+Everything here is measured against this repo, with the command that reproduces it. Where a
+claim turned out to be wrong when measured, the correction is kept rather than quietly edited
+out — §2.5 (`exec` does not fix signal handling), §4.0 (a stale image invalidating a result)
+and §4.6 (`POSTGRES_USER` not creating a limited role) are all of that kind, and they are the
+most useful paragraphs in the file.
 
 ---
 
@@ -687,6 +691,32 @@ things bite people:
 **Verify with `docker run --rm sqlagent id` that the switch actually took effect** — don't
 assume the instruction worked.
 
+#### Done — and the part that bites
+
+```
+# runnable: docker run --rm --entrypoint id sqlagent
+uid=10001(app) gid=999(app) groups=999(app)
+```
+
+A fixed, high uid (10001) rather than whatever `useradd` picks: fixed so bind-mount ownership
+is predictable across machines, high so it cannot collide with a real host user.
+
+**`COPY --chown` was not enough.** It sets the owner of the files copied in and does nothing to
+the *directory* they land in, which `WORKDIR` created as root. Reading worked. Creating a new
+file did not:
+
+```
+# runnable: docker run --rm sqlagent          (before the extra chown)
+sqlite3.OperationalError: unable to open database file
+```
+
+Every file in `/app` was correctly owned and readable, and the app still could not write —
+because writing a *new* file needs permission on the **directory**, not on the files. One extra
+`chown app:app /app` fixes it.
+
+Worth generalising: **file ownership and directory ownership are different questions**, and
+container permission bugs are usually the second one.
+
 ### 3.2 Caches you never asked to ship
 
 Package managers cache downloads, and the cache lands **inside the layer**. By §1.2, deleting
@@ -709,6 +739,23 @@ it later hides it without reclaiming a byte.
 
 Phase 1 is where it stops being academic: torch and sentence-transformers wheels run to
 gigabytes, and that cache would ship in every image and cross the wire on every CI pull.
+
+#### Done
+
+`pip install --no-cache-dir`. By the time it was applied, adding `psycopg2-binary` had already
+grown the cache from 3.3MB to 9.1MB:
+
+```
+# runnable: docker run --rm --entrypoint sh sqlagent -c 'du -sh /root/.cache'
+(nothing listed — the directory is never created)
+
+# runnable: docker images sqlagent --format '{{.Size}}'
+295MB  ->  276MB
+```
+
+Note the flag *prevents the cache being written* rather than deleting it afterwards. Deleting
+it in a later layer would shrink nothing — layers are additive (§1.2), so the bytes stay in the
+layer that created them.
 
 ### 3.3 No multi-stage build
 
