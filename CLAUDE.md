@@ -122,13 +122,28 @@ networking.
 
 ## Naming conventions
 
-| Thing | Convention |
-|---|---|
-| Repo / folder / GitHub | `kebab-case`, all identical |
-| Python packages | `snake_case` (hyphens are illegal in imports) |
-| Root docs | `SCREAMING_CASE.md` |
-| Branches | `phase-N/short-topic` |
-| Commits | Conventional Commits (`feat:`, `fix:`, `docs:`) |
+| Thing | Convention | This repo |
+|---|---|---|
+| Repo / folder / GitHub | `kebab-case`, all identical | `sqlalchemy-upgrade-agent` |
+| Python packages | `snake_case` (hyphens are illegal in imports) | `sqlalchemy_1_4_vs_2_0` |
+| Root docs | `SCREAMING_CASE.md` | `BREAKAGES.md` |
+| Branches | `phase-N/short-topic` | `phase-0/breakages-and-audit` |
+| Commits | Conventional Commits (`feat:`, `fix:`, `docs:`) | |
+| Compose project | pinned with the top-level `name:`, matching the repo | `sqlalchemy-upgrade-agent` |
+| Compose services | one short lowercase word — it becomes a **hostname** | `app`, `db` |
+| Image built here | one name, **declared in `image:`** so Compose and `docker build` cannot produce two | `sqlagent:latest` |
+| Containers | left to Compose: `<project>-<service>-<n>` | `sqlalchemy-upgrade-agent-app-1` |
+| Volumes | left to Compose: `<project>_<volume>` | `sqlalchemy-upgrade-agent_pgdata` |
+
+**The image name is the one that bites.** With `build:` and no `image:`, Compose invents
+`<project>-<service>` — a *different* image from anything tagged by hand, both current, drifting
+apart in silence. Declaring `image:` means there is only ever one `sqlagent`. See
+`COMPOSE-STUDY.md` §4.7.
+
+**Two names are deliberate, not an oversight:** the project is `sqlalchemy-upgrade-agent`
+(matching repo and folder) and the image is `sqlagent` (short, because it is typed constantly
+in `docker run`). Both are declared in `docker-compose.yml`, so neither is inferred and neither
+can drift.
 
 ---
 

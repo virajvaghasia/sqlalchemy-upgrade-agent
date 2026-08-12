@@ -6,6 +6,12 @@
 # There is no `version:` key. It was required years ago, is ignored by modern
 # Compose, and now only produces a warning — tutorials that still show it are old.
 
+# Pinned rather than inferred. Without this, Compose names the project after
+# whatever the directory happens to be called — so a clone into a differently
+# named folder silently gets different network, volume and container names, and
+# stops finding the volume it made yesterday.
+name: sqlalchemy-upgrade-agent
+
 services:
   db:
     # Pinned, not `postgres:latest`. `latest` means "whatever was newest when you
@@ -57,9 +63,20 @@ services:
     #   docker compose exec db psql -U postgres
 
   app:
-    # `build:` instead of `image:` — this one is built from the Dockerfile in this
-    # directory rather than pulled from a registry.
+    # `build:` instead of a registry pull — this one is built from the Dockerfile
+    # in this directory.
     build: .
+
+    # `image:` alongside `build:` means "build it, then TAG IT THIS". Without it
+    # Compose invents a name from project+service (sqlalchemy-upgrade-agent-app),
+    # which is a different image from anything you built by hand with
+    # `docker build -t sqlagent .` — two images, one Dockerfile, drifting apart
+    # silently. That is exactly how a 13-hour-stale image ended up producing
+    # believable output and disproving nothing (COMPOSE-STUDY.md §4.0).
+    #
+    # With this line, `docker compose up --build` and `docker build -t sqlagent .`
+    # produce the same image, and there is only ever one thing called sqlagent.
+    image: sqlagent:latest
 
     environment:
       # Host in this URL is `db` — the service name above. Compose runs an embedded

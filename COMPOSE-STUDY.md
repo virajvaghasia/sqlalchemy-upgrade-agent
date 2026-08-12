@@ -30,6 +30,8 @@ Day 7 and still concepts-only, because the lab machine isn't reachable.
 - **`depends_on` waits for *started*, not *ready*.** A healthcheck closes the gap (§4.2)
 - **A volume is data that outlives the container.** `down` keeps it, `down -v` deletes it (§4.4)
 - **`POSTGRES_USER` renames the superuser** — it does not create a limited account (§4.6)
+- **Anything you don't name, Compose names for you** — usually after the folder. Pin the
+  project and the built image, or they drift (§4.7)
 
 ---
 
@@ -157,10 +159,12 @@ makes no sense, check the image's age before you doubt the concept:
 docker inspect <image> --format '{{.Created}}'
 ```
 
-`docker compose up --build` rebuilds; `docker compose up` alone does not. Note also that
-Compose names its image after the project and service (`sqlalchemy-upgrade-agent-app`), so a
-separately tagged `sqlagent` image can drift away from it without warning — which is exactly
-what happened here.
+`docker compose up --build` rebuilds; `docker compose up` alone does not.
+
+The deeper cause was a naming one, and it is now fixed. Compose used to build
+`sqlalchemy-upgrade-agent-app` while `docker build -t sqlagent .` built `sqlagent` — **two
+images from one Dockerfile, both current, drifting apart in silence.** Declaring `image:` next
+to `build:` collapses them into one name. See §4.7.
 
 ### 4.1 Networking — why the container can't reach anything
 
@@ -331,3 +335,54 @@ General rule: **a healthcheck that hardcodes a value configured elsewhere is a h
 happen**, because a failing healthcheck looks identical to a slow one.
 
 ---
+
+### 4.7 Naming — declare it, or Compose invents it
+
+Compose derives names when you don't supply them, and every derived name is a thing that can
+change without you touching it.
+
+| thing | if you say nothing | so it's pinned to |
+|---|---|---|
+| project | the **directory name** | `name: sqlalchemy-upgrade-agent` |
+| network | `<project>_default` | (follows the project) |
+| volume | `<project>_pgdata` | (follows the project) |
+| container | `<project>-<service>-<n>` | (fine — predictable) |
+| **image built by `build:`** | **`<project>-<service>`** | **`image: sqlagent:latest`** |
+
+Two of those matter.
+
+**The project name.** Inferred from the folder, so a clone into a differently named directory
+gets a different network *and a different volume* — and quietly cannot find the database it
+created yesterday. One `name:` line removes the whole class of problem.
+
+**The image name.** This is the one that already caused real confusion (§4.0). With `build:`
+and no `image:`, Compose builds `sqlalchemy-upgrade-agent-app` while `docker build -t sqlagent .`
+builds `sqlagent`. **Two images, one Dockerfile, both current, drifting apart in silence** —
+which is how a 13-hour-old `sqlagent` produced believable output and disproved nothing.
+
+Adding `image:` next to `build:` means "build it, then tag it this," so both routes land on one
+name:
+
+```
+# runnable: docker compose build app && docker images sqlagent --format '{{.Repository}}:{{.Tag}}  {{.ID}}'
+sqlagent:latest  d7cc020ae957
+
+# runnable: docker build -t sqlagent . && docker images sqlagent --format '{{.Repository}}:{{.Tag}}  {{.ID}}'
+sqlagent:latest  66f6f4908e85
+```
+
+**One tag, and whichever build ran last owns it.** The IDs differ because Compose stamps extra
+labels into the image config —
+
+```
+# runnable: docker image inspect sqlagent:latest --format '{{json .Config.Labels}}'
+com.docker.compose.project: sqlalchemy-upgrade-agent
+com.docker.compose.service: app
+```
+
+— so the two routes are not byte-identical. That's harmless. What matters is that there is no
+longer a *second image under a second name* silently going stale, which is what actually bit.
+
+**The rule worth taking away:** in Compose, anything you don't name gets named for you, from
+something you didn't think of as configuration — usually the folder. Name the things whose
+identity you depend on.
