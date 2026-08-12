@@ -1054,12 +1054,62 @@ docker run --rm --network demo-net \
    issues in table: 200
 ```
 
-Note the host in that URL is `demo-db` — the **container name**. Same mechanism Compose uses;
-Compose just derives the name from the service key.
+##### What each part is doing, and why
 
-So what Compose actually buys is: one command instead of four, a network created and named
-for you, service names as hostnames, `.env` substitution, volume management, dependency
-ordering, and `down` that cleans all of it up.
+**1. `docker network create demo-net`** — makes a private virtual network. Nothing is on it
+yet. It exists because containers on a network *you* create get **DNS by name**, and on
+Docker's built-in default network they do not. This one line is the difference between
+`@demo-db:5432` resolving and failing.
+
+**2. `docker run -d --name demo-db --network demo-net -e POSTGRES_PASSWORD=… postgres:16-alpine`**
+
+| piece | what it does |
+|---|---|
+| `docker run` | create a **new** container from an image, and start it |
+| `-d` | **detached** — run in the background and hand the terminal back. Postgres never exits, so without this the terminal is stuck |
+| `--name demo-db` | name the container. **That name is its hostname on the network** — the whole point of the exercise |
+| `--network demo-net` | attach it to the network from step 1 |
+| `-e POSTGRES_PASSWORD=…` | set an env var inside it. This image refuses to start without this one |
+| `postgres:16-alpine` | which image. `16` = major version, pinned; `alpine` = the small base |
+
+**3. `docker run --rm --network demo-net -e DATABASE_URL=… sqlagent`**
+
+| piece | what it does |
+|---|---|
+| `--rm` | delete the container when it exits. The app runs, prints, finishes — no reason to keep it |
+| `--network demo-net` | **the same network**, so `demo-db` resolves. Omit it and this fails |
+| `-e DATABASE_URL=…` | tells the app where the database is; `seed.py` reads it with `os.getenv` |
+| `sqlagent` | the image built from this repo's Dockerfile |
+
+**Why `-d` on one and `--rm` on the other:** Postgres is a server that runs forever, so it goes
+to the background. The app is a batch job that finishes, so it cleans up after itself.
+
+##### The URL, decoded
+
+```
+postgresql+psycopg2 :// postgres : devpassword @ demo-db : 5432 / postgres
+└─ dialect+driver ─┘     └user┘   └─password─┘   └─host─┘  └port┘ └─db name─┘
+```
+
+`postgresql` is the SQL dialect SQLAlchemy speaks; `psycopg2` is the library doing the talking.
+**`demo-db` is the container name from step 2** — that is the join between the two commands.
+
+##### The same thing, in Compose
+
+| by hand | in `docker-compose.yml` |
+|---|---|
+| `docker network create demo-net` | automatic — one network per project |
+| `--name demo-db` | the **key** under `services:` is the name |
+| `--network demo-net` | automatic — every service joins it |
+| `-e POSTGRES_PASSWORD=…` | `environment:` |
+| `postgres:16-alpine` | `image:` |
+| a prebuilt image | `build: .` — builds from the Dockerfile instead |
+| `-d` / `--rm` | `docker compose up` / `down` |
+
+**So Compose introduces nothing new.** It's the same four primitives — network, image, name,
+environment — written down instead of typed. What you gain is one command instead of four,
+`.env` substitution, volume management, dependency ordering, and a `down` that cleans up
+everything it made.
 
 #### The part that is NOT optional: a user-defined network
 
