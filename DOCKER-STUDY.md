@@ -23,6 +23,61 @@ most useful paragraphs in the file.
 
 ---
 
+## The short version — every idea, one line each
+
+**Read this page first.** Plain language, no detail. The `§` tells you where the long version
+and the measurement live, if you want them.
+
+### The four words
+
+| word | what it actually is |
+|---|---|
+| **image** | a frozen snapshot of a whole filesystem. Nothing is running. Like a class in code |
+| **container** | one running copy of an image. Like an object. Anything it writes disappears when it stops (§1.1) |
+| **Dockerfile** | the recipe that builds **one** image (Part 2) |
+| **Compose** | a file that runs **several** containers together. It does not replace the Dockerfile — it calls it (§4.0) |
+
+### Building the image
+
+- **Layers** — every line in the Dockerfile saves its changes as one step, stacked. Same idea as git commits: each is a diff on the one before (§1.2)
+- **The cache** — rebuild, and Docker reuses steps whose inputs didn't change. **The first changed step, and everything below it, is redone** (§1.3)
+- **So order matters** — put lines that rarely change at the top, lines that change constantly at the bottom. That's why installing dependencies comes *before* copying your code (§1.3)
+- **Deleting doesn't shrink** — remove a file in a later step and the bytes stay in the earlier one. That's why multi-stage builds exist (§1.2, §3.3)
+- **Build context** — `docker build .` zips up the whole folder and ships it to Docker *before* anything runs (§1.4)
+- **`.dockerignore`** — the list of things not to ship. It is not `.gitignore`; the matching rules differ (§1.4)
+
+### What goes in the image
+
+- **Base image** — `FROM` decided ~87% of your image size. `-slim` over the full image: 214MB vs 1.62GB (§2.1)
+- **Wheels** — a Python package that's pre-compiled for your OS and CPU. If one exists, installing needs no compiler; if not, pip compiles from source and needs tools `-slim` doesn't have (§2.1)
+- **Alpine is a trap for Python** — it uses a different C library, so most wheels don't fit it and pip falls back to compiling (§2.1)
+- **Non-root user** — containers run as root unless you say otherwise. Root inside a container is a much better position for an attacker than an ordinary user (§3.1)
+- **`pip --no-cache-dir`** — without it, pip's downloaded copies of every package are baked into the image and never read again. Was 9.1MB here (§3.2)
+
+### Running it
+
+- **`CMD`** — the default command. Anything you type after the image name replaces it (§2.5)
+- **`ENTRYPOINT`** — always runs; `CMD` becomes its arguments. `--entrypoint` is the escape hatch (§2.5)
+- **Array form, not string form** — `["python", "-m", "x"]`, because the string form wraps your program in a shell that swallows shutdown signals (§2.5)
+- **A green build proves nothing** — `CMD` is never run at build time, so a broken one builds fine and fails on `docker run` (§2.5)
+
+### More than one container
+
+- **Networking** — each container has its own network, so `localhost` means *itself*, not your Mac (§4.1)
+- **Names are hostnames** — on a Compose network, a service called `db` is reachable at `db`. This does **not** work on Docker's default network (§4.0, §4.1)
+- **Ports** — `ports:` is only for traffic coming from outside. Two containers talking to each other need nothing (§4.1)
+- **Volumes** — a container's own storage dies with it. A named volume survives `docker compose down`, and only `down -v` deletes it (§4.4)
+- **`depends_on` ≠ ready** — it waits for the container to *start*, not for the program inside to accept connections. A healthcheck is what closes that gap (§4.2)
+- **`.env`** — where the passwords and URLs live. Gitignored; `.env.example` is the committed template (§4.6)
+
+### The three things that fooled us
+
+- **A stale image** — a container runs the code baked into its image, not what's in your editor. An image 13 hours out of date produced believable output and proved nothing (§4.0)
+- **`exec` doesn't fix shutdown** — making your program PID 1 delivers the signal; the program still has to handle it (§2.5)
+- **`POSTGRES_USER` doesn't create a limited account** — it renames the superuser (§4.6)
+
+---
+
 ## Part 1 — The mental model
 
 Three ideas. Almost every confusing thing about Docker follows from them.
