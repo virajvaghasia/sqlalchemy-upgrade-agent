@@ -8,7 +8,12 @@ the prediction alone was never good enough to fill BREAKAGES.md.
 Nothing is upgraded to run this. uv builds a throwaway environment on 2.0 while
 the project stays pinned to 1.4 in pyproject.toml:
 
-    uv run --no-project --with 'sqlalchemy>=2.0' python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+    uv run --no-project --with 'sqlalchemy==2.0.51' python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+
+The 2.0 version is PINNED, not floating. BREAKAGES.md quotes exact error strings
+from a specific release; '>=2.0' silently drifts to whatever shipped this week
+and the file stops being reproducible. See PIN below for how to move it
+deliberately.
 
 Refuses to run on 1.4, because a green result there would mean nothing.
 
@@ -35,12 +40,34 @@ import sqlalchemy as sa
 
 from experiments.sqlalchemy_1_4_vs_2_0 import patterns
 
+# The single source of truth for which 2.0 the evidence was taken on. Every
+# printed command interpolates it, so the docs cannot drift from the code.
+#
+# TO MOVE IT: change this line, re-run with --stubs, diff against BREAKAGES.md
+# (the header in that file shows how), and hand-edit any entry whose measured
+# error actually moved. That is a deliberate act with a visible diff, which is
+# the whole point of pinning.
+PIN = "2.0.51"
+RUN_CMD = f"uv run --no-project --with 'sqlalchemy=={PIN}'"
+
 MAJOR = int(sa.__version__.split(".")[0])
 if MAJOR < 2:
     sys.exit(
         f"Running on SQLAlchemy {sa.__version__}. This script only means something on 2.0.\n"
-        "  uv run --no-project --with 'sqlalchemy>=2.0' \\\n"
+        f"  {RUN_CMD} \\\n"
         "      python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0"
+    )
+
+if sa.__version__ != PIN:
+    # Not fatal — testing a newer 2.0 on purpose is legitimate. But BREAKAGES.md
+    # records exact error text, so an unnoticed version change is how that file
+    # quietly stops matching reality.
+    print(
+        f"WARNING: running on SQLAlchemy {sa.__version__}, but the evidence in "
+        f"BREAKAGES.md was taken on {PIN}.\n"
+        f"         Pin with:  {RUN_CMD}\n"
+        f"         Or update PIN in this file if you mean to move it.\n",
+        file=sys.stderr,
     )
 
 STUBS = "--stubs" in sys.argv
@@ -101,7 +128,7 @@ def emit_stubs(failures):
     print("> you wrote over them. Diff instead:")
     print(">")
     print("> ```bash")
-    print("> uv run --no-project --with 'sqlalchemy>=2.0' \\")
+    print(f"> {RUN_CMD} \\")
     print(">     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 --stubs > /tmp/breakages.new")
     print("> diff /tmp/breakages.new BREAKAGES.md")
     print("> ```")

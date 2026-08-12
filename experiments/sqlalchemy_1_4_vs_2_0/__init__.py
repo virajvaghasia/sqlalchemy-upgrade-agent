@@ -40,7 +40,7 @@ MIGRATION TOOLING — the three questions you ask in order.
     verify_2_0.py  "what does real 2.0 do?" — runs the same patterns on 2.0
                    and reports the actual error. Needs a 2.0 environment:
 
-                       uv run --no-project --with 'sqlalchemy>=2.0' \\
+                       uv run --no-project --with 'sqlalchemy==2.0.51' \\
                            python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
 
                    `--stubs` emits the BREAKAGES.md skeleton instead.

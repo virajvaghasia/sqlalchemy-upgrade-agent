@@ -293,3 +293,19 @@ Append a dated entry each session; keep each entry to a few bullets.
   diagnosed with the mechanism explained rather than merely fixed.
 - **Next:** non-root user and `pip --no-cache-dir` (both explained in `DOCKER-STUDY.md` §3),
   then Day 6 — Compose + Postgres.
+
+### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
+- **Collaboration rule changed permanently** at his request, on time grounds — Claude now
+  writes infra while narrating. Recorded above with its date so it isn't re-litigated.
+- `docker-compose.yml`: app + `postgres:16-alpine`, service-name DNS, `pg_isready`
+  healthcheck with `condition: service_healthy`, named volume, no published ports.
+  `DATABASE_URL` read from env in `seed.py`, defaulting to SQLite so Part A is untouched.
+- **The volume exposed a contradiction:** `seed.py` opened with `drop_all()` on every
+  container start. Now seeds only when the database is empty; `--force` still rebuilds.
+- Fixed a `print` asserting `seeded issues.db` regardless of the database in use; it reports
+  `engine.url` with the password masked.
+- **2.0 version pinned to 2.0.51** (`PIN` in `verify_2_0.py`, interpolated into every printed
+  command). `>=2.0` had drifted to 2.0.52. Running off-pin now warns loudly, because
+  `BREAKAGES.md` quotes exact error strings.
+- A stale `sqlagent` image (13h older than the code) silently invalidated a networking
+  measurement mid-session. Written up in `DOCKER-STUDY.md` §4.0.
