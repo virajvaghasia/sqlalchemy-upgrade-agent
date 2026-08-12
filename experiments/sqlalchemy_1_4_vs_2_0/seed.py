@@ -14,17 +14,21 @@ Re-running drops and rebuilds — the row counts stay identical because RANDOM_S
 fixed, so the query counts you write down in Step 5 remain reproducible.
 """
 
+import os
 import random
+import sys
 from datetime import datetime, timedelta
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 
 from sqlalchemy.orm import sessionmaker
 
 from experiments.sqlalchemy_1_4_vs_2_0 import models
 
+
 DB_PATH = "issues.db"
 DB_URL = f"sqlite:///{DB_PATH}"
+DB_URL = os.getenv("DATABASE_URL", DB_URL)
 
 # Fixed so the counts never move between runs. If this changed run to run, the
 # before/after comparison in Step 9 would be meaningless. The "before" is
@@ -84,6 +88,26 @@ ROLES = ["owner", "reviewer", "watcher"]
 def make_engine(echo=False):
     """Single source of truth for the DB location, imported by app.py in Step 4."""
     return create_engine(DB_URL, echo=echo)
+
+
+def is_seeded(engine):
+    """Does this database already hold data?
+
+    seed() starts with drop_all(). That was harmless while the database was a
+    SQLite file inside a container that died anyway. It is destructive against a
+    Postgres volume, which exists precisely so the data survives a restart — and
+    entrypoint.sh runs the seed on *every* container start.
+
+    So the entrypoint asks this first. No table, or a table with no rows, means
+    there is nothing to lose.
+    """
+    if not inspect(engine).has_table(models.Issue.__tablename__):
+        return False
+    session = sessionmaker(bind=engine)()
+    try:
+        return session.query(models.Issue).count() > 0
+    finally:
+        session.close()
 
 
 def seed(engine):
@@ -176,7 +200,10 @@ def report(session, engine):
         ("issue_blocks", len(session.execute(models.issue_blocks.select()).fetchall())),
     ]
     width = max(len(name) for name, _ in counts)
-    print(f"seeded {DB_PATH}\n")
+    # Report the database actually in use, not a hardcoded filename — DB_URL is
+    # overridable by DATABASE_URL, so "issues.db" was a lie whenever it was.
+    # render_as_string(hide_password=True) keeps the password out of the logs.
+    print(f"database: {engine.url.render_as_string(hide_password=True)}\n")
     for name, n in counts:
         print(f"  {name:<{width}}  {n:>5}")
 
@@ -187,7 +214,15 @@ def report(session, engine):
 
 
 if __name__ == "__main__":
+    force = "--force" in sys.argv
     engine = make_engine()
-    session = seed(engine)
+
+    if is_seeded(engine) and not force:
+        # Safe to run on every container start: an existing database is left alone.
+        print("database already seeded — leaving it alone (--force to drop and rebuild)")
+        session = sessionmaker(bind=engine)()
+    else:
+        session = seed(engine)
+
     report(session, engine)
     session.close()

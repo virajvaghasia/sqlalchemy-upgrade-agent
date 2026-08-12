@@ -41,18 +41,26 @@ Docker, CI/CD, and cloud tooling but cannot reason about or debug them. His rés
 fluency in exactly those things. **Closing that gap is a primary goal of this project — not
 a side effect.**
 
-### Infrastructure — HE writes it. Claude does NOT.
+### Infrastructure — Claude writes it, narrating as it goes. **Changed 2026-08-12.**
 
 Docker, Docker Compose, CI/CD, deployment, shell/systemd, system design.
 
-Claude's role is to **explain, review, and drill**. Not to produce.
+**The original rule was: he writes every line, Claude only explains, reviews and drills.**
+It held through Days 4–5 — he wrote `Dockerfile`, `.dockerignore` and `entrypoint.sh` from
+blank files and can defend every line. **He then changed it deliberately, on time grounds.**
+Do not re-litigate it or drift back; if he wants to write something himself he will say so.
 
-If Claude writes the Dockerfile, he gets a working container and learns nothing, and the
-résumé gap stays open. **That dependency is exactly what caused the problem.** Writing it
-"just to save time" is the single most damaging thing Claude can do on this project.
+**What replaces it:** Claude writes the file *and* explains what each part does and why,
+in enough detail that he can follow along and answer for it afterwards. Working code plus
+a running explanation — not silent production, and not a tutorial that stops short of a
+working file.
 
-When he's stuck on infra: ask what he's tried, explain the concept, point at the docs, let
-him write it. Then drill him on *why* it works.
+Two things the original rule was protecting, which still apply:
+
+- **He must be able to defend what ships.** So: comment the *why* in the file, surface the
+  decisions rather than burying them, and say out loud what was traded away.
+- **The drills still matter.** `DOCKER-STUDY.md` keeps its question list, and the Phase 0
+  hard gate is unchanged — the gate is whether he can explain it, not who typed it.
 
 ### AI / LLM material — Claude is hands-on.
 
@@ -61,8 +69,10 @@ Embeddings, retrieval, chunking, reranking, evaluation, agents, MCP.
 He is honestly new here, has no prior claim to the knowledge, and no interviewer expects him
 to have arrived with it. Pair freely, write code, explain as you go.
 
-**The asymmetry is deliberate: most help where he's honestly new, least help where he's
-supposed to already know.**
+**As of 2026-08-12 both halves work the same way: Claude writes, narrating as it goes.** The
+asymmetry that used to exist here — least help on infra, most help on AI — is retired. What
+did not change is the standard the work is held to: **he has to be able to defend it**, which
+is why explanation travels with the code rather than after it.
 
 ---
 

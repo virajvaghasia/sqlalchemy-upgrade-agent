@@ -1,0 +1,67 @@
+# Two services on one network: the 1.4 practice app, and the Postgres it talks to.
+#
+# Run:   docker compose up --build
+# Stop:  docker compose down            (add -v to also delete the data volume)
+#
+# There is no `version:` key. It was required years ago, is ignored by modern
+# Compose, and now only produces a warning — tutorials that still show it are old.
+
+services:
+  db:
+    # Pinned, not `postgres:latest`. `latest` means "whatever was newest when you
+    # happened to pull", so two machines can silently run different majors — and
+    # Postgres majors are not on-disk compatible.
+    #
+    # Alpine is fine HERE, unlike for the Python image. The musl problem was about
+    # prebuilt Python wheels being built against glibc; Postgres is a C program the
+    # image maintainers compile against musl themselves.
+    image: postgres:16-alpine
+
+    environment:
+      # ${...} is substituted by Compose from the .env file sitting next to this
+      # one. It does NOT automatically reach the container — it is filled in here,
+      # and it reaches the container because this `environment:` block passes it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    # Postgres writes its data here. Without this line that directory lives in the
+    # container's writable layer and `docker compose down` destroys the database.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+    # `depends_on` alone only waits for the container to START. Postgres takes a
+    # few seconds more to accept connections, and an app that connects in that gap
+    # gets "connection refused". This healthcheck is what turns "started" into
+    # "actually ready" — see the `condition:` under app.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+    # Deliberately NO `ports:`. Published ports punch a hole from the host into a
+    # container; they are for traffic arriving from outside. `app` reaches this
+    # container over the Compose network without any port being published.
+    #
+    # To poke at the database yourself, you do not need a port either:
+    #   docker compose exec db psql -U postgres
+
+  app:
+    # `build:` instead of `image:` — this one is built from the Dockerfile in this
+    # directory rather than pulled from a registry.
+    build: .
+
+    environment:
+      # Host in this URL is `db` — the service name above. Compose runs an embedded
+      # DNS server on the network it creates, and every service name resolves to
+      # that service's container. Not localhost, not an IP.
+      DATABASE_URL: ${DATABASE_URL}
+
+    depends_on:
+      db:
+        # Wait for the healthcheck to pass, not merely for the container to exist.
+        condition: service_healthy
+
+# Named volume. Docker manages the storage, and it survives `docker compose down`.
+# Only `docker compose down -v` removes it.
+volumes:
+  pgdata:

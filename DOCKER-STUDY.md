@@ -819,7 +819,7 @@ exec "$@"
 database. `exec "$@"` replaces the shell with whatever `CMD` supplied — so `CMD` keeps working
 as an overridable default instead of being hardcoded away.
 
-Verified four ways:
+Verified four ways. Same image, four different "who is in charge" answers:
 
 ```
 # runnable: docker run --rm sqlagent
@@ -835,6 +835,76 @@ ls: cannot access '/app/issues.db': No such file or directory     ← NOT in the
 -rw-r--r-- 1 root root 167936 /app/issues.db                      ← created at runtime
 ```
 
+Your wiring:
+
+```
+ENTRYPOINT  ./entrypoint.sh          # always starts (unless --entrypoint)
+CMD         python -m …app           # default → becomes "$@"
+```
+
+**1. `docker run --rm sqlagent`** — nothing after the image name, so Docker uses `CMD`.
+
+```
+entrypoint.sh runs
+  → seed (creates issues.db in THIS container)
+  → exec python -m …app
+→ 38 open issues
+```
+
+**2. `docker run --rm sqlagent ls /app`** — the override test.
+
+Args after `sqlagent` **replace `CMD`**, not the entrypoint. So `"$@"` is `ls /app`, not Python:
+
+```
+entrypoint.sh still runs
+  → seed still runs
+  → exec ls /app          ← NOT the app
+→ file listing
+```
+
+If the script had hardcoded `python -m …app` instead of `exec "$@"`, this would still print
+"38 open issues." The listing is the proof that handoff works.
+
+**3 and 4 are about where `issues.db` lives** — not about override.
+
+**3. `docker run --rm --entrypoint sh sqlagent -c 'ls /app/issues.db'`**
+
+`--entrypoint sh` **skips your script entirely**. No seed. Just a shell looking at image layers:
+
+```
+no entrypoint.sh → no seed → issues.db missing
+→ "No such file or directory"
+```
+
+So the DB is **not baked into the image** (`.dockerignore` kept the host copy out; nothing
+seeded at build). That is the option-B property.
+
+**4. `docker run --rm sqlagent sh -c 'ls -l /app/issues.db'`**
+
+No `--entrypoint` → your script runs. `CMD` is replaced by `sh -c '…'`:
+
+```
+entrypoint.sh runs
+  → seed creates issues.db
+  → exec sh -c 'ls -l …'
+→ file exists (167936 bytes)
+```
+
+Created **at runtime**, in that container’s writable layer. `--rm` deletes the container → that
+copy dies. Next `docker run` seeds again.
+
+One table for the four:
+
+| Command | Runs `entrypoint.sh`? | Seeds? | Final process |
+|---|---|---|---|
+| `sqlagent` | yes | yes | app |
+| `sqlagent ls /app` | yes | yes | `ls` |
+| `--entrypoint sh …` | **no** | **no** | `sh` (image only) |
+| `sqlagent sh -c 'ls …db'` | yes | yes | `sh` listing the new db |
+
+**2** proves: entrypoint stays, `CMD` is swappable via `exec "$@"`.  
+**3 vs 4** prove: DB is created when the script runs, not shipped in the image.
+
 The last two are the point of the whole exercise: **the image contains code, the container
 contains data.** That property is what survives Day 6, when the database moves to Postgres and
 "seed at startup" becomes "connect, ensure schema, go."
@@ -849,9 +919,87 @@ Two consequences worth knowing:
 
 ---
 
-## Part 4 — Not built yet (Days 6–7)
+## Part 4 — Compose (Day 6, built) and GPU (Day 7, not yet)
 
-Concepts only. **You write the Compose file from blank**, same rule as the Dockerfile.
+§4.0–§4.4 describe the stack in `docker-compose.yml`, measured. §4.5 is Day 7 and still
+concepts-only, because the lab machine isn't reachable.
+
+### 4.0 Compose does not replace the Dockerfile
+
+The most common misunderstanding, so first:
+
+| | answers |
+|---|---|
+| **Dockerfile** | how to build **one image** |
+| **Compose** | how to run **several containers together** |
+
+They compose (hence the name). `docker-compose.yml` says `build: .` for the app service —
+that *is* the Dockerfile, invoked. The `db` service has no Dockerfile only because it uses a
+prebuilt image from a registry.
+
+#### Compose is not magic — the same thing by hand
+
+Everything Compose did can be done with plain `docker` commands. Proof, run against this
+repo's image:
+
+```
+# runnable, in order:
+docker network create demo-net
+docker run -d --name demo-db --network demo-net -e POSTGRES_PASSWORD=devpassword postgres:16-alpine
+docker run --rm --network demo-net \
+  -e DATABASE_URL="postgresql+psycopg2://postgres:devpassword@demo-db:5432/postgres" sqlagent
+
+   issues in table: 200
+```
+
+Note the host in that URL is `demo-db` — the **container name**. Same mechanism Compose uses;
+Compose just derives the name from the service key.
+
+So what Compose actually buys is: one command instead of four, a network created and named
+for you, service names as hostnames, `.env` substitution, volume management, dependency
+ordering, and `down` that cleans all of it up.
+
+#### The part that is NOT optional: a user-defined network
+
+Do the same thing on the **default** bridge — omit `--network` — and it fails:
+
+```
+# runnable: docker run -d --name plain-db3 -e POSTGRES_PASSWORD=... postgres:16-alpine
+#           docker run --rm -e DATABASE_URL="...@plain-db3:5432/postgres" sqlagent
+psycopg2.OperationalError: could not translate host name "plain-db3" to address:
+Name or service not known
+```
+
+**The default bridge has no DNS.** Name resolution between containers is a property of
+*user-defined* networks, which is what Compose creates for you. This is the single fact
+behind §4.1.
+
+#### A trap that will waste an hour: the stale image
+
+While measuring the above, the network test appeared to *succeed on the default bridge* —
+which is impossible. The cause was not networking:
+
+```
+# runnable: docker inspect sqlagent --format '{{.Created}}'
+image built:   2026-08-10T23:26
+seed.py edited 2026-08-11T12:38
+```
+
+The image was **13 hours older than the code**. It still contained the pre-`DATABASE_URL`
+version of `seed.py`, so the container ignored the env var entirely and quietly used SQLite —
+producing plausible, familiar output while proving nothing about Postgres or networking.
+
+**A container runs the code baked into its image, not the code in your editor.** When a result
+makes no sense, check the image's age before you doubt the concept:
+
+```
+docker inspect <image> --format '{{.Created}}'
+```
+
+`docker compose up --build` rebuilds; `docker compose up` alone does not. Note also that
+Compose names its image after the project and service (`sqlalchemy-upgrade-agent-app`), so a
+separately tagged `sqlagent` image can drift away from it without warning — which is exactly
+what happened here.
 
 ### 4.1 Networking — why the container can't reach anything
 
