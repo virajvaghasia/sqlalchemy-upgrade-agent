@@ -34,7 +34,7 @@ To see what **real 2.0** does — without upgrading anything. `uv` builds a thro
 environment while `pyproject.toml` stays pinned to 1.4:
 
 ```bash
-uv run --no-project --with 'sqlalchemy>=2.0' \
+uv run --no-project --with 'sqlalchemy==2.0.51' \
     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
 ```
 

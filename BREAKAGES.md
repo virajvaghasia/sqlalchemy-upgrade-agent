@@ -28,7 +28,7 @@ Choosing is the judgement `PHASE-0.md` asks for; edit them into your own words.
 > you wrote over them. Diff instead:
 >
 > ```bash
-> uv run --no-project --with 'sqlalchemy>=2.0' \
+> uv run --no-project --with 'sqlalchemy==2.0.51' \
 >     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 --stubs > /tmp/breakages.new
 > diff /tmp/breakages.new BREAKAGES.md
 > ```
