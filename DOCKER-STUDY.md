@@ -9,11 +9,12 @@ is given — so you can check it rather than believe it.
 
 ## How this doc is split, and why
 
-**Part 1–3 cover the container in this repo.** They use its `Dockerfile`, its build output and
-its image as the worked example, so every claim has something behind it.
+**This file is about ONE container** — §1–§3: images, layers, the build cache, and every line
+of this repo's `Dockerfile`, with its real build output as the worked example.
 
-**Part 4 covers the Compose stack** — two services, container networking, volumes — and ends
-with GPU (§4.5), which is still concepts-only because the lab machine isn't reachable yet.
+**More than one container is a different subject and lives in
+[`COMPOSE-STUDY.md`](COMPOSE-STUDY.md)** — §4: Compose, networking, volumes, healthchecks. The
+numbering runs across both files, so a `§4.x` reference below points there and still resolves.
 
 Everything here is measured against this repo, with the command that reproduces it. Where a
 claim turned out to be wrong when measured, the correction is kept rather than quietly edited
@@ -1021,257 +1022,22 @@ Two consequences worth knowing:
 
 ---
 
-## Part 4 — Compose (Day 6, built) and GPU (Day 7, not yet)
+## Part 4 — more than one container
 
-§4.0–§4.4 describe the stack in `docker-compose.yml`, measured. §4.5 is Day 7 and still
-concepts-only, because the lab machine isn't reachable.
+Moved to **[`COMPOSE-STUDY.md`](COMPOSE-STUDY.md)** — this file had reached ~1350 lines, and
+running two containers is a different subject from building one image.
 
-### 4.0 Compose does not replace the Dockerfile
+That file keeps the §4 numbering, so every `§4.x` reference below still resolves:
 
-The most common misunderstanding, so first:
-
-| | answers |
+| | |
 |---|---|
-| **Dockerfile** | how to build **one image** |
-| **Compose** | how to run **several containers together** |
-
-They compose (hence the name). `docker-compose.yml` says `build: .` for the app service —
-that *is* the Dockerfile, invoked. The `db` service has no Dockerfile only because it uses a
-prebuilt image from a registry.
-
-#### Compose is not magic — the same thing by hand
-
-Everything Compose did can be done with plain `docker` commands. Proof, run against this
-repo's image:
-
-```
-# runnable, in order:
-docker network create demo-net
-docker run -d --name demo-db --network demo-net -e POSTGRES_PASSWORD=devpassword postgres:16-alpine
-docker run --rm --network demo-net \
-  -e DATABASE_URL="postgresql+psycopg2://postgres:devpassword@demo-db:5432/postgres" sqlagent
-
-   issues in table: 200
-```
-
-##### What each part is doing, and why
-
-**1. `docker network create demo-net`** — makes a private virtual network. Nothing is on it
-yet. It exists because containers on a network *you* create get **DNS by name**, and on
-Docker's built-in default network they do not. This one line is the difference between
-`@demo-db:5432` resolving and failing.
-
-**2. `docker run -d --name demo-db --network demo-net -e POSTGRES_PASSWORD=… postgres:16-alpine`**
-
-| piece | what it does |
-|---|---|
-| `docker run` | create a **new** container from an image, and start it |
-| `-d` | **detached** — run in the background and hand the terminal back. Postgres never exits, so without this the terminal is stuck |
-| `--name demo-db` | name the container. **That name is its hostname on the network** — the whole point of the exercise |
-| `--network demo-net` | attach it to the network from step 1 |
-| `-e POSTGRES_PASSWORD=…` | set an env var inside it. This image refuses to start without this one |
-| `postgres:16-alpine` | which image. `16` = major version, pinned; `alpine` = the small base |
-
-**3. `docker run --rm --network demo-net -e DATABASE_URL=… sqlagent`**
-
-| piece | what it does |
-|---|---|
-| `--rm` | delete the container when it exits. The app runs, prints, finishes — no reason to keep it |
-| `--network demo-net` | **the same network**, so `demo-db` resolves. Omit it and this fails |
-| `-e DATABASE_URL=…` | tells the app where the database is; `seed.py` reads it with `os.getenv` |
-| `sqlagent` | the image built from this repo's Dockerfile |
-
-**Why `-d` on one and `--rm` on the other:** Postgres is a server that runs forever, so it goes
-to the background. The app is a batch job that finishes, so it cleans up after itself.
-
-##### The URL, decoded
-
-```
-postgresql+psycopg2 :// postgres : devpassword @ demo-db : 5432 / postgres
-└─ dialect+driver ─┘     └user┘   └─password─┘   └─host─┘  └port┘ └─db name─┘
-```
-
-`postgresql` is the SQL dialect SQLAlchemy speaks; `psycopg2` is the library doing the talking.
-**`demo-db` is the container name from step 2** — that is the join between the two commands.
-
-##### The same thing, in Compose
-
-| by hand | in `docker-compose.yml` |
-|---|---|
-| `docker network create demo-net` | automatic — one network per project |
-| `--name demo-db` | the **key** under `services:` is the name |
-| `--network demo-net` | automatic — every service joins it |
-| `-e POSTGRES_PASSWORD=…` | `environment:` |
-| `postgres:16-alpine` | `image:` |
-| a prebuilt image | `build: .` — builds from the Dockerfile instead |
-| `-d` / `--rm` | `docker compose up` / `down` |
-
-**So Compose introduces nothing new.** It's the same four primitives — network, image, name,
-environment — written down instead of typed. What you gain is one command instead of four,
-`.env` substitution, volume management, dependency ordering, and a `down` that cleans up
-everything it made.
-
-#### The part that is NOT optional: a user-defined network
-
-Do the same thing on the **default** bridge — omit `--network` — and it fails:
-
-```
-# runnable: docker run -d --name plain-db3 -e POSTGRES_PASSWORD=... postgres:16-alpine
-#           docker run --rm -e DATABASE_URL="...@plain-db3:5432/postgres" sqlagent
-psycopg2.OperationalError: could not translate host name "plain-db3" to address:
-Name or service not known
-```
-
-**The default bridge has no DNS.** Name resolution between containers is a property of
-*user-defined* networks, which is what Compose creates for you. This is the single fact
-behind §4.1.
-
-#### A trap that will waste an hour: the stale image
-
-While measuring the above, the network test appeared to *succeed on the default bridge* —
-which is impossible. The cause was not networking:
-
-```
-# runnable: docker inspect sqlagent --format '{{.Created}}'
-image built:   2026-08-10T23:26
-seed.py edited 2026-08-11T12:38
-```
-
-The image was **13 hours older than the code**. It still contained the pre-`DATABASE_URL`
-version of `seed.py`, so the container ignored the env var entirely and quietly used SQLite —
-producing plausible, familiar output while proving nothing about Postgres or networking.
-
-**A container runs the code baked into its image, not the code in your editor.** When a result
-makes no sense, check the image's age before you doubt the concept:
-
-```
-docker inspect <image> --format '{{.Created}}'
-```
-
-`docker compose up --build` rebuilds; `docker compose up` alone does not. Note also that
-Compose names its image after the project and service (`sqlalchemy-upgrade-agent-app`), so a
-separately tagged `sqlagent` image can drift away from it without warning — which is exactly
-what happened here.
-
-### 4.1 Networking — why the container can't reach anything
-
-The default mental error is thinking the container shares your machine's network. It doesn't.
-It gets its **own network namespace**: own interfaces, own `localhost`.
-
-**`localhost` inside a container means the container itself.** Your app connecting to
-`localhost:5432` to find Postgres is looking for Postgres *inside its own container*, and there
-isn't one. This is the single most common Docker networking bug; expect to hit it.
-
-**Published ports (`-p 8000:8000`) are a hole punched from the host into the container.** They
-are for traffic from *outside*. Containers talking to *each other* don't need them at all.
-
-**On a user-defined network, containers find each other by service name via Docker's embedded
-DNS.** Your app reaches the database at the hostname `db` — not an IP, not `localhost`.
-
-Day 6's gate is being able to explain *how the app resolved the hostname*. If the answer isn't
-"Docker's embedded DNS resolved the service name on the user-defined bridge network," you
-haven't got it yet.
-
-### 4.2 `depends_on` does not mean "ready"
-
-It controls **start order**. It waits for the container to be *started*, not for the process
-inside to be *ready to accept connections*.
-
-Postgres takes seconds to initialise. Your app starts immediately, connects, is refused, and
-crashes. Compose did what you asked; you asked for the wrong thing.
-
-Fixes: a **healthcheck** plus `depends_on: condition: service_healthy` — or, the answer a senior
-engineer gives, **make the app retry on startup**, because in production the database can also
-vanish *after* boot and a start-order guarantee does nothing for you then.
-
-### 4.3 Why Postgres for the exercise
-
-Deliberate. Databases are your genuine strength — so the *new* thing you're learning on Day 6
-is Docker networking, not the database. If the exercise used something unfamiliar you'd be
-debugging two things at once and learning neither.
-
-### 4.4 Volumes and persistence
-
-**A container's writable layer dies with the container** (§1.1).
-
-- **Named volumes** — Docker manages the storage. What you want for Postgres data.
-- **Bind mounts** — a host directory mapped in. Great for live-editing source in development;
-  a portability liability in production.
-
-If Postgres data lives in the container's writable layer, `docker compose down` deletes your
-database. Know which of the two you configured *before* learning this the other way.
-
-### 4.5 GPU in a container (Day 7)
-
-The container needs the host's NVIDIA driver surfaced into it — that's what the **NVIDIA
-Container Toolkit** does, wiring device nodes and driver libraries through so `--gpus all`
-gives real access to the 3060.
-
-**The trap: your model loads, runs, produces correct output — entirely on CPU, at a tenth of
-the speed, and nothing errors.** Silent CPU fallback is the norm. So the check is never "did it
-work." It's `nvidia-smi` reporting the GPU *from inside the container*, and your framework
-reporting CUDA is actually available.
-
-That's why the Day 7 gate says *"`docker run --gpus all ...` reports the 3060 from inside a
-container"* rather than "the model ran."
-
-### 4.6 `POSTGRES_USER` does not give you a limited account
-
-A fresh Postgres container has three databases:
-
-```
-# runnable: docker compose exec db psql -U sqlagent -d issues -c "\l"
-issues  postgres  template0  template1
-```
-
-`postgres` is the server's **maintenance database** — it exists so a superuser always has
-somewhere to connect. Leaving application tables in it works and is a smell: no separation
-between the server's own bookkeeping and your data.
-
-`POSTGRES_DB` fixes that for one line. `POSTGRES_USER` looks like it fixes privileges too.
-**It does not:**
-
-```
-# runnable: docker compose exec db psql -U sqlagent -d issues \
-#             -c "select rolname, rolsuper from pg_roles where rolcanlogin;"
- rolname  | rolsuper
- sqlagent | t
-```
-
-`rolsuper = t`. `POSTGRES_USER` **renames the superuser**; it does not create a restricted
-role. So this stack now has clean *data* separation and no *privilege* separation — the app
-can still drop any database on the server.
-
-Real least privilege needs more than env vars: a script in
-`/docker-entrypoint-initdb.d/` (the Postgres image runs `.sql` and `.sh` files there on first
-init) that creates a second, non-superuser role and grants it rights on the app database only.
-Two wrinkles make it more than a one-liner — since **PG15** the `public` schema no longer grants
-`CREATE` to everyone, so `create_all()` fails without an explicit grant; and the app role needs
-privileges on *future* tables, which is `ALTER DEFAULT PRIVILEGES`, not a one-time `GRANT`.
-
-**Deliberately not done here.** Worth knowing the gap exists rather than believing an env var
-closed it.
-
-#### The healthcheck that hangs forever
-
-Setting `POSTGRES_USER` breaks this, silently:
-
-```yaml
-test: ["CMD-SHELL", "pg_isready -U postgres"]     # role no longer exists
-```
-
-`pg_isready` never succeeds, `db` never becomes healthy, and `app` waits on
-`condition: service_healthy` — **which can now never be met.** No error is printed anywhere;
-Compose simply hangs. The fix is to interpolate the same variable:
-
-```yaml
-test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-```
-
-General rule: **a healthcheck that hardcodes a value configured elsewhere is a hang waiting to
-happen**, because a failing healthcheck looks identical to a slow one.
-
----
+| §4.0 | Compose does not replace the Dockerfile — and the same thing done by hand |
+| §4.1 | Networking: why `localhost` is the container itself, and why names beat IPs |
+| §4.2 | `depends_on` does not mean "ready" |
+| §4.3 | Why Postgres for the exercise |
+| §4.4 | Volumes and persistence |
+| §4.5 | GPU in a container (Day 7) |
+| §4.6 | `POSTGRES_USER` does not give you a limited account |
 
 ## Everything measured on this project
 
