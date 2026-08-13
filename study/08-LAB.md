@@ -877,6 +877,23 @@ Host `nvidia-smi` working does not mean containers see the GPU. That is the NVID
 Container Toolkit. Concept: [`05-COMPOSE.md`](05-COMPOSE.md) §4.5.
 Install: <https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
 
+**Why this is a separate install (example):**
+
+```
+# summary of: nvidia-smi -L                  # HOST, already works
+GPU 0: NVIDIA GeForce RTX 3060
+
+# summary of: docker info | grep Runtimes    # BEFORE toolkit
+Runtimes: io.containerd.runc.v2 runc
+```
+
+No `nvidia` runtime. A container is isolated: it cannot see `/dev/nvidia0` until
+the toolkit wires the driver into Docker. Same pattern as adding Docker's apt
+repo (key → source list → apt install → configure).
+
+**Restarting Docker will stop `db`.** Bring it back after: `docker compose up -d`.
+Volume `pgdata` survives.
+
 ```
 # Same pattern as Docker's key: download NVIDIA's signing key, store it for apt.
 # gpg --dearmor = convert ASCII key to the binary format apt expects.
@@ -910,6 +927,26 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 
 Must print the **3060 from inside the container**. "The container ran" is not the gate.
 Silent CPU fallback is the trap: correct output, ~10× slower, no error.
+
+**Measured on this PC, 2026-08-13 — Day 7 gate passed.**
+
+```
+# summary of: docker info | grep Runtimes     # AFTER toolkit
+Runtimes: io.containerd.runc.v2 nvidia runc
+```
+
+```
+# summary of: docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+NVIDIA-SMI 595.71.05    Driver Version: 595.71.05    CUDA Version: 13.2
+GPU 0: NVIDIA GeForce RTX 3060    538MiB / 12288MiB
+```
+
+That table is from **inside** the container, not the host. Host `nvidia-smi` already
+worked; this is the hole the toolkit cut. `12288 MiB` is still the model budget.
+
+`--gpus all` = expose every host GPU to this one-shot container. `--rm` = delete
+it after exit. Default runtime stays `runc` (normal containers); `nvidia` is used
+only when you pass `--gpus`.
 
 ---
 
@@ -956,7 +993,9 @@ someone else's desktop.
 - ~~`docker compose up --build`~~ — **done 2026-08-13 amd64.**
   `database: postgresql+psycopg2://app:***@db:5432/issues` and `38 open issues`.
   `app-1` exited 0. Ctrl+C later stopped `db` too; volume kept. Restart: `docker compose up -d`.
-- Day 7: NVIDIA Container Toolkit. Host `nvidia-smi` already sees the 3060.
+- ~~Day 7: NVIDIA Container Toolkit~~ — **passed 2026-08-13.**
+  `docker run --rm --gpus all … nvidia-smi` prints **RTX 3060, 12288 MiB** from inside
+  the container. Runtimes now include `nvidia`.
 - Day 10: Ollama on the 3060. VRAM leftover / 12288 is the number that matters.
 - CI gate: failing PR + branch protection. `.github/workflows/ci.yml` already exists.
 - Tunneling reboot test. PHASE-0 Day 3 is not closed until that exists.
