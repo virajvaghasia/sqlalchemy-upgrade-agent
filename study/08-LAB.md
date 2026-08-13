@@ -659,7 +659,19 @@ sudo systemctl status ssh --no-pager
 
 ### L.2 Tailscale (both machines)
 
-PC:
+**Measured 2026-08-13 — already installed and logged in as Shaili, not Viraj:**
+
+```
+# summary of: tailscale status; tailscale ip -4
+100.72.117.53   kj-xps-8950  shaili.gandhi@  linux
+```
+
+Do **not** run `sudo tailscale up` as Viraj on this box. That switches/kicks
+**her** Tailscale the same way `/login` on Claude would overwrite `~/.claude`.
+Mac must join **this same tailnet** (`shaili.gandhi@`) or Day 3 waits until the
+box is yours.
+
+If Tailscale were absent (it is not), the original install would be:
 
 ```
 # Install Tailscale. | sh = run the downloaded script.
@@ -675,7 +687,8 @@ sudo systemctl enable --now tailscaled
 tailscale ip -4
 ```
 
-Mac: same Tailscale account, ping the `100.x` address.
+Mac: same Tailscale **account/tailnet**, ping `100.72.117.53`. On this box that
+account is **Shaili's**, not Viraj's.
 
 ### L.3 A new key for this PC — not geochem
 
@@ -708,8 +721,8 @@ Mac `~/.ssh/config` (create it; it does not exist yet):
 
 ```
 Host sqlalchemy-lab
-  HostName 100.x.x.x
-  User <pc-username>
+  HostName 100.72.117.53
+  User shaili
   IdentityFile ~/.ssh/id_ed25519_sqlalchemy_lab
   IdentitiesOnly yes
 ```
@@ -1026,6 +1039,29 @@ see the text.
 
 ---
 
+## Days 8–9 — CI gate (measured 2026-08-13)
+
+`.github/workflows/ci.yml` already existed. `main` already had branch protection
+requiring **`tests`**, **`2.0 evidence`**, **`image builds`**, `enforce_admins: true`.
+The gate is not "YAML exists." It is: **a red PR cannot merge.**
+
+```
+# summary of: gh pr create … #3 + gh pr checks + gh pr merge 3 --merge
+tests          fail
+2.0 evidence   pass
+image builds   pass
+mergeStateStatus: BLOCKED
+X Pull request #3 is not mergeable: the base branch policy prohibits the merge.
+```
+
+PR: https://github.com/virajvaghasia/sqlalchemy-upgrade-agent/pull/3  
+Branch: `phase-0/ci-gate-deliberate-fail` — one file, `tests/test_ci_gate.py`,
+`assert False` on purpose. Closed **without merging**. Do not land it.
+
+`--admin` would bypass. That would cheat the gate. We did not.
+
+---
+
 ## Still open
 
 - ~~`uv sync` + `uv run pytest`~~ — **done on this PC, 2026-08-13: 17 passed, 1 warning.**
@@ -1042,8 +1078,15 @@ see the text.
 - ~~Day 10: Ollama on the 3060~~ — **passed 2026-08-13.**
   `qwen2.5-coder:7b` on GPU (`llama-server` ~4650 MiB). Warm **62.23 tok/s**.
   Leftover **7115 MiB / 12288**.
-- CI gate: failing PR + branch protection. `.github/workflows/ci.yml` already exists.
-- Tunneling reboot test. PHASE-0 Day 3 is not closed until that exists.
+- ~~CI gate~~ — **passed 2026-08-13.** PR #3: `tests` red, merge **BLOCKED**,
+  closed unmerged. Protection on `main` is real, not advisory.
+- Tunneling reboot test. PHASE-0 Day 3 is **not** closed until Mac `ssh sqlalchemy-lab`
+  works after a reboot.
+  - Tailscale: **already up on this PC as `shaili.gandhi@`**, IP `100.72.117.53`
+    (`kj-xps-8950`). Do **not** `tailscale up` as Viraj — same class of mistake as
+    Claude login.
+  - sshd: install next (`sudo bash /tmp/install-sshd.sh`). Do **not** reboot today
+    (shared desktop / AnyDesk).
 
 ---
 
