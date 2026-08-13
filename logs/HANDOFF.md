@@ -220,11 +220,23 @@ Viraj's own tailnet — free, no card. It does **not** touch the PC, and it is n
 forbidden action: the rule is *never `tailscale up` as Viraj on the PC*, because one
 `tailscaled` holds one account and that would replace Shaili's login.
 
-### REPLY 2.1
+### REPLY 2.1 — done 2026-08-13
 
 ```
-(paste the sign-in email address here — that is what Shaili needs)
+# runnable: /Applications/Tailscale.app/Contents/MacOS/Tailscale status
+100.127.153.97  virajs-macbook-air  virajvaghasia@  macOS  -
+
+account : virajvaghasia@github
+tailnet : tail867c8e.ts.net
+peers   : 0
 ```
+
+`peers: 0` is correct, not a fault — this tailnet contains one machine. The PC is on
+Shaili's tailnet and becomes visible only once she shares it.
+
+**Note the identity: `virajvaghasia@github`, not an email address.** Signing in with GitHub
+makes the Tailscale login `<user>@github`. That changes ASK 2.2 below — asking her to paste
+"my email" may match nothing.
 
 ## ASK 2.2 — the message to Shaili
 
@@ -232,12 +244,20 @@ Node **sharing** hands one machine across tailnets. Her login, her tailnet and h
 stay exactly as they are, and she can unshare whenever she likes — nothing to revert later,
 which is the point.
 
-> Hi — could you share the lab desktop on Tailscale with me? In the Tailscale admin console
-> → **Machines** → `kj-xps-8950` → **Share**, then paste my email: `<from REPLY 2.1>`.
+**Use the share link, not the email field.** A GitHub sign-in gives the identity
+`virajvaghasia@github`; the link avoids having to match that at all, and it is fewer steps
+for her.
+
+> Hi — could you share the lab desktop with me on Tailscale? In the Tailscale admin console
+> → **Machines** → `kj-xps-8950` → the **⋯** menu → **Share** → **Copy share link**, and
+> send me the link.
 >
-> It only lets me SSH to that one machine; it does not add me to your tailnet or change
-> anything on the PC, and you can unshare it any time. I need it because the lab is on
-> `10.25.x` and my laptop is on `10.23.x`, so they cannot reach each other directly.
+> It only lets me SSH to that one machine. It does not add me to your tailnet, does not
+> change anything on the PC, and you can unshare it any time. I need it because the lab is
+> on `10.25.x` and my laptop is on `10.23.x`, so they cannot reach each other directly.
+
+Viraj then opens that link while signed in to Tailscale and accepts. The machine appears in
+his machine list as a shared node.
 
 ### REPLY 2.2
 
