@@ -1,18 +1,18 @@
 """
-candidates.py — a shortlist of 1.4 patterns worth TESTING for BREAKAGES.md.
+candidates.py — a shortlist of 1.4 patterns worth TESTING for deliverables/BREAKAGES.md.
 
 READ THIS BEFORE USING THE OUTPUT.
 
 This does NOT produce breakage entries. It produces *candidates*: 1.4 patterns
 that the library, right now, either warns about or refuses. A candidate becomes
-a BREAKAGES.md entry only after you have written it into real code, run it on
+a deliverables/BREAKAGES.md entry only after you have written it into real code, run it on
 real 2.0, hit the real error, and fixed it — that is what PHASE-0 means by
 "breakages he personally caused, hit, and fixed".
 
 The distinction is not bureaucratic. CLAUDE.md's design notes call an
 auto-generated golden set "grading your own homework with your own answer key",
 and study/02-MIGRATION-2.0.md §21 spells out why a wrong entry costs more than a missing
-one. A list generated here and pasted into BREAKAGES.md would be exactly that
+one. A list generated here and pasted into deliverables/BREAKAGES.md would be exactly that
 failure, dressed up as measurement.
 
 What this file is genuinely good for: it stops you guessing which patterns are
@@ -113,7 +113,7 @@ print("  middle group is the reason a green future=True run is not a clearance."
 print()
 print("  NEXT STEP, and it is not automatable: put the ones you care about into")
 print("  real code, upgrade, hit the error, fix it, and write down what actually")
-print("  happened. A row here is a hypothesis. BREAKAGES.md holds results.")
+print("  happened. A row here is a hypothesis. deliverables/BREAKAGES.md holds results.")
 
 # Persist the measured tiers so verify_2_0.py can quote them. It runs on 2.0,
 # where RemovedIn20Warning does not exist, so it cannot measure this itself —

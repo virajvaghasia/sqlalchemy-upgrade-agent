@@ -42,7 +42,7 @@ jobs:
       - run: uv run pytest
 
   evidence:
-    # BREAKAGES.md's headline number, re-derived on a clean machine. The file
+    # deliverables/BREAKAGES.md's headline number, re-derived on a clean machine. The file
     # quotes exact error strings from a specific release, and the whole repo
     # rests on them; nothing else notices if that stops being true.
     name: 2.0 evidence
