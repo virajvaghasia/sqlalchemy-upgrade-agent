@@ -25,9 +25,10 @@ must be **Viraj's** GitHub, not whoever already uses this box.
 **This box already has someone else's git and someone else's Claude.** Same Linux
 user = same `~/.gitconfig`, same `~/.claude`, same Cursor login.
 
-**This sitting: clone on their user. Do not touch their Claude.** No `claude`,
-no `/logout`, no install, no login. `~/.claude` is theirs. AI help stays on the
-Mac. Do not create a `viraj` Linux user. Do not change `git config --global`.
+**This sitting: clone on their user. Cursor login as you is fine and can stay.
+Do not touch their Claude.** No `claude`, no `/logout`, no install, no login.
+`~/.claude` is theirs. Do not create a `viraj` Linux user. Do not change
+`git config --global`.
 
 Your identity (measured on the Mac, 2026-08-13):
 
@@ -46,8 +47,9 @@ Every commit on this PC must show that pair. Anyone else's name in
 
 No Tailscale. No Mac→PC SSH. No geochem key. No Docker, no Ollama. No new Linux user.
 
-**Done when:** you pulled `phase-0/repo-structure`, their Claude is untouched,
-their `git config --global` is untouched, and you did not `gh auth login` as you.
+**Done when:** you pulled `phase-0/repo-structure`, Cursor is signed in as you
+(and may stay that way), their Claude is untouched, their `git config --global`
+is untouched, and you did not `gh auth login` as you.
 
 ### 0. Snapshot — write this down before you change anything
 
@@ -140,24 +142,34 @@ Do **not** `gh auth login` on this sitting unless you must push from the PC.
 Mac push + PC pull does not need `gh` on their user. If you already logged `gh`
 in as them, leave it. If you log in as you, you must `gh auth logout` in §6.
 
-### 3. Cursor — open the folder, do not steal the account
+### 3. Cursor — sign in as you, leave it
 
-If Cursor is already installed and signed in as them: **File → Open Folder →
-`~/Projects/sqlalchemy-upgrade-agent`.** Do not Sign out. Do not Sign in as you.
-Do not use Cursor Agent / Composer there — that is their subscription.
+Cursor login as you is allowed and does **not** need reverting.
 
-If Cursor is not installed, use any editor already on the box (`gedit`, `nano`,
-VS Code if it is theirs). Same rule: do not switch accounts.
+If Cursor is already installed: sign in with **your** Cursor account (same as
+the Mac) if it is not already. Then File → Open Folder →
+`~/Projects/sqlalchemy-upgrade-agent`.
 
-AI help for this project stays on the **Mac** (this chat). The PC is clone +
-terminal + files.
+If Cursor is not installed:
+
+```
+cd ~/Downloads
+ls *.deb
+sudo apt install -y ./cursor_*.deb
+```
+
+Or download the Linux `.deb` from https://cursor.com/download first. Sign in
+as you. Leave that login. Do not sign them back in when you disconnect.
+
+Claude Code CLI is still off limits (§4). Cursor Agent on **your** login is
+fine — that is your subscription, not theirs.
 
 ### 4. Claude Code — do not touch it
 
 Do not install. Do not run `claude`. Do not run `claude /logout`. Do not open
 their Claude desktop app. `~/.claude` stays exactly as they left it.
 
-If you need Claude while on AnyDesk, keep using the Mac.
+Claude **Code CLI** stays off this box. Cursor Agent on your login is fine.
 
 `uv`, pytest, Docker: **not this sitting.**
 
@@ -177,13 +189,12 @@ git checkout phase-0/repo-structure
 git pull
 ```
 
-Then keep going in the editor on the PC (their Cursor login, no Agent). One
-branch, two machines: whoever just edited, pushes; the other pulls before typing.
-Claude for this repo stays on the Mac.
+Then keep going in **your** Cursor on the PC. One branch, two machines: whoever
+just edited, pushes; the other pulls before typing. Do not run `claude` on the PC.
 
-### 6. Leave their machine as you found it
+### 6. Leave Claude and global git as you found them
 
-You should not have logged into Claude, Cursor, or `gh` as you. Confirm that:
+Cursor login as you **stays**. Do not sign them back into Cursor.
 
 ```
 # 1. You never ran claude. Do not run it now "to check."
@@ -200,9 +211,8 @@ git config --global --list
 # cd ~ && rm -rf ~/Projects/sqlalchemy-upgrade-agent
 ```
 
-Close the sqlalchemy folder in Cursor. Leave **their** Cursor account signed in.
-
-If you accidentally signed into Cursor as you: Sign out, sign **them** back in.
+Close the sqlalchemy folder if you are done for the day. Cursor can remain
+signed in as you.
 
 ---
 
@@ -411,7 +421,7 @@ unless you need both.
 - `git config --global` on their user. Local repo config only.
 - Run `claude`, `claude /logout`, or install Claude Code on this box. Their
   Claude stays untouched.
-- Sign out of their Cursor / sign in as you. Open the folder only.
+- Sign them back into Cursor. Your Cursor login can stay.
 - Create `viraj` this sitting.
 - Tailscale / sshd / reboot **this sitting**. Editors first.
 - Docker Desktop / Snap Docker / `apt install docker.io`.
@@ -428,7 +438,7 @@ unless you need both.
 2. §1 inventory → paste it here.
 3. §2 clone + checkout `phase-0/repo-structure` + `git pull`. No `--global`.
 4. §2b local git identity on **this repo only**.
-5. §3 Open the folder in their Cursor. Do not switch accounts. Do not use Agent.
-6. §4 Do not touch Claude. AI stays on the Mac.
-7. Work. Mac push / PC pull.
-8. §6 close the folder. Global git still them. Claude never touched.
+5. §3 Cursor: sign in as you. Leave it. Open the folder.
+6. §4 Do not touch Claude.
+7. Work. Mac push / PC pull. Cursor Agent on your login is fine.
+8. §6 Cursor stays you. Global git still them. Claude never touched.

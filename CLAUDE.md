@@ -346,9 +346,9 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Lab PC sitting is unblocked via AnyDesk. Wrote `study/08-LAB.md`. **Not pushed.**
 - Two labs, do not mix: Mac `id_ed25519` comment is `-geochem` (minmod/ISI). This
   Ubuntu PC is unrelated. Do not copy that key here.
-- Sitting order changed again: **do not touch the other person's Claude.**
-  Today = clone + local git on their user. No `claude`, no `/logout`, no
-  Cursor account switch. AI stays on the Mac. Tailscale / Mac→PC SSH deferred.
+- Sitting: clone + local git + **Cursor login as him (may stay).** Do not
+  touch the other person's Claude — no `claude`, no `/logout`. Tailscale /
+  Mac→PC SSH deferred.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now

@@ -149,10 +149,10 @@ Concrete commands: [`../study/08-LAB.md`](../study/08-LAB.md). This section is t
 that file is the sitting checklist.
 
 **2026-08-13 sitting order (deliberate deferral):** AnyDesk is already up. First sitting
-is **clone on their Linux user + local git identity. Do not touch their Claude.**
-Do not change their `git config --global`. Do not sign into Cursor/Claude as Viraj.
-AI stays on the Mac. Tailscale / Mac→PC SSH come after. Geochem/minmod is a
-different lab; do not reuse that Mac SSH key here.
+is **clone on their Linux user + local git identity + Cursor as Viraj (login may
+stay). Do not touch their Claude.** Do not change their `git config --global`.
+Tailscale / Mac→PC SSH come after. Geochem/minmod is a different lab; do not
+reuse that Mac SSH key here.
 
 The one day that must happen in person. Everything after it is remote. The tunneling
 half of Day 3 is still required before the phase gate; it is just not the first hour.
