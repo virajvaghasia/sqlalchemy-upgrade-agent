@@ -1,8 +1,8 @@
 # Roadmap — the six-phase arc
 
-The long view for [`sqlalchemy-upgrade-agent`](README.md): what gets built, in what order,
-and why each phase exists. Start at [`README.md`](README.md); the current phase is detailed
-in [`PHASE-0.md`](PHASE-0.md).
+The long view for [`sqlalchemy-upgrade-agent`](../README.md): what gets built, in what order,
+and why each phase exists. Start at [`../README.md`](../README.md); the current phase is detailed
+in [`../phases/PHASE-0.md`](../phases/PHASE-0.md).
 
 ---
 
@@ -518,12 +518,12 @@ faster, never from skipping them.**
 ### The retrieval terms, on this repo's own corpus
 
 Definitions are easy to nod along to and hard to hold. Here are the ones that matter, run
-against material that already exists — `BREAKAGES.md`, which is the Phase 2 corpus in embryo.
+against material that already exists — `deliverables/BREAKAGES.md`, which is the Phase 2 corpus in embryo.
 
 *Illustration, not a measurement: none of this is built yet. It shows what each term will mean
 here, so the words have something behind them before Phase 1 starts.*
 
-**Chunk.** Not a file, not a sentence. One retrievable idea. `BREAKAGES.md` is already written
+**Chunk.** Not a file, not a sentence. One retrievable idea. `deliverables/BREAKAGES.md` is already written
 in chunks — each of its 23 entries is one:
 
 ```
@@ -543,7 +543,7 @@ in chunks — each of its 23 entries is one:
 That table is the whole argument for **hybrid search**, and the reason Phase 1 is deliberately
 dense-only: you have to watch the second row fail before the fix means anything.
 
-**Golden dataset.** Not hypothetical either — `BREAKAGES.md` is its seed. Each entry already
+**Golden dataset.** Not hypothetical either — `deliverables/BREAKAGES.md` is its seed. Each entry already
 carries a question (*what breaks?*), a verified answer (*the fix, executed on 2.0.51*), and the
 chunk that should have been retrieved (*the entry itself*). That is exactly the shape a golden
 record needs.
@@ -573,7 +573,7 @@ says whether anyone would have scrolled far enough to see it.
 # runnable: git log --oneline | wc -l
 47
 
-# runnable: grep -c '^### ' BREAKAGES.md
+# runnable: grep -c '^### ' deliverables/BREAKAGES.md
 23
 
 # runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
@@ -594,7 +594,7 @@ database: postgresql+psycopg2://app:***@db:5432/issues
 | Part B Day 3 — lab machine | blocked, machine unreachable |
 | Part C Day 7 / Day 10 — GPU, Ollama | blocked, needs the lab GPU |
 
-`PHASE-0.md` has the per-deliverable status, computed the same way.
+`phases/PHASE-0.md` has the per-deliverable status, computed the same way.
 
 **Next step:** `tests/`, then `.github/workflows/ci.yml` — in that order, because the Day 8–9
 gate is *"a PR containing a deliberately failing test that GitHub refuses to merge"* and there

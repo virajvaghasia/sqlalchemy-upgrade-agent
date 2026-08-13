@@ -227,7 +227,7 @@ closed it.
 ### 5.6 What changes when SQLite becomes Postgres
 
 Everything measured in Part A survives the move — the N+1, the warning sweep, every pattern in
-[`BREAKAGES.md`](../BREAKAGES.md) — which is why Postgres was the right prop for Day 6 (§4.3). The
+[`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) — which is why Postgres was the right prop for Day 6 (§4.3). The
 differences that do bite are these:
 
 | | SQLite | Postgres |

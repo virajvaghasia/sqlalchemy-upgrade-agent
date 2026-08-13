@@ -3,21 +3,21 @@ verify_2_0.py — run the candidate patterns against REAL SQLAlchemy 2.0.
 
 candidates.py predicts, from 1.4, what 2.0 will do. This measures what 2.0
 actually does. The gap between the two is the interesting part, and the reason
-the prediction alone was never good enough to fill BREAKAGES.md.
+the prediction alone was never good enough to fill deliverables/BREAKAGES.md.
 
 Nothing is upgraded to run this. uv builds a throwaway environment on 2.0 while
 the project stays pinned to 1.4 in pyproject.toml:
 
     uv run --no-project --with 'sqlalchemy==2.0.51' python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
 
-The 2.0 version is PINNED, not floating. BREAKAGES.md quotes exact error strings
+The 2.0 version is PINNED, not floating. deliverables/BREAKAGES.md quotes exact error strings
 from a specific release; '>=2.0' silently drifts to whatever shipped this week
 and the file stops being reproducible. See PIN below for how to move it
 deliberately.
 
 Refuses to run on 1.4, because a green result there would mean nothing.
 
-WHAT --stubs PRODUCES, AND WHAT IS STILL YOURS. It writes BREAKAGES.md with four
+WHAT --stubs PRODUCES, AND WHAT IS STILL YOURS. It writes deliverables/BREAKAGES.md with four
 fields per entry: the 1.4 code, the real 2.0 error, a DRAFT fix, and the tier.
 Three of those are measured — the error comes from this run, the tier from
 candidates.py on 1.4, and every draft fix is EXECUTED here, so "it runs on 2.0"
@@ -43,7 +43,7 @@ from experiments.sqlalchemy_1_4_vs_2_0 import patterns
 # The single source of truth for which 2.0 the evidence was taken on. Every
 # printed command interpolates it, so the docs cannot drift from the code.
 #
-# TO MOVE IT: change this line, re-run with --stubs, diff against BREAKAGES.md
+# TO MOVE IT: change this line, re-run with --stubs, diff against deliverables/BREAKAGES.md
 # (the header in that file shows how), and hand-edit any entry whose measured
 # error actually moved. That is a deliberate act with a visible diff, which is
 # the whole point of pinning.
@@ -59,7 +59,7 @@ if MAJOR < 2:
     )
 
 if sa.__version__ != PIN:
-    # Not fatal — testing a newer 2.0 on purpose is legitimate. But BREAKAGES.md
+    # Not fatal — testing a newer 2.0 on purpose is legitimate. But deliverables/BREAKAGES.md
     # records exact error text, so an unnoticed version change is how that file
     # quietly stops matching reality.
     print(
@@ -85,7 +85,7 @@ HAND_APPENDED_WITH_ALTERNATIVES = 1
 
 
 def emit_stubs(failures):
-    """Print a BREAKAGES.md skeleton with the two halves we actually measured.
+    """Print a deliverables/BREAKAGES.md skeleton with the two halves we actually measured.
 
     Every field is machine-copied from a measurement, so none of it can be
     mistyped: the error from this run, the tier from candidates.py via
@@ -97,8 +97,8 @@ def emit_stubs(failures):
     print("# Breakages — SQLAlchemy 1.4.52 → 2.0.51")
     print()
     print("The Phase 0 Part A deliverable, and the seed of the Phase 2 golden dataset. Part of")
-    print("[`sqlalchemy-upgrade-agent`](README.md); the mechanics behind each entry are explained")
-    print("in [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22.")
+    print("[`sqlalchemy-upgrade-agent`](../README.md); the mechanics behind each entry are explained")
+    print("in [`study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16–§22.")
     print()
     print(f"Measured on {sa.__version__}, against `models.py` in this repo. Each entry is 1.4 "
           "code\nthat ran clean on 1.4.52 and fails on 2.0.")
@@ -121,16 +121,16 @@ def emit_stubs(failures):
     print("an **Also defensible** block listing the other answers that work — because presenting")
     print("one option where several exist hides the decision instead of making it. Every option")
     print("shown is executed here too, so the choice is between things that all provably run.")
-    print("Choosing is the judgement `PHASE-0.md` asks for; edit them into your own words.")
+    print("Choosing is the judgement `phases/PHASE-0.md` asks for; edit them into your own words.")
     print()
     print("> **Do not regenerate over this file once you have edited it.** The generator")
-    print("> prints fresh drafts; redirecting it onto `BREAKAGES.md` would erase every word")
+    print("> prints fresh drafts; redirecting it onto `deliverables/BREAKAGES.md` would erase every word")
     print("> you wrote over them. Diff instead:")
     print(">")
     print("> ```bash")
     print(f"> {RUN_CMD} \\")
     print(">     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 --stubs > /tmp/breakages.new")
-    print("> diff /tmp/breakages.new BREAKAGES.md")
+    print("> diff /tmp/breakages.new deliverables/BREAKAGES.md")
     print("> ```")
     print(">")
     print("> Re-run that after any change to `models.py` or `patterns.py`: if a measured")
@@ -275,8 +275,8 @@ def emit_stubs(failures):
     print()
     print("**Docs**")
     print()
-    print("- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py")
-    print("- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §14 — the save-update cascade this is half of")
+    print("- [`study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py")
+    print("- [`study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §14 — the save-update cascade this is half of")
     print("- what 1.4 itself says, verbatim:")
     print("  > \"X\" object is being merged into a Session along the backref cascade path for")
     print("  > relationship \"X\"; in SQLAlchemy 2.0, this reverse cascade will not take place.")
@@ -356,7 +356,7 @@ print("=" * 84)
 print(f"  {broke} of {broke + survived} patterns FAIL on {sa.__version__}")
 print("=" * 84)
 print()
-print("  Each block below is the raw material for one BREAKAGES.md entry.")
+print("  Each block below is the raw material for one deliverables/BREAKAGES.md entry.")
 print("  The 2.0 fix is the part you supply — that is the half that teaches.")
 
 current = None

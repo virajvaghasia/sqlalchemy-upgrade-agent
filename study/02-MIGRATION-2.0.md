@@ -815,7 +815,7 @@ the same fix repeated is one entry:
         1x  Using plain strings to indicate SQL statements without using the text() construct is  de
 ```
 
-**Four distinct breakages in the entire project.** That is the `BREAKAGES.md` list, and you
+**Four distinct breakages in the entire project.** That is the `deliverables/BREAKAGES.md` list, and you
 could not have got it from any single file: `app.py` contributes rows two and three, `states.py`
 contributes row four, and row one — the only one that fails silently — comes from the modules
 that write data.
@@ -875,7 +875,7 @@ minutes rather than days. Every construct lands in exactly one of four tiers:
   not a             works in 2.0       new import            STOPS WORKING
   migration         fix at             path — a              fix before
   item              leisure            one-line fix          upgrading
-                                                             → BREAKAGES.md
+                                                             → deliverables/BREAKAGES.md
 
                                            └──────────┬──────────┘
                                                       │
@@ -885,7 +885,7 @@ minutes rather than days. Every construct lands in exactly one of four tiers:
                     breakage list.
 ```
 
-| warning class | what it promises | urgency | `BREAKAGES.md`? |
+| warning class | what it promises | urgency | `deliverables/BREAKAGES.md`? |
 |---|---|---|---|
 | `RemovedIn20Warning` | **this stops working in 2.0** | fix before upgrading | **yes** |
 | `MovedIn20Warning` | same thing, new import path — but see the flow above | one-line fix, any time | no |
@@ -925,7 +925,7 @@ will keep working, but it's no longer the recommended way.*
 
 One is a deadline; the other is advice.
 
-Only the first belongs in `BREAKAGES.md` — that file is for things that worked in 1.4 and
+Only the first belongs in `deliverables/BREAKAGES.md` — that file is for things that worked in 1.4 and
 **stopped working** in 2.0. Filling it with style preferences would seed the Phase 2 retrieval
 corpus with questions no upgrading developer actually asks, and you'd then evaluate the system
 against them and score yourself on the wrong thing.
@@ -1116,7 +1116,7 @@ Three groups, needing three different treatments:
 group; build it from `future=True` and you miss the second. Worse, both omissions are invisible
 from inside the tool you used — a short list looks exactly like a clean one.
 
-This is precisely why `PHASE-0.md` asks for breakages *"personally caused, hit, and fixed"*
+This is precisely why `phases/PHASE-0.md` asks for breakages *"personally caused, hit, and fixed"*
 rather than swept. The third group only comes into existence when the code actually runs on 2.0.
 
 `candidates.py` runs this classification over a wider batch — 22 patterns worth testing, split
@@ -1127,7 +1127,7 @@ uv run python -m experiments.sqlalchemy_1_4_vs_2_0.candidates
 ```
 
 **Read its header before using its output.** It emits *candidates*, not entries. A row there is
-a hypothesis about 2.0; a `BREAKAGES.md` entry is a result you obtained by hitting the error
+a hypothesis about 2.0; a `deliverables/BREAKAGES.md` entry is a result you obtained by hitting the error
 yourself. Pasting one into the other is the "grade your own homework with your own answer key"
 failure that §21 warns about, wearing a lab coat.
 
@@ -1266,7 +1266,7 @@ Optimising `issue.project` would eliminate 3 queries out of 204 and feel like pr
 
 ### Why this distinction is the whole project
 
-`BREAKAGES.md` becomes the Phase 2 golden dataset. Every entry in it is a question a real
+`deliverables/BREAKAGES.md` becomes the Phase 2 golden dataset. Every entry in it is a question a real
 developer asks while upgrading. Put *"why is my loop slow?"* in it and you've seeded your
 retrieval corpus with a question that has nothing to do with upgrading — and you will then
 evaluate your system against it and score yourself on the wrong thing.
@@ -1279,9 +1279,9 @@ list entirely. Both would have looked perfectly plausible sitting in the corpus.
 
 **Drill.**
 
-1. Give the one-sentence test for whether something belongs in `BREAKAGES.md`.
+1. Give the one-sentence test for whether something belongs in `deliverables/BREAKAGES.md`.
 2. The N+1 and `DetachedInstanceError` both surfaced during migration work. Why does neither qualify?
-3. Why does a wrong entry in `BREAKAGES.md` cost more than a missing one?
+3. Why does a wrong entry in `deliverables/BREAKAGES.md` cost more than a missing one?
 
 <details>
 <summary>Answers</summary>
@@ -1347,7 +1347,7 @@ next one boring.
 └────────────────────────────────────────────────────────────────────────┘
                                     ↓
 ┌─ 2. TRIAGE ────────────────────────────────────────────────────────────┐
-│  RemovedIn20Warning  →  must fix.  These are the BREAKAGES.md entries. │
+│  RemovedIn20Warning  →  must fix.  These are the deliverables/BREAKAGES.md entries. │
 │  MovedIn20Warning    →  one-line import change.                        │
 │  LegacyAPIWarning    →  optional.                                      │
 │  no warning          →  not a migration item at all.            (§19)  │
@@ -1439,7 +1439,7 @@ doing it *during* is not.
 
 ## Predictions — write these down before you run anything
 
-These four stay unanswered on purpose. Put your answers in `LEARNING-LOG.md` **first**, then
+These four stay unanswered on purpose. Put your answers in `logs/LEARNING-LOG.md` **first**, then
 run the upgrade and diff your predictions against what actually happened. A prediction you
 wrote and got wrong teaches more than an answer you read — and Step 4 has already caught this
 project out twice on exactly this kind of question.

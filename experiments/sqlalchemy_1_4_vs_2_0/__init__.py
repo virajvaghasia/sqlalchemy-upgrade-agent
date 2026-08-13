@@ -43,8 +43,8 @@ MIGRATION TOOLING — the three questions you ask in order.
                        uv run --no-project --with 'sqlalchemy==2.0.51' \\
                            python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
 
-                   `--stubs` emits the BREAKAGES.md skeleton instead.
+                   `--stubs` emits the deliverables/BREAKAGES.md skeleton instead.
 
 Nothing in this package is imported by the Phase 1+ retrieval system. It exists
-to produce BREAKAGES.md, which is the input to that work.
+to produce deliverables/BREAKAGES.md, which is the input to that work.
 """

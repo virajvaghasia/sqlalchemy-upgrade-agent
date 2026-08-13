@@ -12,7 +12,7 @@ Run:  uv run python -m experiments.sqlalchemy_1_4_vs_2_0.app
 **Three tiers, and only one of them is a real breakage.** Measured under 1.4.52
 with SQLALCHEMY_WARN_20=1, not assumed:
 
-  REMOVED — fails in 2.0. These are the BREAKAGES.md entries.
+  REMOVED — fails in 2.0. These are the deliverables/BREAKAGES.md entries.
     engine.execute("SELECT ...")   RemovedIn20Warning  (two of them: connectionless
                                    execution, and the bare string)
                                    → with engine.connect() as c: c.execute(text(...))
@@ -30,7 +30,7 @@ with SQLALCHEMY_WARN_20=1, not assumed:
     lazy loading in a loop         an N+1; slow in 1.4, equally slow in 2.0
     returning a detached object    DetachedInstanceError fires in 1.4 too
 
-That last group matters as much as the first. `BREAKAGES.md` is only for things
+That last group matters as much as the first. `deliverables/BREAKAGES.md` is only for things
 that worked in 1.4 and stopped working in 2.0 — an N+1 is a performance bug and a
 detached instance is a lifecycle bug, and putting either in the corpus would seed
 Phase 2 with questions no upgrading user would ask.
@@ -48,7 +48,7 @@ def open_issues_for_project(session, project_name):
     Legacy Query API. Measured: emits **no warning** even under WARN_20, and still
     works in 2.0 — this is a style migration, not a breakage. Kept because the
     upgrade guide pushes select(), and because "does this actually break?" is
-    exactly the question BREAKAGES.md has to answer honestly.
+    exactly the question deliverables/BREAKAGES.md has to answer honestly.
     """
     return (
         session.query(models.Issue)

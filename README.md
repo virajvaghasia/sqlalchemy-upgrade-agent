@@ -4,11 +4,11 @@ A retrieval system that helps developers upgrade Python code from **SQLAlchemy 1
 
 The corpus it retrieves from is not scraped. It is **measured**: a deliberately 1.4-style
 application in this repo, run against real 2.0, with every failure recorded as it actually
-happened. `BREAKAGES.md` is that record, and it becomes the golden dataset the retrieval
+happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden dataset the retrieval
 system is later evaluated against.
 
 **Status:** Phase 0, Part A complete. Pinned to SQLAlchemy **1.4.52**; breakages verified
-against **2.0.51**. See [`ROADMAP.md`](ROADMAP.md) for the six-phase arc.
+against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md) for the six-phase arc.
 
 ---
 
@@ -40,6 +40,20 @@ uv run --no-project --with 'sqlalchemy==2.0.51' \
 
 ---
 
+## Repository layout
+
+```
+README.md              this file — the map
+CLAUDE.md              how the AI assistant works on this repo
+phases/                the plan: the six-phase arc, and the current phase in detail
+study/                 the teaching material, numbered in reading order
+deliverables/          what a phase produced — BREAKAGES.md is Phase 0's
+logs/                  the dated timeline
+experiments/           the code under study: the 1.4 app and the measurement harness
+tests/                 17 tests pinning what the docs claim
+.github/workflows/     CI — tests, the 2.0 evidence, and the image
+```
+
 ## The documents
 
 Read in this order. Section numbers run continuously across the first two, so a reference
@@ -47,18 +61,18 @@ to "§18" is unambiguous in either file.
 
 | file | what it is |
 |---|---|
-| [`ROADMAP.md`](ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
-| [`PHASE-0.md`](PHASE-0.md) | the current phase in detail, and its deliverables |
+| [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
+| [`phases/PHASE-0.md`](phases/PHASE-0.md) | the current phase in detail, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
 | [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
 | [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
-| [`BREAKAGES.md`](BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages; seeds the Phase 2 golden dataset |
+| [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages; seeds the Phase 2 golden dataset |
 | [`study/03-PRACTICE-APP.md`](study/03-PRACTICE-APP.md) | the design of the app under test, and why this schema |
 | [`study/04-DOCKER.md`](study/04-DOCKER.md) | **§1–§3, one container** — opens with a one-page plain-language summary, then layers, the build cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root. Every number measured against this repo |
 | [`study/05-COMPOSE.md`](study/05-COMPOSE.md) | **§4, more than one container** — Compose, networking and DNS, ports, volumes, healthchecks. Numbering continues from `study/04-DOCKER.md` |
 | [`study/06-POSTGRES.md`](study/06-POSTGRES.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
-| [`LEARNING-LOG.md`](LEARNING-LOG.md) | what was learned, dated |
+| [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
 ### How to read a code block in the docs
@@ -117,7 +131,7 @@ Each prints what the library actually does. Nothing in these asserts a number it
 | `sweep.py` | *what does 2.0 object to across the whole project?* — runs the warning sweep on every module, then collapses occurrences into distinct problems |
 | `patterns.py` | the shared list of 1.4 patterns under test. Imported by the two below so a prediction and its verification cannot drift apart |
 | `candidates.py` | *which patterns are worth testing?* — classifies each by whether the sweep sees it, `future=True` sees it, or neither |
-| `verify_2_0.py` | *what does real 2.0 actually do?* — runs the same patterns on 2.0.51 and reports the real error. `--stubs` emits the `BREAKAGES.md` skeleton |
+| `verify_2_0.py` | *what does real 2.0 actually do?* — runs the same patterns on 2.0.51 and reports the real error. `--stubs` emits the `deliverables/BREAKAGES.md` skeleton |
 
 ---
 
@@ -166,7 +180,7 @@ is raised** — which is why a passing test suite says nothing about it.
 |---|---|---|
 | repo / folder / GitHub | `kebab-case`, all identical | `sqlalchemy-upgrade-agent` |
 | Python packages | `snake_case` — hyphens are illegal in imports | `sqlalchemy_1_4_vs_2_0` |
-| root docs | `SCREAMING_CASE.md` | `BREAKAGES.md` |
+| root docs | `SCREAMING_CASE.md` | `deliverables/BREAKAGES.md` |
 | branches | `phase-N/short-topic` | `phase-0/breakages-and-audit` |
 | commits | [Conventional Commits](https://www.conventionalcommits.org/) | `feat:`, `fix:`, `docs:` |
 | Compose project + built image | one name, **declared** so nothing is inferred | `sqlalchemy-upgrade-agent` |

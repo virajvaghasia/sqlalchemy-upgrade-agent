@@ -415,7 +415,7 @@ what is under test here. The only new mechanism on Day 6 is **Docker networking*
 unfamiliar datastore and any failure has two candidate causes, the network or the database, and
 neither gets understood.
 
-It also carries forward: `SQLALCHEMY_WARN_20`, the N+1, and every pattern in `BREAKAGES.md`
+It also carries forward: `SQLALCHEMY_WARN_20`, the N+1, and every pattern in `deliverables/BREAKAGES.md`
 behave the same against Postgres as against SQLite, so nothing measured in Part A has to be
 re-established.
 

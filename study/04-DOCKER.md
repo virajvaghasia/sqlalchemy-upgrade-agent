@@ -1,6 +1,6 @@
 # Docker — study notes
 
-Part of [`sqlalchemy-upgrade-agent`](../README.md); see [`PHASE-0.md`](../PHASE-0.md) for where this
+Part of [`sqlalchemy-upgrade-agent`](../README.md); see [`../phases/PHASE-0.md`](../phases/PHASE-0.md) for where this
 sits in the plan.
 
 Reading material for Phase 0 Part C (Days 4–7). **Mobile-friendly: read it away from the
@@ -1076,7 +1076,7 @@ That is why it was worth twenty minutes of argument.
 ## The drill list
 
 Answer cold, no notes, or the phase isn't done. Questions 1–5 are from
-[`PHASE-0.md`](../PHASE-0.md); 6–11 came out of building the thing.
+[`../phases/PHASE-0.md`](../phases/PHASE-0.md); 6–11 came out of building the thing.
 
 1. *"I moved `COPY . .` above `COPY requirements.txt`. Your build got slow. Why?"*
 2. *"Your container can't reach Postgres. Walk me through how you'd diagnose it."*

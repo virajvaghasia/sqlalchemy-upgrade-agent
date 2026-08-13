@@ -120,7 +120,7 @@ def all_cases():
 # ---------------------------------------------------------------------------
 # The 2.0 replacement for each pattern above.
 # ---------------------------------------------------------------------------
-# These are DRAFTS for BREAKAGES.md, and they are drafts in a specific sense:
+# These are DRAFTS for deliverables/BREAKAGES.md, and they are drafts in a specific sense:
 # every one is executed on real 2.0 by verify_2_0.py, so "it runs" is measured,
 # not claimed. What is NOT measured is whether it is the fix YOU want — several
 # have more than one reasonable answer, and the note says so where that is true.

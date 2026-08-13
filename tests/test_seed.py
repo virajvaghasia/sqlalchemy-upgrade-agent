@@ -26,7 +26,7 @@ EXPECTED_COUNTS = {
 def _counts(engine):
     # select(func.count()).select_from(t), not t.count(): the latter was removed
     # in 1.4, and this form is the one that also runs on 2.0 — the tests should
-    # not themselves be written in the style BREAKAGES.md documents as broken.
+    # not themselves be written in the style deliverables/BREAKAGES.md documents as broken.
     with engine.connect() as conn:
         return {
             name: conn.execute(select(func.count()).select_from(table)).scalar()

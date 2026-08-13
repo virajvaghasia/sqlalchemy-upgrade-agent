@@ -1,8 +1,8 @@
 # Breakages — SQLAlchemy 1.4.52 → 2.0.51
 
 The Phase 0 Part A deliverable, and the seed of the Phase 2 golden dataset. Part of
-[`sqlalchemy-upgrade-agent`](README.md); the mechanics behind each entry are explained
-in [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22.
+[`sqlalchemy-upgrade-agent`](../README.md); the mechanics behind each entry are explained
+in [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16–§22.
 
 Measured on 2.0.51, against `models.py` in this repo. Each entry is 1.4 code
 that ran clean on 1.4.52 and fails on 2.0.
@@ -21,16 +21,16 @@ A draft fix runs. That is not the same as it being the *right* fix. 6 entries ca
 an **Also defensible** block listing the other answers that work — because presenting
 one option where several exist hides the decision instead of making it. Every option
 shown is executed here too, so the choice is between things that all provably run.
-Choosing is the judgement `PHASE-0.md` asks for; edit them into your own words.
+Choosing is the judgement `phases/PHASE-0.md` asks for; edit them into your own words.
 
 > **Do not regenerate over this file once you have edited it.** The generator
-> prints fresh drafts; redirecting it onto `BREAKAGES.md` would erase every word
+> prints fresh drafts; redirecting it onto `deliverables/BREAKAGES.md` would erase every word
 > you wrote over them. Diff instead:
 >
 > ```bash
 > uv run --no-project --with 'sqlalchemy==2.0.51' \
 >     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 --stubs > /tmp/breakages.new
-> diff /tmp/breakages.new BREAKAGES.md
+> diff /tmp/breakages.new deliverables/BREAKAGES.md
 > ```
 >
 > Re-run that after any change to `models.py` or `patterns.py`: if a measured
@@ -107,8 +107,8 @@ the transaction boundary becomes visible.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §19
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §19
 - what 1.4 itself says, verbatim:
   > The Engine.execute() method is considered legacy as of the 1.x series of SQLAlchemy
   > and will be removed in 2.0. All statement execution in SQLAlchemy 2.0 is performed
@@ -154,7 +154,7 @@ with engine.connect() as conn:
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 - what 1.4 itself says, verbatim:
   > The Engine.scalar() method is considered legacy as of the 1.x series of SQLAlchemy
   > and will be removed in 2.0. All statement execution in SQLAlchemy 2.0 is performed
@@ -200,8 +200,8 @@ coercion in 1.4 hid them.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §19
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §19
 - what 1.4 itself says, verbatim:
   > Passing a string to Connection.execute() is deprecated and will be removed in
   > version 2.0. Use the text() construct, or the Connection.exec_driver_sql() method to
@@ -245,7 +245,7 @@ The error text even tells you the fix. **Tier note:** `future=True` on 1.4 still
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 - what 1.4 itself says, verbatim:
   > Using plain strings to indicate SQL statements without using the text() construct is
   > deprecated and will be removed in version 2.0. Ensure plain SQL statements are
@@ -322,7 +322,7 @@ is measured on **real 2.0**. Easy to miss if you only run `SQLALCHEMY_WARN_20`.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **NotImplementedError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -354,7 +354,7 @@ WARN_20 alone will not find this.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **NotImplementedError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -400,8 +400,8 @@ smell as #1: MetaData no longer secretly owns an engine.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §18
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §18
 - what 1.4 itself says, verbatim:
   > The MetaData.bind argument is deprecated and will be removed in SQLAlchemy 2.0.
   > (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
@@ -455,7 +455,7 @@ select(Issue.id, Issue.title)      # more columns = more arguments, not a bigger
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 - what 1.4 itself says, verbatim:
   > The legacy calling style of select() is deprecated and will be removed in SQLAlchemy
   > 2.0. Please use the new calling style described at select(). (Background on
@@ -501,7 +501,7 @@ case(
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 - what 1.4 itself says, verbatim:
   > The "whens" argument to case(), when referring to a sequence of items, is now passed
   > as a series of positional elements, rather than as a list. (Background on SQLAlchemy
@@ -537,8 +537,8 @@ sqlalchemy.orm.relationship(Comment)
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §6
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §6
 - what 1.4 itself says, verbatim:
   > The relation construct is considered legacy as of the 1.x series of SQLAlchemy and
   > will be removed in 2.0. Please use relationship(). (Background on SQLAlchemy 2.0 at:
@@ -601,7 +601,7 @@ _(runs OK)_
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **ArgumentError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -647,7 +647,7 @@ DISTINCT-then-LIMIT, window-ish patterns, etc.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
 - what 1.4 itself says, verbatim:
   > The Query.from_self() method is considered legacy as of the 1.x series of SQLAlchemy
   > and will be removed in 2.0. The new approach is to use the orm.aliased() construct
@@ -697,8 +697,8 @@ Comment in that query.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §9
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §9
 - what 1.4 itself says, verbatim:
   > The ``aliased`` and ``from_joinpoint`` keyword arguments to Query.join() are
   > deprecated and will be removed in SQLAlchemy 2.0. (Background on SQLAlchemy 2.0 at:
@@ -754,8 +754,8 @@ A typo `"commnets"` now fails when you build the option, not later at query time
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §15
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §15
 - what 1.4 itself says, verbatim:
   > Using strings to indicate column or relationship paths in loader options is
   > deprecated and will be removed in SQLAlchemy 2.0. Please use the class-bound
@@ -794,8 +794,8 @@ Same rule as #14 on `subqueryload` (second query for the collection instead of a
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §15
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §15
 - what 1.4 itself says, verbatim:
   > Using strings to indicate column or relationship paths in loader options is
   > deprecated and will be removed in SQLAlchemy 2.0. Please use the class-bound
@@ -860,7 +860,7 @@ _(runs OK)_
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **AttributeError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -912,7 +912,7 @@ _(runs OK)_
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **ok**  
 _not a breakage (works in 2.0)_ (measured on 1.4 by `candidates.py`)
@@ -957,7 +957,7 @@ _(runs OK)_
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17
 - what 1.4 itself says, verbatim:
   > The Row.keys() method is considered legacy as of the 1.x series of SQLAlchemy and
   > will be removed in 2.0. Use the namedtuple standard accessor Row._fields, or for
@@ -1023,8 +1023,8 @@ _(runs OK)_
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §15
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §15
 
 **Tier** — `SQLALCHEMY_WARN_20` says **—**; `future=True` says **InvalidRequestError**  
 _SILENT to the sweep_ (measured on 1.4 by `candidates.py`)
@@ -1080,8 +1080,8 @@ refresh. See `study/02-MIGRATION-2.0.md` §18 and `study/01-CONCEPTS.md` §14–
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §18
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §14
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §18
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §14
 - what 1.4 itself says, verbatim:
   > The Session.autocommit parameter is deprecated and will be removed in SQLAlchemy
   > version 2.0. The Session now features "autobegin" behavior such that the
@@ -1131,7 +1131,7 @@ you need partial undo.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §18
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §18
 - what 1.4 itself says, verbatim:
   > The Session.begin.subtransactions flag is deprecated and will be removed in
   > SQLAlchemy version 2.0. See the documentation at session_subtransactions for
@@ -1173,7 +1173,7 @@ Pairs with autobegin (#20): right after `Session()`, there may be no transaction
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §18
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §18
 - what 1.4 itself says, verbatim:
   > The Session.transaction attribute is considered legacy as of the 1.x series of
   > SQLAlchemy and will be removed in 2.0. For context manager use, use Session.begin().
@@ -1253,8 +1253,8 @@ already know, because it changes runtime behaviour to find them.
 
 **Docs**
 
-- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py
-- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §14 — the save-update cascade this is half of
+- [`../study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py
+- [`../study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §14 — the save-update cascade this is half of
 - what 1.4 itself says, verbatim:
   > "X" object is being merged into a Session along the backref cascade path for
   > relationship "X"; in SQLAlchemy 2.0, this reverse cascade will not take place.
