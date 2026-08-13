@@ -230,14 +230,63 @@ and he knows how much VRAM is left.
 
 ## Files this phase produces
 
-| File | Part | Written by | Purpose |
-|---|---|---|---|
-| `BREAKAGES.md` | A (Mac, now) | Viraj | Real migration failures → **seeds the Phase 2 golden dataset** |
-| `sqlalchemy_practice/` | A (Mac, now) | Viraj | 1.4 vs 2.0 comparison code, on SQLite — no infra needed |
-| `ROADMAP.md` | A | (exists) | Moved into the repo |
-| `Dockerfile` | C (PC) | Viraj | Container for the app; foundation for every later phase |
-| `docker-compose.yml` | C (PC) | Viraj | Multi-service stack; Qdrant plugs in at Phase 1 |
-| `.github/workflows/ci.yml` | C (PC) | Viraj | Test gate; becomes the **eval gate** in Phase 6 |
+| File | Part | Purpose |
+|---|---|---|
+| `BREAKAGES.md` | A | Real migration failures → **seeds the Phase 2 golden dataset** |
+| `experiments/sqlalchemy_1_4_vs_2_0/` | A | 1.4 vs 2.0 comparison code, SQLite by default — no infra needed |
+| `Dockerfile` + `.dockerignore` + `entrypoint.sh` | C | Container for the app; foundation for every later phase |
+| `docker-compose.yml` | C | Multi-service stack; Qdrant plugs in at Phase 1 |
+| `tests/` | C | What CI has to run — the gate below needs something to fail |
+| `.github/workflows/ci.yml` | C | Test gate; becomes the **eval gate** in Phase 6 |
+
+### Where it actually stands
+
+Counted rather than remembered, so this section cannot quietly go stale:
+
+```
+# runnable: uv run python -c "
+#   import pathlib, re
+#   def n(p):
+#       q = pathlib.Path(p)
+#       return len(list(q.glob('*.py'))) if q.is_dir() else 0
+#   b = pathlib.Path('BREAKAGES.md')
+#   rows = [
+#    ('BREAKAGES.md', f\"{len(re.findall(r'^### ', b.read_text(), re.M))} entries (target 10)\"),
+#    ('experiments/sqlalchemy_1_4_vs_2_0/', f'{n(\"experiments/sqlalchemy_1_4_vs_2_0\")} modules'),
+#    ('Dockerfile', 'yes' if pathlib.Path('Dockerfile').exists() else 'MISSING'),
+#    ('.dockerignore', 'yes' if pathlib.Path('.dockerignore').exists() else 'MISSING'),
+#    ('entrypoint.sh', 'yes' if pathlib.Path('entrypoint.sh').exists() else 'MISSING'),
+#    ('docker-compose.yml', 'yes' if pathlib.Path('docker-compose.yml').exists() else 'MISSING'),
+#    ('tests/', f'{n(\"tests\")} files' if pathlib.Path('tests').is_dir() else 'NOT BUILT'),
+#    ('.github/workflows/', f'{len(list(pathlib.Path(\".github/workflows\").glob(\"*.yml\")))} workflows'
+#        if pathlib.Path('.github/workflows').is_dir() else 'NOT BUILT'),
+#   ]
+#   w = max(len(a) for a,_ in rows)
+#   for a,c in rows: print(f'{a:<{w}}  {c}')"
+BREAKAGES.md                        23 entries (target 10)
+experiments/sqlalchemy_1_4_vs_2_0/  12 modules
+Dockerfile                          yes
+.dockerignore                       yes
+entrypoint.sh                       yes
+docker-compose.yml                  yes
+tests/                              NOT BUILT
+.github/workflows/                  NOT BUILT
+```
+
+**The two `NOT BUILT` lines are the remaining work on this machine**, and they are in order:
+CI's gate is *"a PR with a deliberately failing test that GitHub refuses to merge"*, which
+needs a test to exist before a workflow can run one.
+
+The rest of Part C — Day 7 (GPU) and Day 10 (Ollama) — is blocked on the lab machine, not on
+anything here.
+
+### A note on the "Written by" column, removed 2026-08-12
+
+It used to say *Viraj* for every infrastructure file, and it held: the Dockerfile,
+`.dockerignore` and `entrypoint.sh` were written from empty files. The rule was then changed
+deliberately, on time grounds — Claude now writes infrastructure while narrating what each part
+does. The gate did not change and is still the one below: **whether he can explain it**, not who
+typed it. See `CLAUDE.md`.
 
 ---
 

@@ -515,10 +515,87 @@ faster, never from skipping them.**
 - **Prompt injection** — an attack where malicious instructions hide inside content your
   system ingests.
 
+### The retrieval terms, on this repo's own corpus
+
+Definitions are easy to nod along to and hard to hold. Here are the ones that matter, run
+against material that already exists — `BREAKAGES.md`, which is the Phase 2 corpus in embryo.
+
+*Illustration, not a measurement: none of this is built yet. It shows what each term will mean
+here, so the words have something behind them before Phase 1 starts.*
+
+**Chunk.** Not a file, not a sentence. One retrievable idea. `BREAKAGES.md` is already written
+in chunks — each of its 23 entries is one:
+
+```
+### 1. engine.execute(string)
+### 2. engine.scalar(string)
+### 3. conn.execute(bare string)
+### 4. session.execute(bare string)
+```
+
+**Dense vs sparse retrieval**, and why neither wins alone. Take two questions a real user asks:
+
+| question | dense (meaning) | sparse / BM25 (keywords) |
+|---|---|---|
+| *"why can't I run a query straight off the engine any more?"* | **finds entry 1** — no shared words with `engine.execute`, but the same meaning | misses — the user typed none of those words |
+| *"what replaces `Query.get()`"* | may drift to other `Query` entries, all similar in meaning | **nails it** — `Query.get` is a literal string in the corpus |
+
+That table is the whole argument for **hybrid search**, and the reason Phase 1 is deliberately
+dense-only: you have to watch the second row fail before the fix means anything.
+
+**Golden dataset.** Not hypothetical either — `BREAKAGES.md` is its seed. Each entry already
+carries a question (*what breaks?*), a verified answer (*the fix, executed on 2.0.51*), and the
+chunk that should have been retrieved (*the entry itself*). That is exactly the shape a golden
+record needs.
+
+**recall@k and MRR**, on one query. Suppose the right answer is entry 17 and the system returns:
+
+```
+rank 1  entry 3
+rank 2  entry 17     <- the right one
+rank 3  entry 1
+```
+
+- **recall@5 = 1** — it appeared in the top 5 at all. *Did we fetch the right thing?*
+- **recall@1 = 0** — it was not first.
+- **MRR = 1/2 = 0.5** — reciprocal of the rank it landed at.
+
+The pair matters because they fail differently: recall says whether the answer was there, MRR
+says whether anyone would have scrolled far enough to see it.
+
 ---
 
 ## 10. Where you are right now
 
-**Phase 0, not started.** Nothing has been built yet.
+**Phase 0, Part A complete and Part C most of the way.** Counted, not remembered:
 
-**Next step:** Phase 0, Docker + SQLAlchemy hands-on. Say the word and we start.
+```
+# runnable: git log --oneline | wc -l
+47
+
+# runnable: grep -c '^### ' BREAKAGES.md
+23
+
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
+#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+  22 of 24 patterns FAIL on 2.0.51
+
+# runnable: docker compose up --build
+database: postgresql+psycopg2://app:***@db:5432/issues
+38 open issues
+```
+
+| | state |
+|---|---|
+| Part A — 1.4 → 2.0, felt personally | **done** — 23 breakages against a target of 10 |
+| Part C Days 4–5 — Docker | **done** — image built from an empty file, injected failure diagnosed |
+| Part C Day 6 — Compose + Postgres | **done** — two services, service-name DNS, healthcheck, volume |
+| Part C Days 8–9 — tests + CI | not started — and CI needs tests first |
+| Part B Day 3 — lab machine | blocked, machine unreachable |
+| Part C Day 7 / Day 10 — GPU, Ollama | blocked, needs the lab GPU |
+
+`PHASE-0.md` has the per-deliverable status, computed the same way.
+
+**Next step:** `tests/`, then `.github/workflows/ci.yml` — in that order, because the Day 8–9
+gate is *"a PR containing a deliberately failing test that GitHub refuses to merge"* and there
+is nothing yet for a workflow to run.

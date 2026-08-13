@@ -16,7 +16,19 @@ This split is why the log stays readable: an idea gets one explanation in `CONCE
 
 ## Where you are right now
 
-**Step 2 of 10 is essentially done.** (`PRACTICE-APP.md` has the full 10-step runbook.)
+**All ten steps are done.** (`PRACTICE-APP.md` has the runbook.) Phase 0 Part A is complete
+and Part C is most of the way; `ROADMAP.md` §10 has the per-part status, computed.
+
+```
+# runnable: grep -c '^### ' BREAKAGES.md
+23
+
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
+#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+  22 of 24 patterns FAIL on 2.0.51
+```
+
+The list below is the state as of **Aug 3**; everything after it is in the timeline.
 
 - ✅ **Step 1** — Python 3.11.15 + SQLAlchemy 1.4.52 pinned, `uv.lock` committed.
 - ✅ **Step 2** — `models.py`: all six relationship patterns built, including the
@@ -30,11 +42,13 @@ This split is why the log stays readable: an idea gets one explanation in `CONCE
 - ✅ **Step 3** — `seed.py` builds `issues.db`: 200 issues, 710 comments, 387 label links,
   303 assignments, 60 blocking pairs. Deterministic and idempotent.
 - ✅ **Step 4** — `app.py`: five functions in deliberately bad 1.4 style, all green.
-- ⬜ **Steps 5–10** — baseline query counts, `SQLALCHEMY_WARN_20`, the 2.0 upgrade,
-  `BREAKAGES.md`. **← you are here.**
+- ✅ **Steps 5–10** — baseline query counts (**204**, counted not estimated), the
+  `SQLALCHEMY_WARN_20` sweep, verification against real 2.0, and `BREAKAGES.md`. Done Aug 4–6;
+  see the timeline.
 
-**Immediate next action:** Step 5 — re-run `issue_report()` with `echo=True` and count the
-SELECTs. Expect roughly 1 + 200 + 200. Write the number down; Step 9 compares against it.
+**Immediate next action:** `tests/`, then CI. The Day 8–9 gate is *"a PR containing a
+deliberately failing test that GitHub refuses to merge"*, and there is nothing for a workflow
+to run yet.
 
 ---
 
@@ -273,3 +287,69 @@ the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
 
 **Not version issues — do not put these in `BREAKAGES.md`:** the N+1 in `issue_report()`
 (equally slow in both) and `DetachedInstanceError` (fires in 1.4 too, → §14).
+
+### Aug 4 — the runtime, and a wrong answer caught → §14 §15
+
+- `states.py` added: five object states via `inspect()`, the attribute-cache wipe at
+  `commit()`, the identity map, and a query counter for lazy / selectinload / joinedload.
+- **Two of four `# runnable` blocks in `CONCEPTS.md` named no command.** The numbers were real
+  and not reproducible. That is where the measurement rule in `CLAUDE.md` comes from.
+- **A drill answer was wrong.** "flush vs commit — name two differences" claimed commit expires
+  objects. Expiry is `expire_on_commit`, a `Session` flag; set it `False` and commit expires
+  nothing. The answer also missed the largest difference: commit flushes for you.
+- Part 4 split into `MIGRATION-2.0.md` — `CONCEPTS.md` had reached 2161 lines. Numbering
+  continues across the pair, which is the same split `COMPOSE-STUDY.md` gets later.
+
+### Aug 5–6 — the four-tool harness, and `BREAKAGES.md` → §16–§22
+
+- **Provenance audit:** 40 doc lines did not match real output; 0 across 106 blocks afterwards.
+  The fixes went into the *scripts*, so a `# runnable` block is a literal paste.
+- **Six wrong claims found in §16–§22.** The largest: `MovedIn20Warning` **subclasses**
+  `RemovedIn20Warning`, so `isinstance()` triage over-reports.
+- **`cascade_backrefs` — the biggest finding, and it was not in the chapter at all.** An object
+  attached by the many-to-one side is never enrolled under 2.0: no exception, the `INSERT`
+  simply never runs.
+- Built `sweep.py`, `patterns.py`, `candidates.py`, `verify_2_0.py` — measuring real 2.0
+  without upgrading the project.
+- **`BREAKAGES.md`: 23 entries against a target of 10.** One pattern (`row["col"]`) is called
+  *safe* by both 1.4-side tools and still fails on real 2.0 — the empirical argument for
+  running the real thing.
+
+### Aug 8 — `BREAKAGES.md` made rereadable `(event only)`
+
+Reshaped into groups A–H with a "What 1.4 did / What 2.0 does" reading per entry. Every
+measured field left untouched, verified by regenerating and diffing.
+
+### Aug 9–10 — Docker, Days 4–5 `(→ DOCKER-STUDY.md)`
+
+- `Dockerfile`, `.dockerignore`, `entrypoint.sh` written from empty files.
+- **Base image chosen on measurement:** 214MB vs 1.62GB on disk, 48MB vs 416MB to download,
+  against a PyPI check showing a `manylinux_2_17_aarch64` wheel exists — so `-slim` needs no
+  compiler. The build confirmed it: that exact wheel, 4.3s, no gcc.
+- **Injected failure diagnosed cold** — `*.txt` in `.dockerignore` broke `COPY requirements.txt`
+  with *"not found"* while the file sat on disk. The answer is that the CLI filters the context
+  on the host and the daemon runs `COPY` inside the VM; the file never crossed.
+- **A stale image fooled both of us for an hour.** It was 13 hours older than the code, ignored
+  `DATABASE_URL`, and produced believable output that proved nothing.
+
+### Aug 12 — Day 6, Compose and Postgres `(→ COMPOSE-STUDY.md)`
+
+- Two services, service-name DNS, `pg_isready` healthcheck with `condition: service_healthy`,
+  named volume, no published ports.
+- **The volume exposed a contradiction:** `seed.py` opened with `drop_all()` on every start —
+  harmless against a disposable SQLite file, destructive against a volume that exists so data
+  survives. It now seeds only when the database is empty.
+- **`--network` does two jobs, and only one had been measured.** DNS, yes — but also isolation:
+  a container on the default bridge cannot reach a user-defined network *even by IP*. It times
+  out.
+- **`POSTGRES_USER` does not create a limited account**; it renames the superuser. `rolsuper = t`.
+
+### Aug 13 — one name, and the example rule `(event only)`
+
+- The image was `sqlagent` while everything else was `sqlalchemy-upgrade-agent`; the Postgres
+  role was *also* `sqlagent`. Now one name for the project and image, and `app` for the role,
+  which cannot take a hyphen without forcing quotes in every statement.
+- **An example audit across all eleven docs** found one outlier: `PRACTICE-APP.md`, 292 lines
+  explaining a schema with zero code blocks — and asserting *"Six tables"* where there are six
+  mapped classes and eight tables. Prose is where a wrong claim survives.
+- `CLAUDE.md` gains the **example rule** beside the measurement rule, applying retroactively.
