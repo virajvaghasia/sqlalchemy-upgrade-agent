@@ -374,6 +374,9 @@ Append a dated entry each session; keep each entry to a few bullets.
   In-container `nvidia-smi`: RTX 3060, 12288 MiB, driver 595.71.05.
 - Day 10 gate passed: Ollama 0.32.9, `qwen2.5-coder:7b` (4.7 GB pull). On GPU
   (`llama-server` ~4650 MiB). Warm eval **62.23 tok/s**. Leftover **7115/12288 MiB**.
+- Days 8–9 CI gate: PR #3 deliberate fail → `tests` red, merge BLOCKED, closed
+  unmerged. Tailscale already `shaili.gandhi@` (`100.72.117.53`); do not relogin.
+  sshd still to install; no reboot today.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now
