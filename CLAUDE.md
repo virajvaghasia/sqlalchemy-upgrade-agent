@@ -32,6 +32,28 @@ underlying claim turned out to be wrong or unreproducible — the §14 state tra
 behind it, the hardcoded `issue_id in (1, 3)`, the flush/commit answer, the `1013 / 7 / 8`
 table. Assume the same will happen again.
 
+### The example rule — the other half of it
+
+**An explanation without an example is not finished.** Every concept a doc introduces carries
+at least one of: real code from this repo, real output from a named command, or a worked
+before/after. Prose alone is a claim; a block underneath it is evidence.
+
+Two reasons, both learned here rather than assumed:
+
+- **Prose hides errors that examples expose.** `PRACTICE-APP.md` described the schema in a
+  table for 292 lines with no code block, and asserted *"Six tables."* There are **six mapped
+  classes and eight tables** — visible the moment anything real is printed.
+- **He reads the example first.** Explanations get skimmed; the block underneath is what gets
+  looked at. An explanation with nothing under it usually does not get read at all.
+
+Applies retroactively. A doc being old is not an exemption — if it explains something and shows
+nothing, it is incomplete, and adding the example is the fix rather than deleting the claim.
+
+**Everything goes in the existing docs.** Do not create a new file to hold an explanation that
+belongs beside the thing it explains. Split a file only when it has grown to cover two genuinely
+different subjects, as `COMPOSE-STUDY.md` did — and then the numbering continues across the pair
+so references still resolve.
+
 ---
 
 ## THE COLLABORATION RULE — read this before writing any code
