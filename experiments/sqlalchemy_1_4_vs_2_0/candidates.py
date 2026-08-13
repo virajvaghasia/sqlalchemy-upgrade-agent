@@ -11,7 +11,7 @@ real 2.0, hit the real error, and fixed it — that is what PHASE-0 means by
 
 The distinction is not bureaucratic. CLAUDE.md's design notes call an
 auto-generated golden set "grading your own homework with your own answer key",
-and MIGRATION-2.0.md §21 spells out why a wrong entry costs more than a missing
+and study/02-MIGRATION-2.0.md §21 spells out why a wrong entry costs more than a missing
 one. A list generated here and pasted into BREAKAGES.md would be exactly that
 failure, dressed up as measurement.
 

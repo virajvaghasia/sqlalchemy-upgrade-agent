@@ -49,13 +49,15 @@ to "§18" is unambiguous in either file.
 |---|---|
 | [`ROADMAP.md`](ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
 | [`PHASE-0.md`](PHASE-0.md) | the current phase in detail, and its deliverables |
-| [`CONCEPTS.md`](CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
-| [`MIGRATION-2.0.md`](MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
+| [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
+| [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
+| [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
 | [`BREAKAGES.md`](BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages; seeds the Phase 2 golden dataset |
-| [`PRACTICE-APP.md`](PRACTICE-APP.md) | the design of the app under test, and why this schema |
-| [`DOCKER-STUDY.md`](DOCKER-STUDY.md) | **§1–§3, one container** — opens with a one-page plain-language summary, then layers, the build cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root. Every number measured against this repo |
-| [`COMPOSE-STUDY.md`](COMPOSE-STUDY.md) | **§4, more than one container** — Compose, networking and DNS, ports, volumes, healthchecks. Numbering continues from `DOCKER-STUDY.md` |
-| [`POSTGRES-STUDY.md`](POSTGRES-STUDY.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
+| [`study/03-PRACTICE-APP.md`](study/03-PRACTICE-APP.md) | the design of the app under test, and why this schema |
+| [`study/04-DOCKER.md`](study/04-DOCKER.md) | **§1–§3, one container** — opens with a one-page plain-language summary, then layers, the build cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root. Every number measured against this repo |
+| [`study/05-COMPOSE.md`](study/05-COMPOSE.md) | **§4, more than one container** — Compose, networking and DNS, ports, volumes, healthchecks. Numbering continues from `study/04-DOCKER.md` |
+| [`study/06-POSTGRES.md`](study/06-POSTGRES.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
+| [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`LEARNING-LOG.md`](LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -93,7 +95,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 17 passed, 1 warning in 0.52s
 ```
 
-They pin what the docs claim, not what SQLAlchemy does: the row counts in `PRACTICE-APP.md`,
+They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
 the six-mapped-classes/eight-tables split, that seeding twice produces byte-identical data, and
 the `is_seeded` guard that stops the container's startup seed dropping a populated Postgres
 volume. Each was mutation-checked — break the thing it describes and it fails.
@@ -104,9 +106,9 @@ Each prints what the library actually does. Nothing in these asserts a number it
 
 | module | backs | shows |
 |---|---|---|
-| `explore.py` | `CONCEPTS.md` §0–§13 | every relationship pattern, with the SQL it emits |
-| `states.py` | `CONCEPTS.md` §14–§15 | object states, the identity map, expiry, lazy vs `selectinload` vs `joinedload` |
-| `migration.py` | `MIGRATION-2.0.md` §16–§21 | nine sections: `query()` vs `select()`, the Result API, autobegin, `future=True`, `.unique()`, the measured N+1, `cascade_backrefs`, and what each tool misses |
+| `explore.py` | `study/01-CONCEPTS.md` §0–§13 | every relationship pattern, with the SQL it emits |
+| `states.py` | `study/01-CONCEPTS.md` §14–§15 | object states, the identity map, expiry, lazy vs `selectinload` vs `joinedload` |
+| `migration.py` | `study/02-MIGRATION-2.0.md` §16–§21 | nine sections: `query()` vs `select()`, the Result API, autobegin, `future=True`, `.unique()`, the measured N+1, `cascade_backrefs`, and what each tool misses |
 
 ### Migration tooling
 
@@ -173,7 +175,7 @@ is raised** — which is why a passing test suite says nothing about it.
 
 The Docker rows are not decoration. With `build:` and no `image:`, Compose invents a name from
 project and service — a second image, built from the same Dockerfile, drifting apart from
-anything you tagged by hand. That cost an hour once; `COMPOSE-STUDY.md` §4.7 has the
+anything you tagged by hand. That cost an hour once; `study/05-COMPOSE.md` §4.7 has the
 measurement.
 
 `issues.db` is generated, not committed — run `seed.py` to rebuild it identically.

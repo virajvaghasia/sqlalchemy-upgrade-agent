@@ -2,7 +2,7 @@
 
 These are not "does SQLAlchemy work" tests. Each one pins a claim some document
 makes, so that editing models.py breaks the test rather than silently making a
-doc wrong. PRACTICE-APP.md already asserted "Six tables" once and was wrong by
+doc wrong. study/03-PRACTICE-APP.md already asserted "Six tables" once and was wrong by
 two; that is the failure mode being closed here.
 """
 
@@ -41,7 +41,7 @@ def test_association_table_carries_only_keys():
 def test_association_object_carries_its_own_data():
     """issue_assignments is an association OBJECT — it has columns of its own.
 
-    This is the distinction PRACTICE-APP.md turns on: the moment a join table
+    This is the distinction study/03-PRACTICE-APP.md turns on: the moment a join table
     has a column that is neither foreign key, it needs a mapped class.
     """
     cols = {c.name for c in models.IssueAssignment.__table__.columns}

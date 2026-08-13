@@ -17,7 +17,7 @@ def test_db_url_defaults_to_sqlite(monkeypatch):
     """With no env var set, Part A behaviour is unchanged.
 
     This is the property that keeps every measurement in BREAKAGES.md and
-    MIGRATION-2.0.md valid — they were all taken against the SQLite default.
+    study/02-MIGRATION-2.0.md valid — they were all taken against the SQLite default.
     """
     monkeypatch.delenv("DATABASE_URL", raising=False)
     reloaded = importlib.reload(seed_mod)

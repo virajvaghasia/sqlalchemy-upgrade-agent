@@ -67,7 +67,7 @@ print("note: alice.id and apollo.id are both 1 — different tables, separate co
 # ---------------------------------------------------------------------------
 section("2. Issues — one-to-many, two ways to attach, zero manual FK writes")
 
-# Nine issues, so the ids referenced in CONCEPTS.md Part 3 (3, 7, 9) exist.
+# Nine issues, so the ids referenced in study/01-CONCEPTS.md Part 3 (3, 7, 9) exist.
 TITLES = [
     ("Login page returns 500 on submit", "open"),
     ("Dashboard widgets load out of order", "open"),

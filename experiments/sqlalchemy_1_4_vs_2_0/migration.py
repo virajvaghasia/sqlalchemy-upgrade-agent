@@ -60,7 +60,7 @@ def print_wrapped(message, indent, width=64):
     """Print a long library message across several lines, wrapped HERE.
 
     SQLAlchemy's errors are single long strings. Wrapping them in the script
-    rather than by hand in MIGRATION-2.0.md keeps every "# runnable" block a
+    rather than by hand in study/02-MIGRATION-2.0.md keeps every "# runnable" block a
     literal paste of what the program prints.
     """
     for line in textwrap.wrap(message, width=width):
@@ -121,7 +121,7 @@ def fold_columns(sql):
     """Abbreviate the SELECT list for DISPLAY only, so the line fits a doc block.
 
     Every comparison below runs on the full, unfolded strings. Folding here
-    rather than by hand in MIGRATION-2.0.md is deliberate: a block labelled
+    rather than by hand in study/02-MIGRATION-2.0.md is deliberate: a block labelled
     "# runnable" has to be reproducible by running it.
     """
     cols, _, rest = sql.partition(" FROM ")

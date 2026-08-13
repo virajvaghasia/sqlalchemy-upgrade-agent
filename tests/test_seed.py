@@ -1,7 +1,7 @@
 """The seed is deterministic, idempotent, and does not eat existing data.
 
 Every measured number in this repo — the 204-query N+1, the row counts in
-PRACTICE-APP.md, the before/after in MIGRATION-2.0.md — assumes seeding the same
+PRACTICE-APP.md, the before/after in study/02-MIGRATION-2.0.md — assumes seeding the same
 data twice produces the same database. Nothing enforced that until now.
 """
 
@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, func, select
 
 from experiments.sqlalchemy_1_4_vs_2_0 import models, seed as seed_mod
 
-# The counts PRACTICE-APP.md publishes. If a change to seed.py moves any of
+# The counts study/03-PRACTICE-APP.md publishes. If a change to seed.py moves any of
 # them, the doc is wrong and this test says so before a reader finds out.
 EXPECTED_COUNTS = {
     "users": 5,
