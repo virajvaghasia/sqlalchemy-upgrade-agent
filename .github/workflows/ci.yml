@@ -23,11 +23,11 @@ jobs:
     name: tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # setup-uv installs uv and caches the dependency downloads keyed on
       # uv.lock — so an unchanged lockfile means no re-download.
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -48,8 +48,8 @@ jobs:
     name: 2.0 evidence
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -78,7 +78,7 @@ jobs:
     name: image builds
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker build -t sqlalchemy-upgrade-agent:ci .
 
       # Build success says the image assembled, not that it runs — the CMD typo
