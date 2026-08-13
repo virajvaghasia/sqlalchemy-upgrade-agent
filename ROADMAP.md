@@ -590,7 +590,7 @@ database: postgresql+psycopg2://app:***@db:5432/issues
 | Part A — 1.4 → 2.0, felt personally | **done** — 23 breakages against a target of 10 |
 | Part C Days 4–5 — Docker | **done** — image built from an empty file, injected failure diagnosed |
 | Part C Day 6 — Compose + Postgres | **done** — two services, service-name DNS, healthcheck, volume |
-| Part C Days 8–9 — tests + CI | not started — and CI needs tests first |
+| Part C Days 8–9 — tests + CI | tests **done** (17, `uv run pytest`); CI not started |
 | Part B Day 3 — lab machine | blocked, machine unreachable |
 | Part C Day 7 / Day 10 — GPU, Ollama | blocked, needs the lab GPU |
 

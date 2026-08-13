@@ -86,6 +86,18 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 | `app.py` | the query layer: `Query.get()`, `engine.execute("…")`, an unoptimised N+1 |
 | `check.py` | smoke test — forces mapper configuration so a broken relationship fails here, not at runtime |
 
+### Tests
+
+```
+# runnable: uv run pytest
+17 passed, 1 warning in 0.52s
+```
+
+They pin what the docs claim, not what SQLAlchemy does: the row counts in `PRACTICE-APP.md`,
+the six-mapped-classes/eight-tables split, that seeding twice produces byte-identical data, and
+the `is_seeded` guard that stops the container's startup seed dropping a populated Postgres
+volume. Each was mutation-checked — break the thing it describes and it fails.
+
 ### Proofs behind the teaching docs
 
 Each prints what the library actually does. Nothing in these asserts a number it didn't measure.
