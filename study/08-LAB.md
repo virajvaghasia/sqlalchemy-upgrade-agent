@@ -742,6 +742,19 @@ login screen, unattended access is not done.
 **Tunneling done when:** `ssh sqlalchemy-lab` works after a reboot, Cursor Remote opens
 the folder, no AnyDesk required for daily work.
 
+**Deferred 2026-08-13 — no reboot for ~20 days (Viraj not in lab).** Do **not**
+`sudo reboot` to close Day 3. Prove SSH **without** a reboot first:
+
+```
+# from Mac, while AnyDesk is still up as backup
+ssh sqlalchemy-lab
+```
+
+Wanted: shell as `shaili`, no password. That is enough to work remotely for now.
+The reboot half stays open until the next in-person visit — services are already
+`enable`d (`ssh`, `docker`, `tailscaled`, `ollama`) so a lab power-cycle *should*
+bring them back; we just are not verifying that today.
+
 ---
 
 ## Later — Docker Engine (not snap, not `docker.io`, not Desktop)
@@ -1087,6 +1100,8 @@ Branch: `phase-0/ci-gate-deliberate-fail` — one file, `tests/test_ci_gate.py`,
     Claude login.
   - sshd: install next (`sudo bash /tmp/install-sshd.sh`). Do **not** reboot today
     (shared desktop / AnyDesk).
+  - **2026-08-13:** Viraj away ~20 days — **no reboot**. Prove `ssh sqlalchemy-lab`
+    from Mac without rebooting. Reboot half waits until next lab visit.
 
 ---
 
