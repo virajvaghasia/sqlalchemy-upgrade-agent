@@ -8,3 +8,17 @@ dependencies = [
     "psycopg2-binary>=2.9.12",
     "sqlalchemy==1.4.52",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# The package lives at experiments/sqlalchemy_1_4_vs_2_0 and is imported by its
+# full dotted path, exactly as the docs' `python -m ...` commands do. pytest does
+# not add the rootdir to sys.path on its own, so say so rather than scattering
+# __init__.py files or relying on the working directory.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

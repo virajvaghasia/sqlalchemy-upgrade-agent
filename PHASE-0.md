@@ -267,13 +267,22 @@ Dockerfile                          yes
 .dockerignore                       yes
 entrypoint.sh                       yes
 docker-compose.yml                  yes
-tests/                              NOT BUILT
+tests/                              4 files
 .github/workflows/                  NOT BUILT
 ```
 
-**The two `NOT BUILT` lines are the remaining work on this machine**, and they are in order:
-CI's gate is *"a PR with a deliberately failing test that GitHub refuses to merge"*, which
-needs a test to exist before a workflow can run one.
+**`.github/workflows/` is the remaining work on this machine.** It comes last for a reason:
+CI's gate is *"a PR with a deliberately failing test that GitHub refuses to merge"*, which needs
+tests to exist before a workflow can run them.
+
+```
+# runnable: uv run pytest
+17 passed, 1 warning in 0.52s
+```
+
+Those 17 pin claims the docs make rather than testing the library: the counts in
+`PRACTICE-APP.md`, the six-classes/eight-tables split, seed determinism, and the `is_seeded`
+guard that stops `entrypoint.sh` dropping a populated Postgres volume.
 
 The rest of Part C — Day 7 (GPU) and Day 10 (Ollama) — is blocked on the lab machine, not on
 anything here.
