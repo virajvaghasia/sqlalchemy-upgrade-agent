@@ -353,3 +353,14 @@ measured field left untouched, verified by regenerating and diffing.
   explaining a schema with zero code blocks — and asserting *"Six tables"* where there are six
   mapped classes and eight tables. Prose is where a wrong claim survives.
 - `CLAUDE.md` gains the **example rule** beside the measurement rule, applying retroactively.
+
+### Aug 13 — lab PC sitting, Ubuntu diary `(→ study/08-LAB.md)`
+
+AnyDesk on user `shaili`, Dell XPS 8950. Clone + local git identity + `gh` as
+Viraj + Cursor as Viraj. `uv sync --frozen` / pytest **17 passed** on this box.
+Hardware measured: **31 GiB RAM**, RTX 3060 **12288 MiB** VRAM. The 12GB-system-RAM
+plan was a guess; VRAM is the real budget. Langfuse stays Phase 6 for product
+reasons, not RAM. Docker blocked on typed `sudo`. Do not touch `~/.claude`.
+
+The sitting is written out in Ubuntu words in `study/08-LAB.md` ("New to Ubuntu?
+This sitting, explained"). Further PC steps get appended there, not only in chat.

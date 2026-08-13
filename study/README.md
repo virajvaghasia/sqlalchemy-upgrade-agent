@@ -16,7 +16,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`05-COMPOSE.md`](05-COMPOSE.md) | several containers: networking, volumes, healthchecks | §4 |
 | [`06-POSTGRES.md`](06-POSTGRES.md) | the database inside one of them | §5 |
 | [`07-TESTS.md`](07-TESTS.md) | the test suite, and how to tell whether tests cover anything | §6 |
-| [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama | — |
+| [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama. Includes the 2026-08-13 sitting diary in Ubuntu words | — |
 
 ## Two numbering families, and why
 

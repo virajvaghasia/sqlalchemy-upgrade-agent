@@ -127,20 +127,20 @@ networking.
   only Viraj verifies. An auto-generated golden set grades your own homework with your own
   answer key.
 - **Zero paid API calls.** Local models on the RTX 3060 + free tiers only.
-- **Build machine is the Ubuntu lab PC** (3060, 12GB VRAM, 12GB system RAM), reached over
-  SSH. **Push to GitHub constantly** — it's a shared lab machine that may be reimaged.
-  - **As of 2026-08-04 the lab machine is not reachable.** All work is happening on the Mac
-    and will be pulled down at the lab later. This *inverts* the risk the "push constantly"
-    rule was written for: GitHub is no longer the backup of the lab machine, it is the
-    **handoff channel to it**, and the Mac is now the only copy of anything uncommitted.
-    Commit and push at the end of every session — an unpushed commit is invisible at the lab.
-  - **What this does and does not unblock.** Phase 0 Part A (Days 0–2: `uv`, the 1.4 app,
-    the 2.0 migration, `deliverables/BREAKAGES.md`) needs nothing but Python and runs fine here. Parts B
-    and C (Docker, Compose, GPU-in-container, CI, Ollama) need the lab machine and are
-    blocked — those are also precisely the infra items Viraj must write himself, so they
-    cannot be worked around by having Claude produce them early.
-- **Langfuse is deferred to Phase 6 and run on-demand** — ~5 containers won't fit in 12GB
-  alongside everything else.
+- **Build machine is the Ubuntu lab PC** (Dell XPS 8950, `kj-XPS-8950`: RTX 3060
+  **12288 MiB VRAM**, **31 GiB** system RAM). Measured 2026-08-13 — the old "12GB
+  system RAM" figure was a guess and is wrong. **VRAM is the tight budget, not RAM.**
+  Shared box (`kj` + `shaili`); may be reimaged. **Push to GitHub constantly.**
+  - **As of 2026-08-13 the lab machine is reachable via AnyDesk** on user `shaili`.
+    Clone lives at `~/Documents/Workspace/SqlUpgradeAgent`. Tailscale / Mac→PC SSH
+    still deferred. Cursor login as Viraj may stay. Do not touch `~/.claude`.
+  - Part A is done. Remaining on this box: Docker Engine (needs sudo password),
+    GPU-in-container, Ollama, tunneling reboot test. CI YAML already exists;
+    the gate is still a failing PR + branch protection.
+- **Langfuse stays Phase 6 and on-demand.** Not because RAM is tight — 31 GiB
+  would fit the ~5-container stack. Because there is nothing to observe yet, and
+  a second Postgres+ClickHouse+Redis+MinIO+web pile is ops noise during Phase 0–5.
+  Do not silently pull it forward just because the RAM excuse died.
 - **The image holds code; the container holds data.** `issues.db` is created at container
   start by `entrypoint.sh`, never baked in — not by `COPY`, and not by seeding at build time
   with `RUN` (which looks like it works and quietly produces a fixture: writes disappear with
@@ -349,6 +349,27 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Sitting: clone + local git + **Cursor login as him (may stay).** Do not
   touch the other person's Claude — no `claude`, no `/logout`. Tailscale /
   Mac→PC SSH deferred.
+
+### 2026-08-13 — PC clone (AnyDesk, `shaili` user, XPS 8950)
+- Cloned into `~/Documents/Workspace/SqlUpgradeAgent` on `phase-0/repo-structure`.
+  Local git identity only: `virajvaghasia` / noreply. **Global still Shaili.**
+- `gh auth login` as Viraj (needed to push from this box). Logout in §6 before leaving
+  if they should not keep Viraj's token on this user.
+- `uv sync --frozen` + `uv run pytest`: **17 passed, 1 warning.** Seed + `check` OK
+  on SQLite. `.env` copied from `.env.example` (gitignored).
+- Host GPU: RTX 3060, 12288 MiB, driver 595.71.05. **No Docker** — `sudo` needs a
+  password, so Engine / NVIDIA Container Toolkit / Ollama not installed this pass.
+- Do not touch `~/.claude`. Close the `claude` TUI if still open; do not `/login`.
+- Replanned off measured specs: **31 GiB RAM / 12288 MiB VRAM**. VRAM is the
+  bottleneck. Langfuse stays Phase 6 for product reasons, not RAM. Docs updated
+  in `CLAUDE.md`, `phases/PHASE-0.md`, `study/08-LAB.md`.
+- Sitting diary in Ubuntu words added to `study/08-LAB.md` (new to Ubuntu). Further
+  PC steps get appended there so chat is not the only record.
+- Docker Engine installed (29.7.2 + Compose v5.4.0). Every 08-LAB command block
+  now has a why + example inline, not only in §11.
+- `newgrp docker` → hello-world OK. `docker compose up --build` on amd64:
+  Postgres 16.14, `postgresql+psycopg2://app:***@db:5432/issues`, 38 open issues,
+  app-1 exit 0.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now
