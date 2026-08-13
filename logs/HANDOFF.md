@@ -49,7 +49,7 @@ If both sides edited, `git pull --rebase` will conflict on this file. Keep **bot
 
 # Round 1 — sshd and the LAN address
 
-**Status: OPEN.** Everything below is on the **lab PC**.
+**Status: REPLIED 2026-08-13 (lab PC, Cursor on `shaili`).** Key installed. LAN is **not** `10.23.` — Mac SSH over house Wi‑Fi will not work; Tailscale or same-LAN is required.
 
 ## ASK 1.1 — is sshd running
 
@@ -65,7 +65,22 @@ which is the failure the Day 3 gate is written to catch.
 ### REPLY 1.1
 
 ```
-(paste here)
+# /tmp/install-sshd.sh not re-run: ssh already enabled+active (installed earlier this sitting).
+enabled
+active
+● ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/usr/lib/systemd/system/ssh.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-08-13 14:41:54 PDT; 48min ago
+TriggeredBy: ● ssh.socket
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+    Process: 1862812 ExecStartPre=/usr/sbin/sshd -t (code=exited, status=0/SUCCESS)
+   Main PID: 1862813 (sshd)
+      Tasks: 1 (limit: 34671)
+     Memory: 1.2M (peak: 1.9M)
+        CPU: 9ms
+     CGroup: /system.slice/ssh.service
+             └─1862813 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
 ```
 
 ## ASK 1.2 — who and where
@@ -85,7 +100,11 @@ same network and SSH works today**, with no Tailscale at all.
 ### REPLY 1.2
 
 ```
-(paste here)
+shaili
+    inet 10.25.102.155/16 brd 10.25.255.255 scope global dynamic noprefixroute wlp5s0
+    inet 100.72.117.53/32 scope global tailscale0
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-1e5442b2ded3
 ```
 
 ## ASK 1.3 — install the Mac's public key
@@ -114,7 +133,8 @@ must never be copied here.
 ### REPLY 1.3
 
 ```
-(paste here)
+-rw------- 1 shaili shaili 106 Aug 13 15:30 /home/shaili/.ssh/authorized_keys
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILhuSUpOdqb+R/AYjfTZOIZI3fyr9eLhCm/sz7c1onoe viraj@mac-sqlalchemy-lab
 ```
 
 ---
