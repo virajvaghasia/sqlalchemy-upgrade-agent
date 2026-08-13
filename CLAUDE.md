@@ -18,7 +18,10 @@ Meta, Google, Apple, Anthropic, and startups).
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
-  index and explains the two § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure).
+  index and explains the two § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure)
+  plus the two runbooks (`03`, `08`).
+- **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
+  Viraj says so.
 - **`tests/`** — 17 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`experiments/sqlalchemy_1_4_vs_2_0/__init__.py`** — the package manifest: what each of the
   eleven modules is for, in run order.
@@ -338,6 +341,17 @@ Append a dated entry each session; keep each entry to a few bullets.
   diagnosed with the mechanism explained rather than merely fixed.
 - **Next:** non-root user and `pip --no-cache-dir` (both explained in `study/04-DOCKER.md` §3),
   then Day 6 — Compose + Postgres.
+
+### 2026-08-13
+- Lab PC sitting is unblocked via AnyDesk. Wrote `study/08-LAB.md`. **Not pushed.**
+- Two labs, do not mix: Mac `id_ed25519` comment is `-geochem` (minmod/ISI). This
+  Ubuntu PC is unrelated. Do not copy that key here.
+- Sitting order changed at his request: **today = own Linux user + local git
+  identity + Cursor/Claude as Viraj + clone**, over AnyDesk. The lab PC already
+  has someone else's git/Claude; isolate before typing. Tailscale / Mac→PC SSH
+  deferred. Repo is public; HTTPS clone needs no GitHub login. Tunneling, when
+  it happens, gets a new `id_ed25519_sqlalchemy_lab` — not the geochem key.
+  PHASE-0 Day 3 gate still requires the reboot test later.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now
