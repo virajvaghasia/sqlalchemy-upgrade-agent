@@ -380,7 +380,9 @@ Append a dated entry each session; keep each entry to a few bullets.
   (`llama-server` ~4650 MiB). Warm eval **62.23 tok/s**. Leftover **7115/12288 MiB**.
 - Days 8–9 CI gate: PR #3 deliberate fail → `tests` red, merge BLOCKED, closed
   unmerged. Tailscale already `shaili.gandhi@` (`100.72.117.53`); do not relogin.
-  sshd still to install; no reboot today.
+  sshd running. No reboot ~20 days. Waiting on Shaili to share `kj-xps-8950`
+  (Viraj has no Tailscale creds). Message to her is in `study/08-LAB.md` §L.2
+  and `logs/HANDOFF.md` REPLY 2.2.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now

@@ -262,7 +262,27 @@ his machine list as a shared node.
 ### REPLY 2.2
 
 ```
-(paste her answer, or note when asked)
+# 2026-08-13 lab PC: Viraj does NOT have Shaili's Tailscale credentials.
+# Did not open the admin console. Did not tailscale up/login/switch.
+# Message to send her (copy-paste):
+
+Hi Shaili — could you share the lab desktop with me on Tailscale? I don't have
+your Tailscale password and I shouldn't log in as you.
+
+On this PC, in a browser while YOU are signed into Tailscale:
+
+1. Open https://login.tailscale.com/admin/machines
+2. Find kj-xps-8950
+3. Click ... on that row → Share → Copy share link
+4. Send me that link
+
+What it does: lets my laptop SSH to that one machine only. It does not add me
+to your tailnet, does not change anything on the PC, and you can unshare it
+any time.
+
+Why: the lab is on 10.25.x and my Mac is on 10.23.x, so they cannot reach each
+other on campus Wi-Fi. I will not run tailscale up / login on this PC (that
+would replace your Tailscale login).
 ```
 
 ## Then — no further PC work needed
@@ -325,6 +345,9 @@ Paste the link into REPLY 3.2 and open it on the **Mac** while signed in as
 **Do not** run `tailscale up`, `tailscale login` or `tailscale switch` on this PC. One
 `tailscaled` holds one account; any of those replaces Shaili's login, which is the same class
 of mistake as signing into her Claude or committing under her git identity.
+
+Viraj has **no Tailscale password for Shaili.** ASK 3.2 is **her** browser, not his.
+He sends the message in REPLY 2.2 / `study/08-LAB.md` §L.2 and waits for the link.
 
 ### REPLY 3.2
 

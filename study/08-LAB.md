@@ -668,8 +668,33 @@ sudo systemctl status ssh --no-pager
 
 Do **not** run `sudo tailscale up` as Viraj on this box. That switches/kicks
 **her** Tailscale the same way `/login` on Claude would overwrite `~/.claude`.
-Mac must join **this same tailnet** (`shaili.gandhi@`) or Day 3 waits until the
-box is yours.
+Viraj does **not** have her Tailscale password. He also does **not** join her
+tailnet. She **shares one node** (`kj-xps-8950`) via a share link.
+
+Message to send her:
+
+```
+Hi Shaili — could you share the lab desktop with me on Tailscale? I don't have
+your Tailscale password and I shouldn't log in as you.
+
+On this PC, in a browser while YOU are signed into Tailscale:
+
+1. Open https://login.tailscale.com/admin/machines
+2. Find kj-xps-8950
+3. Click ... on that row → Share → Copy share link
+4. Send me that link
+
+What it does: lets my laptop SSH to that one machine only. It does not add me
+to your tailnet, does not change anything on the PC, and you can unshare it
+any time.
+
+Why: the lab is on 10.25.x and my Mac is on 10.23.x, so they cannot reach each
+other on campus Wi-Fi. I will not run tailscale up / login on this PC (that
+would replace your Tailscale login).
+```
+
+She sends the link. Viraj opens it **on the Mac** signed in as
+`virajvaghasia@github`. Do **not** paste the share URL into this repo (public).
 
 If Tailscale were absent (it is not), the original install would be:
 
@@ -687,8 +712,8 @@ sudo systemctl enable --now tailscaled
 tailscale ip -4
 ```
 
-Mac: same Tailscale **account/tailnet**, ping `100.72.117.53`. On this box that
-account is **Shaili's**, not Viraj's.
+Mac: Viraj's own tailnet (`virajvaghasia@github`). After she shares `kj-xps-8950`,
+ping `100.72.117.53`. Do not sign this PC into Viraj's account.
 
 ### L.3 A new key for this PC — not geochem
 
@@ -1109,8 +1134,9 @@ git fetch origin && git checkout lab/handoff && git pull --rebase
 - Tunneling reboot test. PHASE-0 Day 3 is **not** closed until Mac `ssh sqlalchemy-lab`
   works after a reboot.
   - Tailscale: **already up on this PC as `shaili.gandhi@`**, IP `100.72.117.53`
-    (`kj-xps-8950`). Do **not** `tailscale up` as Viraj — same class of mistake as
-    Claude login.
+    (`kj-xps-8950`). Viraj has no Tailscale password for her. Ask her to
+    **Share → Copy share link** on `kj-xps-8950` (message in §L.2). Do **not**
+    `tailscale up` / login as Viraj on this PC.
   - sshd: install next (`sudo bash /tmp/install-sshd.sh`). Do **not** reboot today
     (shared desktop / AnyDesk).
   - **2026-08-13:** Viraj away ~20 days — **no reboot**. Prove `ssh sqlalchemy-lab`
