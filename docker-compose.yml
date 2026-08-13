@@ -70,13 +70,13 @@ services:
     # `image:` alongside `build:` means "build it, then TAG IT THIS". Without it
     # Compose invents a name from project+service (sqlalchemy-upgrade-agent-app),
     # which is a different image from anything you built by hand with
-    # `docker build -t sqlagent .` — two images, one Dockerfile, drifting apart
+    # `docker build -t sqlalchemy-upgrade-agent .` — two images, one Dockerfile, drifting apart
     # silently. That is exactly how a 13-hour-stale image ended up producing
     # believable output and disproving nothing (COMPOSE-STUDY.md §4.0).
     #
-    # With this line, `docker compose up --build` and `docker build -t sqlagent .`
-    # produce the same image, and there is only ever one thing called sqlagent.
-    image: sqlagent:latest
+    # With this line, `docker compose up --build` and `docker build -t sqlalchemy-upgrade-agent .`
+    # produce the same image, and there is only ever one thing called sqlalchemy-upgrade-agent.
+    image: sqlalchemy-upgrade-agent:latest
 
     environment:
       # Host in this URL is `db` — the service name above. Compose runs an embedded

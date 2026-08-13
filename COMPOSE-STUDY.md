@@ -60,7 +60,7 @@ repo's image:
 docker network create demo-net
 docker run -d --name demo-db --network demo-net -e POSTGRES_PASSWORD=devpassword postgres:16-alpine
 docker run --rm --network demo-net \
-  -e DATABASE_URL="postgresql+psycopg2://postgres:devpassword@demo-db:5432/postgres" sqlagent
+  -e DATABASE_URL="postgresql+psycopg2://postgres:devpassword@demo-db:5432/postgres" sqlalchemy-upgrade-agent
 
    issues in table: 200
 ```
@@ -83,14 +83,14 @@ Docker's built-in default network they do not. This one line is the difference b
 | `-e POSTGRES_PASSWORD=…` | set an env var inside it. This image refuses to start without this one |
 | `postgres:16-alpine` | which image. `16` = major version, pinned; `alpine` = the small base |
 
-**3. `docker run --rm --network demo-net -e DATABASE_URL=… sqlagent`**
+**3. `docker run --rm --network demo-net -e DATABASE_URL=… sqlalchemy-upgrade-agent`**
 
 | piece | what it does |
 |---|---|
 | `--rm` | delete the container when it exits. The app runs, prints, finishes — no reason to keep it |
 | `--network demo-net` | **the same network**, so `demo-db` resolves. Omit it and this fails |
 | `-e DATABASE_URL=…` | tells the app where the database is; `seed.py` reads it with `os.getenv` |
-| `sqlagent` | the image built from this repo's Dockerfile |
+| `sqlalchemy-upgrade-agent` | the image built from this repo's Dockerfile |
 
 **Why `-d` on one and `--rm` on the other:** Postgres is a server that runs forever, so it goes
 to the background. The app is a batch job that finishes, so it cleans up after itself.
@@ -128,7 +128,7 @@ Do the same thing on the **default** bridge — omit `--network` — and it fail
 
 ```
 # runnable: docker run -d --name plain-db3 -e POSTGRES_PASSWORD=... postgres:16-alpine
-#           docker run --rm -e DATABASE_URL="...@plain-db3:5432/postgres" sqlagent
+#           docker run --rm -e DATABASE_URL="...@plain-db3:5432/postgres" sqlalchemy-upgrade-agent
 psycopg2.OperationalError: could not translate host name "plain-db3" to address:
 Name or service not known
 ```
@@ -143,7 +143,7 @@ While measuring the above, the network test appeared to *succeed on the default 
 which is impossible. The cause was not networking:
 
 ```
-# runnable: docker inspect sqlagent --format '{{.Created}}'
+# runnable: docker inspect sqlalchemy-upgrade-agent --format '{{.Created}}'
 image built:   2026-08-10T23:26
 seed.py edited 2026-08-11T12:38
 ```
@@ -162,7 +162,7 @@ docker inspect <image> --format '{{.Created}}'
 `docker compose up --build` rebuilds; `docker compose up` alone does not.
 
 The deeper cause was a naming one, and it is now fixed. Compose used to build
-`sqlalchemy-upgrade-agent-app` while `docker build -t sqlagent .` built `sqlagent` — **two
+`sqlalchemy-upgrade-agent-app` while `docker build -t sqlalchemy-upgrade-agent .` built `sqlalchemy-upgrade-agent` — **two
 images from one Dockerfile, both current, drifting apart in silence.** Declaring `image:` next
 to `build:` collapses them into one name. See §4.7.
 
@@ -198,10 +198,10 @@ container on the default network, reached two ways:
 # runnable: docker inspect ip-db --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
 172.17.0.2
 
-# runnable: docker run --rm -e DATABASE_URL="...@172.17.0.2:5432/postgres" sqlagent
+# runnable: docker run --rm -e DATABASE_URL="...@172.17.0.2:5432/postgres" sqlalchemy-upgrade-agent
    issues in table: 200                            ← by IP: works
 
-# runnable: docker run --rm -e DATABASE_URL="...@ip-db:5432/postgres" sqlagent
+# runnable: docker run --rm -e DATABASE_URL="...@ip-db:5432/postgres" sqlalchemy-upgrade-agent
 psycopg2.OperationalError: could not translate host name "ip-db" to address
 ```
 
@@ -283,8 +283,12 @@ container"* rather than "the model ran."
 A fresh Postgres container has three databases:
 
 ```
-# runnable: docker compose exec db psql -U sqlagent -d issues -c "\l"
-issues  postgres  template0  template1
+# runnable: docker compose exec db psql -U app -d issues -tAc \
+#             "select datname from pg_database order by datname;"
+issues
+postgres
+template0
+template1
 ```
 
 `postgres` is the server's **maintenance database** — it exists so a superuser always has
@@ -295,10 +299,11 @@ between the server's own bookkeeping and your data.
 **It does not:**
 
 ```
-# runnable: docker compose exec db psql -U sqlagent -d issues \
+# runnable: docker compose exec db psql -U app -d issues \
 #             -c "select rolname, rolsuper from pg_roles where rolcanlogin;"
- rolname  | rolsuper
- sqlagent | t
+ rolname | rolsuper
+---------+----------
+ app     | t
 ```
 
 `rolsuper = t`. `POSTGRES_USER` **renames the superuser**; it does not create a restricted
@@ -347,7 +352,7 @@ change without you touching it.
 | network | `<project>_default` | (follows the project) |
 | volume | `<project>_pgdata` | (follows the project) |
 | container | `<project>-<service>-<n>` | (fine — predictable) |
-| **image built by `build:`** | **`<project>-<service>`** | **`image: sqlagent:latest`** |
+| **image built by `build:`** | **`<project>-<service>`** | **`image: sqlalchemy-upgrade-agent:latest`** |
 
 Two of those matter.
 
@@ -356,26 +361,26 @@ gets a different network *and a different volume* — and quietly cannot find th
 created yesterday. One `name:` line removes the whole class of problem.
 
 **The image name.** This is the one that already caused real confusion (§4.0). With `build:`
-and no `image:`, Compose builds `sqlalchemy-upgrade-agent-app` while `docker build -t sqlagent .`
-builds `sqlagent`. **Two images, one Dockerfile, both current, drifting apart in silence** —
-which is how a 13-hour-old `sqlagent` produced believable output and disproved nothing.
+and no `image:`, Compose builds `sqlalchemy-upgrade-agent-app` while `docker build -t sqlalchemy-upgrade-agent .`
+builds `sqlalchemy-upgrade-agent`. **Two images, one Dockerfile, both current, drifting apart in silence** —
+which is how a 13-hour-old `sqlalchemy-upgrade-agent` produced believable output and disproved nothing.
 
 Adding `image:` next to `build:` means "build it, then tag it this," so both routes land on one
 name:
 
 ```
-# runnable: docker compose build app && docker images sqlagent --format '{{.Repository}}:{{.Tag}}  {{.ID}}'
-sqlagent:latest  d7cc020ae957
+# runnable: docker compose build app && docker images sqlalchemy-upgrade-agent --format '{{.Repository}}:{{.Tag}}  {{.ID}}'
+sqlalchemy-upgrade-agent:latest  bdd2082b4345
 
-# runnable: docker build -t sqlagent . && docker images sqlagent --format '{{.Repository}}:{{.Tag}}  {{.ID}}'
-sqlagent:latest  66f6f4908e85
+# runnable: docker build -t sqlalchemy-upgrade-agent . && docker images sqlalchemy-upgrade-agent --format '{{.Repository}}:{{.Tag}}  {{.ID}}'
+sqlalchemy-upgrade-agent:latest  a5cd24ba5385
 ```
 
 **One tag, and whichever build ran last owns it.** The IDs differ because Compose stamps extra
 labels into the image config —
 
 ```
-# runnable: docker image inspect sqlagent:latest --format '{{json .Config.Labels}}'
+# runnable: docker image inspect sqlalchemy-upgrade-agent:latest --format '{{json .Config.Labels}}'
 com.docker.compose.project: sqlalchemy-upgrade-agent
 com.docker.compose.service: app
 ```

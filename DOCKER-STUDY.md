@@ -108,14 +108,14 @@ Consequences you will meet:
 Seed a database in one container, then run the app in another:
 
 ```
-# runnable: docker run --rm sqlagent python -m experiments.sqlalchemy_1_4_vs_2_0.seed
+# runnable: docker run --rm sqlalchemy-upgrade-agent python -m experiments.sqlalchemy_1_4_vs_2_0.seed
   open            106
   in_progress      40
   closed           54
 ```
 
 ```
-# runnable: docker run --rm sqlagent
+# runnable: docker run --rm sqlalchemy-upgrade-agent
 sqlite3.OperationalError: no such table: issues
 ```
 
@@ -126,7 +126,7 @@ read-only image and got a fresh, empty writable layer of its own.
 Do both in **one** container and it works:
 
 ```
-# runnable: docker run --rm sqlagent sh -c 'python -m experiments...seed >/dev/null 2>&1 && python -m experiments...app'
+# runnable: docker run --rm sqlalchemy-upgrade-agent sh -c 'python -m experiments...seed >/dev/null 2>&1 && python -m experiments...app'
 38 open issues
 ```
 
@@ -195,7 +195,7 @@ SHA, because each is defined in terms of its parent.
 Your own build proves it. After editing one source file:
 
 ```
-# runnable: docker build -t sqlagent .
+# runnable: docker build -t sqlalchemy-upgrade-agent .
 #7 [3/5] COPY requirements.txt .          CACHED
 #8 [4/5] RUN pip install -r requirements  CACHED     ← the expensive step, untouched
 #9 [5/5] COPY . .                         DONE 0.1s  ← rebuilt, because source changed
@@ -215,7 +215,7 @@ whole thing to the Docker daemon** before a single instruction runs. That direct
 Measured on this repo:
 
 ```
-# runnable: docker build -t sqlagent .
+# runnable: docker build -t sqlalchemy-upgrade-agent .
 #5 [internal] load build context
 #5 transferring context: 13.51MB          ← before .dockerignore existed
 ```
@@ -243,7 +243,7 @@ Consider a single line added to `.dockerignore`:
 The build then failed at line 5 of the Dockerfile:
 
 ```
-# runnable: docker build -t sqlagent .
+# runnable: docker build -t sqlalchemy-upgrade-agent .
 #6 [3/5] COPY requirements.txt .
 #6 ERROR: failed to calculate checksum of ref ...: "/requirements.txt": not found
 ```
@@ -300,7 +300,7 @@ So `__pycache__/` in a `.dockerignore` silently misses
 Confirmed by looking inside the image:
 
 ```
-# runnable: docker run --rm sqlagent ls -a /app/experiments/sqlalchemy_1_4_vs_2_0
+# runnable: docker run --rm sqlalchemy-upgrade-agent ls -a /app/experiments/sqlalchemy_1_4_vs_2_0
 __pycache__      ← still there, with the bare pattern
 ```
 
@@ -438,7 +438,7 @@ you're betting on the platform coverage of every package you will ever add.
 #### The build confirmed all of it
 
 ```
-# runnable: docker build -t sqlagent .
+# runnable: docker build -t sqlalchemy-upgrade-agent .
 Downloading SQLAlchemy-1.4.52-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
 Downloading greenlet-3.5.3-cp311-cp311-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl
 Successfully installed greenlet-3.5.3 sqlalchemy-1.4.52
@@ -531,7 +531,7 @@ COPY . .                    # copies entrypoint.sh AGAIN from the host — back 
 ```
 
 ```
-# runnable: docker run --rm --entrypoint ls sqlagent -l /app/entrypoint.sh
+# runnable: docker run --rm --entrypoint ls sqlalchemy-upgrade-agent -l /app/entrypoint.sh
 -rw-r--r-- 1 root root 102 /app/entrypoint.sh      ← the chmod ran, then was overwritten
 ```
 
@@ -550,7 +550,7 @@ Four ways out, all defensible:
 Option 3, verified:
 
 ```
-# runnable: docker run --rm --entrypoint ls sqlagent -l /app/entrypoint.sh
+# runnable: docker run --rm --entrypoint ls sqlalchemy-upgrade-agent -l /app/entrypoint.sh
 -rwxr-xr-x 1 root root 102 /app/entrypoint.sh
 ```
 
@@ -575,7 +575,7 @@ Both answer: **when the container starts, what process starts?**
 The difference is only what happens when you type something *after* the image name:
 
 ```bash
-docker run --rm sqlagent ls -a /app
+docker run --rm sqlalchemy-upgrade-agent ls -a /app
 #                         ^^^^^^^^^^ extra args
 ```
 
@@ -587,7 +587,7 @@ docker run --rm sqlagent ls -a /app
 Your image uses **only `CMD`** (no `ENTRYPOINT`). Measured:
 
 ```
-# runnable: docker run --rm sqlagent echo "this replaced the CMD"
+# runnable: docker run --rm sqlalchemy-upgrade-agent echo "this replaced the CMD"
 this replaced the CMD
 ```
 
@@ -600,7 +600,7 @@ Entrypoint: []
 Cmd: [python, -m, experiments.sqlalchemy_1_4_vs_2_0.app]
 ```
 
-So: no fixed program. Whatever you put after `sqlagent` *is* the program.
+So: no fixed program. Whatever you put after `sqlalchemy-upgrade-agent` *is* the program.
 
 If you later add an entrypoint, the usual good shape is:
 
@@ -610,7 +610,7 @@ CMD []
 ```
 
 Then extra args cannot accidentally replace the app — they become args *to* Python. To get a
-shell you'd need the escape hatch: `docker run --entrypoint bash sqlagent`.
+shell you'd need the escape hatch: `docker run --entrypoint bash sqlalchemy-upgrade-agent`.
 
 #### Where it bites (with only `CMD`, like yours)
 
@@ -683,9 +683,9 @@ ignores the polite request, and Docker kills it when the grace period runs out.
 Check the PIDs yourself:
 
 ```
-# runnable: docker run --rm sqlagent python -c "import os; print(os.getpid())"
+# runnable: docker run --rm sqlalchemy-upgrade-agent python -c "import os; print(os.getpid())"
 1
-# runnable: docker run --rm sqlagent sh -c 'echo "sh pid = $$"; python -c "import os; print(os.getpid())"'
+# runnable: docker run --rm sqlalchemy-upgrade-agent sh -c 'echo "sh pid = $$"; python -c "import os; print(os.getpid())"'
 sh pid = 1
 python pid = 7
 ```
@@ -721,7 +721,7 @@ Three real problems, deliberately left in so you fix them knowing why.
 ### 3.1 Everything runs as root
 
 ```
-# runnable: docker run --rm sqlagent id
+# runnable: docker run --rm sqlalchemy-upgrade-agent id
 uid=0(root) gid=0(root) groups=0(root)
 ```
 
@@ -744,13 +744,13 @@ things bite people:
   the uid inside must line up with the uid outside or you get permission errors that look
   insane.
 
-**Verify with `docker run --rm sqlagent id` that the switch actually took effect** — don't
+**Verify with `docker run --rm sqlalchemy-upgrade-agent id` that the switch actually took effect** — don't
 assume the instruction worked.
 
 #### Done — and the part that bites
 
 ```
-# runnable: docker run --rm --entrypoint id sqlagent
+# runnable: docker run --rm --entrypoint id sqlalchemy-upgrade-agent
 uid=10001(app) gid=999(app) groups=999(app)
 ```
 
@@ -762,7 +762,7 @@ the *directory* they land in, which `WORKDIR` created as root. Reading worked. C
 file did not:
 
 ```
-# runnable: docker run --rm sqlagent          (before the extra chown)
+# runnable: docker run --rm sqlalchemy-upgrade-agent          (before the extra chown)
 sqlite3.OperationalError: unable to open database file
 ```
 
@@ -779,7 +779,7 @@ Package managers cache downloads, and the cache lands **inside the layer**. By �
 it later hides it without reclaiming a byte.
 
 ```
-# runnable: docker run --rm sqlagent sh -c 'du -sh /root/.cache'
+# runnable: docker run --rm sqlalchemy-upgrade-agent sh -c 'du -sh /root/.cache'
 3.3M	/root/.cache
 ```
 
@@ -802,10 +802,10 @@ gigabytes, and that cache would ship in every image and cross the wire on every 
 grown the cache from 3.3MB to 9.1MB:
 
 ```
-# runnable: docker run --rm --entrypoint sh sqlagent -c 'du -sh /root/.cache'
+# runnable: docker run --rm --entrypoint sh sqlalchemy-upgrade-agent -c 'du -sh /root/.cache'
 (nothing listed — the directory is never created)
 
-# runnable: docker images sqlagent --format '{{.Size}}'
+# runnable: docker images sqlalchemy-upgrade-agent --format '{{.Size}}'
 295MB  ->  276MB
 ```
 
@@ -839,7 +839,7 @@ scaffolding someone forgot to leave behind.
 The most instructive failure in this build, and nothing was deliberately broken to produce it.
 
 ```
-# runnable: docker run --rm sqlagent
+# runnable: docker run --rm sqlalchemy-upgrade-agent
 sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: issues
 ```
 
@@ -886,7 +886,7 @@ It works. The app runs, 38 open issues, no error. And it is option A, because `R
 filesystem changes as a layer:
 
 ```
-# runnable: docker run --rm sqlagent-opt3 ls -l /app/issues.db
+# runnable: docker run --rm sqlalchemy-upgrade-agent-opt3 ls -l /app/issues.db
 -rw-r--r-- 1 root root 167936 /app/issues.db     ← the database is IN the image
 ```
 
@@ -925,16 +925,16 @@ as an overridable default instead of being hardcoded away.
 Verified four ways. Same image, four different "who is in charge" answers:
 
 ```
-# runnable: docker run --rm sqlagent
+# runnable: docker run --rm sqlalchemy-upgrade-agent
 38 open issues
 
-# runnable: docker run --rm sqlagent ls /app          ← CMD overridden, proves exec "$@"
+# runnable: docker run --rm sqlalchemy-upgrade-agent ls /app          ← CMD overridden, proves exec "$@"
 README.md  entrypoint.sh  experiments  issues.db  ...
 
-# runnable: docker run --rm --entrypoint sh sqlagent -c 'ls /app/issues.db'
+# runnable: docker run --rm --entrypoint sh sqlalchemy-upgrade-agent -c 'ls /app/issues.db'
 ls: cannot access '/app/issues.db': No such file or directory     ← NOT in the image
 
-# runnable: docker run --rm sqlagent sh -c 'ls -l /app/issues.db'
+# runnable: docker run --rm sqlalchemy-upgrade-agent sh -c 'ls -l /app/issues.db'
 -rw-r--r-- 1 root root 167936 /app/issues.db                      ← created at runtime
 ```
 
@@ -945,7 +945,7 @@ ENTRYPOINT  ./entrypoint.sh          # always starts (unless --entrypoint)
 CMD         python -m …app           # default → becomes "$@"
 ```
 
-**1. `docker run --rm sqlagent`** — nothing after the image name, so Docker uses `CMD`.
+**1. `docker run --rm sqlalchemy-upgrade-agent`** — nothing after the image name, so Docker uses `CMD`.
 
 ```
 entrypoint.sh runs
@@ -954,9 +954,9 @@ entrypoint.sh runs
 → 38 open issues
 ```
 
-**2. `docker run --rm sqlagent ls /app`** — the override test.
+**2. `docker run --rm sqlalchemy-upgrade-agent ls /app`** — the override test.
 
-Args after `sqlagent` **replace `CMD`**, not the entrypoint. So `"$@"` is `ls /app`, not Python:
+Args after `sqlalchemy-upgrade-agent` **replace `CMD`**, not the entrypoint. So `"$@"` is `ls /app`, not Python:
 
 ```
 entrypoint.sh still runs
@@ -970,7 +970,7 @@ If the script had hardcoded `python -m …app` instead of `exec "$@"`, this woul
 
 **3 and 4 are about where `issues.db` lives** — not about override.
 
-**3. `docker run --rm --entrypoint sh sqlagent -c 'ls /app/issues.db'`**
+**3. `docker run --rm --entrypoint sh sqlalchemy-upgrade-agent -c 'ls /app/issues.db'`**
 
 `--entrypoint sh` **skips your script entirely**. No seed. Just a shell looking at image layers:
 
@@ -982,7 +982,7 @@ no entrypoint.sh → no seed → issues.db missing
 So the DB is **not baked into the image** (`.dockerignore` kept the host copy out; nothing
 seeded at build). That is the option-B property.
 
-**4. `docker run --rm sqlagent sh -c 'ls -l /app/issues.db'`**
+**4. `docker run --rm sqlalchemy-upgrade-agent sh -c 'ls -l /app/issues.db'`**
 
 No `--entrypoint` → your script runs. `CMD` is replaced by `sh -c '…'`:
 
@@ -1000,10 +1000,10 @@ One table for the four:
 
 | Command | Runs `entrypoint.sh`? | Seeds? | Final process |
 |---|---|---|---|
-| `sqlagent` | yes | yes | app |
-| `sqlagent ls /app` | yes | yes | `ls` |
+| `sqlalchemy-upgrade-agent` | yes | yes | app |
+| `sqlalchemy-upgrade-agent ls /app` | yes | yes | `ls` |
 | `--entrypoint sh …` | **no** | **no** | `sh` (image only) |
-| `sqlagent sh -c 'ls …db'` | yes | yes | `sh` listing the new db |
+| `sqlalchemy-upgrade-agent sh -c 'ls …db'` | yes | yes | `sh` listing the new db |
 
 **2** proves: entrypoint stays, `CMD` is swappable via `exec "$@"`.  
 **3 vs 4** prove: DB is created when the script runs, not shipped in the image.
@@ -1014,10 +1014,10 @@ contains data.** That property is what survives Day 6, when the database moves t
 
 Two consequences worth knowing:
 
-- **Every `docker run` now seeds**, including `docker run sqlagent ls`. Harmless here — fast,
+- **Every `docker run` now seeds**, including `docker run sqlalchemy-upgrade-agent ls`. Harmless here — fast,
   and the data is disposable — but production entrypoints usually guard it with "only seed if
   the schema is missing."
-- **`--entrypoint` is the escape hatch.** `docker run --entrypoint ls sqlagent /app` skips the
+- **`--entrypoint` is the escape hatch.** `docker run --entrypoint ls sqlalchemy-upgrade-agent /app` skips the
   script entirely. Needing it is the tell that you understand `ENTRYPOINT` (§2.5).
 
 ---
@@ -1045,11 +1045,11 @@ That file keeps the §4 numbering, so every `§4.x` reference below still resolv
 |---|---|---|
 | Full vs slim base, disk | 1.62GB vs **214MB** | `docker images python` |
 | Full vs slim base, download | 416MB vs **48MB** | `docker images python` |
-| Your image | 260MB disk / 58.1MB content | `docker images sqlagent` |
+| Your image | 260MB disk / 58.1MB content | `docker images sqlalchemy-upgrade-agent` |
 | Build context, no `.dockerignore` | **13.51MB** | `docker build` → `transferring context` |
 | Build context, with it | **1.53kB** | same line, after the file existed |
-| pip cache shipped in the image | 3.3MB | `docker run --rm sqlagent sh -c 'du -sh /root/.cache'` |
-| Process user | uid=0 (root) | `docker run --rm sqlagent id` |
+| pip cache shipped in the image | 3.3MB | `docker run --rm sqlalchemy-upgrade-agent sh -c 'du -sh /root/.cache'` |
+| Process user | uid=0 (root) | `docker run --rm sqlalchemy-upgrade-agent id` |
 | SQLAlchemy 1.4.52 wheels / sdists | 45 / 1 | the PyPI one-liner in §2.1 |
 | …of those, `musllinux` | **0** | same one-liner |
 | Dependency install, no compiler | 4.3s | `docker build` → step `[4/5]` |

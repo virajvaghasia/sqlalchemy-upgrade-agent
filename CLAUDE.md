@@ -131,19 +131,24 @@ networking.
 | Commits | Conventional Commits (`feat:`, `fix:`, `docs:`) | |
 | Compose project | pinned with the top-level `name:`, matching the repo | `sqlalchemy-upgrade-agent` |
 | Compose services | one short lowercase word — it becomes a **hostname** | `app`, `db` |
-| Image built here | one name, **declared in `image:`** so Compose and `docker build` cannot produce two | `sqlagent:latest` |
+| Postgres role / database | lowercase, no hyphens (they force quoting in SQL) | role `app`, database `issues` |
+| Image built here | one name, **declared in `image:`** so Compose and `docker build` cannot produce two | `sqlalchemy-upgrade-agent:latest` |
 | Containers | left to Compose: `<project>-<service>-<n>` | `sqlalchemy-upgrade-agent-app-1` |
 | Volumes | left to Compose: `<project>_<volume>` | `sqlalchemy-upgrade-agent_pgdata` |
 
 **The image name is the one that bites.** With `build:` and no `image:`, Compose invents
 `<project>-<service>` — a *different* image from anything tagged by hand, both current, drifting
-apart in silence. Declaring `image:` means there is only ever one `sqlagent`. See
+apart in silence. Declaring `image:` means there is only ever one `sqlalchemy-upgrade-agent`. See
 `COMPOSE-STUDY.md` §4.7.
 
-**Two names are deliberate, not an oversight:** the project is `sqlalchemy-upgrade-agent`
-(matching repo and folder) and the image is `sqlagent` (short, because it is typed constantly
-in `docker run`). Both are declared in `docker-compose.yml`, so neither is inferred and neither
-can drift.
+**One name, everywhere it can be one.** Repo, folder, GitHub, Compose project and built image
+are all `sqlalchemy-upgrade-agent`; containers, network and volume derive from it. Nothing is
+inferred, so nothing drifts. It is long to type, and that is the accepted cost of never again
+wondering which of two images you just ran.
+
+**Where a different name is required, it says what it is.** The Postgres role is `app`, not the
+project name: it is a database identifier in a separate namespace, and hyphens in a Postgres
+role force quoting in every statement. It matches the Compose service it belongs to.
 
 ---
 
@@ -322,5 +327,5 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **2.0 version pinned to 2.0.51** (`PIN` in `verify_2_0.py`, interpolated into every printed
   command). `>=2.0` had drifted to 2.0.52. Running off-pin now warns loudly, because
   `BREAKAGES.md` quotes exact error strings.
-- A stale `sqlagent` image (13h older than the code) silently invalidated a networking
+- A stale `sqlalchemy-upgrade-agent` image (13h older than the code) silently invalidated a networking
   measurement mid-session. Written up in `DOCKER-STUDY.md` §4.0.
