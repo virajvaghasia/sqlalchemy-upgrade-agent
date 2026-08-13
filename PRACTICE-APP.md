@@ -32,7 +32,20 @@ but is weak on self-reference.
 
 ## The schema
 
-Six tables.
+**Six mapped classes, eight tables.** The two numbers differ, and the difference is the whole
+point of this schema — see below.
+
+```
+# runnable: uv run python -c "
+#   from experiments.sqlalchemy_1_4_vs_2_0 import models
+#   print(len(models.Base.registry.mappers), 'mapped classes')
+#   print(len(models.Base.metadata.tables), 'tables')"
+6 mapped classes
+8 tables
+```
+
+Six classes: `User`, `Project`, `Issue`, `Comment`, `Label`, `IssueAssignment`. The two extra
+tables — `issue_labels` and `issue_blocks` — exist in the database with no class of their own.
 
 | Table | What it forces |
 |---|---|
@@ -43,14 +56,94 @@ Six tables.
 | `labels` | many-to-many back to issues |
 | `issue_assignments` | the **association object** — `issue_id`, `user_id`, plus real columns of its own: `role` (`"owner"` / `"reviewer"`) and `assigned_at` |
 
+### The two kinds of many-to-many, side by side
+
 `issue_labels` is a plain association *table* (`secondary=`) — no extra columns.
 `issue_assignments` is an association *object* — a mapped class with two `relationship()`s.
-Having both, side by side, is deliberate: the difference between them is exactly what
-people get wrong, and the errors it produces under 2.0 are the confusing ones.
+
+The database makes the difference obvious. Both are junction tables; only one carries data:
+
+```
+# runnable: uv run python -c "
+#   import sqlite3
+#   c = sqlite3.connect('issues.db')
+#   for t in ['issue_labels','issue_assignments']:
+#       print(c.execute(f\"select sql from sqlite_master where name='{t}'\").fetchone()[0], '\n')"
+CREATE TABLE issue_labels (
+	issue_id INTEGER NOT NULL,
+	label_id INTEGER NOT NULL,
+	PRIMARY KEY (issue_id, label_id),
+	FOREIGN KEY(issue_id) REFERENCES issues (id),
+	FOREIGN KEY(label_id) REFERENCES labels (id)
+)
+
+CREATE TABLE issue_assignments (
+	issue_id INTEGER NOT NULL,
+	user_id INTEGER NOT NULL,
+	role VARCHAR,
+	assigned_at DATETIME,
+	PRIMARY KEY (issue_id, user_id),
+	FOREIGN KEY(issue_id) REFERENCES issues (id),
+	FOREIGN KEY(user_id) REFERENCES users (id)
+)
+```
+
+Both have the same composite primary key and the same two foreign keys. The difference is the
+two lines in the middle of the second one: **`role` and `assigned_at` belong to the
+relationship itself**, not to the issue and not to the user. There is nowhere else to put them.
+
+**That is the rule, stated as a schema question:** if the join carries nothing but the two
+foreign keys, `secondary=` is enough and it needs no class. The moment it has a column of its
+own — a role, a timestamp, an amount — it is an entity, and pretending otherwise is what
+produces the confusing 2.0 errors.
+
+Having both side by side is deliberate. The difference is exactly what people get wrong.
 
 Do not cut the association object. It is the one everybody cuts.
 
-Database is **SQLite**. No Docker, no Postgres, no infrastructure. That comes in Part B.
+### How much data
+
+Enough that an N+1 is a measurement rather than a curiosity:
+
+```
+# runnable: uv run python -c "
+#   import sqlite3; c = sqlite3.connect('issues.db')
+#   for t in ['users','projects','labels','issues','comments','issue_labels','issue_assignments','issue_blocks']:
+#       print(f'{t:<20}', c.execute(f'select count(*) from {t}').fetchone()[0])"
+users                5
+projects             3
+labels               8
+issues               200
+comments             710
+issue_labels         387
+issue_assignments    303
+issue_blocks         60
+```
+
+200 issues, not 9. The report in step 5 fires **204 queries** against this — 1 for the issues,
+200 for `.comments`, 3 for `.project`. Over nine rows that is a curiosity; over two hundred it
+is a bug you can put a number on.
+
+### Which database
+
+**SQLite by default**, so Part A needs no infrastructure at all — no Docker, no Postgres.
+
+Since Phase 0 Part C the URL is read from the environment, so the same code runs against
+Postgres in the Compose stack without editing anything:
+
+```
+# runnable: uv run python -c "
+#   from experiments.sqlalchemy_1_4_vs_2_0 import seed; print(seed.DB_URL)"
+sqlite:///issues.db
+```
+
+```
+# runnable: docker compose up --build   (DATABASE_URL comes from .env)
+database: postgresql+psycopg2://app:***@db:5432/issues
+```
+
+The default is what keeps Part A infrastructure-free; the override is what let Part C move the
+database into its own container without touching a query. See `COMPOSE-STUDY.md` §4.0.
 
 ---
 
