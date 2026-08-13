@@ -49,7 +49,8 @@ If both sides edited, `git pull --rebase` will conflict on this file. Keep **bot
 
 # Round 1 — sshd and the LAN address
 
-**Status: REPLIED 2026-08-13 (lab PC, Cursor on `shaili`).** Key installed. LAN is **not** `10.23.` — Mac SSH over house Wi‑Fi will not work; Tailscale or same-LAN is required.
+**Status: CLOSED 2026-08-13.** All three answered. sshd `enabled` + `active`, user `shaili`,
+key installed with `-rw-------`. Your read on the LAN was right and is now measured — see Round 2.
 
 ## ASK 1.1 — is sshd running
 
@@ -154,3 +155,98 @@ to Viraj's Tailscale account — which first requires him to have one. See
 
 **Round 1 does not depend on any of that.** LAN SSH proves sshd, the key and the
 permissions; Tailscale only changes the address you type.
+
+---
+
+# Round 2 — the LAN is not a route, so Tailscale is the only way in
+
+**Status: OPEN.** Both asks are on the **Mac**, plus one message to Shaili.
+
+## What Round 1 settled
+
+Everything on the PC side is correct and needs no further work:
+
+| | |
+|---|---|
+| `sshd` | `enabled` + `active (running)`, so it survives a reboot |
+| user | `shaili` |
+| `authorized_keys` | `-rw-------`, correct key, correct mode |
+
+**The PC is ready to accept the Mac's key.** Nothing below is a problem with that machine.
+
+## What the addresses actually mean — measured, from the Mac
+
+```
+# runnable: nc -z -G 6 10.25.102.155 22
+no route / filtered
+
+# runnable: ssh -o ConnectTimeout=8 -i ~/.ssh/id_ed25519_sqlalchemy_lab shaili@10.25.102.155
+ssh: connect to host 10.25.102.155 port 22: Operation timed out
+```
+
+```
+Mac  10.23.35.192
+PC   10.25.102.155/16   -> its network is 10.25.0.0 – 10.25.255.255
+```
+
+Both are `10.x` private addresses, which is what made this look like one LAN. It is not.
+A `/16` means the PC considers only `10.25.*` to be local; `10.23.35.192` is outside it, and
+the campus network does not route between the two segments.
+
+**Read the error as evidence** (`05-COMPOSE.md` §4.2 makes the same point about containers):
+
+| error | meaning |
+|---|---|
+| `connection refused` | reached the host, nothing listening |
+| **`Operation timed out`** | **nothing answered — no route at all** |
+
+Refused would have meant a firewall or a stopped sshd. Timed out means the packets never
+arrived, so no amount of PC-side configuration changes it.
+
+**Consequence: Tailscale stops being the convenient option and becomes the only one.** It
+builds an encrypted path between two machines that cannot otherwise see each other, which is
+exactly the problem here.
+
+## ASK 2.1 — Tailscale on the Mac (Viraj, own Terminal)
+
+`brew` needs a password prompt Claude's shell cannot provide, so this one has to be typed:
+
+```bash
+brew install --cask tailscale
+```
+
+Then open Tailscale from Applications and sign in with **GitHub or Google**. That creates
+Viraj's own tailnet — free, no card. It does **not** touch the PC, and it is not the
+forbidden action: the rule is *never `tailscale up` as Viraj on the PC*, because one
+`tailscaled` holds one account and that would replace Shaili's login.
+
+### REPLY 2.1
+
+```
+(paste the sign-in email address here — that is what Shaili needs)
+```
+
+## ASK 2.2 — the message to Shaili
+
+Node **sharing** hands one machine across tailnets. Her login, her tailnet and her config
+stay exactly as they are, and she can unshare whenever she likes — nothing to revert later,
+which is the point.
+
+> Hi — could you share the lab desktop on Tailscale with me? In the Tailscale admin console
+> → **Machines** → `kj-xps-8950` → **Share**, then paste my email: `<from REPLY 2.1>`.
+>
+> It only lets me SSH to that one machine; it does not add me to your tailnet or change
+> anything on the PC, and you can unshare it any time. I need it because the lab is on
+> `10.25.x` and my laptop is on `10.23.x`, so they cannot reach each other directly.
+
+### REPLY 2.2
+
+```
+(paste her answer, or note when asked)
+```
+
+## Then — no further PC work needed
+
+Once the node is shared, the Mac gets `100.72.117.53` and Claude runs the `ssh` test and
+writes `~/.ssh/config`. **The PC side is already done**, so Day 3 closes on the Mac apart
+from the reboot test, which stays deferred ~20 days.
