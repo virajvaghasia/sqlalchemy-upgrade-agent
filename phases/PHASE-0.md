@@ -35,37 +35,49 @@ infrastructure file was written from an empty buffer, which is how the `Dockerfi
 The gate did not move. **It has always been whether the thing can be explained, not who typed
 it** — the drill list below, cold, with no notes. See `CLAUDE.md` for the current rule.
 
-### Hardware decision (settled)
+### Hardware decision (settled, numbers measured 2026-08-13)
 
-- **Build machine: the Ubuntu lab PC — RTX 3060 (12GB VRAM) + 12GB system RAM.** Chosen
-  over the M4 Mac because the AI ecosystem is CUDA-first (fewer fragile platform bugs
-  eating the learning budget); because two separate memory pools (12GB VRAM for models +
-  12GB RAM for Docker) beat the Mac's single contended 16GB; and because daily
-  SSH/Docker/GPU work on a remote Linux box **is itself the practice.**
-- **Mac (M4, 16GB): editor and driver's seat only**, via SSH + VS Code Remote.
-- **RustDesk/AnyDesk: keep, but scope them.** Fine for initial setup and emergency
-  recovery (machine won't boot, network config broken). **Not** for daily coding — typing
-  through a laggy video stream is miserable and teaches nothing.
+Dell XPS 8950, hostname `kj-XPS-8950`, Ubuntu 24.04.4 LTS, x86-64. Linux users
+`kj` and `shaili` (we work on `shaili`). Inventory: [`../study/08-LAB.md`](../study/08-LAB.md) §1.
+
+```
+# summary of: free -h; nvidia-smi; df -h /
+Mem:     31Gi total
+Swap:     8Gi
+Disk:   915G, ~698G free
+GPU:    NVIDIA GeForce RTX 3060, 12288 MiB, driver 595.71.05, CUDA 13.2
+```
+
+- **Build machine: this PC.** CUDA-first (fewer platform bugs eating the learning
+  budget); two memory pools (**12GB VRAM for models + 31 GiB RAM for Docker/desktop**)
+  beat the Mac's single contended 16GB; daily SSH/Docker/GPU on Linux **is itself
+  the practice.** The old "12GB system RAM" figure was a guess. **VRAM is tight.
+  System RAM is not.**
+- **Mac (M4, 16GB): editor and driver's seat only**, via SSH once tunneling exists.
+  Until then: AnyDesk + this Cursor login.
+- **RustDesk/AnyDesk: keep, but scope them.** Fine for this sitting and emergency
+  recovery. **Not** for daily coding — typing through a laggy video stream is miserable
+  and teaches nothing.
 
 ### Operating constraints (these shape the plan)
 
-- **The lab is ~2 days away.** So the phase is **reordered**: the
-  SQLAlchemy work — which needs no GPU, no Docker, no Linux, just Python — happens
-  **first, on the Mac, starting now.** The machine setup happens on the next lab visit.
-  Nothing is wasted and nothing is learned twice.
-- **Lab access is roughly once per day.** So the machine setup is done **physically at the
-  machine**, in one sitting: SSH, Tailscale, and auto-start-on-boot, verified across a real
-  reboot before leaving the room. After that no physical access is needed again.
-- **It's a lab machine — it may be rebooted, reimaged, or reassigned by someone else.**
-  Therefore: **everything is committed and pushed to GitHub constantly.** A dead PC must
-  cost one day, not four months. This is non-negotiable.
-- **12GB system RAM is tight.** Consequence: **Langfuse is deferred and run on-demand**,
-  not left running. It's really ~5 containers (Postgres + ClickHouse + Redis + MinIO + web)
-  and would eat half the system RAM. It was a Phase 6 tool anyway. Qdrant is light and can
-  stay up.
-- **Blocking check on Day 1: is there `sudo` on that machine?** Installing Docker and
-  the NVIDIA Container Toolkit requires it. Without it the hardware plan changes and we
-  reassess before writing a line of code.
+- **Part A already ran on the Mac.** SQLAlchemy work needed no GPU. The PC is now
+  reachable via AnyDesk; remaining Phase 0 is install + gates on this box.
+- **Tunneling (Tailscale + sshd + reboot test) is still required** before Day 3
+  closes. It is not the first hour. AnyDesk stays the fallback until `ssh` works
+  after a reboot.
+- **Shared lab machine** (`kj` + `shaili`) — may be rebooted, reimaged, or
+  reassigned. **Push to GitHub constantly.** Do not take over `~/.claude` or
+  `git config --global`. Local repo identity only. A dead PC must cost one day,
+  not four months.
+- **VRAM is the model budget, not RAM.** 7B + embed + reranker must fit in
+  **12288 MiB**. Langfuse stays Phase 6 and on-demand because it is observability
+  for later phases (~5 containers of ops), not because 31 GiB cannot hold it.
+  Qdrant is light and can stay up. Compose + Ollama + a browser can coexist;
+  stop unused stacks for VRAM/GPU hygiene, not RAM panic.
+- **`sudo`: in the group, password required.** `sudo -n` fails. Docker Engine and
+  the NVIDIA Container Toolkit wait on a typed password — not a missing-sudo
+  replanning. Do not use snap Docker / `docker.io`.
 
 ---
 
@@ -323,10 +335,10 @@ and debug a failure Claude injects into each.
 
 | Risk | Mitigation |
 |---|---|
-| No `sudo` on the lab machine | Checked Day 1 **before** anything else. If missing, we replan the hardware. |
-| Lab PC rebooted / reimaged / reassigned by someone else | Everything pushed to GitHub continuously. A dead PC costs one day, not the project. |
-| Locked out remotely, can only visit once/day | `sshd` + Tailscale as systemd services, tested across a real reboot **before leaving the lab on Day 1.** AnyDesk kept as GUI fallback. |
-| 12GB system RAM exhausted | Langfuse deferred to Phase 6 and run on-demand only. Qdrant is light and stays up. Ubuntu desktop kept minimal. |
+| No `sudo` on the lab machine | `shaili` is in group `sudo`; password required. Typed password unblocks Docker/toolkit. Missing-sudo replan only if that stops working. |
+| Lab PC rebooted / reimaged / reassigned by someone else | Everything pushed to GitHub continuously. A dead PC costs one day, not the project. Shared users `kj` + `shaili`. |
+| Locked out remotely, can only visit once/day | `sshd` + Tailscale as systemd services, tested across a real reboot **before leaving the lab.** AnyDesk is up now; it is the fallback, not the daily path. |
+| 12GB VRAM exhausted (not system RAM) | Size 7B / embed / reranker against `nvidia-smi` leftover MiB / 12288. Langfuse stays Phase 6 for product reasons, not RAM. |
 | Split-brain between Mac and PC | The **PC is the single source of truth.** The Mac is an editor, not a second workspace. |
 
 ---
