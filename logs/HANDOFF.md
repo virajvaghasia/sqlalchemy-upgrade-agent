@@ -270,3 +270,90 @@ his machine list as a shared node.
 Once the node is shared, the Mac gets `100.72.117.53` and Claude runs the `ssh` test and
 writes `~/.ssh/config`. **The PC side is already done**, so Day 3 closes on the Mac apart
 from the reboot test, which stays deferred ~20 days.
+
+---
+
+# Round 3 — run these on the lab PC
+
+**Status: OPEN.** Everything here is on the **lab PC**, in a terminal on that machine.
+
+Round 2 is a browser action, so it could not be handed over as a command. These are the
+parts that *can* be, plus the one line that opens the right page.
+
+**Before anything: the share is Shaili's to grant.** Her admin console, her account. If she
+has said go ahead, run these. If not, ASK 3.2 waits — the rest do not.
+
+## ASK 3.1 — what Tailscale on this PC currently is
+
+```bash
+tailscale status | head -5
+tailscale ip -4
+tailscale status --json | grep -m1 '"LoginName"'
+```
+
+Confirms three things before anything is changed: that `tailscaled` is up, the address the
+Mac will eventually target, and **which account holds it**. If `LoginName` shows anyone other
+than Shaili, stop and say so — something has already replaced her login and that is a bigger
+problem than the tunnel.
+
+### REPLY 3.1
+
+```
+(paste here)
+```
+
+## ASK 3.2 — open the console and share the node
+
+```bash
+xdg-open https://login.tailscale.com/admin/machines
+```
+
+Then, in the browser: find **`kj-xps-8950`** → the **⋯** menu on its row → **Share** →
+**Copy share link**.
+
+There is no CLI for this — node sharing exists only in the admin console and the HTTP API,
+and the API needs a key that would itself have to be generated from the console. So the
+browser is the shortest honest path.
+
+Paste the link into REPLY 3.2 and open it on the **Mac** while signed in as
+`virajvaghasia@github`.
+
+**Do not** run `tailscale up`, `tailscale login` or `tailscale switch` on this PC. One
+`tailscaled` holds one account; any of those replaces Shaili's login, which is the same class
+of mistake as signing into her Claude or committing under her git identity.
+
+### REPLY 3.2
+
+```
+(paste the share link here — it is a one-time invite URL, safe to expire, but delete this
+line once accepted since the repo is public)
+```
+
+## ASK 3.3 — after the share, confirm from this side
+
+```bash
+tailscale status
+```
+
+Once the Mac has accepted, `virajs-macbook-air` should appear in this list as a shared peer.
+If it does not, the link was not accepted yet — that is a Mac-side step, not a PC one.
+
+### REPLY 3.3
+
+```
+(paste here)
+```
+
+---
+
+## What Claude does next
+
+Nothing else is needed from the PC. With the share accepted, the Mac reaches
+`100.72.117.53` and Claude runs:
+
+```bash
+ssh -i ~/.ssh/id_ed25519_sqlalchemy_lab shaili@100.72.117.53 'whoami; hostname'
+```
+
+then writes `~/.ssh/config` so it becomes `ssh sqlalchemy-lab`. Day 3 closes apart from the
+reboot test, deferred ~20 days.
