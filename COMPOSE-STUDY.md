@@ -408,9 +408,16 @@ the healthcheck is the convenience.
 
 ### 4.3 Why Postgres for the exercise
 
-Deliberate. Databases are your genuine strength — so the *new* thing you're learning on Day 6
-is Docker networking, not the database. If the exercise used something unfamiliar you'd be
-debugging two things at once and learning neither.
+Deliberate: it keeps the number of new variables at one.
+
+Postgres is well documented, behaves predictably, and — importantly — its own behaviour is not
+what is under test here. The only new mechanism on Day 6 is **Docker networking**. Swap in an
+unfamiliar datastore and any failure has two candidate causes, the network or the database, and
+neither gets understood.
+
+It also carries forward: `SQLALCHEMY_WARN_20`, the N+1, and every pattern in `BREAKAGES.md`
+behave the same against Postgres as against SQLite, so nothing measured in Part A has to be
+re-established.
 
 ### 4.4 Volumes and persistence
 
