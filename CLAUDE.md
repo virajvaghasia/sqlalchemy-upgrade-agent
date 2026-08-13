@@ -23,6 +23,10 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
 - **`tests/`** — 17 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`logs/HANDOFF.md`** — the Mac ⇄ lab-PC wire, on branch `lab/handoff`. **Claude cannot
+  reach the lab machine**; it has no inbound route until sshd and a tunnel exist. Write ASK
+  blocks there rather than into the chat, where PC commands bounce back unrun. Raw pasted
+  output in the REPLY blocks is the measurement.
 - **`experiments/sqlalchemy_1_4_vs_2_0/__init__.py`** — the package manifest: what each of the
   eleven modules is for, in run order.
 

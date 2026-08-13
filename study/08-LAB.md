@@ -1075,6 +1075,19 @@ Branch: `phase-0/ci-gate-deliberate-fail` — one file, `tests/test_ci_gate.py`,
 
 ---
 
+## How commands get to this machine
+
+Claude runs on the Mac and **cannot reach this PC** — no inbound route exists until sshd and
+a tunnel do, and AnyDesk is a GUI it cannot type into. Commands aimed at the PC were bouncing
+back into the chat unrun.
+
+So the exchange is a file: [`../logs/HANDOFF.md`](../logs/HANDOFF.md) on branch `lab/handoff`.
+Claude writes ASK blocks, you paste raw output into REPLY blocks, one round per commit.
+
+```bash
+git fetch origin && git checkout lab/handoff && git pull --rebase
+```
+
 ## Still open
 
 - ~~`uv sync` + `uv run pytest`~~ — **done on this PC, 2026-08-13: 17 passed, 1 warning.**
