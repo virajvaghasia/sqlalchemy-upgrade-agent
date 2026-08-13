@@ -372,6 +372,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   app-1 exit 0.
 - Day 7 gate passed: NVIDIA Container Toolkit 1.20.0. Runtimes include `nvidia`.
   In-container `nvidia-smi`: RTX 3060, 12288 MiB, driver 595.71.05.
+- Day 10 gate passed: Ollama 0.32.9, `qwen2.5-coder:7b` (4.7 GB pull). On GPU
+  (`llama-server` ~4650 MiB). Warm eval **62.23 tok/s**. Leftover **7115/12288 MiB**.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now
