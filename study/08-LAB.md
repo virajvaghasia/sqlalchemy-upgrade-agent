@@ -25,10 +25,9 @@ must be **Viraj's** GitHub, not whoever already uses this box.
 **This box already has someone else's git and someone else's Claude.** Same Linux
 user = same `~/.gitconfig`, same `~/.claude`, same Cursor login.
 
-**This sitting: borrow that user, then revert before you disconnect.** Do not create
-a `viraj` Linux user today. Do not change `git config --global`. Do not leave your
-Cursor or Claude signed in. A permanent own-user setup is still the right end state;
-it is not this hour.
+**This sitting: clone on their user. Do not touch their Claude.** No `claude`,
+no `/logout`, no install, no login. `~/.claude` is theirs. AI help stays on the
+Mac. Do not create a `viraj` Linux user. Do not change `git config --global`.
 
 Your identity (measured on the Mac, 2026-08-13):
 
@@ -47,9 +46,8 @@ Every commit on this PC must show that pair. Anyone else's name in
 
 No Tailscale. No Mac→PC SSH. No geochem key. No Docker, no Ollama. No new Linux user.
 
-**Done when:** you pulled `phase-0/repo-structure`, worked in Cursor/Claude as you,
-then **reverted** Cursor, Claude, and `gh` to not-you before leaving AnyDesk. Their
-global git is untouched.
+**Done when:** you pulled `phase-0/repo-structure`, their Claude is untouched,
+their `git config --global` is untouched, and you did not `gh auth login` as you.
 
 ### 0. Snapshot — write this down before you change anything
 
@@ -61,9 +59,8 @@ git config --global --list
 gh auth status
 ```
 
-In Cursor, note whose avatar / email is signed in. On paper or your phone: **their
-Cursor account**, **their `gh` user** (if any), **their `git config --global
-user.email`**. Do not "remember it."
+Write down **their `git config --global user.email`**. Do not "remember it."
+Do not snapshot Claude in order to log it out — you are not touching Claude.
 
 If global git is already yours, stop and tell Claude — that would mean someone
 already overwrote their identity.
@@ -143,60 +140,24 @@ Do **not** `gh auth login` on this sitting unless you must push from the PC.
 Mac push + PC pull does not need `gh` on their user. If you already logged `gh`
 in as them, leave it. If you log in as you, you must `gh auth logout` in §6.
 
-### 3. Cursor — switch to you, then switch back
+### 3. Cursor — open the folder, do not steal the account
 
-GUI session as **your** Linux user.
+If Cursor is already installed and signed in as them: **File → Open Folder →
+`~/Projects/sqlalchemy-upgrade-agent`.** Do not Sign out. Do not Sign in as you.
+Do not use Cursor Agent / Composer there — that is their subscription.
 
-Easiest: browser → https://cursor.com/download → Linux `.deb` → then:
+If Cursor is not installed, use any editor already on the box (`gedit`, `nano`,
+VS Code if it is theirs). Same rule: do not switch accounts.
 
-```
-cd ~/Downloads
-ls *.deb
-sudo apt install -y ./cursor_*.deb
-```
+AI help for this project stays on the **Mac** (this chat). The PC is clone +
+terminal + files.
 
-Or the official apt repo (amd64):
+### 4. Claude Code — do not touch it
 
-```
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://downloads.cursor.com/keys/anysphere.asc \
-  | gpg --dearmor \
-  | sudo tee /etc/apt/keyrings/cursor.gpg > /dev/null
-echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/cursor.gpg] https://downloads.cursor.com/aptrepo stable main' \
-  | sudo tee /etc/apt/sources.list.d/cursor.list
-sudo apt update
-sudo apt install -y cursor
-```
+Do not install. Do not run `claude`. Do not run `claude /logout`. Do not open
+their Claude desktop app. `~/.claude` stays exactly as they left it.
 
-Open Cursor. If it is already signed in as someone else: **Cursor Settings →
-Account → Sign out**, then sign in with **your** Cursor account (same as the
-Mac). Then File → Open Folder → `~/Projects/sqlalchemy-upgrade-agent`.
-
-Do not work in a window that still shows the other person's avatar. Before you
-leave, sign out of you and sign **them** back in (§6).
-
-### 4. Claude Code CLI — switch to you, then log out
-
-Separate from Cursor. Native installer:
-<https://code.claude.com/docs/en/install>
-
-```
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-New terminal so `PATH` picks up `~/.local/bin`:
-
-```
-claude --version
-cd ~/Projects/sqlalchemy-upgrade-agent
-claude /logout
-claude
-```
-
-`/logout` first if this home directory already had someone else's Claude.
-Sign in as **you** (Pro / Max / Console — free claude.ai does not include
-Claude Code). Before you leave, `/logout` again so their next `claude` is not
-your session (§6).
+If you need Claude while on AnyDesk, keep using the Mac.
 
 `uv`, pytest, Docker: **not this sitting.**
 
@@ -216,23 +177,21 @@ git checkout phase-0/repo-structure
 git pull
 ```
 
-Then keep going in Cursor on the PC **until you revert**. One branch, two
-machines: whoever just edited, pushes; the other pulls before typing.
+Then keep going in the editor on the PC (their Cursor login, no Agent). One
+branch, two machines: whoever just edited, pushes; the other pulls before typing.
+Claude for this repo stays on the Mac.
 
-### 6. Revert — do this before you disconnect AnyDesk
+### 6. Leave their machine as you found it
 
-Order matters. Do not skip because "I'll do it next time." Their desktop is
-what they sit down to.
+You should not have logged into Claude, Cursor, or `gh` as you. Confirm that:
 
 ```
-# 1. Claude: drop your session
-claude /logout
-
-# 2. GitHub CLI: only if you ran `gh auth login` as you
+# 1. You never ran claude. Do not run it now "to check."
+# 2. GitHub CLI: only if you broke the rule and logged in as you
 gh auth status
 # if that shows YOU:  gh auth logout
 
-# 3. Confirm you never touched global git
+# 3. Global git still them
 git config --global --list
 # user.email must still be THEIRS, from the §0 snapshot
 
@@ -241,20 +200,9 @@ git config --global --list
 # cd ~ && rm -rf ~/Projects/sqlalchemy-upgrade-agent
 ```
 
-Then in Cursor: **Settings → Account → Sign out** (you). Sign **them** back
-in using the snapshot from §0. Close the sqlalchemy folder.
+Close the sqlalchemy folder in Cursor. Leave **their** Cursor account signed in.
 
-Check:
-
-```
-git config --global user.email    # still them
-gh auth status                    # them, or logged out — not you
-```
-
-Claude: next `claude` should ask them to log in, not already be you.
-
-If you leave your Cursor or Claude signed in, you stole their editor until
-they notice. That is the thing that must not stay.
+If you accidentally signed into Cursor as you: Sign out, sign **them** back in.
 
 ---
 
@@ -461,8 +409,10 @@ unless you need both.
 - Commit as the other person. If `git config user.email` (local) is not the
   noreply address, the commit is wrong even if the diff is right.
 - `git config --global` on their user. Local repo config only.
-- Leave your Cursor or Claude signed in. Revert (§6) before you disconnect.
-- Create `viraj` this sitting. Borrow + revert, not a new account.
+- Run `claude`, `claude /logout`, or install Claude Code on this box. Their
+  Claude stays untouched.
+- Sign out of their Cursor / sign in as you. Open the folder only.
+- Create `viraj` this sitting.
 - Tailscale / sshd / reboot **this sitting**. Editors first.
 - Docker Desktop / Snap Docker / `apt install docker.io`.
 - Bake `issues.db` into the image. `entrypoint.sh` seeds at start.
@@ -474,12 +424,11 @@ unless you need both.
 
 ## Suggested order today
 
-1. §0 snapshot → write down their Cursor / `gh` / global git email.
+1. §0 snapshot → write down their global git email.
 2. §1 inventory → paste it here.
 3. §2 clone + checkout `phase-0/repo-structure` + `git pull`. No `--global`.
 4. §2b local git identity on **this repo only**.
-5. §3 Cursor: sign them out → you in → open the folder.
-6. §4 Claude: `/logout` → you in.
+5. §3 Open the folder in their Cursor. Do not switch accounts. Do not use Agent.
+6. §4 Do not touch Claude. AI stays on the Mac.
 7. Work. Mac push / PC pull.
-8. **§6 revert before AnyDesk disconnect.** Cursor back to them, Claude
-   `/logout`, `gh` not you, global git still them.
+8. §6 close the folder. Global git still them. Claude never touched.

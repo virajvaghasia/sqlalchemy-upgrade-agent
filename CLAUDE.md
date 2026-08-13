@@ -346,11 +346,9 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Lab PC sitting is unblocked via AnyDesk. Wrote `study/08-LAB.md`. **Not pushed.**
 - Two labs, do not mix: Mac `id_ed25519` comment is `-geochem` (minmod/ISI). This
   Ubuntu PC is unrelated. Do not copy that key here.
-- Sitting order changed at his request: **today = borrow their Linux user,
-  local git only, Cursor/Claude as Viraj, then revert logins before
-  disconnect.** Do not change their `--global` git. Do not leave Cursor/Claude
-  as him. Tailscale / Mac→PC SSH deferred. Tunneling later uses a new
-  `id_ed25519_sqlalchemy_lab` — not the geochem key.
+- Sitting order changed again: **do not touch the other person's Claude.**
+  Today = clone + local git on their user. No `claude`, no `/logout`, no
+  Cursor account switch. AI stays on the Mac. Tailscale / Mac→PC SSH deferred.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now
