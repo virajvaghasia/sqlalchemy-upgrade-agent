@@ -281,7 +281,7 @@ tests to exist before a workflow can run them.
 ```
 
 Those 17 pin claims the docs make rather than testing the library: the counts in
-`PRACTICE-APP.md`, the six-classes/eight-tables split, seed determinism, and the `is_seeded`
+`study/03-PRACTICE-APP.md`, the six-classes/eight-tables split, seed determinism, and the `is_seeded`
 guard that stops `entrypoint.sh` dropping a populated Postgres volume.
 
 The rest of Part C — Day 7 (GPU) and Day 10 (Ollama) — is blocked on the lab machine, not on

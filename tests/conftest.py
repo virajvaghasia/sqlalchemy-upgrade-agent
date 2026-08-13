@@ -2,7 +2,7 @@
 
 Every test gets its own throwaway SQLite file. Deliberately NOT the repo's
 `issues.db`: a test suite that mutates the file the docs measure would make the
-measured counts in PRACTICE-APP.md and MIGRATION-2.0.md depend on whether tests
+measured counts in study/03-PRACTICE-APP.md and study/02-MIGRATION-2.0.md depend on whether tests
 had been run, which is exactly the kind of hidden coupling this repo keeps
 finding and removing.
 

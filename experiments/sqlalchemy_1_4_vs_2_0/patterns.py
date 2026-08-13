@@ -348,7 +348,7 @@ ALTERNATIVES = {
         ("session.execute(select(Issue).options(selectinload(Issue.comments))).scalars().all()",
          "the better answer in most cases: selectinload does not JOIN, so it never multiplies "
          "rows, so .unique() is not needed at all. Prefer this unless you specifically want "
-         "one round trip — see CONCEPTS.md §15 for the tradeoff.",
+         "one round trip — see study/01-CONCEPTS.md §15 for the tradeoff.",
          lambda e, s: s.execute(
              select(Issue).options(sa.orm.selectinload(Issue.comments))).scalars().all()),
     ],

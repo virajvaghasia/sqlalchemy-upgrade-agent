@@ -98,7 +98,7 @@ def emit_stubs(failures):
     print()
     print("The Phase 0 Part A deliverable, and the seed of the Phase 2 golden dataset. Part of")
     print("[`sqlalchemy-upgrade-agent`](README.md); the mechanics behind each entry are explained")
-    print("in [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §16–§22.")
+    print("in [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22.")
     print()
     print(f"Measured on {sa.__version__}, against `models.py` in this repo. Each entry is 1.4 "
           "code\nthat ran clean on 1.4.52 and fails on 2.0.")
@@ -275,8 +275,8 @@ def emit_stubs(failures):
     print()
     print("**Docs**")
     print()
-    print("- [`MIGRATION-2.0.md`](MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py")
-    print("- [`CONCEPTS.md`](CONCEPTS.md) §14 — the save-update cascade this is half of")
+    print("- [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py")
+    print("- [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) §14 — the save-update cascade this is half of")
     print("- what 1.4 itself says, verbatim:")
     print("  > \"X\" object is being merged into a Session along the backref cascade path for")
     print("  > relationship \"X\"; in SQLAlchemy 2.0, this reverse cascade will not take place.")
@@ -416,7 +416,7 @@ print()
 if "attached by assignment" not in landed:
     print("  CONFIRMED on real 2.0: the row is gone and nothing was raised.")
     print("  This is the only entry in the battery that a try/except harness —")
-    print("  or a passing test suite — cannot see. MIGRATION-2.0.md §17.")
+    print("  or a passing test suite — cannot see. study/02-MIGRATION-2.0.md §17.")
 else:
     print("  NOT reproduced here. Worth investigating before trusting §17.")
 session.close()

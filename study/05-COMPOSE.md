@@ -1,11 +1,11 @@
 # Compose — multi-container study notes
 
-Part of [`sqlalchemy-upgrade-agent`](README.md). The companion to
-[`DOCKER-STUDY.md`](DOCKER-STUDY.md), which covers a **single** container: images, layers, the
+Part of [`sqlalchemy-upgrade-agent`](../README.md). The companion to
+[`04-DOCKER.md`](04-DOCKER.md), which covers a **single** container: images, layers, the
 build cache, and the Dockerfile. This file starts where that one stops — **more than one
 container, and how they find each other.**
 
-Section numbering continues from `DOCKER-STUDY.md`: that file is §1–§3, this one is §4. So a
+Section numbering continues from `04-DOCKER.md`: that file is §1–§3, this one is §4. So a
 reference to "§2.5" or "§4.1" is unambiguous across both. §4.5 (GPU) rides along here to keep
 the numbering continuous, even though it concerns a single container.
 

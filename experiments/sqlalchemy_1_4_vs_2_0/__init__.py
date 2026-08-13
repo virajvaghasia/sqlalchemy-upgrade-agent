@@ -19,10 +19,10 @@ THE APP UNDER TEST — deliberately 1.4-style, with known 2.0 problems left in.
 PROOFS BEHIND THE DOCS — each prints what the library actually does. Nothing
 here asserts a number it did not measure; that rule is the whole point.
 
-    explore.py     CONCEPTS.md §0-§13   relationship patterns, with live SQL
-    states.py      CONCEPTS.md §14-§15  object states, identity map, expiry,
+    explore.py     study/01-CONCEPTS.md §0-§13   relationship patterns, with live SQL
+    states.py      study/01-CONCEPTS.md §14-§15  object states, identity map, expiry,
                                         lazy vs selectinload vs joinedload
-    migration.py   MIGRATION-2.0.md §16-§21   nine sections, ending with
+    migration.py   study/02-MIGRATION-2.0.md §16-§21   nine sections, ending with
                                         cascade_backrefs and the measurement
                                         showing neither migration tool is a
                                         complete inventory

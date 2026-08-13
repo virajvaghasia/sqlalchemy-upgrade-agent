@@ -38,7 +38,7 @@ exactly what made it impossible to read.
 - §14 — The session: staging, flushing, and the unit of work
 - §15 — Expiry and lazy loading: where N+1 comes from
 
-**Part 4 — The 1.4 → 2.0 upgrade** *(§16–§22, in [`MIGRATION-2.0.md`](MIGRATION-2.0.md))*
+**Part 4 — The 1.4 → 2.0 upgrade** *(§16–§22, in [`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md))*
 - Why 2.0 exists · the Result API · autobegin · reading the warnings · `future=True` ·
   what 2.0 does *not* fix · the migration recipe · unanswered predictions
 
@@ -1397,7 +1397,7 @@ failure rolls back together.
 > **⚠ Those two directions stop being equivalent in 2.0.** `apollo.issues.append(issue)`
 > survives; `issue.project = apollo` does not — 2.0 drops the backref leg, so the object is
 > never enrolled, the `INSERT` never runs, and **nothing is raised**. It is the most dangerous
-> item in this repo's upgrade. Measured in `MIGRATION-2.0.md` §17; the sentence above is
+> item in this repo's upgrade. Measured in `02-MIGRATION-2.0.md` §17; the sentence above is
 > 1.4-only, and is left that way on purpose because this file documents 1.4.
 
 **First, the picture that makes the rest of this section easy.** Forget SQLAlchemy for a
@@ -1584,7 +1584,7 @@ directions are not the same mechanism — they only look the same here:
 | `issue.project = apollo` | the *backref* populating `apollo.issues`, then the cascade | **dropped — silently** |
 
 Under 2.0 the second form enrolls nothing: no `INSERT`, no exception, no warning at runtime.
-`MIGRATION-2.0.md` §17 measures it and shows what it does to `seed.py` (every comment and
+`02-MIGRATION-2.0.md` §17 measures it and shows what it does to `seed.py` (every comment and
 assignment vanishes). Learn the mechanism here; learn which half survives there.
 
 **4. Short answer:** nothing is broken. Each table counts from 1 on its own.
@@ -1651,7 +1651,7 @@ become **202 queries** (1 + 1 + 200), and each one is a full network round trip.
 
 *That 202 is arithmetic, not a measurement* — it's this loop's 11 with 200 substituted for 9.
 For a number that was actually counted at 200 rows, see `app.issue_report()`: **204 queries**,
-and the breakdown is not the one you'd predict (`MIGRATION-2.0.md` §21).
+and the breakdown is not the one you'd predict (`02-MIGRATION-2.0.md` §21).
 
 **The two standard fixes**, both one keyword:
 
@@ -1696,7 +1696,7 @@ row on the far side and no duplication to pay for.
 > **Write the number down.** 11 queries for 9 issues (Scope A) is the baseline. Step 5 asks for
 > the same count at ~200 rows, and the before/after is the story you tell an interviewer — "I
 > found a 204-query page and made it *n*" is a sentence with evidence behind it, where 204 is
-> counted (`MIGRATION-2.0.md` §21) and *n* is whatever Step 9 measures. Quote counted numbers,
+> counted (`02-MIGRATION-2.0.md` §21) and *n* is whatever Step 9 measures. Quote counted numbers,
 > not extrapolated ones; the difference is exactly what an interviewer will probe.
 
 **Drill.**
@@ -1762,7 +1762,7 @@ it's unusable.
 and a collection is never in the identity map as a whole, so every row pays. Substitute a
 many-to-one (`issue.project`) and the scaling collapses: SQLAlchemy checks the identity map by
 primary key first, so 200 issues across 3 projects cost **3** queries, not 200. Measured in
-`MIGRATION-2.0.md` §21. *Which side of that line a relationship sits on decides whether it is
+`02-MIGRATION-2.0.md` §21. *Which side of that line a relationship sits on decides whether it is
 an N+1 at all.*
 
 Both fixes work by telling SQLAlchemy the children are wanted **upfront**, so it never has to
@@ -1850,7 +1850,7 @@ when the far side is one row (many-to-one) and a bad one when it's a collection.
 
 ---
 
-## Part 4 — Looking ahead to 2.0 → **[`MIGRATION-2.0.md`](MIGRATION-2.0.md)**
+## Part 4 — Looking ahead to 2.0 → **[`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md)**
 
 The upgrade is a large enough subject to have its own file. It picks up the section numbering
 where this one stops, so a reference to "§18" is never ambiguous:
@@ -1858,7 +1858,7 @@ where this one stops, so a reference to "§18" is never ambiguous:
 | | file | sections |
 |---|---|---|
 | the model, the ORM, the session | **this file** | §0 – §15 |
-| the 1.4 → 2.0 upgrade | [`MIGRATION-2.0.md`](MIGRATION-2.0.md) | §16 – §22 |
+| the 1.4 → 2.0 upgrade | [`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md) | §16 – §22 |
 
 - **§16** — Why 2.0 exists: one API instead of two
 - **§17** — The Result API: rows, scalars, and the most common 2.0 papercut
@@ -1870,6 +1870,6 @@ where this one stops, so a reference to "§18" is never ambiguous:
 - **§22** — The migration recipe, in order
 - **Predictions** — deliberately unanswered; settled by running the upgrade
 
-Read Parts 1–3 first. `MIGRATION-2.0.md` leans on §14 and §15 constantly — the whole of §21 is
+Read Parts 1–3 first. `02-MIGRATION-2.0.md` leans on §14 and §15 constantly — the whole of §21 is
 the argument that the session-lifecycle and loading-strategy bugs traced there are *not*
 migration problems, which only lands if you have already watched them fire under 1.4.

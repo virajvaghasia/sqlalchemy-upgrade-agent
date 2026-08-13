@@ -143,7 +143,7 @@ database: postgresql+psycopg2://app:***@db:5432/issues
 ```
 
 The default is what keeps Part A infrastructure-free; the override is what let Part C move the
-database into its own container without touching a query. See `COMPOSE-STUDY.md` §4.0.
+database into its own container without touching a query. See `05-COMPOSE.md` §4.0.
 
 ---
 

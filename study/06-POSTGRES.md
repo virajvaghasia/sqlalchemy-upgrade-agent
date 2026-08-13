@@ -1,11 +1,11 @@
 # Postgres — study notes
 
-Part of [`sqlalchemy-upgrade-agent`](README.md). Third in the set:
+Part of [`sqlalchemy-upgrade-agent`](../README.md). Third in the set:
 
 | file | subject |
 |---|---|
-| [`DOCKER-STUDY.md`](DOCKER-STUDY.md) | **§1–§3** — one container: images, layers, the Dockerfile |
-| [`COMPOSE-STUDY.md`](COMPOSE-STUDY.md) | **§4** — several containers: networking, volumes, healthchecks |
+| [`04-DOCKER.md`](04-DOCKER.md) | **§1–§3** — one container: images, layers, the Dockerfile |
+| [`05-COMPOSE.md`](05-COMPOSE.md) | **§4** — several containers: networking, volumes, healthchecks |
 | this file | **§5** — the database inside one of them |
 
 Numbering continues across all three, so `§2.5`, `§4.1` and `§5.3` are unambiguous.
@@ -227,7 +227,7 @@ closed it.
 ### 5.6 What changes when SQLite becomes Postgres
 
 Everything measured in Part A survives the move — the N+1, the warning sweep, every pattern in
-[`BREAKAGES.md`](BREAKAGES.md) — which is why Postgres was the right prop for Day 6 (§4.3). The
+[`BREAKAGES.md`](../BREAKAGES.md) — which is why Postgres was the right prop for Day 6 (§4.3). The
 differences that do bite are these:
 
 | | SQLite | Postgres |
@@ -240,7 +240,7 @@ differences that do bite are these:
 | **runs as** | a file, no server | a server you must reach over a network (§4.1) |
 
 The last row is the one that changed this project's shape: a file needs no hostname, no port,
-no readiness check and no password. Everything in `COMPOSE-STUDY.md` §4.1 and §4.2 exists
+no readiness check and no password. Everything in `05-COMPOSE.md` §4.1 and §4.2 exists
 because a database stopped being a file.
 
 **Identifier case is the sharpest trap.** `CREATE TABLE Issues` produces a table called

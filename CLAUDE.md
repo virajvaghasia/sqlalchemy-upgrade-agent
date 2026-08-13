@@ -11,12 +11,15 @@ Meta, Google, Apple, Anthropic, and startups).
   **Keep it current** — it is the only file that indexes the whole repo.
 - **`ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
 - **`PHASE-0.md`** — the current phase in detail.
-- **`CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
-- **`MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `CONCEPTS.md`'s section
+- **`study/01-CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
+- **`study/02-MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `study/01-CONCEPTS.md`'s section
   numbering, so a reference to "§18" is unambiguous across both files.
 - **`BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
+- **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
+  index and explains the two § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure).
+- **`tests/`** — 17 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`experiments/sqlalchemy_1_4_vs_2_0/__init__.py`** — the package manifest: what each of the
   eleven modules is for, in run order.
 
@@ -40,7 +43,7 @@ before/after. Prose alone is a claim; a block underneath it is evidence.
 
 Two reasons, both learned here rather than assumed:
 
-- **Prose hides errors that examples expose.** `PRACTICE-APP.md` described the schema in a
+- **Prose hides errors that examples expose.** `study/03-PRACTICE-APP.md` described the schema in a
   table for 292 lines with no code block, and asserted *"Six tables."* There are **six mapped
   classes and eight tables** — visible the moment anything real is printed.
 - **He reads the example first.** Explanations get skimmed; the block underneath is what gets
@@ -51,7 +54,7 @@ nothing, it is incomplete, and adding the example is the fix rather than deletin
 
 **Everything goes in the existing docs.** Do not create a new file to hold an explanation that
 belongs beside the thing it explains. Split a file only when it has grown to cover two genuinely
-different subjects, as `COMPOSE-STUDY.md` did — and then the numbering continues across the pair
+different subjects, as `study/05-COMPOSE.md` did — and then the numbering continues across the pair
 so references still resolve.
 
 ---
@@ -81,7 +84,7 @@ Two things the original rule was protecting, which still apply:
 
 - **He must be able to defend what ships.** So: comment the *why* in the file, surface the
   decisions rather than burying them, and say out loud what was traded away.
-- **The drills still matter.** `DOCKER-STUDY.md` keeps its question list, and the Phase 0
+- **The drills still matter.** `study/04-DOCKER.md` keeps its question list, and the Phase 0
   hard gate is unchanged — the gate is whether he can explain it, not who typed it.
 
 ### AI / LLM material — Claude is hands-on.
@@ -140,7 +143,7 @@ networking.
   with `RUN` (which looks like it works and quietly produces a fixture: writes disappear with
   the container). Reason it survives Day 6: once Postgres has its own container, "ship the
   database inside the app image" isn't a worse option, it stops being expressible.
-  Measured in `DOCKER-STUDY.md` §3.4.
+  Measured in `study/04-DOCKER.md` §3.4.
 
 ## Naming conventions
 
@@ -161,7 +164,7 @@ networking.
 **The image name is the one that bites.** With `build:` and no `image:`, Compose invents
 `<project>-<service>` — a *different* image from anything tagged by hand, both current, drifting
 apart in silence. Declaring `image:` means there is only ever one `sqlalchemy-upgrade-agent`. See
-`COMPOSE-STUDY.md` §4.7.
+`study/05-COMPOSE.md` §4.7.
 
 **One name, everywhere it can be one.** Repo, folder, GitHub, Compose project and built image
 are all `sqlalchemy-upgrade-agent`; containers, network and volume derive from it. Nothing is
@@ -186,8 +189,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   Viraj writes the code) — not something Claude hands over finished.
 - Added this Session Notes section to CLAUDE.md at Viraj's request, so session activity
   is readable here without digging through conversation history.
-- Created `CONCEPTS.md` drills — a Q&A register (questions Claude poses + questions Viraj asks),
-  separate from `CONCEPTS.md` (prose) and `LEARNING-LOG.md` (timeline).
+- Created `study/01-CONCEPTS.md` drills — a Q&A register (questions Claude poses + questions Viraj asks),
+  separate from `study/01-CONCEPTS.md` (prose) and `LEARNING-LOG.md` (timeline).
 
 ### 2026-08-02
 - Built out `explore.py` sections 1–8: users/project, issues, labels, comments,
@@ -200,11 +203,11 @@ Append a dated entry each session; keep each entry to a few bullets.
   mapper — Viraj challenged them, correctly: a script whose purpose is watching the library
   behave shouldn't contain "trust me" prints.
 - **Seed mismatch resolved.** `explore.py` grown to 9 issues with `issue_blocks` rows
-  (3→7) (3→9) (9→7), matching what the `CONCEPTS.md` always specified.
-- **`CONCEPTS.md` Part 3 renamed to "Appendix"** and filled with verified output — the old
-  name collided with `CONCEPTS.md` drills's parts and read as a fourth teaching chapter rather than
+  (3→7) (3→9) (9→7), matching what the `study/01-CONCEPTS.md` always specified.
+- **`study/01-CONCEPTS.md` Part 3 renamed to "Appendix"** and filled with verified output — the old
+  name collided with `study/01-CONCEPTS.md` drills's parts and read as a fourth teaching chapter rather than
   evidence.
-- **`CONCEPTS.md` drills restructured** to two halves, Questions and Answers, 42 items. The 2.0 group
+- **`study/01-CONCEPTS.md` drills restructured** to two halves, Questions and Answers, 42 items. The 2.0 group
   is left unanswered on purpose — those get settled by running Step 6.
 - Fact-checking the answer key caught a wrong answer of Claude's (#13: `issue.project`
   does *not* always emit SQL — many-to-one checks the identity map first). Corrected in
@@ -212,7 +215,7 @@ Append a dated entry each session; keep each entry to a few bullets.
 
 ### 2026-08-04
 - Viraj challenged the provenance of §14's state-trace output. Audit found 2 of 4
-  `# runnable` blocks in `CONCEPTS.md` named no command and had no file behind them —
+  `# runnable` blocks in `study/01-CONCEPTS.md` named no command and had no file behind them —
   the numbers were real but not reproducible.
 - Added `experiments/sqlalchemy_1_4_vs_2_0/states.py` — the runtime counterpart to
   `explore.py`: five object states via `inspect()`, the attribute-cache wipe at `commit()`,
@@ -221,7 +224,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   one in-memory DB with the counting sections, so their throwaway `Issue` made
   `query(Issue).all()` return 10 rows. Split into two engines and added an
   `assert n_issues == 9` guard.
-- `CONCEPTS.md` §14/§15 now name real commands; documented that 11 vs 10 is a scope
+- `study/01-CONCEPTS.md` §14/§15 now name real commands; documented that 11 vs 10 is a scope
   difference (Scope A includes the `apollo.name` re-SELECT), not a typo.
 - Viraj challenged §14 drill answer #2 ("flush vs commit — name two differences"). Testing
   showed (b) was wrong as written: expiry is `expire_on_commit`, a `Session` flag defaulting
@@ -231,9 +234,9 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Rewrote all 15 drill answer sets to one shape: **short plain-language answer → why →
   evidence**. Added the desk/filing-cabinet analogy to §14 (session = desk, database =
   cabinet, objects = photocopies) and an expired-vs-detached comparison table.
-- **Part 4 split into `MIGRATION-2.0.md`** at Viraj's request (CONCEPTS.md had reached 2161
-  lines). Section numbering continues across the two files — `CONCEPTS.md` §0–§15,
-  `MIGRATION-2.0.md` §16–§22 — so cross-references stay unambiguous. Expanded from 4
+- **Part 4 split into `study/02-MIGRATION-2.0.md`** at Viraj's request (CONCEPTS.md had reached 2161
+  lines). Section numbering continues across the two files — `study/01-CONCEPTS.md` §0–§15,
+  `study/02-MIGRATION-2.0.md` §16–§22 — so cross-references stay unambiguous. Expanded from 4
   sections to 7 while moving: added §17 (the Result API — `session.execute()` returns `Row`
   tuples, hence `.scalars()`), §18 (autobegin — a plain SELECT opens a transaction), and §22
   (the ordered migration recipe, with modernisation explicitly *after* the version bump).
@@ -262,7 +265,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   multiplication concrete rather than asserted.
 
 ### 2026-08-05 / 08-06
-- **Provenance audit of `MIGRATION-2.0.md`.** Viraj asked whether code and docs were in sync.
+- **Provenance audit of `study/02-MIGRATION-2.0.md`.** Viraj asked whether code and docs were in sync.
   40 doc lines didn't match real output; now 0 across 106 blocks. Fixes went into the *scripts*
   — `states.py` §7 derives its `←` notes and folds its own N+1 middle, `migration.py` folds
   column lists and wraps long errors — so a `# runnable` block is a literal paste. Added a third
@@ -286,7 +289,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   the empirical argument for running the real thing.
 - **Repo structure pass.** `README.md` was 0 bytes and is now the map; `pyproject.toml`
   description was still the `uv` placeholder; added the package `__init__.py` manifest; deleted
-  `CLAUDE.md.bak`. Kept `PRACTICE-APP.md` and `DOCKER-STUDY.md` — checked, both current.
+  `CLAUDE.md.bak`. Kept `study/03-PRACTICE-APP.md` and `study/04-DOCKER.md` — checked, both current.
 - **Deliberately NOT done:** the actual version bump (Viraj's call), and renaming
   `experiments/sqlalchemy_1_4_vs_2_0/` — ~180 cross-references for modest gain, and the name is
   defensible once `__init__.py` explains the contents.
@@ -315,7 +318,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   wheel check.
 - `requirements.txt` is **generated and committed** — `uv export --no-hashes --no-emit-project
   -o requirements.txt`. The image build needs it; regenerate it whenever dependencies change.
-- `DOCKER-STUDY.md` rewritten from scratch. **Rule narrowed, not dropped:** it now quotes the
+- `study/04-DOCKER.md` rewritten from scratch. **Rule narrowed, not dropped:** it now quotes the
   repo's own `Dockerfile`, since that one is written, and still contains no
   `docker-compose.yml`, because Day 6 is his to write from blank.
 - Two `# runnable` blocks didn't paste back verbatim (a `grep -c` standing in for a count);
@@ -328,12 +331,12 @@ Append a dated entry each session; keep each entry to a few bullets.
   the app itself never re-run. Corrected in the doc and the commit record.
 - `entrypoint.sh` added — seeds, then `exec "$@"`. `Dockerfile` gains `COPY --chmod=755` and
   `ENTRYPOINT`. Verified: `issues.db` absent from the image, present at runtime.
-- `DOCKER-STUDY.md` → 999 lines, drill list 7 → 14. **Explanations for all of the above live
+- `study/04-DOCKER.md` → 999 lines, drill list 7 → 14. **Explanations for all of the above live
   there, not here:** §1.1 writable layer, §1.4 CLI-vs-daemon, §2.3 `COPY` mode reversion,
   §2.5 PID 1 and `tini`, §3.4 the build-time-seed trap.
 - **Days 4–5 gate met:** Dockerfile from an empty file unaided, plus an injected failure
   diagnosed with the mechanism explained rather than merely fixed.
-- **Next:** non-root user and `pip --no-cache-dir` (both explained in `DOCKER-STUDY.md` §3),
+- **Next:** non-root user and `pip --no-cache-dir` (both explained in `study/04-DOCKER.md` §3),
   then Day 6 — Compose + Postgres.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
@@ -350,4 +353,4 @@ Append a dated entry each session; keep each entry to a few bullets.
   command). `>=2.0` had drifted to 2.0.52. Running off-pin now warns loudly, because
   `BREAKAGES.md` quotes exact error strings.
 - A stale `sqlalchemy-upgrade-agent` image (13h older than the code) silently invalidated a networking
-  measurement mid-session. Written up in `DOCKER-STUDY.md` §4.0.
+  measurement mid-session. Written up in `study/04-DOCKER.md` §4.0.

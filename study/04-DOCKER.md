@@ -1,6 +1,6 @@
 # Docker — study notes
 
-Part of [`sqlalchemy-upgrade-agent`](README.md); see [`PHASE-0.md`](PHASE-0.md) for where this
+Part of [`sqlalchemy-upgrade-agent`](../README.md); see [`PHASE-0.md`](../PHASE-0.md) for where this
 sits in the plan.
 
 Reading material for Phase 0 Part C (Days 4–7). **Mobile-friendly: read it away from the
@@ -13,7 +13,7 @@ is given — so you can check it rather than believe it.
 of this repo's `Dockerfile`, with its real build output as the worked example.
 
 **More than one container is a different subject and lives in
-[`COMPOSE-STUDY.md`](COMPOSE-STUDY.md)** — §4: Compose, networking, volumes, healthchecks. The
+[`05-COMPOSE.md`](05-COMPOSE.md)** — §4: Compose, networking, volumes, healthchecks. The
 numbering runs across both files, so a `§4.x` reference below points there and still resolves.
 
 Everything here is measured against this repo, with the command that reproduces it. Where a
@@ -861,7 +861,7 @@ been self-sufficient — it had been silently depending on a build artifact from
 **And it went unnoticed for a full build cycle**, because after adding `.dockerignore` the only
 thing anyone ran was `ls`. The image was declared working on the strength of a green build and
 a directory listing. That is the same trap as §2.5's `CMD` typo and the same trap as
-`MIGRATION-2.0.md`'s green 1.4 test suite. Three times, one lesson:
+`02-MIGRATION-2.0.md`'s green 1.4 test suite. Three times, one lesson:
 
 > **Verify the thing you actually care about, not the thing that's easy to check.**
 
@@ -1024,7 +1024,7 @@ Two consequences worth knowing:
 
 ## Part 4 — more than one container
 
-Moved to **[`COMPOSE-STUDY.md`](COMPOSE-STUDY.md)** — this file had reached ~1350 lines, and
+Moved to **[`05-COMPOSE.md`](05-COMPOSE.md)** — this file had reached ~1350 lines, and
 running two containers is a different subject from building one image.
 
 That file keeps the §4 numbering, so every `§4.x` reference below still resolves:
@@ -1076,7 +1076,7 @@ That is why it was worth twenty minutes of argument.
 ## The drill list
 
 Answer cold, no notes, or the phase isn't done. Questions 1–5 are from
-[`PHASE-0.md`](PHASE-0.md); 6–11 came out of building the thing.
+[`PHASE-0.md`](../PHASE-0.md); 6–11 came out of building the thing.
 
 1. *"I moved `COPY . .` above `COPY requirements.txt`. Your build got slow. Why?"*
 2. *"Your container can't reach Postgres. Walk me through how you'd diagnose it."*

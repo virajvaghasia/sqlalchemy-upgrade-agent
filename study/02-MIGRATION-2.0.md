@@ -1,14 +1,14 @@
 # Migration — SQLAlchemy 1.4 → 2.0
 
-The companion to `CONCEPTS.md`. That file covers SQLAlchemy **as it is** (§0–§15: the
+The companion to `01-CONCEPTS.md`. That file covers SQLAlchemy **as it is** (§0–§15: the
 relational shapes, the ORM layer, the session at runtime). This one covers **why it changed**,
 and — the part that matters more — how to tell a real breakage from a style preference.
 
-Section numbering continues from `CONCEPTS.md`, so a reference to "§18" is never ambiguous.
+Section numbering continues from `01-CONCEPTS.md`, so a reference to "§18" is never ambiguous.
 
 | | file | sections |
 |---|---|---|
-| the model, the ORM, the session | `CONCEPTS.md` | §0 – §15 |
+| the model, the ORM, the session | `01-CONCEPTS.md` | §0 – §15 |
 | **the 1.4 → 2.0 upgrade** | **this file** | **§16 – §22** |
 
 ---
@@ -26,7 +26,7 @@ Section numbering continues from `CONCEPTS.md`, so a reference to "§18" is neve
 - **Predictions** — *deliberately unanswered; you settle these by running the upgrade*
 
 Blocks are labelled `# runnable`, `# summary of` or `# illustration`, with the contracts
-defined in [`CONCEPTS.md` Part 0](CONCEPTS.md#part-0--how-to-use-this). These commands produce
+defined in [`01-CONCEPTS.md` Part 0](CONCEPTS.md#part-0--how-to-use-this). These commands produce
 all of it — the seed goes first, because §7 counts queries against the 200-issue database:
 
 ```bash
@@ -309,7 +309,7 @@ three functions later.**
 start migrating the queries that were *already* optimised, and it is the single exception to
 §16's "a change in how you write, not in what gets sent."
 
-`CONCEPTS.md` §15 established that `joinedload` **multiplies rows**: an issue with three
+`01-CONCEPTS.md` §15 established that `joinedload` **multiplies rows**: an issue with three
 comments comes back three times, because that's what a LEFT JOIN does. Someone has to collapse
 those rows back into distinct objects. In 1.x, `Query` did it for you, silently. In 2.0,
 `select()` refuses to guess:
@@ -413,7 +413,7 @@ to pick and makes you write it down.
 Everything above fails loudly. This one doesn't, and it is the most dangerous item in this
 repository.
 
-`CONCEPTS.md` §14 teaches that you don't have to `session.add()` an object if you attach it to
+`01-CONCEPTS.md` §14 teaches that you don't have to `session.add()` an object if you attach it to
 one already in the session — the **save-update cascade** enrolls it for you. In 2.0, **half of
 that is still true.** The half that isn't loses rows and says nothing.
 
@@ -499,7 +499,7 @@ nothing like a cascade, and it's the form most likely to be scattered through a 
 (`seed.py:136`) and `a.issue = issue` (`seed.py:147`).
 
 **The seed would still "succeed."** No exception, no runtime warning, a database that looks
-populated. Every comment and every assignment silently absent — and `CONCEPTS.md` §15's N+1
+populated. Every comment and every assignment silently absent — and `01-CONCEPTS.md` §15's N+1
 demonstration would then fire its 200 `.comments` queries against nothing.
 
 Compare the two shapes of breakage:
@@ -668,7 +668,7 @@ The resource cost is true on both. Reading is not free of transaction semantics 
 
 **2. `commit()` matters even for read-only work.** Not to save anything — there's nothing to
 save — but to **end the transaction** so the next read starts fresh. This is the same mechanism
-as `expire_on_commit` in `CONCEPTS.md` §15, seen from the other side: the commit both ends the
+as `expire_on_commit` in `01-CONCEPTS.md` §15, seen from the other side: the commit both ends the
 transaction and marks your cached objects stale, precisely because a new transaction may see
 different data.
 
@@ -708,7 +708,7 @@ consequences:
   first query, no matter what else commits; hours later you're reading hours-old data and
   everything looks fine. Under `READ COMMITTED` — Postgres's default — this one does *not*
   apply, because each statement re-snapshots. Know which you're on before you cite it.
-- **Your objects never refresh.** `expire_on_commit` (`CONCEPTS.md` §15) fires at commit. No
+- **Your objects never refresh.** `expire_on_commit` (`01-CONCEPTS.md` §15) fires at commit. No
   commit, no expiry, so cached attribute values are never re-read.
 
 The 1.x habit of leaving a session open indefinitely was survivable partly *because*
@@ -757,7 +757,7 @@ Run this project's `app.py` both ways and count what you get:
 
 ```
 # summary of →   the app.py command below, run with and without the flag
-#                (counted by class; see CONCEPTS.md Part 0 for what this label means)
+#                (counted by class; see 01-CONCEPTS.md Part 0 for what this label means)
 
 WITHOUT SQLALCHEMY_WARN_20:
    1 MovedIn20Warning
@@ -773,7 +773,7 @@ normally, watch it pass, and you have learned nothing about whether your code su
 
 > **A green test suite on 1.4 is not evidence about 2.0. You have to ask.**
 
-That's the same lesson as `CONCEPTS.md` §12 (`check.py` printing OK while the schema was
+That's the same lesson as `01-CONCEPTS.md` §12 (`check.py` printing OK while the schema was
 broken), in a different costume: *a passing run only tells you the thing you ran didn't fail.*
 
 ### One file is a demonstration, not an inventory
@@ -1221,10 +1221,10 @@ project survive the upgrade completely untouched:
 
 | looks like a version problem | actually is | where it's proven |
 |---|---|---|
-| the N+1 in `issue_report()` | a **loading-strategy** bug — equally slow in both | `CONCEPTS.md` §15 |
-| `DetachedInstanceError` | a **session-lifecycle** bug — fires identically in 1.4 | `CONCEPTS.md` §14 |
+| the N+1 in `issue_report()` | a **loading-strategy** bug — equally slow in both | `01-CONCEPTS.md` §15 |
+| `DetachedInstanceError` | a **session-lifecycle** bug — fires identically in 1.4 | `01-CONCEPTS.md` §14 |
 
-Both were *measured* under 1.4 in Part 3 of `CONCEPTS.md`, before either was blamed on the
+Both were *measured* under 1.4 in Part 3 of `01-CONCEPTS.md`, before either was blamed on the
 version. Neither emits a migration warning, because neither is a migration issue. Upgrade to
 2.0 and the N+1 fires exactly the same number of queries; the detached object still raises.
 
@@ -1232,7 +1232,7 @@ version. Neither emits a migration warning, because neither is a migration issue
 
 That number is worth measuring rather than reasoning about, because reasoning about it gets it
 wrong. The working estimate for this loop was `1 + 200 + 200 = 401` — two relationships touched
-per issue, 200 issues. Reasonable, and off by half. (`CONCEPTS.md` §15's 201/202 are a
+per issue, 200 issues. Reasonable, and off by half. (`01-CONCEPTS.md` §15's 201/202 are a
 *different* loop — `apollo.issues` plus per-issue `.labels` — extrapolated from a measured
 9-issue run, and correct on their own terms. Two loops, two numbers; don't quote one for the
 other.) The real answer here:
@@ -1251,7 +1251,7 @@ queries fired by issue_report() : 204
 
 **Read the breakdown, not the total.** `issue_report()` touches two relationships per issue, so
 the obvious estimate is `1 + 200 + 200`. It's off by 197, and the reason is the correction
-already made in `CONCEPTS.md` §13:
+already made in `01-CONCEPTS.md` §13:
 
 | in the loop | relationship | queries | why |
 |---|---|---|---|
@@ -1305,7 +1305,7 @@ the corpus is specifically about upgrading.
 
 The failure mode to guard against: you spend a week migrating, you meet several problems, and
 they all get filed under "2.0 issues" because that's what you happened to be doing at the time.
-Measurement is what separates them, which is why `CONCEPTS.md` traced both under 1.4 **before**
+Measurement is what separates them, which is why `01-CONCEPTS.md` traced both under 1.4 **before**
 any 2.0 work started.
 
 **3. Short answer:** because a missing entry is a gap, but a wrong entry corrupts the thing you

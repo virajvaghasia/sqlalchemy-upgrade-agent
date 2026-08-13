@@ -1,22 +1,22 @@
 # Learning log — the timeline
 
 The **chronological** record of Phase 0: what got built, when, and what it took to get there.
-It is deliberately *not* a place to explain concepts — those live in `CONCEPTS.md`, one
+It is deliberately *not* a place to explain concepts — those live in `study/01-CONCEPTS.md`, one
 canonical explanation each, and every entry below links to a section number (`§0`–`§15`)
 there.
 
-This split is why the log stays readable: an idea gets one explanation in `CONCEPTS.md`, and a
+This split is why the log stays readable: an idea gets one explanation in `study/01-CONCEPTS.md`, and a
 *recurrence* here becomes a new dated link rather than a fresh re-explanation.
 
 > **The standing rule:** append a dated **event** to the timeline here; edit concept **prose**
-> in `CONCEPTS.md`. If you're about to explain *how something works* in this file, stop —
+> in `study/01-CONCEPTS.md`. If you're about to explain *how something works* in this file, stop —
 > that belongs in a `§` section, and this entry just links to it.
 
 ---
 
 ## Where you are right now
 
-**All ten steps are done.** (`PRACTICE-APP.md` has the runbook.) Phase 0 Part A is complete
+**All ten steps are done.** (`study/03-PRACTICE-APP.md` has the runbook.) Phase 0 Part A is complete
 and Part C is most of the way; `ROADMAP.md` §10 has the per-part status, computed.
 
 ```
@@ -34,10 +34,10 @@ The list below is the state as of **Aug 3**; everything after it is in the timel
 - ✅ **Step 2** — `models.py`: all six relationship patterns built, including the
   self-referential `issue_blocks` / `blocks` / `blocked_by`. Committed & pushed (`6d6679e`).
   `uv run python -m experiments.sqlalchemy_1_4_vs_2_0.check` prints `mappers configured OK`.
-- ✅ **Docs reorganised** — concepts moved to `CONCEPTS.md`; this log is now the timeline.
+- ✅ **Docs reorganised** — concepts moved to `study/01-CONCEPTS.md`; this log is now the timeline.
 - ✅ **`explore.py`** — built and running. Seeds 21 rows across all six patterns and prints
   the emitted SQL, including a live N+1. Closes Step 2's "real database" item.
-- ✅ **`CONCEPTS.md`** — every `§` now carries its own **Proof** (verified output) and
+- ✅ **`study/01-CONCEPTS.md`** — every `§` now carries its own **Proof** (verified output) and
   **Drill** (42 questions, collapsed answers). §0 schema map and §14/§15 runtime added.
 - ✅ **Step 3** — `seed.py` builds `issues.db`: 200 issues, 710 comments, 387 label links,
   303 assignments, 60 blocking pairs. Deterministic and idempotent.
@@ -54,7 +54,7 @@ to run yet.
 
 ## Coverage — every concept has a lived entry
 
-The "won't miss things" guarantee: every `CONCEPTS.md` section is reached from at least one
+The "won't miss things" guarantee: every `study/01-CONCEPTS.md` section is reached from at least one
 dated entry below, and every entry links to a section or is marked `(event only)`. Nothing
 is orphaned in either direction, so this table doubles as a checklist.
 
@@ -83,7 +83,7 @@ is orphaned in either direction, so this table doubles as a checklist.
 
 ### Jul 11 — scaffold `(event only)`
 Repo created; `ROADMAP.md`, `PHASE-0.md`, and the collaboration rule written. Practice-app
-design + the 10-step breakage runbook drafted (`PRACTICE-APP.md`).
+design + the 10-step breakage runbook drafted (`study/03-PRACTICE-APP.md`).
 
 ### Jul 12 — environment `(event only, → Step 1)`
 Relocated into the dedicated git repo. Pinned **Python 3.11.15 + SQLAlchemy 1.4.52**, exact
@@ -119,14 +119,14 @@ blocked, how `primaryjoin`/`secondaryjoin` name the two joins (§9), and the pre
 ### Jul 23 — predict before you run → §0 (Part 0)
 The "how do I answer what a traversal returns without data?" question — and the answer that a
 prediction is a *derivation from the rows you chose*, not a lookup. If you can't predict it,
-the mechanism isn't in your head yet. This is now the operating rule for `CONCEPTS.md` drills.
+the mechanism isn't in your head yet. This is now the operating rule for `study/01-CONCEPTS.md` drills.
 
 ### Jul 25 — self-ref committed `(event only)`
 The self-referential `models.py` work committed & pushed (`6d6679e`) after sitting green but
 uncommitted.
 
 ### Jul 26 — docs reorganised → §13
-Split the concept material out of this log into `CONCEPTS.md` (deduped, one explanation each,
+Split the concept material out of this log into `study/01-CONCEPTS.md` (deduped, one explanation each,
 SQL-first spine). Rebuilt this file as the timeline. Fixed a real contradiction: the runbook
 had said the self-referential relationship "needs `remote_side`" — wrong; that's the
 adjacency-list knob for a self-referential *one*-to-many. Yours uses
@@ -198,7 +198,7 @@ with self-blocks skipped (§5). Verified in SQLite rather than through the ORM: 
 0 self-blocks, 0 duplicate pairs.
 
 ### Aug 3 — docs consolidated, runtime sections added → §0 §14 §15
-Folded the separate drills file into `CONCEPTS.md` so each `§` is self-contained: explanation,
+Folded the separate drills file into `study/01-CONCEPTS.md` so each `§` is self-contained: explanation,
 **Proof** from a real run, then a **Drill** with collapsed answers. No more bouncing between
 files to finish one concept.
 
@@ -215,7 +215,7 @@ New material, all verified rather than asserted:
 shape where issue 9 sits on both sides, which is the only arrangement that can actually prove
 the swap fired.
 
-**Not done here:** the `CONCEPTS.md` is still `OUTPUT PENDING` throughout. Its
+**Not done here:** the `study/01-CONCEPTS.md` is still `OUTPUT PENDING` throughout. Its
 **Predict** fields are deliberately yours (the Jul 23 rule), and the seed there assumes a
 different dataset — issues 3/7/9 with `issue_blocks` rows (3→7), (3→9), (9→7) — than the
 three-issue set `explore.py` currently builds. One of the two has to move.
@@ -225,7 +225,7 @@ three-issue set `explore.py` currently builds. One of the two has to move.
 ## Gotchas — the ones this schema actually hits
 
 Standing rules, each earned by hitting the thing it prevents. The concept behind each is in
-`CONCEPTS.md`; this is just the rule and its tell.
+`study/01-CONCEPTS.md`; this is just the rule and its tell.
 
 - **Declare a `backref` once, on one side only.** The tell when you don't: *"property of that
   name exists on mapper"*. → §10
@@ -292,13 +292,13 @@ the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
 
 - `states.py` added: five object states via `inspect()`, the attribute-cache wipe at
   `commit()`, the identity map, and a query counter for lazy / selectinload / joinedload.
-- **Two of four `# runnable` blocks in `CONCEPTS.md` named no command.** The numbers were real
+- **Two of four `# runnable` blocks in `study/01-CONCEPTS.md` named no command.** The numbers were real
   and not reproducible. That is where the measurement rule in `CLAUDE.md` comes from.
 - **A drill answer was wrong.** "flush vs commit — name two differences" claimed commit expires
   objects. Expiry is `expire_on_commit`, a `Session` flag; set it `False` and commit expires
   nothing. The answer also missed the largest difference: commit flushes for you.
-- Part 4 split into `MIGRATION-2.0.md` — `CONCEPTS.md` had reached 2161 lines. Numbering
-  continues across the pair, which is the same split `COMPOSE-STUDY.md` gets later.
+- Part 4 split into `study/02-MIGRATION-2.0.md` — `study/01-CONCEPTS.md` had reached 2161 lines. Numbering
+  continues across the pair, which is the same split `study/05-COMPOSE.md` gets later.
 
 ### Aug 5–6 — the four-tool harness, and `BREAKAGES.md` → §16–§22
 
@@ -320,7 +320,7 @@ the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
 Reshaped into groups A–H with a "What 1.4 did / What 2.0 does" reading per entry. Every
 measured field left untouched, verified by regenerating and diffing.
 
-### Aug 9–10 — Docker, Days 4–5 `(→ DOCKER-STUDY.md)`
+### Aug 9–10 — Docker, Days 4–5 `(→ study/04-DOCKER.md)`
 
 - `Dockerfile`, `.dockerignore`, `entrypoint.sh` written from empty files.
 - **Base image chosen on measurement:** 214MB vs 1.62GB on disk, 48MB vs 416MB to download,
@@ -332,7 +332,7 @@ measured field left untouched, verified by regenerating and diffing.
 - **A stale image fooled both of us for an hour.** It was 13 hours older than the code, ignored
   `DATABASE_URL`, and produced believable output that proved nothing.
 
-### Aug 12 — Day 6, Compose and Postgres `(→ COMPOSE-STUDY.md)`
+### Aug 12 — Day 6, Compose and Postgres `(→ study/05-COMPOSE.md)`
 
 - Two services, service-name DNS, `pg_isready` healthcheck with `condition: service_healthy`,
   named volume, no published ports.
@@ -349,7 +349,7 @@ measured field left untouched, verified by regenerating and diffing.
 - The image was `sqlagent` while everything else was `sqlalchemy-upgrade-agent`; the Postgres
   role was *also* `sqlagent`. Now one name for the project and image, and `app` for the role,
   which cannot take a hyphen without forcing quotes in every statement.
-- **An example audit across all eleven docs** found one outlier: `PRACTICE-APP.md`, 292 lines
+- **An example audit across all eleven docs** found one outlier: `study/03-PRACTICE-APP.md`, 292 lines
   explaining a schema with zero code blocks — and asserting *"Six tables"* where there are six
   mapped classes and eight tables. Prose is where a wrong claim survives.
 - `CLAUDE.md` gains the **example rule** beside the measurement rule, applying retroactively.
