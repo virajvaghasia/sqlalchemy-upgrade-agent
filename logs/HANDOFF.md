@@ -275,7 +275,7 @@ from the reboot test, which stays deferred ~20 days.
 
 # Round 3 — run these on the lab PC
 
-**Status: OPEN.** Everything here is on the **lab PC**, in a terminal on that machine.
+**Status: 3.1 REPLIED 2026-08-13 (lab PC). 3.2 waits on Shaili. 3.3 after she shares.**
 
 Round 2 is a browser action, so it could not be handed over as a command. These are the
 parts that *can* be, plus the one line that opens the right page.
@@ -299,7 +299,11 @@ problem than the tunnel.
 ### REPLY 3.1
 
 ```
-(paste here)
+100.72.117.53   kj-xps-8950  shaili.gandhi@  linux    -                          
+100.80.115.127  cam          shaili.gandhi@  linux    -                          
+100.109.134.31  shaili       shaili.gandhi@  windows  offline, last seen 2h ago  
+100.72.117.53
+      "LoginName": "shaili.gandhi@gmail.com",
 ```
 
 ## ASK 3.2 — open the console and share the node
