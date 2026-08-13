@@ -1131,6 +1131,15 @@ git fetch origin && git checkout lab/handoff && git pull --rebase
   Leftover **7115 MiB / 12288**.
 - ~~CI gate~~ — **passed 2026-08-13.** PR #3: `tests` red, merge **BLOCKED**,
   closed unmerged. Protection on `main` is real, not advisory.
+- **Day 3 is blocked on a person, not on work (2026-08-13).** Measured from the Mac: the two
+  machines cannot reach each other at all. Mac `10.23.35.192`, PC `10.25.102.155/16` — both
+  `10.x`, which is what made it look like one LAN, but outside each other's range and not
+  routed by the campus. `nc` finds no route; `ssh` reports `Operation timed out`, which means
+  the packets never arrived, so nothing configurable on the PC changes it. Tailscale is
+  therefore the only remaining path, and the PC's Tailscale belongs to
+  `shaili.gandhi@gmail.com`. The single unblocking action is **her** sharing `kj-xps-8950`;
+  Viraj has no credentials for that account and correctly did not try. Everything on the PC
+  side is finished: sshd `enabled` + `active`, key installed at `-rw-------`.
 - Tunneling reboot test. PHASE-0 Day 3 is **not** closed until Mac `ssh sqlalchemy-lab`
   works after a reboot.
   - Tailscale: **already up on this PC as `shaili.gandhi@`**, IP `100.72.117.53`
