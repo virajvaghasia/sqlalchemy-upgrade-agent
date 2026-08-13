@@ -16,7 +16,7 @@ from experiments.sqlalchemy_1_4_vs_2_0 import seed as seed_mod
 def test_db_url_defaults_to_sqlite(monkeypatch):
     """With no env var set, Part A behaviour is unchanged.
 
-    This is the property that keeps every measurement in BREAKAGES.md and
+    This is the property that keeps every measurement in deliverables/BREAKAGES.md and
     study/02-MIGRATION-2.0.md valid — they were all taken against the SQLite default.
     """
     monkeypatch.delenv("DATABASE_URL", raising=False)

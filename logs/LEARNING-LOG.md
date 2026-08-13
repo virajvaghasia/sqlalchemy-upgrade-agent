@@ -17,10 +17,10 @@ This split is why the log stays readable: an idea gets one explanation in `study
 ## Where you are right now
 
 **All ten steps are done.** (`study/03-PRACTICE-APP.md` has the runbook.) Phase 0 Part A is complete
-and Part C is most of the way; `ROADMAP.md` §10 has the per-part status, computed.
+and Part C is most of the way; `phases/ROADMAP.md` §10 has the per-part status, computed.
 
 ```
-# runnable: grep -c '^### ' BREAKAGES.md
+# runnable: grep -c '^### ' deliverables/BREAKAGES.md
 23
 
 # runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
@@ -43,7 +43,7 @@ The list below is the state as of **Aug 3**; everything after it is in the timel
   303 assignments, 60 blocking pairs. Deterministic and idempotent.
 - ✅ **Step 4** — `app.py`: five functions in deliberately bad 1.4 style, all green.
 - ✅ **Steps 5–10** — baseline query counts (**204**, counted not estimated), the
-  `SQLALCHEMY_WARN_20` sweep, verification against real 2.0, and `BREAKAGES.md`. Done Aug 4–6;
+  `SQLALCHEMY_WARN_20` sweep, verification against real 2.0, and `deliverables/BREAKAGES.md`. Done Aug 4–6;
   see the timeline.
 
 **Immediate next action:** `tests/`, then CI. The Day 8–9 gate is *"a PR containing a
@@ -82,7 +82,7 @@ is orphaned in either direction, so this table doubles as a checklist.
 ## Timeline
 
 ### Jul 11 — scaffold `(event only)`
-Repo created; `ROADMAP.md`, `PHASE-0.md`, and the collaboration rule written. Practice-app
+Repo created; `phases/ROADMAP.md`, `phases/PHASE-0.md`, and the collaboration rule written. Practice-app
 design + the 10-step breakage runbook drafted (`study/03-PRACTICE-APP.md`).
 
 ### Jul 12 — environment `(event only, → Step 1)`
@@ -177,7 +177,7 @@ fires identically in 1.4 (§14 has it traced). Neither is the N+1.
 
 This is exactly the trap the boundary rule below exists for: three plausible-looking
 "breakages", two of which would have poisoned the Phase 2 golden dataset with questions no
-upgrading user would ask. Assertion caught by measurement, before it reached `BREAKAGES.md`.
+upgrading user would ask. Assertion caught by measurement, before it reached `deliverables/BREAKAGES.md`.
 
 ### Aug 3 — Step 3, the seed that hurts `(event only, → Step 3)`
 `seed.py` writes a real SQLite **file** (`issues.db`), not in-memory — Step 4 opens the same
@@ -234,7 +234,7 @@ Standing rules, each earned by hitting the thing it prevents. The concept behind
   → §11
 - **Don't reach for the 2.0 idiom here.** `from sqlalchemy.orm import declarative_base`,
   `back_populates` — normally the right instinct, but on this project code that doesn't break
-  produces no `BREAKAGES.md` entry. The 1.4-isms are the deliverable.
+  produces no `deliverables/BREAKAGES.md` entry. The 1.4-isms are the deliverable.
 - **Read docs for syntax, not for a data model.** The tutorial's `name`/`fullname`/`nickname`
   `User` is an illustration, not a schema.
 - **Column type is the first positional arg** — `Column(String)`, and `sqlalchemy.types.Enum`
@@ -247,20 +247,20 @@ Standing rules, each earned by hitting the thing it prevents. The concept behind
 
 ---
 
-## The boundary — what goes in `BREAKAGES.md` and what doesn't
+## The boundary — what goes in `deliverables/BREAKAGES.md` and what doesn't
 
-**`BREAKAGES.md` is only for things that worked in 1.4 and stopped working in 2.0.**
+**`deliverables/BREAKAGES.md` is only for things that worked in 1.4 and stopped working in 2.0.**
 
 Bugs in your own code — a duplicate backref, a missing import, a misused type — do **not**
 go in it. Those are ordinary bugs, not version breakages.
 
-Why it matters: `BREAKAGES.md` becomes the seed of the Phase 2 golden dataset. Padding it
+Why it matters: `deliverables/BREAKAGES.md` becomes the seed of the Phase 2 golden dataset. Padding it
 with local typos poisons it with questions no real user would ask, and the corpus stops being
 defensible.
 
 ---
 
-## Breakages found so far (candidates for `BREAKAGES.md`)
+## Breakages found so far (candidates for `deliverables/BREAKAGES.md`)
 
 Target is ≥10. These get written up properly — exact error text, 2.0 fix, migration-guide
 link — in Step 7, after the real 2.0 run in Step 8.
@@ -278,14 +278,14 @@ the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
 **Deprecated — warns, still runs:**
 3. **`Query.get(pk)`** → `LegacyAPIWarning`. Fix: `session.get(Model, pk)`.
 
-**Legacy — silent, still runs. Probably NOT `BREAKAGES.md` material:**
+**Legacy — silent, still runs. Probably NOT `deliverables/BREAKAGES.md` material:**
 4. **`session.query(Model)`** → emits **no warning at all**, even under `WARN_20`, and works
    in 2.0. The 2.0 *style* is `select()`, but 1.x `Query` remains supported. Listed here so
    the eventual write-up says "style migration", not "breakage".
 5. **`backref=`** → discouraged in favour of `back_populates`. *(Still unverified against a
    real 2.0 run — confirm in Step 8.)*
 
-**Not version issues — do not put these in `BREAKAGES.md`:** the N+1 in `issue_report()`
+**Not version issues — do not put these in `deliverables/BREAKAGES.md`:** the N+1 in `issue_report()`
 (equally slow in both) and `DetachedInstanceError` (fires in 1.4 too, → §14).
 
 ### Aug 4 — the runtime, and a wrong answer caught → §14 §15
@@ -300,7 +300,7 @@ the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
 - Part 4 split into `study/02-MIGRATION-2.0.md` — `study/01-CONCEPTS.md` had reached 2161 lines. Numbering
   continues across the pair, which is the same split `study/05-COMPOSE.md` gets later.
 
-### Aug 5–6 — the four-tool harness, and `BREAKAGES.md` → §16–§22
+### Aug 5–6 — the four-tool harness, and `deliverables/BREAKAGES.md` → §16–§22
 
 - **Provenance audit:** 40 doc lines did not match real output; 0 across 106 blocks afterwards.
   The fixes went into the *scripts*, so a `# runnable` block is a literal paste.
@@ -311,11 +311,11 @@ the Aug 3 Step 4 entry. Only the REMOVED tier is a true breakage.
   simply never runs.
 - Built `sweep.py`, `patterns.py`, `candidates.py`, `verify_2_0.py` — measuring real 2.0
   without upgrading the project.
-- **`BREAKAGES.md`: 23 entries against a target of 10.** One pattern (`row["col"]`) is called
+- **`deliverables/BREAKAGES.md`: 23 entries against a target of 10.** One pattern (`row["col"]`) is called
   *safe* by both 1.4-side tools and still fails on real 2.0 — the empirical argument for
   running the real thing.
 
-### Aug 8 — `BREAKAGES.md` made rereadable `(event only)`
+### Aug 8 — `deliverables/BREAKAGES.md` made rereadable `(event only)`
 
 Reshaped into groups A–H with a "What 1.4 did / What 2.0 does" reading per entry. Every
 measured field left untouched, verified by regenerating and diffing.

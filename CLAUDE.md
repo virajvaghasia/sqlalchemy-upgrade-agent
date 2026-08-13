@@ -9,12 +9,12 @@ Meta, Google, Apple, Anthropic, and startups).
 
 - **`README.md`** — the front door and the map: every doc, every script, and what each proves.
   **Keep it current** — it is the only file that indexes the whole repo.
-- **`ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
-- **`PHASE-0.md`** — the current phase in detail.
+- **`phases/ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
+- **`phases/PHASE-0.md`** — the current phase in detail.
 - **`study/01-CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
 - **`study/02-MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `study/01-CONCEPTS.md`'s section
   numbering, so a reference to "§18" is unambiguous across both files.
-- **`BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
+- **`deliverables/BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
@@ -132,7 +132,7 @@ networking.
     **handoff channel to it**, and the Mac is now the only copy of anything uncommitted.
     Commit and push at the end of every session — an unpushed commit is invisible at the lab.
   - **What this does and does not unblock.** Phase 0 Part A (Days 0–2: `uv`, the 1.4 app,
-    the 2.0 migration, `BREAKAGES.md`) needs nothing but Python and runs fine here. Parts B
+    the 2.0 migration, `deliverables/BREAKAGES.md`) needs nothing but Python and runs fine here. Parts B
     and C (Docker, Compose, GPU-in-container, CI, Ollama) need the lab machine and are
     blocked — those are also precisely the infra items Viraj must write himself, so they
     cannot be worked around by having Claude produce them early.
@@ -151,7 +151,7 @@ networking.
 |---|---|---|
 | Repo / folder / GitHub | `kebab-case`, all identical | `sqlalchemy-upgrade-agent` |
 | Python packages | `snake_case` (hyphens are illegal in imports) | `sqlalchemy_1_4_vs_2_0` |
-| Root docs | `SCREAMING_CASE.md` | `BREAKAGES.md` |
+| Root docs | `SCREAMING_CASE.md` | `deliverables/BREAKAGES.md` |
 | Branches | `phase-N/short-topic` | `phase-0/breakages-and-audit` |
 | Commits | Conventional Commits (`feat:`, `fix:`, `docs:`) | |
 | Compose project | pinned with the top-level `name:`, matching the repo | `sqlalchemy-upgrade-agent` |
@@ -180,7 +180,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 ## Session Notes (what Claude is doing, session by session)
 
 This is a running, terse log of *actions taken in a given session* — not concepts learned
-(that's `LEARNING-LOG.md`) and not settled design calls (that's the `⚖` memory entries).
+(that's `logs/LEARNING-LOG.md`) and not settled design calls (that's the `⚖` memory entries).
 Append a dated entry each session; keep each entry to a few bullets.
 
 ### 2026-07-30
@@ -190,7 +190,7 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Added this Session Notes section to CLAUDE.md at Viraj's request, so session activity
   is readable here without digging through conversation history.
 - Created `study/01-CONCEPTS.md` drills — a Q&A register (questions Claude poses + questions Viraj asks),
-  separate from `study/01-CONCEPTS.md` (prose) and `LEARNING-LOG.md` (timeline).
+  separate from `study/01-CONCEPTS.md` (prose) and `logs/LEARNING-LOG.md` (timeline).
 
 ### 2026-08-02
 - Built out `explore.py` sections 1–8: users/project, issues, labels, comments,
@@ -283,8 +283,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   to 4 distinct problems), `patterns.py` (shared case list so prediction and verification can't
   drift), `candidates.py` (classifies by which tool can see it), `verify_2_0.py` (runs the
   patterns on real 2.0 via `uv run --no-project --with`, no upgrade needed; `--stubs` emits the
-  `BREAKAGES.md` skeleton).
-- **`BREAKAGES.md` created: 23 entries, target was ≥10.** 22 of 24 patterns fail on 2.0.51.
+  `deliverables/BREAKAGES.md` skeleton).
+- **`deliverables/BREAKAGES.md` created: 23 entries, target was ≥10.** 22 of 24 patterns fail on 2.0.51.
   Notably one pattern (`row["col"]`) is called *safe* by both 1.4-side tools and still fails —
   the empirical argument for running the real thing.
 - **Repo structure pass.** `README.md` was 0 bytes and is now the map; `pyproject.toml`
@@ -295,9 +295,9 @@ Append a dated entry each session; keep each entry to a few bullets.
   defensible once `__init__.py` explains the contents.
 
 ### 2026-08-08
-- Walked BREAKAGES.md entry-by-entry in chat. Viraj asked for more explanation *in the file*;
+- Walked deliverables/BREAKAGES.md entry-by-entry in chat. Viraj asked for more explanation *in the file*;
   first refused (fix/docs are his golden-set seed), then he explicitly permitted importing
-  the explanations. Expanded BREAKAGES.md, then reshaped to the Group A–H "What 1.4 did /
+  the explanations. Expanded deliverables/BREAKAGES.md, then reshaped to the Group A–H "What 1.4 did /
   What 2.0 does" layout he said is easier to reread later. Measured 1.4 code, 2.0 errors,
   fix snippets, Also-defensible blocks, docs links, and tier lines untouched. #17 tier
   contradiction (`row["col"]` looks safe on 1.4 tools, fails on real 2.0) is in the file.
@@ -308,7 +308,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   *"Six entries carry an Also defensible block"* — right by luck, typed by hand. Now derived:
   counts `patterns.ALTERNATIVES` hits among the failures plus the one hand-appended
   cascade_backrefs entry (`HAND_APPENDED_WITH_ALTERNATIVES`). Prints `6`, and 6 blocks are
-  emitted. `BREAKAGES.md` header synced so the diff workflow stays clean.
+  emitted. `deliverables/BREAKAGES.md` header synced so the diff workflow stays clean.
 - Full regression re-run: 10 modules pass on 1.4.52; 22 of 24 patterns fail on 2.0.51; no
   `FIX FAILED`. Part A committed and pushed — the Mac is the only copy until the lab is back.
 
@@ -351,6 +351,6 @@ Append a dated entry each session; keep each entry to a few bullets.
   `engine.url` with the password masked.
 - **2.0 version pinned to 2.0.51** (`PIN` in `verify_2_0.py`, interpolated into every printed
   command). `>=2.0` had drifted to 2.0.52. Running off-pin now warns loudly, because
-  `BREAKAGES.md` quotes exact error strings.
+  `deliverables/BREAKAGES.md` quotes exact error strings.
 - A stale `sqlalchemy-upgrade-agent` image (13h older than the code) silently invalidated a networking
   measurement mid-session. Written up in `study/04-DOCKER.md` §4.0.

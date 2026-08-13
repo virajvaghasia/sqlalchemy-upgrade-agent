@@ -1,6 +1,6 @@
 # Practice App — the thing you break
 
-Phase 0, Days 1–2. See `PHASE-0.md` for where this sits in the plan.
+Phase 0, Days 1–2. See `phases/PHASE-0.md` for where this sits in the plan.
 
 **You write all of the code in here. Claude explains, reviews, and drills — it does not
 produce the code.** That rule is the point of the phase, not a formality.
@@ -190,7 +190,7 @@ You need both passes to reach ten distinct breakages.
 
 ---
 
-## The deliverable — `BREAKAGES.md`
+## The deliverable — `deliverables/BREAKAGES.md`
 
 Target: **≥10 distinct breakages you personally caused, hit, and fixed.**
 
@@ -203,7 +203,7 @@ One entry per failure. Four fields, no prose:
 4. **The migration-guide section that explains it** — link + section name
 
 Field 4 is the one you will want to skip and the one that matters most. It is what turns
-`BREAKAGES.md` from a diary into a **labelled dataset with known ground-truth source
+`deliverables/BREAKAGES.md` from a diary into a **labelled dataset with known ground-truth source
 locations** — the seed of the Phase 2 golden set, and your answer to *"why this corpus?"*
 
 ---
@@ -331,7 +331,7 @@ The library now points at your own lines. Each one it flags is a breakage — lo
 
 ---
 
-### 7. Start `BREAKAGES.md`
+### 7. Start `deliverables/BREAKAGES.md`
 
 Log the pass-1 findings. Four fields each: the 1.4 code, the **exact** error text (pasted,
 not paraphrased), the 2.0 fix, and the migration-guide section that explains it.
@@ -359,14 +359,14 @@ across both passes.
 
 ### 9. Fix them, one at a time, against the official guide
 
-Work through `BREAKAGES.md` top to bottom. For each: apply the 2.0 fix, cite the guide
+Work through `deliverables/BREAKAGES.md` top to bottom. For each: apply the 2.0 fix, cite the guide
 section, re-run.
 
 Then fix the N+1 with `selectinload` and re-count the queries from step 5. **402 → 2 or 3.**
 That number is your Phase 3 rehearsal — the same before/after shape you'll produce when
 hybrid search fixes naive retrieval.
 
-**Done when:** everything runs green on 2.0 and `BREAKAGES.md` has a verified fix in every
+**Done when:** everything runs green on 2.0 and `deliverables/BREAKAGES.md` has a verified fix in every
 entry.
 
 *Commit:* `fix: migrate to sqlalchemy 2.0`

@@ -2,7 +2,7 @@
 
 This is the **teaching** file: one canonical explanation per concept, built up from SQL
 first. It is not a diary. The chronological record — what you hit, when, and the mistakes
-along the way — lives in `LEARNING-LOG.md`, and each dated entry there links back to a
+along the way — lives in `logs/LEARNING-LOG.md`, and each dated entry there links back to a
 section number here (`§0`–`§15`). Those numbers are **stable anchors**; don't renumber them
 casually, or the log's links rot.
 
@@ -1044,7 +1044,7 @@ happen* in §9's proof, not take on faith.
 **2.0 note:** 2.0 prefers `back_populates`, declared explicitly on *both* sides, each naming
 the other — more typing, but no invisible attributes appearing on your classes from a line in
 some other file. This project uses `backref` **on purpose**, because it's the 1.4-ism and a
-future `BREAKAGES.md` entry. Don't "fix" it.
+future `deliverables/BREAKAGES.md` entry. Don't "fix" it.
 
 
 **Proof — from a real run.**
@@ -1133,7 +1133,7 @@ class Issue(Base):
 More typing. In exchange, reading `Issue` tells you the truth about `Issue`.
 
 **But do not change this repo.** The `backref` usage here is deliberate — it's the 1.4 idiom
-this project exists to migrate, and a future `BREAKAGES.md` entry. Migrating it early destroys
+this project exists to migrate, and a future `deliverables/BREAKAGES.md` entry. Migrating it early destroys
 the before/after you're building.
 
 </details>

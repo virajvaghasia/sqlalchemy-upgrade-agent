@@ -40,10 +40,10 @@ numbering always continues across the split so existing references keep resolvin
 | | |
 |---|---|
 | [`../README.md`](../README.md) | the front door and the map |
-| [`../ROADMAP.md`](../ROADMAP.md) | the six-phase arc, plus a glossary of every AI term |
-| [`../PHASE-0.md`](../PHASE-0.md) | the current phase, its gates, and what is built so far |
-| [`../BREAKAGES.md`](../BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages |
-| [`../LEARNING-LOG.md`](../LEARNING-LOG.md) | the dated timeline |
+| [`../phases/ROADMAP.md`](../phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term |
+| [`../phases/PHASE-0.md`](../phases/PHASE-0.md) | the current phase, its gates, and what is built so far |
+| [`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages |
+| [`../logs/LEARNING-LOG.md`](../logs/LEARNING-LOG.md) | the dated timeline |
 
 ## How to read a code block
 

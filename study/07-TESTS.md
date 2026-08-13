@@ -1,7 +1,7 @@
 # Tests — study notes
 
 Part of [`sqlalchemy-upgrade-agent`](../README.md). **§6** in the infrastructure sequence —
-see [`study/README.md`](README.md) for how the numbering works.
+see [`../README.md`](../README.md) for how the numbering works.
 
 Phase 0 Days 8–9 end with *"a PR containing a deliberately failing test, and GitHub refuses to
 let it merge."* That needs tests to exist first, which is what this file is about. CI itself is
@@ -20,7 +20,7 @@ next.
 - **`conftest.py`** is where pytest looks for shared fixtures automatically — no import needed
   (§6.3)
 - **The tests are written in 2.0-compatible style**, because writing them in the idioms
-  [`../BREAKAGES.md`](../BREAKAGES.md) documents as broken would be absurd (§6.5)
+  [`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) documents as broken would be absurd (§6.5)
 
 ---
 
@@ -175,7 +175,7 @@ conn.execute(select(func.count()).select_from(table)).scalar()
 
 A test suite for a repo about migrating off legacy idioms should not be written in legacy
 idioms. Worth checking any helper you add here against
-[`../BREAKAGES.md`](../BREAKAGES.md) before committing it.
+[`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) before committing it.
 
 ### 6.6 What is deliberately not tested
 

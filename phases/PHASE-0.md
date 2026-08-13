@@ -1,12 +1,12 @@
 # Phase 0 — Foundations & Environment (~2 weeks)
 
-The current phase, in detail. See [`README.md`](README.md) for the repo map and
-[`ROADMAP.md`](ROADMAP.md) for the phases either side of this one.
+The current phase, in detail. See [`../README.md`](../README.md) for the repo map and
+[`../phases/ROADMAP.md`](../phases/ROADMAP.md) for the phases either side of this one.
 
 ## Context
 
 This repository builds a RAG system for SQLAlchemy 1.4 → 2.0 migrations. The full arc is in
-`ROADMAP.md` — six phases, ~14–16 weeks. **This plan covers Phase 0 only.**
+`phases/ROADMAP.md` — six phases, ~14–16 weeks. **This plan covers Phase 0 only.**
 
 Phase 0 comes first because the later phases assume two things that have to be true before
 they are worth starting:
@@ -17,7 +17,7 @@ gets you a working stack and nothing else — the moment it breaks, or someone a
 written that way, you are stuck. So the standard here is not "does it run." It is the drill
 list at the end of this file: **why does it work, and what happens when I change this line.**
 
-**A migration you have felt, not read about.** `BREAKAGES.md` is the deliverable, and it is
+**A migration you have felt, not read about.** `deliverables/BREAKAGES.md` is the deliverable, and it is
 the seed of the Phase 2 golden dataset. Real questions with verified answers and known source
 locations cannot be invented later — they come from breaking the thing on purpose and writing
 down what happened. It is also the honest answer to *"why this corpus?"*
@@ -80,10 +80,10 @@ word costs thirty seconds of interviewer confusion for no reason.
 
 - Create `~/Documents/Projects/sqlalchemy-upgrade-agent`. **No spaces in the path** — spaces
   break Docker mounts, shell scripts, and CI in annoying ways.
-- Move `ROADMAP.md` and `CLAUDE.md` in. Abandon the old `Project 1` folder.
+- Move `phases/ROADMAP.md` and `CLAUDE.md` in. Abandon the old `Project 1` folder.
 - `git init`, create the GitHub remote, push. (Also unblocks Ultraplan, which requires a git
   repo.)
-- Write `PHASE-0.md` (this plan) into the repo.
+- Write `phases/PHASE-0.md` (this plan) into the repo.
 
 **Naming conventions — decided once, applied everywhere:**
 
@@ -91,7 +91,7 @@ word costs thirty seconds of interviewer confusion for no reason.
 |---|---|---|
 | Folder / repo / GitHub | `kebab-case`, all identical | `sqlalchemy-upgrade-agent` |
 | Python package + modules | `snake_case` (hyphens are illegal in Python imports) | `src/sqlalchemy_upgrade_agent/retrieval/` |
-| Root-level docs | `SCREAMING_CASE.md` — signals "read me first" | `ROADMAP.md`, `BREAKAGES.md` |
+| Root-level docs | `SCREAMING_CASE.md` — signals "read me first" | `phases/ROADMAP.md`, `deliverables/BREAKAGES.md` |
 | Branches | `phase-N/short-topic` | `phase-0/docker-basics` |
 | Commits | Conventional Commits | `feat: add hybrid retrieval`, `docs: log 1.4 breakages` |
 
@@ -100,9 +100,9 @@ word costs thirty seconds of interviewer confusion for no reason.
 ```
 sqlalchemy-upgrade-agent/
 ├── README.md              # product framing first — written properly in Phase 6
-├── ROADMAP.md             # the 4-month arc
-├── PHASE-0.md             # this plan
-├── BREAKAGES.md           # Part A deliverable → seeds the Phase 2 golden dataset
+├── phases/ROADMAP.md             # the 4-month arc
+├── phases/PHASE-0.md             # this plan
+├── deliverables/BREAKAGES.md           # Part A deliverable → seeds the Phase 2 golden dataset
 ├── pyproject.toml         # uv-managed
 ├── experiments/
 │   └── sqlalchemy_1_4_vs_2_0/    # Part A practice code (SQLite, no infra)
@@ -112,7 +112,7 @@ sqlalchemy-upgrade-agent/
 └── .github/workflows/            # Phase 0 Part C
 ```
 
-**Done when:** the repo exists on GitHub with `ROADMAP.md` and `PHASE-0.md` pushed.
+**Done when:** the repo exists on GitHub with `phases/ROADMAP.md` and `phases/PHASE-0.md` pushed.
 
 ### Days 1–2 — SQLAlchemy 1.4 → 2.0, felt personally · **HIGHEST VALUE IN THE PHASE**
 
@@ -128,11 +128,11 @@ stand up. Databases first, infrastructure second — one new variable at a time.
 - **Upgrade to 2.0 and watch it break.** Then fix each break using the official migration
   guide.
 
-**Deliverable: `BREAKAGES.md`** — every failure hit in person: the 1.4 code, the exact
+**Deliverable: `deliverables/BREAKAGES.md`** — every failure hit in person: the 1.4 code, the exact
 error, the 2.0 fix, and the doc section that explains it. **Target: ≥10 distinct
 breakages.**
 
-> `BREAKAGES.md` is not busywork. It is **the seed of the Phase 2 golden dataset** — real
+> `deliverables/BREAKAGES.md` is not busywork. It is **the seed of the Phase 2 golden dataset** — real
 > questions with verified answers and known source locations, which is exactly the shape a
 > golden record needs. It is also the answer to *"why this corpus?"*
 
@@ -230,7 +230,7 @@ and the remaining VRAM is known.
 
 | File | Part | Purpose |
 |---|---|---|
-| `BREAKAGES.md` | A | Real migration failures → **seeds the Phase 2 golden dataset** |
+| `deliverables/BREAKAGES.md` | A | Real migration failures → **seeds the Phase 2 golden dataset** |
 | `experiments/sqlalchemy_1_4_vs_2_0/` | A | 1.4 vs 2.0 comparison code, SQLite by default — no infra needed |
 | `Dockerfile` + `.dockerignore` + `entrypoint.sh` | C | Container for the app; foundation for every later phase |
 | `docker-compose.yml` | C | Multi-service stack; Qdrant plugs in at Phase 1 |
@@ -325,4 +325,4 @@ and debug a failure Claude injects into each.
 
 **Phase 1 — a deliberately dumb RAG.** Meaning-search only. No hybrid search, no
 reranking, no agent. Build the naive version and *watch it fail*, so that every improvement
-in Phase 3 comes with a before/after number earned in person. Details in `ROADMAP.md`.
+in Phase 3 comes with a before/after number earned in person. Details in `phases/ROADMAP.md`.
