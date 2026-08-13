@@ -952,9 +952,13 @@ only when you pass `--gpus`.
 
 ## Later — Day 10, Ollama on the 3060
 
+Ollama runs **local** models on this GPU. No paid API. Phase 1 still needs leftover
+VRAM for an embedding model + reranker after this 7B fits.
+
 ```
 # Download Ollama's install script and run it. | sh = pipe into a shell.
-# Example: installs the `ollama` command and a systemd service.
+# Example: installs the `ollama` binary + a systemd service (`ollama serve`).
+# Needs sudo (writes under /usr/local). Same password as Docker.
 curl -fsSL https://ollama.com/install.sh | sh
 
 # pull = download the model weights onto disk (large). 7b ≈ 7 billion parameters.
@@ -981,6 +985,45 @@ measure, do not guess.
 together. Stop unused stacks anyway: the 3060 still has one VRAM pool, and this is
 someone else's desktop.
 
+**Measured on this PC, 2026-08-13 — Day 10 gate passed.**
+
+Install: Ollama **0.32.9**, systemd `active`, script printed `>>> NVIDIA GPU installed.`
+Pull: `qwen2.5-coder:7b` → **4.7 GB** on disk (`success`).
+
+```
+# summary of: ollama run --verbose qwen2.5-coder:7b "Reply with exactly: ok"
+OK
+eval rate: 0.62 tokens/s     # 2 output tokens — not a real speed figure
+load duration: 19.0s         # first load into VRAM
+```
+
+```
+# summary of: nvidia-smi   # while that run loaded
+5164MiB / 12288MiB
+...local/lib/ollama/llama-server    4650MiB
+```
+
+`llama-server` on the GPU is the gate, not the 0.62 number. Two output tokens
+make tokens/sec look fake. Warm run (model already resident):
+
+```
+# summary of: ollama run --verbose qwen2.5-coder:7b "In one short sentence, what is SQLAlchemy?"
+SQLAlchemy is an SQL toolkit and Object-Relational Mapping (ORM) library for Python.
+eval rate:            62.23 tokens/s
+prompt eval rate:     1357.43 tokens/s
+load duration:        132.2ms
+```
+
+```
+# summary of: nvidia-smi --query-gpu=memory.used,memory.total --format=csv
+5173 MiB, 12288 MiB
+leftover: 7115 MiB / 12288   (~58% free)
+```
+
+**62 tok/s on GPU, ~7.1 GB VRAM left.** Enough headroom for Phase 1 BGE-M3 (+ later
+reranker). Do not jump to 14B. `--verbose` prints the rates; without it you only
+see the text.
+
 ---
 
 ## Still open
@@ -996,7 +1039,9 @@ someone else's desktop.
 - ~~Day 7: NVIDIA Container Toolkit~~ — **passed 2026-08-13.**
   `docker run --rm --gpus all … nvidia-smi` prints **RTX 3060, 12288 MiB** from inside
   the container. Runtimes now include `nvidia`.
-- Day 10: Ollama on the 3060. VRAM leftover / 12288 is the number that matters.
+- ~~Day 10: Ollama on the 3060~~ — **passed 2026-08-13.**
+  `qwen2.5-coder:7b` on GPU (`llama-server` ~4650 MiB). Warm **62.23 tok/s**.
+  Leftover **7115 MiB / 12288**.
 - CI gate: failing PR + branch protection. `.github/workflows/ci.yml` already exists.
 - Tunneling reboot test. PHASE-0 Day 3 is not closed until that exists.
 
