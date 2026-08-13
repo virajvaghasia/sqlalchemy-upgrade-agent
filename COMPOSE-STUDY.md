@@ -23,8 +23,9 @@ Day 7 and still concepts-only, because the lab machine isn't reachable.
   Dockerfile, it doesn't replace it (§4.0)
 - **It adds no new primitives** — network, image, name, environment. The same four you can type
   by hand (§4.0)
-- **Every container already has networking.** What a user-defined network adds is **DNS**, so
-  you can use a stable name instead of an IP that changes (§4.1)
+- **Every container already has networking.** A user-defined network adds two things: **DNS**,
+  so you can use a stable name instead of an IP that changes, and **isolation** — containers on
+  different networks cannot reach each other at all, even by IP (§4.1)
 - **`localhost` inside a container means that container**, not your Mac (§4.1)
 - **`ports:` is only for traffic from outside** — two containers on one network need none (§4.1)
 - **`depends_on` waits for *started*, not *ready*.** A healthcheck closes the gap (§4.2)
@@ -205,7 +206,41 @@ container on the default network, reached two ways:
 psycopg2.OperationalError: could not translate host name "ip-db" to address
 ```
 
-**By IP it works. By name it doesn't.** So networking was never the missing piece.
+**By IP it works. By name it doesn't.** So on the default network, DNS was the only thing
+missing — not connectivity.
+
+#### But `--network` is doing two jobs, not one
+
+That last sentence is only true while both containers sit on the **same** network. Put them on
+different ones and connectivity really is the missing piece — a container on the default bridge
+cannot reach `172.18.0.2` on a user-defined network **even by IP**:
+
+```
+# runnable: docker run --rm --entrypoint python sqlalchemy-upgrade-agent -c \
+#   "import socket; s=socket.socket(); s.settimeout(8); s.connect(('172.18.0.2', 5432))"
+FAILED: TimeoutError timed out
+```
+
+Note *timed out*, not "refused" and not "unknown host". Nothing answered, because there is no
+route between two bridge networks. Docker networks are isolation boundaries.
+
+The full picture, all four cells measured:
+
+| | same network | different networks |
+|---|---|---|
+| **by IP** | works | **times out** — no route |
+| **by name** | works — embedded DNS | fails, and DNS wouldn't help anyway |
+
+So `--network demo-net` buys you two separate things:
+
+1. **Membership** — *which* containers you can reach at all. This is real connectivity, and
+   containers on different networks have none.
+2. **DNS** — on a user-defined network only, container names resolve to their current IPs.
+
+The default bridge gives you membership with everything else on it, and no DNS. A user-defined
+network gives you a smaller, deliberate membership *and* DNS. That second property is why
+Compose puts every service of a project on one network of its own: the services can find each
+other by name, and nothing outside the project is on it at all.
 
 #### Then why not just use the IP?
 
