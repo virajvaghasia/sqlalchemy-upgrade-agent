@@ -55,6 +55,7 @@ to "§18" is unambiguous in either file.
 | [`PRACTICE-APP.md`](PRACTICE-APP.md) | the design of the app under test, and why this schema |
 | [`DOCKER-STUDY.md`](DOCKER-STUDY.md) | **§1–§3, one container** — opens with a one-page plain-language summary, then layers, the build cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root. Every number measured against this repo |
 | [`COMPOSE-STUDY.md`](COMPOSE-STUDY.md) | **§4, more than one container** — Compose, networking and DNS, ports, volumes, healthchecks. Numbering continues from `DOCKER-STUDY.md` |
+| [`POSTGRES-STUDY.md`](POSTGRES-STUDY.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
 | [`LEARNING-LOG.md`](LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 

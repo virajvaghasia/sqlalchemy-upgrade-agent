@@ -1,48 +1,47 @@
-# Phase 0 — Remediation & Environment (~2 weeks)
+# Phase 0 — Foundations & Environment (~2 weeks)
 
 The current phase, in detail. See [`README.md`](README.md) for the repo map and
 [`ROADMAP.md`](ROADMAP.md) for the phases either side of this one.
 
 ## Context
 
-Viraj is building a flagship portfolio project (a RAG system for SQLAlchemy 1.4→2.0
-migrations) to land Applied AI Engineer roles at FAANG-tier companies and frontier labs.
-The full arc is in `ROADMAP.md` — six phases, ~14–16 weeks. **This plan covers Phase 0
-only.**
+This repository builds a RAG system for SQLAlchemy 1.4 → 2.0 migrations. The full arc is in
+`ROADMAP.md` — six phases, ~14–16 weeks. **This plan covers Phase 0 only.**
 
-Phase 0 exists because of a diagnosis, not a curriculum. Viraj has 2 years of production
-experience that was **heavily AI-assisted**. His résumé claims fluency in *"deployment,
-CI/CD, containers, cloud, system design."* He cannot currently write a Dockerfile from a
-blank file, debug a failing build, or author a CI pipeline and explain it. **A systems
-interview will find this in fifteen minutes and no portfolio project survives that
-discovery.**
+Phase 0 comes first because the later phases assume two things that have to be true before
+they are worth starting:
 
-His one genuinely real skill is **databases and SQL** — which is also why the SQLAlchemy
-corpus is a defensible choice.
+**Infrastructure you can defend, not just run.** Every phase after this one ships inside a
+container, is exercised by CI, and eventually runs a model on a GPU. Copied configuration
+gets you a working stack and nothing else — the moment it breaks, or someone asks *why* it is
+written that way, you are stuck. So the standard here is not "does it run." It is the drill
+list at the end of this file: **why does it work, and what happens when I change this line.**
 
-**So Phase 0 is career remediation, not beginner onboarding.** It is the highest-stakes
-phase in the project. The intended outcome: he can defend every infrastructure claim on
-his résumé, and he has personally felt the SQLAlchemy migration break — which seeds the
-golden dataset in Phase 2.
+**A migration you have felt, not read about.** `BREAKAGES.md` is the deliverable, and it is
+the seed of the Phase 2 golden dataset. Real questions with verified answers and known source
+locations cannot be invented later — they come from breaking the thing on purpose and writing
+down what happened. It is also the honest answer to *"why this corpus?"*
 
-### The collaboration rule (non-negotiable)
+The order is deliberate: the SQLAlchemy work needs nothing but Python and runs anywhere, so it
+goes first while the machine setup waits on physical access.
 
-**Viraj writes 100% of the code in this phase. Claude explains, reviews, and drills —
-and does not produce the code.** If Claude writes the Dockerfile, he gets a working
-container and learns nothing, and the résumé gap stays open. That dependency is exactly
-what created this problem.
+### How the work is split
 
-(The asymmetry reverses in later phases: for genuinely new AI material — embeddings,
-retrieval, eval — Claude will be hands-on, because he has no prior claim to that knowledge
-and no interviewer expects him to.)
+**Claude writes infrastructure and explains each part as it goes** — enough that every line can
+be accounted for afterwards. Changed 2026-08-12, on time grounds; before that every
+infrastructure file was written from an empty buffer, which is how the `Dockerfile`,
+`.dockerignore` and `entrypoint.sh` in this repo came to be.
+
+The gate did not move. **It has always been whether the thing can be explained, not who typed
+it** — the drill list below, cold, with no notes. See `CLAUDE.md` for the current rule.
 
 ### Hardware decision (settled)
 
 - **Build machine: the Ubuntu lab PC — RTX 3060 (12GB VRAM) + 12GB system RAM.** Chosen
   over the M4 Mac because the AI ecosystem is CUDA-first (fewer fragile platform bugs
-  eating his learning budget); because two separate memory pools (12GB VRAM for models +
+  eating the learning budget); because two separate memory pools (12GB VRAM for models +
   12GB RAM for Docker) beat the Mac's single contended 16GB; and because daily
-  SSH/Docker/GPU work on a remote Linux box **is itself the infra remediation.**
+  SSH/Docker/GPU work on a remote Linux box **is itself the practice.**
 - **Mac (M4, 16GB): editor and driver's seat only**, via SSH + VS Code Remote.
 - **RustDesk/AnyDesk: keep, but scope them.** Fine for initial setup and emergency
   recovery (machine won't boot, network config broken). **Not** for daily coding — typing
@@ -50,13 +49,13 @@ and no interviewer expects him to.)
 
 ### Operating constraints (these shape the plan)
 
-- **He is not at the lab and won't be for ~2 days.** So the phase is **reordered**: the
+- **The lab is ~2 days away.** So the phase is **reordered**: the
   SQLAlchemy work — which needs no GPU, no Docker, no Linux, just Python — happens
-  **first, on the Mac, starting now.** The machine setup happens on his next lab visit.
+  **first, on the Mac, starting now.** The machine setup happens on the next lab visit.
   Nothing is wasted and nothing is learned twice.
 - **Lab access is roughly once per day.** So the machine setup is done **physically at the
   machine**, in one sitting: SSH, Tailscale, and auto-start-on-boot, verified across a real
-  reboot before he leaves the room. After that he never needs to be physically present.
+  reboot before leaving the room. After that no physical access is needed again.
 - **It's a lab machine — it may be rebooted, reimaged, or reassigned by someone else.**
   Therefore: **everything is committed and pushed to GitHub constantly.** A dead PC must
   cost one day, not four months. This is non-negotiable.
@@ -64,8 +63,8 @@ and no interviewer expects him to.)
   not left running. It's really ~5 containers (Postgres + ClickHouse + Redis + MinIO + web)
   and would eat half the system RAM. It was a Phase 6 tool anyway. Qdrant is light and can
   stay up.
-- **Blocking check on Day 1: does he have `sudo` on that machine?** Installing Docker and
-  the NVIDIA Container Toolkit requires it. If he doesn't, the hardware plan changes and we
+- **Blocking check on Day 1: is there `sudo` on that machine?** Installing Docker and
+  the NVIDIA Container Toolkit requires it. Without it the hardware plan changes and we
   reassess before writing a line of code.
 
 ---
@@ -118,7 +117,7 @@ sqlalchemy-upgrade-agent/
 ### Days 1–2 — SQLAlchemy 1.4 → 2.0, felt personally · **HIGHEST VALUE IN THE PHASE**
 
 Needs nothing but Python. **SQLite** as the database, so there is zero infrastructure to
-stand up. Starts from his real strength (databases) rather than his weakest point (Docker).
+stand up. Databases first, infrastructure second — one new variable at a time.
 
 - Set up `uv`, a virtual environment, `pyproject.toml`, `.gitignore`.
   - **Likely first obstacle:** the Mac has Python 3.13, and SQLAlchemy **1.4** may not
@@ -129,15 +128,15 @@ stand up. Starts from his real strength (databases) rather than his weakest poin
 - **Upgrade to 2.0 and watch it break.** Then fix each break using the official migration
   guide.
 
-**Deliverable: `BREAKAGES.md`** — every failure he personally hit: the 1.4 code, the exact
+**Deliverable: `BREAKAGES.md`** — every failure hit in person: the 1.4 code, the exact
 error, the 2.0 fix, and the doc section that explains it. **Target: ≥10 distinct
 breakages.**
 
 > `BREAKAGES.md` is not busywork. It is **the seed of the Phase 2 golden dataset** — real
-> questions he actually had, with verified answers and known source locations. It is also
-> his interview answer to *"why this corpus?"*
+> questions with verified answers and known source locations, which is exactly the shape a
+> golden record needs. It is also the answer to *"why this corpus?"*
 
-**Done when:** ≥10 documented breakages he personally caused, hit, and fixed — committed
+**Done when:** ≥10 documented breakages caused, hit, and fixed in person — committed
 and pushed.
 
 ---
@@ -154,13 +153,13 @@ The one day that must happen in person. Everything after it is remote.
   forwarding, survives the lab's IP changing).
 - **SSH key auth** from Mac → PC. No passwords.
 - **Make it survive a reboot:** `sshd` and Tailscale enabled as systemd services, so a lab
-  power-cycle doesn't lock him out until his next visit. Set the BIOS to power on after
+  power-cycle doesn't lock you out until the next visit. Set the BIOS to power on after
   power loss if possible.
 - **VS Code Remote-SSH** — open a folder on the PC, edit as if local.
 - Verify GPU: `nvidia-smi` reports the 3060. Install the NVIDIA driver if not.
 - `git clone` the repo onto the PC. **From here, the PC is the source of truth.**
 
-**Done when:** he can walk away from the lab and, from the Mac: `ssh pc` connects with no
+**Done when:** you can walk away from the lab and, from the Mac: `ssh pc` connects with no
 password, VS Code edits files on the PC, and `nvidia-smi` reports the 3060 — **after a
 reboot.** Test the reboot *before leaving the room.*
 
@@ -170,8 +169,8 @@ reboot.** Test the reboot *before leaving the room.*
 
 ### Days 4–5 — Docker, from a blank file
 
-Viraj **writes** a `Dockerfile` for a trivial Python app. Then deliberately breaks it and
-fixes it. The point is not a working container — it's understanding.
+A `Dockerfile` for a trivial Python app, written from an empty file. Then deliberately broken
+and fixed. The point is not a working container — it's understanding.
 
 Must be able to reason about, not recite:
 - Image layers and **build cache invalidation** — why reordering two lines changes build time
@@ -180,20 +179,20 @@ Must be able to reason about, not recite:
 - Why a container can't reach the host / the network
 - `CMD` vs `ENTRYPOINT`
 
-**Done when:** he writes a Dockerfile from an empty file, unaided, and debugs a build
+**Done when:** a Dockerfile is written from an empty file, unaided, and a build
 failure Claude injects — explaining *why* it failed, not just fixing it.
 
 ### Day 6 — Docker Compose, two services talking
 
-He writes a `docker-compose.yml` with a Python app + Postgres that actually communicate.
-(Postgres deliberately — it plays to his real SQL skill, so the *new* thing he's learning
+A `docker-compose.yml` with a Python app + Postgres that actually communicate.
+(Postgres deliberately — its behaviour is not what is under test, so the *new* thing here
 is Docker networking, not the database.)
 
 Concepts: service networking and DNS-by-service-name, volumes and persistence, env vars
 and secrets, port mapping vs internal ports, `depends_on` and why it does **not** mean
 "wait until ready."
 
-**Done when:** the app queries Postgres across the compose network, and he can explain how
+**Done when:** the app queries Postgres across the compose network, and you can explain how
 the app resolved the database's hostname.
 
 ### Day 7 — GPU inside a container
@@ -205,14 +204,13 @@ real-world pattern for every GPU workload and it's directly reusable in Phase 1.
 
 ### Days 8–9 — CI, from a blank file
 
-He **writes** a GitHub Actions workflow that runs `pytest` and **blocks a merge when tests
-fail**. Then turns on branch protection so the block is real, not advisory.
+A GitHub Actions workflow that runs `pytest` and **blocks a merge when tests fail**. Then turns on branch protection so the block is real, not advisory.
 
 Concepts: triggers (`on:`), jobs vs steps, runners, caching dependencies, secrets, and
 what "required status check" actually enforces.
 
-**Done when:** he opens a PR containing a deliberately failing test, and **GitHub refuses
-to let him merge it.** He can explain every line of the YAML.
+**Done when:** a PR containing a deliberately failing test is opened, and **GitHub refuses
+to let it merge.** Every line of the YAML can be explained.
 
 > This exact pipeline becomes the skeleton of the Phase 6 eval gate, where a PR that
 > *degrades retrieval quality* gets auto-blocked. Same machinery, higher stakes.
@@ -223,8 +221,8 @@ Pull a local model (Qwen2.5-Coder-7B class) and confirm it runs **on the GPU, no
 CPU**. Measure tokens/sec. Confirm there's VRAM headroom left for the embedding model and
 reranker that arrive in Phase 1.
 
-**Done when:** the local model answers a prompt on the 3060, he can state its tokens/sec,
-and he knows how much VRAM is left.
+**Done when:** the local model answers a prompt on the 3060, its tokens/sec can be stated,
+and the remaining VRAM is known.
 
 ---
 
@@ -280,22 +278,16 @@ needs a test to exist before a workflow can run one.
 The rest of Part C — Day 7 (GPU) and Day 10 (Ollama) — is blocked on the lab machine, not on
 anything here.
 
-### A note on the "Written by" column, removed 2026-08-12
 
-It used to say *Viraj* for every infrastructure file, and it held: the Dockerfile,
-`.dockerignore` and `entrypoint.sh` were written from empty files. The rule was then changed
-deliberately, on time grounds — Claude now writes infrastructure while narrating what each part
-does. The gate did not change and is still the one below: **whether he can explain it**, not who
-typed it. See `CLAUDE.md`.
 
 ---
 
 ## Verification — how we know Phase 0 actually landed
 
-**Not "does it run." "Can he defend it."** A container that works because it was copied
-teaches nothing and leaves the résumé gap wide open.
+**Not "does it run." "Can it be defended."** A container that works because it was copied
+teaches nothing, and the gap only shows up under questioning.
 
-Claude drills him on these, cold, with no notes. Failing them means the phase isn't done:
+These are asked cold, with no notes. Failing them means the phase isn't done:
 
 1. *"I moved `COPY . .` above `COPY requirements.txt`. Your build got slow. Why?"*
 2. *"Your container can't reach Postgres. Walk me through how you'd diagnose it."*
@@ -305,7 +297,7 @@ Claude drills him on these, cold, with no notes. Failing them means the phase is
 6. *"Name three things that broke going 1.4 → 2.0 and explain why the library changed them."*
 7. *"How do you know your model is on the GPU and not silently running on CPU?"*
 
-**Hard gate:** he can write a Dockerfile and a CI workflow from a blank file, unaided,
+**Hard gate:** a Dockerfile and a CI workflow written from a blank file, unaided,
 and debug a failure Claude injects into each.
 
 ## Risks
@@ -324,4 +316,4 @@ and debug a failure Claude injects into each.
 
 **Phase 1 — a deliberately dumb RAG.** Meaning-search only. No hybrid search, no
 reranking, no agent. Build the naive version and *watch it fail*, so that every improvement
-in Phase 3 comes with a before/after number he personally earned. Details in `ROADMAP.md`.
+in Phase 3 comes with a before/after number earned in person. Details in `ROADMAP.md`.

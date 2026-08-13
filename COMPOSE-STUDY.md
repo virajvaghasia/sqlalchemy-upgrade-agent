@@ -423,9 +423,99 @@ re-established.
 
 **A container's writable layer dies with the container** (§1.1).
 
-- **Named volumes** — Docker manages the storage. What you want for Postgres data.
-- **Bind mounts** — a host directory mapped in. Great for live-editing source in development;
-  a portability liability in production.
+There are two ways to give a container storage that outlives it, and they are not
+interchangeable.
+
+#### Named volume — Docker owns the storage
+
+```yaml
+volumes:
+  - pgdata:/var/lib/postgresql/data     # name : path inside the container
+```
+
+The left side is a *name*, not a path. Docker decides where the bytes actually live:
+
+```
+# runnable: docker volume inspect sqlalchemy-upgrade-agent_pgdata --format '{{.Mountpoint}}'
+/var/lib/docker/volumes/sqlalchemy-upgrade-agent_pgdata/_data
+```
+
+Note that path does **not** exist on this Mac:
+
+```
+# runnable: ls /var/lib/docker/volumes
+ls: /var/lib/docker/volumes: No such file or directory
+```
+
+It is inside the Linux VM that Docker Desktop runs (§2.1). That is the point of a named
+volume — **you do not know or care where it is**, and you reach it only through Docker. It
+survives `down`, dies with `down -v`, and moves with the project name (§4.7).
+
+**This is what Postgres data wants.** Database files are Docker's problem, not yours.
+
+#### Bind mount — you own the storage
+
+```bash
+docker run -v /some/host/dir:/data image      # left side is a real host PATH
+```
+
+A directory that already exists on your machine, mapped into the container. **The same files,
+seen from two places** — not a copy, not a sync. Measured both directions:
+
+```
+# runnable: echo "written on the host" > /tmp/bindtest/from-host.txt
+#           docker run --rm -v /tmp/bindtest:/data --entrypoint sh <image> \
+#             -c 'ls -l /data; cat /data/from-host.txt'
+-rw-r--r-- 1 app app 20 Aug 13 16:38 from-host.txt
+written on the host
+```
+
+```
+# runnable: docker run --rm -v /tmp/bindtest:/data --entrypoint sh <image> \
+#             -c 'echo "written in the container" > /data/from-container.txt'
+#           ls -l /tmp/bindtest
+-rw-r--r--  1 virajvaghasia  wheel  25 Aug 13 09:38 from-container.txt
+-rw-r--r--@ 1 virajvaghasia  wheel  20 Aug 13 09:38 from-host.txt
+```
+
+Instant, both ways, no rebuild. **That is what makes it good for development** — mount your
+source in and edit with your normal editor while the container runs the changed file. It is
+the standard answer to *"do I really rebuild the image for every one-character change?"*
+
+#### The trap, and it is waiting at the lab
+
+Look again at the ownership in those two blocks. Inside the container the host's file appeared
+as owned by `app`; on the host, the container's file appeared as owned by `virajvaghasia`.
+**Neither of those is a translation you should count on** — it is Docker Desktop's macOS file
+sharing being helpful.
+
+**On native Linux there is no translation.** A bind mount is the host's filesystem, directly,
+and uids are numbers with no mapping layer. A container running as uid 10001 (§3.1) writes
+files owned by uid 10001 on the host — a uid that may belong to nobody, or to somebody else.
+The symptoms are `Permission denied` for a file you can see, or root-owned files appearing in
+your working tree that your editor cannot save over.
+
+*Not measured here — the lab machine is unreachable, and this Mac cannot reproduce native
+Linux behaviour. Flagged rather than asserted, and worth re-testing on the PC.*
+
+The usual fixes: run the container as your own uid (`--user "$(id -u):$(id -g)"`), or make the
+container's uid match a real group on the host. **Named volumes sidestep the whole question**,
+because Docker owns the files and nothing on the host is looking at them.
+
+#### Choosing
+
+| | named volume | bind mount |
+|---|---|---|
+| who picks the location | Docker | you |
+| visible in your editor | no | yes |
+| survives `down` | yes | yes — it was never Docker's |
+| removed by `down -v` | yes | **no** |
+| uid headaches on Linux | none | yes (see above) |
+| good for | **databases, anything stateful** | **source during development** |
+
+The short version: **named volumes for data you never want to look at, bind mounts for files
+you are editing.** This project uses a named volume for Postgres and no bind mounts at all —
+`COPY` puts the source in the image, because the container is run rather than developed in.
 
 If Postgres data lives in the container's writable layer, `docker compose down` deletes your
 database. Know which of the two you configured *before* learning this the other way.
