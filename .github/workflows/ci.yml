@@ -1,0 +1,91 @@
+# Runs on every push to main and every pull request.
+#
+# Three jobs, deliberately separate rather than one long script: a red tick
+# should say WHICH thing broke without opening the log. They also run in
+# parallel, so three jobs are not three times the wall clock.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first. Without this, pushing
+# three times in a minute queues three full runs and you wait for answers about
+# code you have already replaced.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # setup-uv installs uv and caches the dependency downloads keyed on
+      # uv.lock — so an unchanged lockfile means no re-download.
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # --frozen: install exactly what uv.lock says and FAIL if the lockfile is
+      # out of date with pyproject.toml, rather than helpfully resolving fresh
+      # versions. CI must build what a developer would, or a green CI proves
+      # nothing about their machine. This is the CI half of the same argument as
+      # pinning SQLAlchemy 2.0.51 in verify_2_0.py.
+      - run: uv sync --frozen
+
+      - run: uv run pytest
+
+  evidence:
+    # BREAKAGES.md's headline number, re-derived on a clean machine. The file
+    # quotes exact error strings from a specific release, and the whole repo
+    # rests on them; nothing else notices if that stops being true.
+    name: 2.0 evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --frozen
+
+      # tiers.json is generated, not committed, so it has to be rebuilt here.
+      # verify_2_0 degrades gracefully without it, which would make this job
+      # quietly weaker than it looks — so generate it rather than rely on that.
+      - name: measure the 1.4 side
+        run: uv run python -m experiments.sqlalchemy_1_4_vs_2_0.candidates
+
+      # Runs on a throwaway 2.0 environment while the project stays on 1.4.
+      # verify_2_0 is a report and exits 0 either way, so the assertion is here:
+      # a job that cannot fail is worth as much as a test that cannot fail.
+      - name: run the patterns against real 2.0
+        run: |
+          uv run --no-project --with 'sqlalchemy==2.0.51' \
+            python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 | tee out.txt
+          grep -q "22 of 24 patterns FAIL on 2.0.51" out.txt \
+            || { echo "::error::BREAKAGES.md documents 22 of 24 on 2.0.51; this run disagrees."; exit 1; }
+
+  image:
+    # The Dockerfile is only exercised by someone running docker build. This is
+    # also the first time it is built on amd64 — every local build so far has
+    # been arm64 on a Mac, and the lab machine is amd64.
+    name: image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t sqlalchemy-upgrade-agent:ci .
+
+      # Build success says the image assembled, not that it runs — the CMD typo
+      # in study/04-DOCKER.md §2.5 built green three times. So run it.
+      # No DATABASE_URL, so it uses the SQLite default and needs no services.
+      - name: run it
+        run: docker run --rm sqlalchemy-upgrade-agent:ci | tee run.txt
+
+      - name: check it actually did the work
+        run: grep -q "38 open issues" run.txt
