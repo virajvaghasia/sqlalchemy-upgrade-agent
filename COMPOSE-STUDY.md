@@ -278,9 +278,133 @@ inside to be *ready to accept connections*.
 Postgres takes seconds to initialise. Your app starts immediately, connects, is refused, and
 crashes. Compose did what you asked; you asked for the wrong thing.
 
-Fixes: a **healthcheck** plus `depends_on: condition: service_healthy` — or, the answer a senior
-engineer gives, **make the app retry on startup**, because in production the database can also
-vanish *after* boot and a start-order guarantee does nothing for you then.
+#### What the failure actually looks like
+
+Downgrade `depends_on` to its plain form and start on a fresh volume:
+
+```yaml
+depends_on:
+  - db          # "start db first" — and nothing more
+```
+
+```
+# runnable: docker compose -f docker-compose.yml -f no-healthcheck.yml up --build
+psycopg2.OperationalError: connection to server at "db" (172.18.0.2), port 5432 failed:
+Connection refused
+```
+
+**Read that error carefully — it says this is not a networking problem.** The name `db`
+resolved, to `172.18.0.2`. The container was up and had an address. Postgres simply was not
+listening on 5432 yet, because it was still initialising its data directory.
+
+Three errors, three different causes (§4.1):
+
+| error | meaning |
+|---|---|
+| `could not translate host name` | DNS — wrong network, or the name is wrong |
+| **`connection refused`** | **reached the host, nothing listening yet — this one** |
+| `timed out` | no route — the containers are on different networks |
+
+#### Fix 1 — a healthcheck, so "started" becomes "ready"
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+  interval: 2s      # run it every 2s
+  timeout: 3s       # a run slower than this counts as a failure
+  retries: 15       # this many consecutive failures before it is "unhealthy"
+```
+
+`test` is any command, and **exit code 0 means healthy**. `pg_isready` ships with Postgres and
+does exactly this job. For an HTTP service it would be a `curl` of a health endpoint.
+
+A container with a healthcheck has three states, and you can watch them move:
+
+```
+# runnable: docker inspect sqlalchemy-upgrade-agent-db-1 --format '{{.State.Health.Status}}'
+t+1s: starting
+t+2s: starting
+t+3s: healthy
+```
+
+Then `depends_on` can wait for the *state* rather than the container:
+
+```yaml
+depends_on:
+  db:
+    condition: service_healthy
+```
+
+The conditions available:
+
+| condition | waits until |
+|---|---|
+| `service_started` | the container is running — the near-useless default |
+| `service_healthy` | its healthcheck passes |
+| `service_completed_successfully` | it ran and exited 0 — for migration/init jobs |
+
+There is also `start_period:`, a grace window during which failures do not count toward
+`retries`. Postgres does not need one; a JVM service will.
+
+#### Fix 2 — make the app retry, which is the one that generalises
+
+A healthcheck solves the race **once, at startup, and only inside Compose.** Three situations
+it does nothing for:
+
+- the database **restarts** at 3am while your app is running
+- a failover moves it, or a network blip drops the connection
+- the app runs somewhere Compose is not — Kubernetes, a VM, someone's laptop
+
+A start-order guarantee is worth nothing in all three, because there is no "start" to order.
+
+So `make_engine()` in `seed.py` now blocks until the database answers:
+
+```python
+def wait_for_db(engine, attempts=30, delay=1.0):
+    for attempt in range(1, attempts + 1):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            return
+        except OperationalError as exc:
+            if attempt == attempts:
+                raise RuntimeError(...) from exc
+            time.sleep(delay)
+```
+
+Two details that matter:
+
+- **`create_engine()` connects to nothing.** It is lazy — it builds a factory and stops. Asking
+  "is the database there?" requires actually opening a connection, which is what
+  `engine.connect()` plus a trivial `SELECT 1` does.
+- **Catch `OperationalError` specifically**, not everything. A wrong password raises too, and
+  retrying that thirty times only delays a failure that waiting cannot fix.
+
+Proof — the *same* broken Compose file from above, with retry in place:
+
+```
+# runnable: docker compose -f docker-compose.yml -f no-healthcheck.yml up --build
+database reachable after 2 attempts
+database: postgresql+psycopg2://app:***@db:5432/issues
+38 open issues
+```
+
+**No healthcheck, no `condition:`, and it works.** One retry, one second.
+
+#### Use both, for different reasons
+
+| | fixes | still fails when |
+|---|---|---|
+| healthcheck + `condition:` | the boot race, cleanly, with no code | the database restarts later; you are not on Compose |
+| retry in the app | any unavailability, anywhere | never — but it costs code and needs a real give-up |
+
+The healthcheck also earns its place as **documentation**: `docker compose ps` reports a service
+as healthy or not, which is a far better first question than reading application logs.
+
+**The answer to give when asked:** `depends_on` orders *starts*, and a start is not a readiness.
+A healthcheck upgrades it to readiness. Neither survives the database going away afterwards —
+for that the client has to retry, which is why retry is the property that actually matters and
+the healthcheck is the convenience.
 
 ### 4.3 Why Postgres for the exercise
 

@@ -17,9 +17,11 @@ fixed, so the query counts you write down in Step 5 remain reproducible.
 import os
 import random
 import sys
+import time
 from datetime import datetime, timedelta
 
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.exc import OperationalError
 
 from sqlalchemy.orm import sessionmaker
 
@@ -85,9 +87,53 @@ BODIES = [
 ROLES = ["owner", "reviewer", "watcher"]
 
 
-def make_engine(echo=False):
-    """Single source of truth for the DB location, imported by app.py in Step 4."""
-    return create_engine(DB_URL, echo=echo)
+def wait_for_db(engine, attempts=30, delay=1.0):
+    """Block until the database accepts a connection, then return.
+
+    Compose's `depends_on: condition: service_healthy` already solves the boot
+    race, so why this as well?
+
+    Because a healthcheck solves it ONCE, at startup, and only inside Compose.
+    A database can also go away AFTER boot — a restart, a failover, a network
+    blip — and a start-order guarantee does nothing for you then. Retrying is
+    the property that survives both, and it is the only one that still works
+    when this app runs somewhere Compose isn't.
+
+    `create_engine()` alone would not notice: it is lazy and connects nothing.
+    The connection has to actually be attempted, which is what this does.
+    """
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            with engine.connect() as conn:
+                # text() rather than a bare string: the bare form is one of the
+                # 2.0 breakages this repo documents (BREAKAGES.md #4).
+                conn.execute(text("SELECT 1"))
+            if attempt > 1:
+                print(f"database reachable after {attempt} attempts")
+            return
+        except OperationalError as exc:
+            last = exc
+            if attempt == attempts:
+                break
+            time.sleep(delay)
+    raise RuntimeError(
+        f"database not reachable after {attempts} attempts "
+        f"({attempts * delay:.0f}s): {last}"
+    ) from last
+
+
+def make_engine(echo=False, wait=True):
+    """Single source of truth for the DB location, imported by app.py in Step 4.
+
+    `wait=True` makes this block until the database answers. SQLite answers
+    instantly, so this costs nothing locally; against Postgres it is what makes
+    the app survive being started before the server is ready.
+    """
+    engine = create_engine(DB_URL, echo=echo)
+    if wait:
+        wait_for_db(engine)
+    return engine
 
 
 def is_seeded(engine):
