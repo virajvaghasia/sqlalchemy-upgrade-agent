@@ -145,7 +145,17 @@ and pushed.
 
 ### Day 3 — The machine · **DO THIS PHYSICALLY AT THE LAB**
 
-The one day that must happen in person. Everything after it is remote.
+Concrete commands: [`../study/08-LAB.md`](../study/08-LAB.md). This section is the gate;
+that file is the sitting checklist.
+
+**2026-08-13 sitting order (deliberate deferral):** AnyDesk is already up. First sitting
+is **own Linux user + local git identity + Cursor/Claude as Viraj + clone**. The box
+already has someone else's git and Claude; do not commit or chat as them. Tailscale /
+Mac→PC SSH / reboot test come after that works. Geochem/minmod is a different lab; do
+not reuse that Mac SSH key here.
+
+The one day that must happen in person. Everything after it is remote. The tunneling
+half of Day 3 is still required before the phase gate; it is just not the first hour.
 
 - **First, the blocking check:** confirm `sudo` works. No sudo → stop, tell Claude, we
   reassess the hardware plan before writing another line.

@@ -16,6 +16,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`05-COMPOSE.md`](05-COMPOSE.md) | several containers: networking, volumes, healthchecks | §4 |
 | [`06-POSTGRES.md`](06-POSTGRES.md) | the database inside one of them | §5 |
 | [`07-TESTS.md`](07-TESTS.md) | the test suite, and how to tell whether tests cover anything | §6 |
+| [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama | — |
 
 ## Two numbering families, and why
 
@@ -27,7 +28,8 @@ things and they do not line up — deliberately.
   to "§18" is unambiguous across the pair.
 - **`04`–`07` share a second run, `§1`–`§6`**, for the same reason: `05` continues `04`,
   `06` continues `05`. One container, then several, then the database in one, then the tests.
-- **`03` has no sections.** It is a runbook, not a reference.
+- **`03` and `08` have no sections.** They are runbooks, not references. `03` is the practice
+  app; `08` is the lab PC sitting (Phase 0 Day 3 → Day 10).
 
 So `§4.1` means Compose networking and `§18` means the Result API, and neither is ambiguous.
 What you cannot do is assume `§5` belongs to the file numbered `05` — check the table above.
