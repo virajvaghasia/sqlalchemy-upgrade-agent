@@ -23,8 +23,12 @@ HTTPS clone needs no GitHub login. Push from this PC later will, and that push
 must be **Viraj's** GitHub, not whoever already uses this box.
 
 **This box already has someone else's git and someone else's Claude.** Same Linux
-user = same `~/.gitconfig`, same `~/.claude`, same Cursor login. You cannot "just
-open the repo" on their account. Isolate first, then clone.
+user = same `~/.gitconfig`, same `~/.claude`, same Cursor login.
+
+**This sitting: borrow that user, then revert before you disconnect.** Do not create
+a `viraj` Linux user today. Do not change `git config --global`. Do not leave your
+Cursor or Claude signed in. A permanent own-user setup is still the right end state;
+it is not this hour.
 
 Your identity (measured on the Mac, 2026-08-13):
 
@@ -39,13 +43,30 @@ Every commit on this PC must show that pair. Anyone else's name in
 
 ---
 
-## Sitting now — own user, git, Cursor, Claude Code (AnyDesk)
+## Sitting now — borrow, work, revert (AnyDesk)
 
-No Tailscale. No Mac→PC SSH. No geochem key. No Docker, no Ollama.
+No Tailscale. No Mac→PC SSH. No geochem key. No Docker, no Ollama. No new Linux user.
 
-**Done when:** you are logged in as **your** Linux user, the repo is open in
-**your** Cursor on `phase-0/repo-structure`, `claude` is **your** account, and
-`git config user.email` in that repo is the noreply address above.
+**Done when:** you pulled `phase-0/repo-structure`, worked in Cursor/Claude as you,
+then **reverted** Cursor, Claude, and `gh` to not-you before leaving AnyDesk. Their
+global git is untouched.
+
+### 0. Snapshot — write this down before you change anything
+
+You need this to revert. If you do not write it, you cannot put their account back.
+
+```
+whoami
+git config --global --list
+gh auth status
+```
+
+In Cursor, note whose avatar / email is signed in. On paper or your phone: **their
+Cursor account**, **their `gh` user** (if any), **their `git config --global
+user.email`**. Do not "remember it."
+
+If global git is already yours, stop and tell Claude — that would mean someone
+already overwrote their identity.
 
 ### 1. Inventory — stop if sudo fails
 
@@ -65,30 +86,17 @@ git config --global --list
 - No `sudo` → stop.
 - Paste that block back. Especially `whoami`, `/home`, and global git.
 - If `git config --global user.email` is **not** the noreply address, this
-  account is not yours. Do not commit from it.
+  account is not yours. Do **not** run `git config --global`. Local config on
+  the clone only (2b).
 
-### 1b. Your own Linux user — do this if `whoami` is someone else
+### 1b. Own Linux user — not today
 
-Same OS user as the other person means you will keep kicking each other out of
-Cursor and Claude. A second Linux user is the actual fix.
-
-```
-sudo adduser viraj
-sudo usermod -aG sudo viraj
-```
-
-Log out of AnyDesk's desktop session, log in as `viraj`, then continue **all**
-steps below as that user. Clone into `/home/viraj/Projects/...`, not into the
-other person's home.
-
-If you cannot create a user this sitting: you can still set **local** git
-config on the repo (step 2b) so commits are yours, but Cursor/Claude on a
-shared home directory will remain one-login-at-a-time. Sign them out of the
-other account before you sign in. That is a workaround, not isolation.
+`sudo adduser viraj` is the real isolation. Skip it this sitting. Come back to
+it when this box is yours for more than an afternoon.
 
 ### 2. git + clone
 
-As **your** user:
+On **their** user, without touching global git:
 
 ```
 sudo apt update
@@ -112,7 +120,8 @@ HTTPS is enough to pull a public repo.
 
 ### 2b. Pin **this repo** to your git identity
 
-Local, not `--global`. Leaves the other person's global config alone.
+Local, not `--global`. Leaves their global config alone. Deleting the clone
+later deletes this too.
 
 ```
 cd ~/Projects/sqlalchemy-upgrade-agent
@@ -130,12 +139,11 @@ git config user.email
 
 Must print exactly the pair above. If it prints someone else, stop.
 
-Push from this PC later: `gh auth login` as **you** (browser, AnyDesk), or a
-**new** SSH key created on this PC for GitHub. Check `gh auth status` first —
-if it is already logged in as the other person, `gh auth logout` then login
-as you. That is PC→GitHub, not Mac→PC tunneling.
+Do **not** `gh auth login` on this sitting unless you must push from the PC.
+Mac push + PC pull does not need `gh` on their user. If you already logged `gh`
+in as them, leave it. If you log in as you, you must `gh auth logout` in §6.
 
-### 3. Cursor — your account only
+### 3. Cursor — switch to you, then switch back
 
 GUI session as **your** Linux user.
 
@@ -164,9 +172,10 @@ Open Cursor. If it is already signed in as someone else: **Cursor Settings →
 Account → Sign out**, then sign in with **your** Cursor account (same as the
 Mac). Then File → Open Folder → `~/Projects/sqlalchemy-upgrade-agent`.
 
-Do not work in a window that still shows the other person's avatar.
+Do not work in a window that still shows the other person's avatar. Before you
+leave, sign out of you and sign **them** back in (§6).
 
-### 4. Claude Code CLI — your account only
+### 4. Claude Code CLI — switch to you, then log out
 
 Separate from Cursor. Native installer:
 <https://code.claude.com/docs/en/install>
@@ -186,7 +195,8 @@ claude
 
 `/logout` first if this home directory already had someone else's Claude.
 Sign in as **you** (Pro / Max / Console — free claude.ai does not include
-Claude Code).
+Claude Code). Before you leave, `/logout` again so their next `claude` is not
+your session (§6).
 
 `uv`, pytest, Docker: **not this sitting.**
 
@@ -206,8 +216,45 @@ git checkout phase-0/repo-structure
 git pull
 ```
 
-Then keep going in **your** Cursor on the PC. One branch, two machines, no
-split-brain: whoever just edited, pushes; the other pulls before typing.
+Then keep going in Cursor on the PC **until you revert**. One branch, two
+machines: whoever just edited, pushes; the other pulls before typing.
+
+### 6. Revert — do this before you disconnect AnyDesk
+
+Order matters. Do not skip because "I'll do it next time." Their desktop is
+what they sit down to.
+
+```
+# 1. Claude: drop your session
+claude /logout
+
+# 2. GitHub CLI: only if you ran `gh auth login` as you
+gh auth status
+# if that shows YOU:  gh auth logout
+
+# 3. Confirm you never touched global git
+git config --global --list
+# user.email must still be THEIRS, from the §0 snapshot
+
+# 4. Optional: remove the clone so their home is clean
+#    Skip this if you will pull again tomorrow on the same box.
+# cd ~ && rm -rf ~/Projects/sqlalchemy-upgrade-agent
+```
+
+Then in Cursor: **Settings → Account → Sign out** (you). Sign **them** back
+in using the snapshot from §0. Close the sqlalchemy folder.
+
+Check:
+
+```
+git config --global user.email    # still them
+gh auth status                    # them, or logged out — not you
+```
+
+Claude: next `claude` should ask them to log in, not already be you.
+
+If you leave your Cursor or Claude signed in, you stole their editor until
+they notice. That is the thing that must not stay.
 
 ---
 
@@ -411,11 +458,11 @@ unless you need both.
 
 - Copy the Mac geochem key (`~/.ssh/id_ed25519`) onto this PC.
 - Overwrite that key with a new default `id_ed25519` — minmod and GitHub-on-the-Mac break.
-- Commit as the other person. If `git config user.email` is not the noreply
-  address, the commit is wrong even if the diff is right.
-- Set `git config --global` on a shared OS user. Local repo config only, or
-  your own Linux user with its own global.
-- Stay signed into the other person's Cursor or Claude. Sign out first.
+- Commit as the other person. If `git config user.email` (local) is not the
+  noreply address, the commit is wrong even if the diff is right.
+- `git config --global` on their user. Local repo config only.
+- Leave your Cursor or Claude signed in. Revert (§6) before you disconnect.
+- Create `viraj` this sitting. Borrow + revert, not a new account.
 - Tailscale / sshd / reboot **this sitting**. Editors first.
 - Docker Desktop / Snap Docker / `apt install docker.io`.
 - Bake `issues.db` into the image. `entrypoint.sh` seeds at start.
@@ -427,10 +474,12 @@ unless you need both.
 
 ## Suggested order today
 
-1. §1 inventory → paste `whoami`, `/home`, and `git config --global --list`.
-2. §1b new Linux user `viraj` if `whoami` is someone else. Log in as that user.
-3. §2 clone + `git checkout phase-0/repo-structure` + `git pull`.
-4. §2b local git identity. Confirm email before any commit.
-5. §3 Cursor → sign out other account → sign in as you → open the folder.
-6. §4 `claude /logout` then `claude` as you.
-7. Stop. Tunneling is the next sitting, on purpose.
+1. §0 snapshot → write down their Cursor / `gh` / global git email.
+2. §1 inventory → paste it here.
+3. §2 clone + checkout `phase-0/repo-structure` + `git pull`. No `--global`.
+4. §2b local git identity on **this repo only**.
+5. §3 Cursor: sign them out → you in → open the folder.
+6. §4 Claude: `/logout` → you in.
+7. Work. Mac push / PC pull.
+8. **§6 revert before AnyDesk disconnect.** Cursor back to them, Claude
+   `/logout`, `gh` not you, global git still them.
