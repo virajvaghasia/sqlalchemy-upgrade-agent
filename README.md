@@ -108,30 +108,59 @@ Each prints what the library actually does. Nothing in these asserts a number it
 
 ## Three findings worth knowing before you read anything else
 
-**A green 1.4 test suite is not evidence about 2.0.** The 2.0 warnings are off by default.
-`app.py` emits 1 warning normally and 5 under `SQLALCHEMY_WARN_20=1` — and both of the
-warnings that mark real breakages are in the hidden four. (§19)
+**A green 1.4 test suite is not evidence about 2.0.** The 2.0 warnings are off by default —
+`app.py` emits 1 normally and 5 with the flag, and both warnings marking real breakages are in
+the hidden four. (§19)
+
+```
+# runnable: SQLALCHEMY_WARN_20=1 uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep
+  RemovedIn20Warning  —  4 distinct, 29 occurrences
+  MovedIn20Warning  —  1 distinct, 6 occurrences
+```
 
 **Neither migration tool is the inventory.** The warning sweep misses patterns that raise
-without ever warning; `future=True` misses construction-time removals it never evaluates.
-Measured: of 24 patterns, 22 fail on real 2.0, and the two tools each miss a different
-subset. One pattern is called *safe* by both and still fails. (§20)
+without ever warning; `future=True` misses construction-time removals it never evaluates. Each
+tool misses a different subset, and one pattern is called *safe* by both and still fails. (§20)
+
+```
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
+#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+  22 of 24 patterns FAIL on 2.0.51
+```
 
 **The most dangerous breakage raises nothing.** Under 2.0, an object attached by the
-many-to-one side of a relationship (`comment.issue = issue`) is never enrolled in the
-session — the `INSERT` silently never runs. Applied to this repo's own seed, every comment
-and every assignment disappears while the seed still reports success. (§17)
+many-to-one side of a relationship (`comment.issue = issue`) is never enrolled in the session —
+the `INSERT` silently never runs. Applied to this repo's own seed, every comment and every
+assignment disappears while the seed still reports success. (§17)
+
+```
+# runnable: the same verify_2_0 command as above, final section
+  attached with project.issues.append(...)  -> in database: True
+  attached with issue.project = project     -> in database: False
+  rows in issues: 1   titles: ['attached by append']
+```
+
+Two objects, one line of code different, and only one of them exists afterwards. **No exception
+is raised** — which is why a passing test suite says nothing about it.
 
 ---
 
 ## Conventions
 
-| thing | convention |
-|---|---|
-| repo / folder / GitHub | `kebab-case`, all identical |
-| Python packages | `snake_case` — hyphens are illegal in imports |
-| root docs | `SCREAMING_CASE.md` |
-| branches | `phase-N/short-topic` |
-| commits | [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `docs:` |
+| thing | convention | here |
+|---|---|---|
+| repo / folder / GitHub | `kebab-case`, all identical | `sqlalchemy-upgrade-agent` |
+| Python packages | `snake_case` — hyphens are illegal in imports | `sqlalchemy_1_4_vs_2_0` |
+| root docs | `SCREAMING_CASE.md` | `BREAKAGES.md` |
+| branches | `phase-N/short-topic` | `phase-0/breakages-and-audit` |
+| commits | [Conventional Commits](https://www.conventionalcommits.org/) | `feat:`, `fix:`, `docs:` |
+| Compose project + built image | one name, **declared** so nothing is inferred | `sqlalchemy-upgrade-agent` |
+| Compose services | one lowercase word — it becomes a hostname | `app`, `db` |
+| Postgres role / database | lowercase, no hyphens (they force quoting in SQL) | `app` / `issues` |
+
+The Docker rows are not decoration. With `build:` and no `image:`, Compose invents a name from
+project and service — a second image, built from the same Dockerfile, drifting apart from
+anything you tagged by hand. That cost an hour once; `COMPOSE-STUDY.md` §4.7 has the
+measurement.
 
 `issues.db` is generated, not committed — run `seed.py` to rebuild it identically.
