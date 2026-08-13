@@ -370,6 +370,8 @@ Append a dated entry each session; keep each entry to a few bullets.
 - `newgrp docker` → hello-world OK. `docker compose up --build` on amd64:
   Postgres 16.14, `postgresql+psycopg2://app:***@db:5432/issues`, 38 open issues,
   app-1 exit 0.
+- Day 7 gate passed: NVIDIA Container Toolkit 1.20.0. Runtimes include `nvidia`.
+  In-container `nvidia-smi`: RTX 3060, 12288 MiB, driver 595.71.05.
 
 ### 2026-08-12 — Day 6 (Compose + Postgres), and the collaboration rule change
 - **Collaboration rule changed permanently** at his request, on time grounds — Claude now
