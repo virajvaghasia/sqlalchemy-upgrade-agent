@@ -352,6 +352,41 @@ to run — the `db` service in `docker-compose.yml` is the pattern to copy.
 (Phase 0 measured 7115 MiB free on the 3060 with qwen2.5-coder loaded), and how large the
 collection is on disk.
 
+#### One run, one machine, to a file
+
+**Do not split the corpus across the two machines.** The question came up when the lab PC went
+away, and the answer is no — recorded as [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md)
+**D36**.
+
+**The job is too small to be worth splitting.** 3284 chunks, 3946041 characters — roughly a
+million tokens through a 568M-parameter model, which is minutes on either machine. *(Estimated
+from character count. Timing it is part of this step.)*
+
+**And splitting it fails in ways that are silent.** Two halves embedded by different model
+revisions are not comparable *at all* — cosine similarity between them is noise, not
+degradation. A normalization setting that differs between halves breaks similarity across the
+boundary while the search keeps returning results. Meanwhile the thing people worry about,
+float rounding between Metal and CUDA, lands around 1e-6 and does not matter.
+
+**The real blocker is Qdrant, not the model.** The two machines cannot route to each other, so
+half-and-half does not produce one index — it produces **two Qdrant instances with no path
+between them**, and merging means a hand-copied snapshot or re-embedding a half anyway.
+
+**So the pipeline writes a file, and loading is separate:**
+
+```
+chunks.jsonl  ──embed──►  embeddings.npy  ──load──►  Qdrant
+   3284             the expensive step        seconds, wherever
+                    (portable artifact)       Qdrant happens to live
+```
+
+Worth doing whether or not the split was ever considered. Direct ingestion makes the index a
+*side effect of a process*; a file makes it an **input** — copyable by hand, loadable anywhere,
+and resumable after a failure instead of restartable.
+
+**Pin the model revision explicitly**, not just its name. "BGE-M3" is not reproducible; a
+revision hash is.
+
 **Done when:** a count of vectors in Qdrant matches the count of chunks, and a hand-written
 query returns something plausible.
 

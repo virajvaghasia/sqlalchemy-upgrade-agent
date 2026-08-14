@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D35`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D36`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -545,6 +545,44 @@ section as the honest edge of the project.
 > **Asked as** — *"How do you know your chunking is any good?"* — "I looked at the output" is a
 > better answer than a metric, at this stage, because there is no ground truth yet to compute a
 > metric against.
+
+### D36 — Embed in one run, on one machine, to a portable file
+
+> **Decided** — the embedding pass runs once, on whichever machine is free, and writes vectors
+> to a **file**. Loading that file into Qdrant is a separate, cheap step.
+> **Instead of** — splitting the corpus across the Mac and the lab PC to work around the GPU
+> being unavailable, or writing vectors straight into Qdrant as they are produced.
+> **Because** — the job does not need splitting, and splitting it introduces failure modes that
+> are silent.
+>
+> **The job is small.** 3284 chunks, 3946041 characters — roughly a million tokens through a
+> 568M-parameter model. That is minutes on either machine, not hours. *(Order of magnitude,
+> estimated from character count; not yet timed. Step 3 measures it.)* Splitting a
+> three-minute job across two computers is work created rather than saved.
+>
+> **What would actually break if it were split.** Three fatal, one famously overrated:
+>
+> | | fatal? | why |
+> |---|---|---|
+> | model revision drift | **yes** | two halves embedded by different model weights are not comparable at all — cosine similarity between them is noise, not degradation |
+> | normalization mismatch | **yes** | one half unit-normalized and the other not silently breaks cosine across the boundary; the search still returns results |
+> | dtype (fp16 CUDA vs fp32 MPS) | mostly | half the index systematically offset from the other half, invisible to a smoke test |
+> | float rounding, Metal vs CUDA | **no** | ~1e-6; cosine ranking does not care. The one people worry about and the one that does not matter |
+>
+> **The blocker is Qdrant, not the model.** The two machines cannot route to each other (D29).
+> So "half here, half there" does not produce one index — it produces **two Qdrant instances
+> with no path between them**, and merging means a hand-copied snapshot or re-embedding a half
+> anyway. The work gets done twice.
+>
+> **Why a file rather than direct ingestion**, and this is the part worth keeping even though
+> the split was rejected: writing to `embeddings.npy` decouples the expensive step from the
+> machine that ran it. The vectors become an artifact that can be copied by hand, loaded
+> wherever Qdrant lives, and resumed after a failure instead of restarted. Direct ingestion
+> makes the index a side effect of a process; a file makes it an input.
+>
+> **Asked as** — *"Your GPU box was unavailable. What did you do?"* The good answer is not "I
+> waited" or "I split the job" — it is *"I checked how big the job actually was, and made the
+> output portable so the machine stopped mattering."*
 
 ---
 
