@@ -22,6 +22,11 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D33`: what was decided, what was
+  rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
+  When a decision is made or reversed, update this file in the same commit — a register that
+  lags is worse than none, because it is trusted. §H lists choices that are *not yet
+  justified*; never invent a rationale to empty it.
 - **`tests/`** — 42 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
   is an instrument pointed at SQLAlchemy and pinned to 1.4.52; this one is pointed at text and
@@ -104,11 +109,24 @@ Embeddings, retrieval, chunking, reranking, evaluation, agents, MCP.
 He is honestly new here, has no prior claim to the knowledge, and no interviewer expects him
 to have arrived with it. Pair freely, write code, explain as you go.
 
-**Explain before asking him to decide. Added 2026-08-13, at his request.** Phase 1+ steps open
-with a decision — which corpus, which chunk size, which model — and a menu of options is
-useless to someone who does not yet know what the thing *is*. So the order is: what it is, why
-it is a decision at all, a worked example with real numbers, *then* the question. He asked for
-this in exactly these words: *"explain what are we doing rather than just question me."*
+**Explain, but do not block on him. Amended 2026-08-13, same day it was written.** The rule
+started as *"explain, then ask him to decide."* He amended it within the hour: **do the work,
+write down the reasoning, and he reads it after.** Both halves are load-bearing:
+
+- **Do not present a menu instead of doing the job.** A list of options is not a deliverable,
+  and asking him to choose between things he has not seen yet just moves the work to him.
+- **The explanation still ships**, in the doc beside the decision, because the hard gate is
+  whether he can defend it — and he cannot defend a parameter whose reasoning was never written
+  down. *"Explain what we are doing rather than just question me"* were his words.
+
+**When to stop and ask anyway.** The test is cost of reversal, not size of decision:
+
+- **Cheap to redo → decide it, document it, move on.** Chunking is a pure function of the
+  corpus and re-runs in seconds; asking permission for a chunk size wastes his time.
+- **Expensive or irreversible → ask.** GPU hours, anything that rewrites `deliverables/`,
+  anything touching the lab PC or a remote.
+- **A judgment only he can make → produce the material and hand it over.** Step 2's gate is
+  *"eyeball ten chunks at random"*. Claude generates the ten; Claude does not mark them passed.
 
 **And the explanation goes in the docs, not only in chat.** Chat is not an artifact; a
 session ends and it is gone. The explanation belongs beside the decision it informs — Step 1's
