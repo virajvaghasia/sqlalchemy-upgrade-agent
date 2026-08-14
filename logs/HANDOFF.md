@@ -384,3 +384,130 @@ ssh -i ~/.ssh/id_ed25519_sqlalchemy_lab shaili@100.72.117.53 'whoami; hostname'
 
 then writes `~/.ssh/config` so it becomes `ssh sqlalchemy-lab`. Day 3 closes apart from the
 reboot test, deferred ~20 days.
+
+---
+
+# Round 4 — Phase 1 has started, and this PC is the GPU half
+
+> **PARKED 2026-08-14 — the 3060 is in use by its other user for ~2 days.**
+> Nothing below is urgent. Run it when the machine is free again; ASK 4.1 is a few minutes and
+> ASK 4.2 is two commands, so the round stays cheap whenever it happens.
+>
+> **This did not stall Phase 1.** Step 2 (chunking) needs no accelerator, and the outage
+> prompted measuring the Mac, which had never been examined: Apple M4, 10 cores, 16 GiB
+> unified memory, Docker 29.2.0. Steps 3–4 are being built to take the device as a **flag**
+> rather than assuming this box — see `study/09-DECISIONS.md` **D27**, weakened that day.
+>
+> **ASK 4.2 still matters and is not superseded.** Whatever the Mac turns out to do, the
+> question *"does BGE-M3 fit alongside a loaded generator on 12288 MiB of dedicated VRAM"* is
+> a different question from what unified memory does, and it is the one that decides whether
+> this box can serve both models at once.
+
+**Nothing here is blocked on Tailscale.** Round 3 is still open — Shaili has not shared
+`kj-xps-8950` yet — but every command below is run *at* the PC (AnyDesk or the desk itself),
+so none of it waits on the tunnel.
+
+## What changed on the Mac side
+
+Phase 1 Step 1 is done. The retrieval corpus is decided and fetched: 270 `.rst` files,
+4058424 bytes, from the two pinned SQLAlchemy release tags. The reasoning is in
+`phases/PHASE-1.md` Step 1; the decision register entry is `study/09-DECISIONS.md` **D07–D13**.
+
+**The corpus is not in git.** `corpus/raw/` is gitignored on purpose — a script rebuilds it and
+a 4.5 MB blob in a repo cannot be verified (`D11`). Only `corpus/MANIFEST.json` is committed,
+which is why ASK 4.1 exists: this PC has to build its own copy.
+
+## Where the work splits, and why this PC gets the heavy half
+
+| step | machine | why |
+|---|---|---|
+| 1. decide + fetch corpus | Mac | text processing, no GPU. **Done.** |
+| 2. chunk | Mac | pure text, re-runs in seconds |
+| 3. embed the corpus | **this PC** | thousands of passages; the 3060 is the only GPU |
+| 3. Qdrant | **this PC** | the vectors live where the database lives |
+| 4. Ollama, answer generation | **this PC** | already installed and measured at 62.23 tok/s |
+
+**The reason embedding runs here rather than on the Mac** is not only speed. The vectors are
+the one artifact that is both large and regenerable, and moving them across a link that does
+not yet exist would be the worst of both. Qdrant lives next to Ollama; the embedder feeds
+Qdrant; so the embedder lives here too.
+
+## ASK 4.1 — build the corpus on this box
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git status -sb          # this clone was left on phase-0/repo-structure, not main
+git checkout main
+git pull
+uv sync --frozen
+uv run python -m rag.corpus
+```
+
+That `git checkout main` is not boilerplate. This clone was left on
+`phase-0/repo-structure` after the 2026-08-13 sitting, and `rag/` does not exist on that
+branch — a bare `git pull` would report success and then `python -m rag.corpus` would fail
+with `No module named rag`, which reads like a broken script rather than a wrong branch.
+
+Expected: two tarballs fetched from GitHub (about 9 MB total), then a report ending
+
+```
+  TOTAL        270 files   4058424 bytes
+```
+
+**If those numbers differ on Linux, that is a real finding, not a nuisance** — it would mean
+the fetcher is not platform-independent, and the Mac's manifest and this PC's would disagree
+about what the corpus is. Paste whatever it actually prints.
+
+Then verify nothing was corrupted in transit:
+
+```bash
+uv run python -m rag.corpus --check
+```
+
+Expected: `all 270 files match the manifest`. This re-hashes every file against the SHA-256
+recorded on the Mac, so a match means both machines hold byte-identical corpora.
+
+### REPLY 4.1
+
+```
+(paste here)
+```
+
+## ASK 4.2 — how much VRAM is actually free
+
+This settles an open decision rather than being a status check. `study/09-DECISIONS.md` **D32**
+records that BGE-M3 was chosen as the embedding model with **no measurement behind it**, and the
+fact that decides whether it is usable is how much VRAM is left with the generator loaded.
+
+```bash
+nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv
+ollama ps
+```
+
+Run it **twice**: once cold, and once right after `ollama run qwen2.5-coder:7b` has answered
+something, so the model is resident. The second number is the real budget — the embedder has to
+fit alongside a loaded generator, or one of them has to be unloaded between phases, which is an
+architectural consequence and not a tuning detail.
+
+Phase 0 measured **7115 MiB** free with the model loaded, out of **12288 MiB** total. Confirming
+or contradicting that is the point.
+
+### REPLY 4.2
+
+```
+(paste here)
+```
+
+## What is NOT being asked
+
+- **No Tailscale commands.** Round 3's rule stands: one `tailscaled` holds one account, and
+  `up` / `login` / `switch` would replace Shaili's login.
+- **No `~/.claude`, no `claude` TUI, no `/login`.**
+- **No Docker or Qdrant work yet.** Qdrant arrives in Step 3, once chunking is done on the Mac
+  and there is something to store. Starting a container now would just be a container.
+
+## What Claude does next
+
+Step 2, chunking, runs entirely on the Mac and needs nothing from this PC. Step 3 opens with the
+number from REPLY 4.2, because if BGE-M3 does not fit in the free VRAM the model choice changes
+before any embedding is run rather than after.

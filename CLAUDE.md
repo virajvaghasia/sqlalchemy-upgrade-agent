@@ -22,7 +22,15 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`tests/`** — 17 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D37`: what was decided, what was
+  rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
+  When a decision is made or reversed, update this file in the same commit — a register that
+  lags is worse than none, because it is trusted. §H lists choices that are *not yet
+  justified*; never invent a rationale to empty it.
+- **`tests/`** — 65 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
+  is an instrument pointed at SQLAlchemy and pinned to 1.4.52; this one is pointed at text and
+  imports no SQLAlchemy. `corpus/MANIFEST.json` is committed, `corpus/raw/` is not.
 - **`logs/HANDOFF.md`** — the Mac ⇄ lab-PC wire, on branch `lab/handoff`. **Claude cannot
   reach the lab machine**; it has no inbound route until sshd and a tunnel exist. Write ASK
   blocks there rather than into the chat, where PC commands bounce back unrun. Raw pasted
@@ -100,6 +108,30 @@ Embeddings, retrieval, chunking, reranking, evaluation, agents, MCP.
 
 He is honestly new here, has no prior claim to the knowledge, and no interviewer expects him
 to have arrived with it. Pair freely, write code, explain as you go.
+
+**Explain, but do not block on him. Amended 2026-08-13, same day it was written.** The rule
+started as *"explain, then ask him to decide."* He amended it within the hour: **do the work,
+write down the reasoning, and he reads it after.** Both halves are load-bearing:
+
+- **Do not present a menu instead of doing the job.** A list of options is not a deliverable,
+  and asking him to choose between things he has not seen yet just moves the work to him.
+- **The explanation still ships**, in the doc beside the decision, because the hard gate is
+  whether he can defend it — and he cannot defend a parameter whose reasoning was never written
+  down. *"Explain what we are doing rather than just question me"* were his words.
+
+**When to stop and ask anyway.** The test is cost of reversal, not size of decision:
+
+- **Cheap to redo → decide it, document it, move on.** Chunking is a pure function of the
+  corpus and re-runs in seconds; asking permission for a chunk size wastes his time.
+- **Expensive or irreversible → ask.** GPU hours, anything that rewrites `deliverables/`,
+  anything touching the lab PC or a remote.
+- **A judgment only he can make → produce the material and hand it over.** Step 2's gate is
+  *"eyeball ten chunks at random"*. Claude generates the ten; Claude does not mark them passed.
+
+**And the explanation goes in the docs, not only in chat.** Chat is not an artifact; a
+session ends and it is gone. The explanation belongs beside the decision it informs — Step 1's
+went into `phases/PHASE-1.md` Step 1, not into a new file. This is the example rule applied to
+teaching rather than to claims.
 
 **As of 2026-08-12 both halves work the same way: Claude writes, narrating as it goes.** The
 asymmetry that used to exist here — least help on infra, most help on AI — is retired. What
@@ -399,3 +431,25 @@ Append a dated entry each session; keep each entry to a few bullets.
   `deliverables/BREAKAGES.md` quotes exact error strings.
 - A stale `sqlalchemy-upgrade-agent` image (13h older than the code) silently invalidated a networking
   measurement mid-session. Written up in `study/04-DOCKER.md` §4.0.
+
+### 2026-08-13 — Phase 1, Step 1 (the corpus)
+- Explained the step before asking for decisions — he asked for that explicitly, and it is
+  now the expectation for every Phase 1 step: what the thing is, why it is a decision, and a
+  worked example, *then* the question. Explanations go in the docs, not only in chat.
+- `phases/PHASE-1.md` Step 1 gains three subsections (what a corpus is; a measured inventory
+  of both doc tags; the version-skew trap on one real line) plus the decision table.
+- Corpus decided: `orm/ core/ tutorial/ faq/ errors.rst glossary.rst` from **both** pinned
+  tags, plus `changelog/migration_20.rst` from 2.0 only. Out: the rest of `changelog/`,
+  `dialects/`, navigation pages, the API reference (absent from `.rst` source), issues/SO,
+  library source, and **`BREAKAGES.md`** — it is Phase 2's answer key and stays out of the
+  corpus that Phase 2 grades.
+- Version skew is **recorded, not filtered.** Every file carries its release; Step 4 retrieves
+  across both. Filtering here would delete the failure Phase 3 exists to fix.
+- New package `rag/`, new script `rag/corpus.py`: 270 files / 4058424 bytes fetched,
+  `corpus/MANIFEST.json` committed (74983 bytes), `corpus/raw/` gitignored. Neither version
+  number is typed in it.
+- 25 new tests (42 total). Two mutation-checked: a stale total in `PHASE-1.md` and a
+  smuggled-in `changelog/` sibling both fail the suite.
+- **Docs the change invalidated were fixed, not left:** `README.md`, `study/07-TESTS.md`
+  and `CLAUDE.md` now say 42; `phases/PHASE-0.md`'s block names its three files explicitly so
+  it stays Phase 0's record and still reproduces.

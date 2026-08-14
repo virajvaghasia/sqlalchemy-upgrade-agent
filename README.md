@@ -7,8 +7,36 @@ application in this repo, run against real 2.0, with every failure recorded as i
 happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden dataset the retrieval
 system is later evaluated against.
 
-**Status:** Phase 0, Part A complete. Pinned to SQLAlchemy **1.4.52**; breakages verified
-against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md) for the six-phase arc.
+**Status:** Phase 0 complete except its Day 3 tunnel, which is blocked on someone else rather
+than on work. **Phase 1 is current: Steps 1–2 (corpus, chunking) are done.** Pinned to SQLAlchemy
+**1.4.52**; breakages verified against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md)
+for the six-phase arc.
+
+---
+
+## Start here
+
+This repo is 17 documents and about 11,000 lines, which is a book, and reading it front to back
+is the wrong move. **Almost none of it is meant to be read in order.** Pick the question you
+actually have:
+
+| if you want to… | read, in this order | roughly |
+|---|---|---|
+| **know where the project is** | this Status line → [`phases/PHASE-1.md`](phases/PHASE-1.md) → the last entry of [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | 15 min |
+| **understand what was built most recently** | [`phases/PHASE-1.md`](phases/PHASE-1.md) Steps 1–2 → `rag/corpus.py`, `rag/chunk.py` → `tests/test_chunk.py` | 30 min |
+| **revise for an interview** | [`study/09-DECISIONS.md`](study/09-DECISIONS.md) — every decision, what was rejected, and why. **Start here for this**, not with the study files | 1 hour |
+| **go deeper on the evidence** | [Three findings](#three-findings-worth-knowing-before-you-read-anything-else) below → [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) Groups A–H → [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22 | a few hours |
+| **learn SQLAlchemy properly** | [`study/README.md`](study/README.md), then follow its numbering | days |
+| **learn the Docker/CI side** | [`study/04-DOCKER.md`](study/04-DOCKER.md) §1 opens with a one-page plain-language summary — start there, not at §1.1 | half a day |
+| **work on the lab PC** | [`study/08-LAB.md`](study/08-LAB.md) — it is a runbook, so jump to the section you need | as needed |
+
+**The three long files are reference, not reading.** `study/01-CONCEPTS.md` (1875 lines),
+`study/02-MIGRATION-2.0.md` (1458) and `deliverables/BREAKAGES.md` (1266) are things you look
+*into* when you have a specific question. Nobody, including the person who wrote them, reads
+them straight through.
+
+**If you only open one file, open [`phases/PHASE-1.md`](phases/PHASE-1.md).** It says what the
+current phase is, what the next step is, and why each decision already made was made.
 
 ---
 
@@ -38,6 +66,17 @@ uv run --no-project --with 'sqlalchemy==2.0.51' \
     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
 ```
 
+Phase 1 starts by fetching the retrieval corpus — 270 `.rst` files from the two pinned
+SQLAlchemy release tags. It is not committed; this rebuilds it, and `corpus/MANIFEST.json`
+records where every file came from and which release it documents.
+
+```bash
+uv run python -m rag.corpus            # fetch if absent, then report
+uv run python -m rag.corpus --check    # re-hash every file against the manifest
+uv run python -m rag.chunk             # cut it into 3284 retrievable chunks
+uv run python -m rag.chunk --sample 10 # print ten at random to eyeball
+```
+
 ---
 
 ## Repository layout
@@ -50,7 +89,9 @@ study/                 the teaching material, numbered in reading order
 deliverables/          what a phase produced — BREAKAGES.md is Phase 0's
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
-tests/                 17 tests pinning what the docs claim
+rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
+corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
+tests/                 65 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -63,7 +104,7 @@ to "§18" is unambiguous in either file.
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **the current phase** — a deliberately dumb RAG, and why it must be bad first |
-| [`phases/PHASE-0.md`](phases/PHASE-0.md) | the current phase in detail, and its deliverables |
+| [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
 | [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
 | [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
@@ -74,6 +115,7 @@ to "§18" is unambiguous in either file.
 | [`study/06-POSTGRES.md`](study/06-POSTGRES.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`study/08-LAB.md`](study/08-LAB.md) | lab PC from scratch — SSH / Tailscale / clone / Docker Engine / GPU-in-container / Ollama. A runbook, like `03`, plus the sitting diary in Ubuntu words |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 37 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -108,13 +150,18 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-17 passed, 1 warning in 0.52s
+65 passed, 1 warning in 0.48s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
 the six-mapped-classes/eight-tables split, that seeding twice produces byte-identical data, and
 the `is_seeded` guard that stops the container's startup seed dropping a populated Postgres
 volume. Each was mutation-checked — break the thing it describes and it fails.
+
+`tests/test_corpus.py` pins the Phase 1 corpus decision the same way: that only one file was
+taken out of `changelog/`, that no dialect pages got in, that `BREAKAGES.md` stayed out so it
+can still serve as Phase 2's answer key, and that the totals quoted in `phases/PHASE-1.md` are
+the ones `rag/corpus.py` actually measured.
 
 ### Proofs behind the teaching docs
 
