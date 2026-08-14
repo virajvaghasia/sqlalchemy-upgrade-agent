@@ -53,6 +53,80 @@ fine — enough to get end-to-end before the volume matters.
 Not "download the docs". The corpus decides the ceiling on every later number, and the
 question *"why this corpus?"* is the one an interviewer opens with.
 
+#### What a corpus is, and why it is a decision
+
+A language model does not know the answer to *"why can't I call `engine.execute` any more?"* —
+it knows English and Python in general, and will produce something fluent that may be wrong.
+Retrieval-augmented generation does not try to fix the model's memory. It **looks the answer up
+first**, pastes the passages it found into the prompt, and reduces the model's job from *recall
+the answer* to *summarise these five paragraphs*. The pile of text it looks up in is the corpus.
+
+Two consequences, pulling in opposite directions:
+
+- **A fact absent from the corpus can never be retrieved.** Hybrid search (Phase 3), reranking,
+  the agent — all of them find the right chunk faster or more reliably. None of them can find a
+  chunk that does not exist. The corpus is a hard ceiling on every number this project reports.
+- **A corpus that is too large is also worse.** Every irrelevant page is one more thing search
+  can confidently return *instead of* the answer. Bigger is not safer.
+
+#### What is available, measured
+
+Both versions this repo already pins publish their documentation as reStructuredText source
+under `doc/build/`, tagged at exactly those versions — `pyproject.toml` pins 1.4.52 and
+`verify_2_0.py` pins 2.0.51, so *"which release does this page describe?"* is answerable from
+the directory a file came from rather than guessed.
+
+```
+# runnable: for t in rel_1_4_52 rel_2_0_51; do curl -sL \
+#     "https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/$t.tar.gz" \
+#     | tar xz "sqlalchemy-$t/doc/build"; done
+#   for t in rel_1_4_52 rel_2_0_51; do D="sqlalchemy-$t/doc/build"; \
+#     printf '%-11s %3d .rst  %7d bytes total  %7d changelog/  %2d files say future=True\n' \
+#       "$t" \
+#       "$(find $D -name '*.rst' | wc -l | tr -d ' ')" \
+#       "$(find $D -name '*.rst' -exec cat {} + | wc -c | tr -d ' ')" \
+#       "$(find $D/changelog -name '*.rst' -exec cat {} + | wc -c | tr -d ' ')" \
+#       "$(grep -rl 'future=True' $D --include='*.rst' | wc -l | tr -d ' ')"; done
+rel_1_4_52  170 .rst  4655735 bytes total  2712795 changelog/  15 files say future=True
+rel_2_0_51  187 .rst  5319111 bytes total  3201073 changelog/   3 files say future=True
+```
+
+Three things that table decides:
+
+- **`changelog/` is ~58% of 1.4's bytes and ~60% of 2.0's, and is mostly not prose.** Most of it
+  is per-release one-line bug entries, plus migration guides for 1.0 through 1.4. High volume,
+  low answer density, and a second source of version skew. The narrative directories
+  (`orm/ core/ tutorial/ faq/`) are 1910065 bytes of 2.0's total; `changelog/migration_20.rst`
+  — the 2.0 migration guide itself — is 93197 bytes.
+- **The `.rst` source does not contain the API reference.** `.. autoclass::` / `.. automethod::`
+  and friends appear 660 times in the 1.4 tree and 743 times in the 2.0 tree: instructions that
+  say *at build time, read this class's Python docstring and paste it here*. The per-method
+  reference pages a search engine lands you on exist only in the rendered HTML. "Docs source"
+  and "the API reference" are two different corpora, not one.
+- **Version skew is visible in the last column**, and it is the trap named below.
+
+#### The version-skew trap, on one line of one file
+
+The same tutorial page, at the two pinned tags:
+
+```
+# runnable: grep -n 'create_engine("sqlite' sqlalchemy-rel_*/doc/build/tutorial/engine.rst
+sqlalchemy-rel_1_4_52/doc/build/tutorial/engine.rst:37:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True, future=True)
+sqlalchemy-rel_2_0_51/doc/build/tutorial/engine.rst:36:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+```
+
+1.4 teaches `future=True` as the forward-compatibility switch — `study/02-MIGRATION-2.0.md` §18
+covers it as the migration bridge. By 2.0 it is gone from the tutorial entirely, surviving in
+only three files (`errors.rst` and two changelog migration guides).
+
+So: someone asks *"should I pass `future=True`?"*. Meaning-search returns the 1.4 tutorial — a
+genuinely excellent, highly relevant passage about `create_engine`. The model reads it and
+answers *yes*. **Confident, correctly sourced, and wrong for 2.0.** Nothing in the pipeline
+noticed, because nothing in the pipeline knows which release that page describes.
+
+That is not a bug to fix later. It is a property of what goes in the pile, which is why it is
+settled here in Step 1 rather than in Step 4.
+
 Candidates, in rough order of value:
 
 - **the 2.0 migration guide** — enumerates exactly what broke, and is the direct answer to
