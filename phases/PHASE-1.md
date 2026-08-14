@@ -140,8 +140,84 @@ Candidates, in rough order of value:
 **Decision to record:** which of those are in, and what is deliberately out. Version skew is
 the trap — 1.3 pages answering a 2.0 question is a wrong answer that looks right.
 
+#### The decision, made 2026-08-13
+
+| | source | why |
+|---|---|---|
+| **in** | `changelog/migration_20.rst`, **2.0 only** | enumerates exactly what broke; the direct answer to most real questions |
+| **in** | `orm/ core/ tutorial/ faq/`, **both versions** | the pages people actually search, and the 1.4 side is half of every migration answer |
+| **in** | `errors.rst`, `glossary.rst`, **both versions** | `errors.rst` maps real exception text to an explanation, which is the shape of Step 4's own acceptance question; `glossary.rst` defines the terms the other pages assume |
+| **out** | the rest of `changelog/` | ~60% of the bytes, almost all per-release one-line bug entries, plus migration guides for 1.0–1.4 — more skew, few answers |
+| **out** | `dialects/` | Postgres/MySQL/SQLite specifics, not migration material |
+| **out** | `index/ contents/ copyright/ intro` `.rst` | navigation and a licence notice; nothing retrievable |
+| **out** | the API reference | not in the `.rst` source at all — see above |
+| **out** | GitHub issues, Stack Overflow, `lib/sqlalchemy` | volume, and each is a clean Phase 3 before/after instead |
+| **out** | `deliverables/BREAKAGES.md` | **it seeds the Phase 2 golden dataset.** A corpus containing the answer key makes Phase 2 measure whether retrieval can find its own answers |
+
+**Version skew is recorded, not prevented.** Every file carries its release in the manifest and
+every chunk will inherit it, but Step 4 retrieves across both versions with no filter. A filter
+here would delete the failure before it could be measured, and that failure is the argument for
+Phase 3. The honest version of this system, in Phase 1, gets `future=True` wrong — and the Step 5
+file will show which 1.4 page it came from.
+
+`migration_20.rst` sits inside `changelog/`, which is otherwise excluded. It is named
+individually; its ~33 siblings are not. `corpus/MANIFEST.json` states this under `selection`
+so it does not read as a bug.
+
 **Done when:** the corpus is on disk with a manifest saying where each file came from and
 which version it documents.
+
+#### Done — `rag/corpus.py`
+
+```
+# runnable: uv run python -m rag.corpus --force 2>&1
+fetching rel_1_4_52 ...
+fetching rel_2_0_51 ...
+corpus manifest: corpus/MANIFEST.json
+  rel_1_4_52   126 files   1903934 bytes   https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_1_4_52.tar.gz
+  rel_2_0_51   144 files   2154490 bytes   https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_2_0_51.tar.gz
+  TOTAL        270 files   4058424 bytes
+  by top-level directory:
+    orm           157 files   2109455 bytes
+    core           66 files    884110 bytes
+    tutorial       24 files    446017 bytes
+    (root)          4 files    282520 bytes
+    faq            18 files    243125 bytes
+    changelog       1 files     93197 bytes
+```
+
+Four properties worth knowing, each of them a decision rather than an accident:
+
+- **Neither version number is typed in the script.** 1.4.52 is read from `pyproject.toml`'s own
+  dependency pin; 2.0.51 is read out of `verify_2_0.PIN`, the constant that already governs what
+  `BREAKAGES.md` was measured on. The corpus cannot document a release the rest of the repo is
+  not on. (`verify_2_0` is read as text rather than imported, because it calls `sys.exit()` at
+  import time under 1.4 — correct for that module, fatal for this one.)
+- **`corpus/raw/` is fetched, never committed** — `.gitignore` already said so. 4.5 MB on disk.
+  `corpus/MANIFEST.json` **is** committed, at 74983 bytes: it is the provenance record, and a
+  diff on it means the corpus actually moved.
+- **The manifest carries no timestamp**, so it is a pure function of the two tags and the
+  selection rules. Verified rather than asserted: `--force` re-downloads both tarballs and
+  reproduces the file byte-for-byte. A `generated_at` field would make every regeneration a diff
+  and train you to stop reading them.
+- **Re-running is safe.** Like `seed.py`, an intact corpus is left alone; `--check` re-hashes all
+  270 files against the manifest, and `--force` rebuilds.
+
+```
+# runnable: uv run python -m rag.corpus --check
+all 270 files match the manifest
+corpus manifest: corpus/MANIFEST.json
+  rel_1_4_52   126 files   1903934 bytes   https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_1_4_52.tar.gz
+  rel_2_0_51   144 files   2154490 bytes   https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_2_0_51.tar.gz
+  TOTAL        270 files   4058424 bytes
+  by top-level directory:
+    orm           157 files   2109455 bytes
+    core           66 files    884110 bytes
+    tutorial       24 files    446017 bytes
+    (root)          4 files    282520 bytes
+    faq            18 files    243125 bytes
+    changelog       1 files     93197 bytes
+```
 
 ### 2. Chunk it
 
