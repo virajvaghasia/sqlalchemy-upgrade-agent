@@ -381,7 +381,7 @@ form.
 
 ## §F — Where the work runs
 
-### D27 — The lab PC is the build machine; the Mac is the desk
+### D27 — The lab PC is the build machine; the Mac is the desk ⚠️ **weakened 2026-08-14**
 
 > **Decided** — chunking and text processing on the Mac; embedding, Qdrant and Ollama on the
 > Ubuntu lab PC (Dell XPS 8950, RTX 3060).
@@ -399,6 +399,36 @@ form.
 > **The 31 GiB figure corrected a guess.** The plan had assumed 12 GB of system RAM, which was
 > wrong and had been used to justify deferring things. VRAM is the real budget.
 > **Asked as** — *"How did you decide what runs where?"*
+>
+> ---
+>
+> **⚠️ Weakened 2026-08-14, and the reason is instructive.** The lab PC became unavailable for
+> two days — it is a **shared** machine, and the other user needed the GPU. The plan's response
+> to that was "wait", which is what a plan says when it has an unexamined dependency.
+>
+> Measuring the machine that was *not* examined:
+>
+> ```
+> # runnable: sysctl -n machdep.cpu.brand_string; sysctl -n hw.ncpu; sysctl -n hw.memsize
+> Apple M4    10 cores    16 GiB unified memory    arm64    Docker 29.2.0
+> ```
+>
+> **The Mac is not a thin client, and "the lab PC is the build machine" was decided when it
+> was an unknown.** Apple Silicon has Metal, unified memory means the GPU sees all 16 GiB, and
+> BGE-M3 at roughly 568M parameters is about 1.1 GB in fp16. Docker is already running, so
+> Qdrant has a home here too.
+>
+> **What is NOT claimed:** that the Mac is fast enough. Throughput has not been measured, and
+> 16 GiB shared between macOS, Qdrant, an embedder and a 4.7 GB generator is tight. The point
+> is narrower and more useful: **the question is now answerable today rather than in two days**,
+> and if the Mac turns out to be too slow, that is a *number* justifying the wait rather than an
+> assumption.
+>
+> **The real lesson, and the one worth saying in an interview:** a pipeline that only runs on
+> one shared machine has a single point of failure that is a *person's calendar*. Steps 2–4
+> should be machine-agnostic — same code, different device — and the device should be a flag,
+> not an assumption baked into the plan. That is now the design target, and it came from an
+> outage rather than from foresight.
 
 ### D28 — Langfuse stays in Phase 6
 

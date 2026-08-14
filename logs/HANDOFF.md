@@ -389,6 +389,20 @@ reboot test, deferred ~20 days.
 
 # Round 4 — Phase 1 has started, and this PC is the GPU half
 
+> **PARKED 2026-08-14 — the 3060 is in use by its other user for ~2 days.**
+> Nothing below is urgent. Run it when the machine is free again; ASK 4.1 is a few minutes and
+> ASK 4.2 is two commands, so the round stays cheap whenever it happens.
+>
+> **This did not stall Phase 1.** Step 2 (chunking) needs no accelerator, and the outage
+> prompted measuring the Mac, which had never been examined: Apple M4, 10 cores, 16 GiB
+> unified memory, Docker 29.2.0. Steps 3–4 are being built to take the device as a **flag**
+> rather than assuming this box — see `study/09-DECISIONS.md` **D27**, weakened that day.
+>
+> **ASK 4.2 still matters and is not superseded.** Whatever the Mac turns out to do, the
+> question *"does BGE-M3 fit alongside a loaded generator on 12288 MiB of dedicated VRAM"* is
+> a different question from what unified memory does, and it is the one that decides whether
+> this box can serve both models at once.
+
 **Nothing here is blocked on Tailscale.** Round 3 is still open — Shaili has not shared
 `kj-xps-8950` yet — but every command below is run *at* the PC (AnyDesk or the desk itself),
 so none of it waits on the tunnel.

@@ -9,14 +9,47 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 |---|---|---|---|
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
 | [2. chunk it](#2-chunk-it) | **next** | Mac | — |
-| [3. embed and store](#3-embed-and-store) | not started | lab PC | — |
-| [4. retrieve and answer](#4-retrieve-and-answer) | not started | lab PC | — |
+| [3. embed and store](#3-embed-and-store) | not started | **whichever is free** | — |
+| [4. retrieve and answer](#4-retrieve-and-answer) | not started | **whichever is free** | — |
 | [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | not started | either | — |
 
 **Picking this up cold?** Read Step 1's decision table, then Step 2. Steps 3–5 are plans, not
 findings — there is nothing measured in them yet, so there is nothing there to learn from.
 
-**Steps 1–2 need no GPU.** Step 3 is where the lab PC and the Day 3 tunnel start to matter.
+### The machine question, reopened 2026-08-14
+
+The table above used to say **lab PC** for Steps 3 and 4. It now says *whichever is free*, and
+the reason is worth keeping.
+
+**The lab PC is shared, and it went away for two days** — the other user needed the 3060. A
+plan whose only answer to that is "wait" has a single point of failure that is somebody else's
+calendar.
+
+So the machine that had never been measured got measured:
+
+```
+# runnable: sysctl -n machdep.cpu.brand_string; sysctl -n hw.ncpu; sysctl -n hw.memsize
+Apple M4    10 cores    16 GiB unified memory    arm64    Docker 29.2.0
+```
+
+| | lab PC (Dell XPS 8950) | this Mac |
+|---|---|---|
+| accelerator | RTX 3060, **12288 MiB** dedicated VRAM | Apple M4, Metal over **16 GiB unified** |
+| memory model | VRAM is a separate, hard budget | unified — the GPU sees system memory |
+| availability | **shared; unavailable ~2 days from 2026-08-14** | always |
+| Docker | Engine 29.7.2 | Desktop 29.2.0 |
+| measured throughput | `qwen2.5-coder:7b` at **62.23 tok/s** | **not yet measured** |
+
+**What this does not say is that the Mac is fast enough.** Nothing has been timed on it, and
+16 GiB shared between macOS, Qdrant, an embedder and a 4.7 GB generator is tight where 12288
+MiB of dedicated VRAM is not. The claim is narrower: **the question is answerable here, today.**
+
+**The design target this changes:** Steps 3 and 4 take the device as a **flag**, not an
+assumption — same code, `--device mps` or `--device cuda` or `--device cpu`. If the Mac is too
+slow, that produces a number justifying the wait instead of an unexamined dependency. Recorded
+as [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D27**.
+
+**Steps 1–2 need no accelerator at all**, so none of this blocks what is next.
 
 ## What this phase is
 
