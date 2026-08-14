@@ -62,6 +62,7 @@ to "§18" is unambiguous in either file.
 | file | what it is |
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
+| [`phases/PHASE-1.md`](phases/PHASE-1.md) | **the current phase** — a deliberately dumb RAG, and why it must be bad first |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | the current phase in detail, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
 | [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
