@@ -7,8 +7,35 @@ application in this repo, run against real 2.0, with every failure recorded as i
 happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden dataset the retrieval
 system is later evaluated against.
 
-**Status:** Phase 0, Part A complete. Pinned to SQLAlchemy **1.4.52**; breakages verified
-against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md) for the six-phase arc.
+**Status:** Phase 0 complete except its Day 3 tunnel, which is blocked on someone else rather
+than on work. **Phase 1 is current, and Step 1 (the corpus) is done.** Pinned to SQLAlchemy
+**1.4.52**; breakages verified against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md)
+for the six-phase arc.
+
+---
+
+## Start here
+
+This repo is 17 documents and about 11,000 lines, which is a book, and reading it front to back
+is the wrong move. **Almost none of it is meant to be read in order.** Pick the question you
+actually have:
+
+| if you want to… | read, in this order | roughly |
+|---|---|---|
+| **know where the project is** | this Status line → [`phases/PHASE-1.md`](phases/PHASE-1.md) → the last entry of [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | 15 min |
+| **understand what was built most recently** | [`phases/PHASE-1.md`](phases/PHASE-1.md) Step 1 → `rag/corpus.py` → `tests/test_corpus.py` | 30 min |
+| **defend this in an interview** | [Three findings](#three-findings-worth-knowing-before-you-read-anything-else) below → [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) Groups A–H → [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22 | a few hours |
+| **learn SQLAlchemy properly** | [`study/README.md`](study/README.md), then follow its numbering | days |
+| **learn the Docker/CI side** | [`study/04-DOCKER.md`](study/04-DOCKER.md) §1 opens with a one-page plain-language summary — start there, not at §1.1 | half a day |
+| **work on the lab PC** | [`study/08-LAB.md`](study/08-LAB.md) — it is a runbook, so jump to the section you need | as needed |
+
+**The three long files are reference, not reading.** `study/01-CONCEPTS.md` (1875 lines),
+`study/02-MIGRATION-2.0.md` (1458) and `deliverables/BREAKAGES.md` (1266) are things you look
+*into* when you have a specific question. Nobody, including the person who wrote them, reads
+them straight through.
+
+**If you only open one file, open [`phases/PHASE-1.md`](phases/PHASE-1.md).** It says what the
+current phase is, what the next step is, and why each decision already made was made.
 
 ---
 
@@ -74,7 +101,7 @@ to "§18" is unambiguous in either file.
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **the current phase** — a deliberately dumb RAG, and why it must be bad first |
-| [`phases/PHASE-0.md`](phases/PHASE-0.md) | the current phase in detail, and its deliverables |
+| [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
 | [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
 | [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |

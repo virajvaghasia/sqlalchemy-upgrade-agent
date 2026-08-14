@@ -3,6 +3,21 @@
 The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it.
 [`PHASE-0.md`](PHASE-0.md) is the phase before, complete except its Day 3 tunnel.
 
+## Where this phase is
+
+| step | state | machine | what exists |
+|---|---|---|---|
+| [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
+| [2. chunk it](#2-chunk-it) | **next** | Mac | — |
+| [3. embed and store](#3-embed-and-store) | not started | lab PC | — |
+| [4. retrieve and answer](#4-retrieve-and-answer) | not started | lab PC | — |
+| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | not started | either | — |
+
+**Picking this up cold?** Read Step 1's decision table, then Step 2. Steps 3–5 are plans, not
+findings — there is nothing measured in them yet, so there is nothing there to learn from.
+
+**Steps 1–2 need no GPU.** Step 3 is where the lab PC and the Day 3 tunnel start to matter.
+
 ## What this phase is
 
 Meaning-search only. **No hybrid search, no reranking, no agent.** Type a question in a

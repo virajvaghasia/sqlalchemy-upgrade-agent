@@ -41,11 +41,19 @@ numbering always continues across the split so existing references keep resolvin
 
 | | |
 |---|---|
-| [`../README.md`](../README.md) | the front door and the map |
+| [`../README.md`](../README.md) | the front door and the map — its **Start here** table says which of these files to open for which question |
 | [`../phases/ROADMAP.md`](../phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term |
-| [`../phases/PHASE-0.md`](../phases/PHASE-0.md) | the current phase, its gates, and what is built so far |
+| [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | **the current phase** — a deliberately dumb RAG, its five steps, and the decisions already settled |
+| [`../phases/PHASE-0.md`](../phases/PHASE-0.md) | the phase before: complete except its Day 3 tunnel, with its gates and deliverables |
 | [`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages |
 | [`../logs/LEARNING-LOG.md`](../logs/LEARNING-LOG.md) | the dated timeline |
+
+## What is not in here yet
+
+Phase 1 builds the retrieval system in `../rag/`, and its reasoning lives in
+[`../phases/PHASE-1.md`](../phases/PHASE-1.md) rather than in a numbered study file — the plan
+and the explanation are the same document while a step is still being built. If a subject here
+grows past what a phase file should carry, it becomes `09-…` and gets a row above.
 
 ## How to read a code block
 
