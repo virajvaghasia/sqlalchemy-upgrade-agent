@@ -104,6 +104,17 @@ Embeddings, retrieval, chunking, reranking, evaluation, agents, MCP.
 He is honestly new here, has no prior claim to the knowledge, and no interviewer expects him
 to have arrived with it. Pair freely, write code, explain as you go.
 
+**Explain before asking him to decide. Added 2026-08-13, at his request.** Phase 1+ steps open
+with a decision — which corpus, which chunk size, which model — and a menu of options is
+useless to someone who does not yet know what the thing *is*. So the order is: what it is, why
+it is a decision at all, a worked example with real numbers, *then* the question. He asked for
+this in exactly these words: *"explain what are we doing rather than just question me."*
+
+**And the explanation goes in the docs, not only in chat.** Chat is not an artifact; a
+session ends and it is gone. The explanation belongs beside the decision it informs — Step 1's
+went into `phases/PHASE-1.md` Step 1, not into a new file. This is the example rule applied to
+teaching rather than to claims.
+
 **As of 2026-08-12 both halves work the same way: Claude writes, narrating as it goes.** The
 asymmetry that used to exist here — least help on infra, most help on AI — is retired. What
 did not change is the standard the work is held to: **he has to be able to defend it**, which
