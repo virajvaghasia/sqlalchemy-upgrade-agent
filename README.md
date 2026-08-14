@@ -38,6 +38,15 @@ uv run --no-project --with 'sqlalchemy==2.0.51' \
     python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
 ```
 
+Phase 1 starts by fetching the retrieval corpus — 270 `.rst` files from the two pinned
+SQLAlchemy release tags. It is not committed; this rebuilds it, and `corpus/MANIFEST.json`
+records where every file came from and which release it documents.
+
+```bash
+uv run python -m rag.corpus            # fetch if absent, then report
+uv run python -m rag.corpus --check    # re-hash every file against the manifest
+```
+
 ---
 
 ## Repository layout
@@ -50,7 +59,9 @@ study/                 the teaching material, numbered in reading order
 deliverables/          what a phase produced — BREAKAGES.md is Phase 0's
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
-tests/                 17 tests pinning what the docs claim
+rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
+corpus/                MANIFEST.json, the provenance record. raw/ is fetched, never committed
+tests/                 42 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -108,13 +119,18 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-17 passed, 1 warning in 0.52s
+42 passed, 1 warning in 0.52s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
 the six-mapped-classes/eight-tables split, that seeding twice produces byte-identical data, and
 the `is_seeded` guard that stops the container's startup seed dropping a populated Postgres
 volume. Each was mutation-checked — break the thing it describes and it fails.
+
+`tests/test_corpus.py` pins the Phase 1 corpus decision the same way: that only one file was
+taken out of `changelog/`, that no dialect pages got in, that `BREAKAGES.md` stayed out so it
+can still serve as Phase 2's answer key, and that the totals quoted in `phases/PHASE-1.md` are
+the ones `rag/corpus.py` actually measured.
 
 ### Proofs behind the teaching docs
 

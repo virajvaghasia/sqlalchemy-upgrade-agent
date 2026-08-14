@@ -298,9 +298,12 @@ CI's gate is *"a PR with a deliberately failing test that GitHub refuses to merg
 tests to exist before a workflow can run them.
 
 ```
-# runnable: uv run pytest
-17 passed, 1 warning in 0.52s
+# runnable: uv run pytest tests/test_db_config.py tests/test_models.py tests/test_seed.py
+17 passed, 1 warning in 0.55s
 ```
+
+(Named file by file on purpose. A bare `uv run pytest` now also collects Phase 1's
+`tests/test_corpus.py`; these three are Phase 0's, and this block is Phase 0's record.)
 
 Those 17 pin claims the docs make rather than testing the library: the counts in
 `study/03-PRACTICE-APP.md`, the six-classes/eight-tables split, seed determinism, and the `is_seeded`

@@ -30,17 +30,24 @@ next.
 
 ```
 # runnable: uv run pytest
-17 passed, 1 warning in 0.47s
+42 passed, 1 warning in 0.52s
 ```
 
-Three files, and none of them check that SQLAlchemy works:
+Four files, and none of them check that SQLAlchemy works:
 
 ```
-# runnable: uv run pytest --collect-only -q
+# runnable: uv run pytest --collect-only -q | grep '^tests/'
+tests/test_corpus.py: 25
 tests/test_db_config.py: 5
 tests/test_models.py: 6
 tests/test_seed.py: 6
 ```
+
+The first three are Phase 0's and are what the rest of this section describes.
+`test_corpus.py` arrived with Phase 1 Step 1 and pins a different kind of claim — not what
+the app does, but **what is in the retrieval corpus and what was deliberately left out**. The
+decision it guards is in [`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 1; the shape is
+the same one §6.1 argues for, which is why it lives here rather than somewhere new.
 
 **Every test pins a claim some document makes.** That is the design, and it comes from a real
 failure: [`03-PRACTICE-APP.md`](03-PRACTICE-APP.md) asserted *"Six tables"* in prose for 292

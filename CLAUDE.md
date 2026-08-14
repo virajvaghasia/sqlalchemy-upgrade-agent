@@ -22,7 +22,10 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`tests/`** — 17 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 42 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
+  is an instrument pointed at SQLAlchemy and pinned to 1.4.52; this one is pointed at text and
+  imports no SQLAlchemy. `corpus/MANIFEST.json` is committed, `corpus/raw/` is not.
 - **`logs/HANDOFF.md`** — the Mac ⇄ lab-PC wire, on branch `lab/handoff`. **Claude cannot
   reach the lab machine**; it has no inbound route until sshd and a tunnel exist. Write ASK
   blocks there rather than into the chat, where PC commands bounce back unrun. Raw pasted
@@ -399,3 +402,25 @@ Append a dated entry each session; keep each entry to a few bullets.
   `deliverables/BREAKAGES.md` quotes exact error strings.
 - A stale `sqlalchemy-upgrade-agent` image (13h older than the code) silently invalidated a networking
   measurement mid-session. Written up in `study/04-DOCKER.md` §4.0.
+
+### 2026-08-13 — Phase 1, Step 1 (the corpus)
+- Explained the step before asking for decisions — he asked for that explicitly, and it is
+  now the expectation for every Phase 1 step: what the thing is, why it is a decision, and a
+  worked example, *then* the question. Explanations go in the docs, not only in chat.
+- `phases/PHASE-1.md` Step 1 gains three subsections (what a corpus is; a measured inventory
+  of both doc tags; the version-skew trap on one real line) plus the decision table.
+- Corpus decided: `orm/ core/ tutorial/ faq/ errors.rst glossary.rst` from **both** pinned
+  tags, plus `changelog/migration_20.rst` from 2.0 only. Out: the rest of `changelog/`,
+  `dialects/`, navigation pages, the API reference (absent from `.rst` source), issues/SO,
+  library source, and **`BREAKAGES.md`** — it is Phase 2's answer key and stays out of the
+  corpus that Phase 2 grades.
+- Version skew is **recorded, not filtered.** Every file carries its release; Step 4 retrieves
+  across both. Filtering here would delete the failure Phase 3 exists to fix.
+- New package `rag/`, new script `rag/corpus.py`: 270 files / 4058424 bytes fetched,
+  `corpus/MANIFEST.json` committed (74983 bytes), `corpus/raw/` gitignored. Neither version
+  number is typed in it.
+- 25 new tests (42 total). Two mutation-checked: a stale total in `PHASE-1.md` and a
+  smuggled-in `changelog/` sibling both fail the suite.
+- **Docs the change invalidated were fixed, not left:** `README.md`, `study/07-TESTS.md`
+  and `CLAUDE.md` now say 42; `phases/PHASE-0.md`'s block names its three files explicitly so
+  it stays Phase 0's record and still reproduces.
