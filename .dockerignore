@@ -4,3 +4,10 @@
 **/__pycache__
 **/.DS_Store
 .claude/
+
+# The retrieval corpus is fetched, not shipped. 4.5MB of .rst that this image
+# never reads: the app container runs the 1.4 app, and whichever machine embeds
+# the corpus runs `python -m rag.corpus` for itself. Same rule as issues.db —
+# the image holds code, the container holds data. corpus/MANIFEST.json is small
+# and IS copied, so a container can still say what the corpus should contain.
+corpus/raw/

@@ -1,0 +1,1945 @@
+{
+  "generated_by": "rag/corpus.py",
+  "decision": "phases/PHASE-1.md Step 1",
+  "selection": {
+    "doc_root": "doc/build",
+    "narrative_dirs": [
+      "orm",
+      "core",
+      "tutorial",
+      "faq"
+    ],
+    "root_files": [
+      "errors.rst",
+      "glossary.rst"
+    ],
+    "migration_guide": {
+      "path": "changelog/migration_20.rst",
+      "versions": [
+        "2.0"
+      ],
+      "note": "named individually; the rest of changelog/ is excluded, so this is not an inconsistency"
+    },
+    "excluded": {
+      "changelog/ (except migration_20.rst)": "~60% of bytes, per-release bug entries and 1.0-1.4 migration guides",
+      "dialects/": "backend specifics, not migration material",
+      "index/contents/copyright/intro .rst": "navigation and licence, no answers",
+      "API reference": "generated from docstrings at Sphinx build time; absent from .rst source",
+      "deliverables/BREAKAGES.md": "seeds the Phase 2 golden dataset; keeping it out keeps that answer key clean"
+    }
+  },
+  "sources": [
+    {
+      "series": "1.4",
+      "sqlalchemy_version": "1.4.52",
+      "tag": "rel_1_4_52",
+      "url": "https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_1_4_52.tar.gz",
+      "tarball_bytes": 4334349,
+      "tarball_sha256": "4da8c35cc474b5db8792802ccc113cb9abf827e6cc31bd09583a3e599ad5f4d8",
+      "file_count": 126,
+      "bytes": 1903934
+    },
+    {
+      "series": "2.0",
+      "sqlalchemy_version": "2.0.51",
+      "tag": "rel_2_0_51",
+      "url": "https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_2_0_51.tar.gz",
+      "tarball_bytes": 5165260,
+      "tarball_sha256": "3378f794faabc73ed49359330288eddff6619f0dab2609887c70a99fc6578955",
+      "file_count": 144,
+      "bytes": 2154490
+    }
+  ],
+  "files": [
+    {
+      "path": "corpus/raw/1.4.52/core/api_basics.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/api_basics.rst",
+      "bytes": 134,
+      "sha256": "172b95506a4fa3dd54fd2309f6080d4debb038346c24ac0525cc32a3b63c8205"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/compiler.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/compiler.rst",
+      "bytes": 190,
+      "sha256": "7749e235fc9accb24b0f5a117609555d2a2ea74e1a65fc9d3c13208d3fb63593"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/connections.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/connections.rst",
+      "bytes": 100985,
+      "sha256": "2fabc4b6a3fe7d33c159c2445ca0308ac4c1c712e16a18ce0f81f8a63503b747"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/constraints.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/constraints.rst",
+      "bytes": 34503,
+      "sha256": "0e67958fb76479dc94b062fa115dead2fb9269f4d114ef1a39e80d9304d847e9"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/custom_types.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/custom_types.rst",
+      "bytes": 29313,
+      "sha256": "865ff2383463cc546935a874f2d160a381199141ec4abbd985b1360088a19a78"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/ddl.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/ddl.rst",
+      "bytes": 9303,
+      "sha256": "c6d1aa8ad4869e089b2fc4bef53d0607bfbd7525e2b68a1464e3e7c5f93b5e2e"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/defaults.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/defaults.rst",
+      "bytes": 33696,
+      "sha256": "3972dba322dc39864b9fda6998e51ff8dbc0b658a252390bc50e36a4316d1111"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/dml.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/dml.rst",
+      "bytes": 1208,
+      "sha256": "4734b17b40d066a01b375460e43935d2d3ecad48dabb0debfc87529251e9d820"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/engines.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/engines.rst",
+      "bytes": 28698,
+      "sha256": "45610f39af4156e4392a354c0551ece2db3efc8e97cabe71a33dec8bf5d59cba"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/engines_connections.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/engines_connections.rst",
+      "bytes": 146,
+      "sha256": "21f85ad2e7cf95a20e3aa1496cd895bf0aaea4c265b6e0dc77bf43ea4ee47ab2"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/event.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/event.rst",
+      "bytes": 6051,
+      "sha256": "77d3324ea61a29fbf44154d47a54a18850aff9c8ba0a62930d4566ae81500766"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/events.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/events.rst",
+      "bytes": 793,
+      "sha256": "dafb15a273c7adfbade56a69643f75ee4e11eeb31d3791edb94e84e870088352"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/exceptions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/exceptions.rst",
+      "bytes": 109,
+      "sha256": "8ec5a4168455a36c495de0b738798a98adde2eef094284adc4b1c5709c1a09f8"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/expression_api.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/expression_api.rst",
+      "bytes": 442,
+      "sha256": "62d4a0f411ec315ac97a37c620aa6f8506c391440a7cd79de15829e32ab4e6a8"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/foundation.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/foundation.rst",
+      "bytes": 642,
+      "sha256": "b244aefab2fa9766728832bcf77ed33740518b729446fa5c52b1c590fc6a2d50"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/functions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/functions.rst",
+      "bytes": 2898,
+      "sha256": "fd2e64813a150350c310f47a14affe17a03691885270300ca3d1e09471ad046a"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/future.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/future.rst",
+      "bytes": 1447,
+      "sha256": "86cc3fd25ae02bfdc9be94a2fb327f00281142202523502df2fa582a9e759bb6"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/index.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/index.rst",
+      "bytes": 464,
+      "sha256": "217f367bc49d976b3240bb5733f548322ca4ac1429bcccdab4ec008ce351042c"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/inspection.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/inspection.rst",
+      "bytes": 1856,
+      "sha256": "5ca69f1b60edaf75327fa75fe28e0ece3611363aa2074491252306a59b50f5ed"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/internals.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/internals.rst",
+      "bytes": 1014,
+      "sha256": "d03285593ea20e72cfb576a60fbf5f29b109e5e88b74542b4bb970bf25b1796a"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/metadata.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/metadata.rst",
+      "bytes": 23651,
+      "sha256": "c6b55f119659a19d01751d72304684f8bfd50b37abe59535488f04ad71a35c90"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/operators.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/operators.rst",
+      "bytes": 19381,
+      "sha256": "f22a393fb26e6f9070198f68e7852fdb632b3cae8a8a3c246531b36f79728cbf"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/pooling.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/pooling.rst",
+      "bytes": 29652,
+      "sha256": "8c32285332a8e1014430ab8b7faf7c8b20744f18168ede7dec9d8f1a68ddd0e1"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/reflection.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/reflection.rst",
+      "bytes": 23374,
+      "sha256": "6b1f7d1d936d5dc5a90ac58af3d3fbc59ab3e73fea7136c627d2066236e7518b"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/schema.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/schema.rst",
+      "bytes": 1709,
+      "sha256": "46f9bbd5983af2aa5bd3a70661eb3fae96af32fc5561bd609552d9ae147db976"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/selectable.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/selectable.rst",
+      "bytes": 3619,
+      "sha256": "6fb7bc6dc2ad4269d57dac1051ba0121ac0362e854c041b7199d8b756091c092"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/serializer.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/serializer.rst",
+      "bytes": 139,
+      "sha256": "a66ff913549e72019c431789e3d4d161fd2bc63502f67f004a7921e9f43e3c5c"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/sqlelement.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/sqlelement.rst",
+      "bytes": 3694,
+      "sha256": "f52134ee049b452bb2b42b35978f46936cd4a67d2504a05c5009b922eafe7d9b"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/tutorial.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/tutorial.rst",
+      "bytes": 104635,
+      "sha256": "29e5509ad20ed53c39d4e7fec4bf5e439c430c40de4f68f824be1bb06331329f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/type_api.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/type_api.rst",
+      "bytes": 332,
+      "sha256": "72c126bbe5f81917af09f7fde787f9cb2376dbcb10d37f2f8256f012ab483abf"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/type_basics.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/type_basics.rst",
+      "bytes": 9996,
+      "sha256": "bf90aaad6491531228f0d03f08cd41f116e4f19b972aeed3b716b65cbe844c39"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/types.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/types.rst",
+      "bytes": 142,
+      "sha256": "6416707899dbe506d0c30c5cbd171582c226e559a1c9fa0999e91ef6309b4761"
+    },
+    {
+      "path": "corpus/raw/1.4.52/core/visitors.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/core/visitors.rst",
+      "bytes": 1321,
+      "sha256": "50c7d3207f46273ef69dd64100112271f5af1560986252bc30923382a4f03a2f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/errors.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/errors.rst",
+      "bytes": 69011,
+      "sha256": "571c07890daee3de7adaefc892d679d7a282f6e8ef099d67c0e07dbe9a1f0ee5"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/connections.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/connections.rst",
+      "bytes": 25294,
+      "sha256": "62d903baf34b0d0e15c9794ff1552f413fd02875db1c89c5c6b2c34f2b1b4596"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/index.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/index.rst",
+      "bytes": 387,
+      "sha256": "6afd85e5385f67094a837262c486d4e91bf257005f959c0883dda6b337fac2c6"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/installation.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/installation.rst",
+      "bytes": 863,
+      "sha256": "7e4d89c7a89fd81c39dfeeb7ee380803a5ebee2fd0a66ed516e8fbefc4ba27c9"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/metadata_schema.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/metadata_schema.rst",
+      "bytes": 4023,
+      "sha256": "33ff605f5b0020a7c4200f842f8a2793fd82983df8df31e2f16f225ebf6ab38b"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/ormconfiguration.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/ormconfiguration.rst",
+      "bytes": 14203,
+      "sha256": "95ce2093ca3b80df8aed55f1716a9754f4f239cf93d5806cb72f8b15e4e005fa"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/performance.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/performance.rst",
+      "bytes": 28256,
+      "sha256": "2c386226679c457c467eaf6395178a8dd28b8fe682db39cd14692bd26c1e144e"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/sessions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/sessions.rst",
+      "bytes": 26050,
+      "sha256": "bb240080987a337cd1dbc06071a5af3ab52cb61df828bf6a922633ba55e005fa"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/sqlexpressions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/sqlexpressions.rst",
+      "bytes": 20611,
+      "sha256": "fad7a192f6ff2aede762309d4587fb84cdf480d399c8933e2ca7b68bebe7644f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/faq/thirdparty.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/faq/thirdparty.rst",
+      "bytes": 2568,
+      "sha256": "51e1fbb105189d314c335aa1bcfd346e8facad8079b61700f14bff923aca2ae0"
+    },
+    {
+      "path": "corpus/raw/1.4.52/glossary.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/glossary.rst",
+      "bytes": 62281,
+      "sha256": "665d1e6ba06ea3db45fcf598a25562c64c316cce72594dae0ade6080f341fe9d"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/backref.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/backref.rst",
+      "bytes": 6996,
+      "sha256": "658e108850b3190f9c43afa16858172f402c404bfd8ae2b35a5aae6f6729fc21"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/basic_relationships.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/basic_relationships.rst",
+      "bytes": 29425,
+      "sha256": "e202fdaf04cd60ed873ff9d5ea624da716b52eb1b8d476de58ed8991dabebef0"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/cascades.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/cascades.rst",
+      "bytes": 31220,
+      "sha256": "eca1ab089e91c42c4db4e6d832f7bd8a838ddf6b30e53fb096a76d0a45724e81"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/classical.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/classical.rst",
+      "bytes": 51,
+      "sha256": "2a5c68f64197efb433d2b3c934b74b1b7ff4f89c8f80b869e2340e830ae6912d"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/collections.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/collections.rst",
+      "bytes": 24412,
+      "sha256": "8012d5c14156eee19ba945697583002c6c1b86f098c83629144f31578c744ca6"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/composites.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/composites.rst",
+      "bytes": 7174,
+      "sha256": "d7416677ef540fe7dcf49f7bfcd22401dff2356ac4dc04daff90ba5e89a104d7"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/constructors.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/constructors.rst",
+      "bytes": 293,
+      "sha256": "a4089f4f3aba7874848d22ba3753ca09932bf07b6f8ba60117b2fccee36d74fe"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/contextual.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/contextual.rst",
+      "bytes": 14284,
+      "sha256": "2f394bee478165381162024cafe803df6e655472dc9b3ed4d5e7a5abd489b0a2"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/dataclasses.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/dataclasses.rst",
+      "bytes": 18346,
+      "sha256": "62ad40b59ed0c4b43c1f1c3bc1a9e8e7706c1dbdafdf8081a27108624af55bea"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/declarative_config.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/declarative_config.rst",
+      "bytes": 17697,
+      "sha256": "fccc779fd2aa40f011c7795197a069cd949d5e5216976bf8009253e515933bac"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/declarative_mapping.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/declarative_mapping.rst",
+      "bytes": 432,
+      "sha256": "21443f73fbaef9e094599b80ad2785ee24eb451eee3888ab40d65e53e0973b0a"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/declarative_mixins.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/declarative_mixins.rst",
+      "bytes": 18687,
+      "sha256": "29829ca0c50152675c82457f705516921f4036c83309f9f7fb90b643151fe14d"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/declarative_styles.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/declarative_styles.rst",
+      "bytes": 6130,
+      "sha256": "318063336a83348f473ea97f7b4971539aab6e29b5a81cd28144e753314e929e"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/declarative_tables.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/declarative_tables.rst",
+      "bytes": 16422,
+      "sha256": "010697f3727bab485efc7b8f4a65218ddcf5c568851791ddab26a49e1ea1cdfc"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/events.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/events.rst",
+      "bytes": 4246,
+      "sha256": "327f55482f11baaab94034190aab7a3fcfd9c43180a26588f8350d009873a226"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/examples.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/examples.rst",
+      "bytes": 3008,
+      "sha256": "f1cebfbcd81ae3a98e6e8e73dc2de4094ab8312d7343de32d5f27b5f67bbb2be"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/exceptions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/exceptions.rst",
+      "bytes": 110,
+      "sha256": "3c3599fc484de0729d2d6aead943ba5a593a6b1a7febc24afbae3062c35ab333"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extending.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extending.rst",
+      "bytes": 312,
+      "sha256": "37fabefab9b17800771fcc80ffddccfcd0d9e5e8eb2430f9807a85588e59e51a"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/associationproxy.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/associationproxy.rst",
+      "bytes": 25187,
+      "sha256": "0c197b824d58b60744816585f89c4da78fc29e4ea83add4ee78a69bb091acf06"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/asyncio.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/asyncio.rst",
+      "bytes": 33973,
+      "sha256": "cb79b52f0b21b12e544e1439e15f621247b39421cebcecf8cd0e27a94f00fa41"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/automap.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/automap.rst",
+      "bytes": 359,
+      "sha256": "5bd831c30770d1d4282084cfd0ee1aa3cb3e0cc011c217ee82be1847b8e338b2"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/baked.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/baked.rst",
+      "bytes": 20142,
+      "sha256": "6379112942e8e18084f90443ba9cf5ed5f193069aa89f9d51a63484500790f12"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/api.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/api.rst",
+      "bytes": 542,
+      "sha256": "441e2275401bf2f011ea7b6807a1aa04c132e827a3d13f0023419388eae7f585"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/basic_use.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/basic_use.rst",
+      "bytes": 715,
+      "sha256": "4ebe8437f7dabad00a6fdc4ae1d6a70a674476febbc84348dc64c38e32bac110"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/index.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/index.rst",
+      "bytes": 663,
+      "sha256": "a6d37eb33cb3fe11a5b3f1c105bda06bb91c87843a5b00616bc650514e070113"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/inheritance.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/inheritance.rst",
+      "bytes": 139,
+      "sha256": "350e9f66e8a04f6df8f7ac7438574f6e0234818b69e9c56b65b09bd57e7b2cfa"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/mixins.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/mixins.rst",
+      "bytes": 145,
+      "sha256": "bc530df0a9e4972493e7b513cd88c699ec2dd2b6f12171fc9300f77cc158e5a1"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/relationships.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/relationships.rst",
+      "bytes": 565,
+      "sha256": "381e8288d6ed55cfede2c8c6e7755640b573770cba7184757ff726c140424bf6"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/declarative/table_config.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/declarative/table_config.rst",
+      "bytes": 487,
+      "sha256": "0106efe535834ee24703b91080736103578dcba9eb0d9264fb1a46a5be695e37"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/horizontal_shard.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/horizontal_shard.rst",
+      "bytes": 248,
+      "sha256": "56f309a98dc6c8cf425cf7682c721318d47760e65b5a2a937266fc90fd12f808"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/hybrid.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/hybrid.rst",
+      "bytes": 305,
+      "sha256": "e4e0652d2b84706b102768a55dbafd70814cda25fa339db3d1d1ec1bf9fe5992"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/index.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/index.rst",
+      "bytes": 681,
+      "sha256": "1e25f239a2dbb65e7581ebdb49fc17f79564c423746138efdd47dc13d4bdd563"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/indexable.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/indexable.rst",
+      "bytes": 187,
+      "sha256": "a218215425d73e25f83897feaca1b907cce2d435f5afafb358f75fa2b8f023a2"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/instrumentation.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/instrumentation.rst",
+      "bytes": 458,
+      "sha256": "256521031b972bd0c652061aba1ecfc173a87a024455857258109b23f38a3c1f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/mutable.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/mutable.rst",
+      "bytes": 505,
+      "sha256": "fef307f76e3600028648e7ce597decdba8549877b028b6601e466af2af83297a"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/mypy.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/mypy.rst",
+      "bytes": 23312,
+      "sha256": "41bae131a1b12a138ff4bdc1049157f914395536e282f019bbaa5fce054d1d76"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/extensions/orderinglist.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/extensions/orderinglist.rst",
+      "bytes": 282,
+      "sha256": "435aa3e22fb3c779f4de3ffb654bcfbeb36c16de1e9b7b125e175c5cc8e7a930"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/index.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/index.rst",
+      "bytes": 466,
+      "sha256": "4f05acfa6b86cb194162a13198809630003739ff7117b5bac10dc88c42937722"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/inheritance.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/inheritance.rst",
+      "bytes": 40821,
+      "sha256": "fe82eb25c9bd792c34a26e23aab65a171f22468cf9140867023d0f82c0711684"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/inheritance_loading.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/inheritance_loading.rst",
+      "bytes": 36290,
+      "sha256": "8a7ead40e308adcf63dd31f46c19c6b390209d45ddff6a9b6f58b7928e36ce9d"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/internals.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/internals.rst",
+      "bytes": 2317,
+      "sha256": "3c4e3c4bb96b5d304086f3f00fd84bbb7035cbb48d8c99a57371276709bc7190"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/join_conditions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/join_conditions.rst",
+      "bytes": 37999,
+      "sha256": "53d64199bd555dd7b85ea1c52f3d8eeb06cdf46ef746257b125326ebf50757b8"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/loading.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/loading.rst",
+      "bytes": 53,
+      "sha256": "5ad29a49d788141f458dc874b3a6194e702223351dcf6649462cf77358ba19aa"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/loading_columns.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/loading_columns.rst",
+      "bytes": 12805,
+      "sha256": "ca0560cc16edfa3f8d60fd53030572839b214eb92d0a43a95d395ac1f185b64d"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/loading_objects.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/loading_objects.rst",
+      "bytes": 858,
+      "sha256": "0ff373b10db09b8d0a766d0af4d86f6535376486befaa14c624d8d2d8368369b"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/loading_relationships.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/loading_relationships.rst",
+      "bytes": 56016,
+      "sha256": "a3b59122c4ffc2988199ab929cadd849445338d644c212886355e10ac1672a23"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/mapped_attributes.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/mapped_attributes.rst",
+      "bytes": 12514,
+      "sha256": "ba37611e896a026e1ba1747f9d402ec7aae5ab842d11137b19ca45a680783e8e"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/mapped_sql_expr.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/mapped_sql_expr.rst",
+      "bytes": 18308,
+      "sha256": "23e8be49b5299ea693278ad665504f6331bcf8070344c18e098369e1c10c2508"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/mapper_config.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/mapper_config.rst",
+      "bytes": 710,
+      "sha256": "95eb0f576535cabc13c8c206dc549e8eb7ea8401324959a28344cd6fdf08abfb"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/mapping_api.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/mapping_api.rst",
+      "bytes": 652,
+      "sha256": "06d88275c1ae4a22b854a0d68190ed95cfe50a73e5bc1e0fe27fae5a3f7bc35c"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/mapping_columns.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/mapping_columns.rst",
+      "bytes": 12840,
+      "sha256": "f5deb8fca5e013dd10e6c9d44c08af63ad4a7c8a66f1762528b43fb2c12ca02a"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/mapping_styles.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/mapping_styles.rst",
+      "bytes": 21008,
+      "sha256": "67dee06e2f954de95f528b53e821d7a537387ad444c143727a982b6e7f61bfe3"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/nonstandard_mappings.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/nonstandard_mappings.rst",
+      "bytes": 9279,
+      "sha256": "bcffbf0eb50e1d8a1e8f48f3dd8b2ccf1df746a20989e984841675c7c38d0629"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/persistence_techniques.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/persistence_techniques.rst",
+      "bytes": 44517,
+      "sha256": "2585f7d152b7e0ec282fa27bb4dafe5542a3786e164e80b279ea5f183252baf8"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/query.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/query.rst",
+      "bytes": 1045,
+      "sha256": "6227fc12347214593914aff5183ba6c77b7feab53e504e5377546eebf2dc7907"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/queryguide.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/queryguide.rst",
+      "bytes": 52902,
+      "sha256": "ca90c9a83978267969af7a03d76c5e7a1d6a9d163eb0f5e6ba3cf4c609d06589"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/quickstart.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/quickstart.rst",
+      "bytes": 17451,
+      "sha256": "37f1b25483cf7799f8760870da9e3d0c540386c07c41feec8333435b5b313f74"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/relationship_api.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/relationship_api.rst",
+      "bytes": 248,
+      "sha256": "d84d84b430be04b15438992811a79b3f1abbb04d1a8a957cb006a26001c9707f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/relationship_persistence.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/relationship_persistence.rst",
+      "bytes": 11898,
+      "sha256": "5d3c951e80c767432ceba95fab302eecabbf344a5ef8f1860b59d359f70a23d6"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/relationships.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/relationships.rst",
+      "bytes": 530,
+      "sha256": "c176ed0dedab74baa62df839ed42496ed483b70f2c177b6989b951fbe2318243"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/scalar_mapping.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/scalar_mapping.rst",
+      "bytes": 356,
+      "sha256": "06ec05f07c2dedef988f2d2b74178c759770f77fb409773d29c137e567935122"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/self_referential.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/self_referential.rst",
+      "bytes": 8021,
+      "sha256": "ded72a35bc83ddf07c740c48ad82849d7c05fae11ba2b891a78b2b76395ebd3b"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/session.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/session.rst",
+      "bytes": 566,
+      "sha256": "23e82ff51c534147cda96d866eecea1c0e158cfc0934d5e69e87496239712d5f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/session_api.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/session_api.rst",
+      "bytes": 3124,
+      "sha256": "b6db0a4a0abe31d6a9619726eb3400d9d684742f1ba9cda78dfcc4407d499f84"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/session_basics.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/session_basics.rst",
+      "bytes": 51417,
+      "sha256": "b2f8a3649decd797adda7001ede2f110b887e5f60ceea9499dcb4bb5d0192bca"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/session_events.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/session_events.rst",
+      "bytes": 30272,
+      "sha256": "a5cef29a56f58de96e1420fdc30c1028600576ab0e23a7509ce9e418073abe6c"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/session_state_management.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/session_state_management.rst",
+      "bytes": 27667,
+      "sha256": "94d2096033ab61ef383d63e8e78d75f7748bb18cc7a3f7d3e13617f39e23b38c"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/session_transaction.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/session_transaction.rst",
+      "bytes": 31627,
+      "sha256": "b44e3be95d7c25cfd4a5568c3640c7ba042b34c22bcfb329d3302c6c28431618"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/tutorial.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/tutorial.rst",
+      "bytes": 88814,
+      "sha256": "add7158907ba59f56e7356a28725aaf4344f0eb6e8255caf16970576a37999be"
+    },
+    {
+      "path": "corpus/raw/1.4.52/orm/versioning.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/orm/versioning.rst",
+      "bytes": 11182,
+      "sha256": "514dbe12b1172db22a6304fa12eb4e20f8336c8210e5e0caa703232b069bfc11"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/data.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/data.rst",
+      "bytes": 2069,
+      "sha256": "611d3e2920353a0514c9a1709ebc22d56c9efa397ce76de96b61d7921c6f6404"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/data_insert.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/data_insert.rst",
+      "bytes": 11302,
+      "sha256": "050bf3f3706f9dae4289fe0d314159921edfddb3f10ecc00fed440bb3e54aa58"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/data_select.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/data_select.rst",
+      "bytes": 77154,
+      "sha256": "0eb1afa996f7b1960cee60d5016a7746d04ca39a6efa4f3f7782e5705ed47f3f"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/data_update.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/data_update.rst",
+      "bytes": 13050,
+      "sha256": "74976864f04baa8cbcdbbf735717c1dd646697de3b4e02998a05df18c929e7a2"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/dbapi_transactions.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/dbapi_transactions.rst",
+      "bytes": 20338,
+      "sha256": "cbcfbbb457889245073590c8226c8c8c97aa87d3857fdfbd7e51b811d0245ff3"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/engine.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/engine.rst",
+      "bytes": 3492,
+      "sha256": "8e0fedb9f458243081c0cdf3a99d22e93136f9f214ad1c16c0c94ed39593ac85"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/further_reading.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/further_reading.rst",
+      "bytes": 749,
+      "sha256": "9210c1759f89b7b62b4b172072ddb8a652c3f808b192ff06969ea5afe3bab5c3"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/index.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/index.rst",
+      "bytes": 7677,
+      "sha256": "94a0ac5e072afc353bfc7d1eee738ecbfadb7f291586cc2554693acb939cd718"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/metadata.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/metadata.rst",
+      "bytes": 23904,
+      "sha256": "f8ab5e72fd5e99f1657b43e5490c21b9a517b095de4e297021413f7753ade688"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/orm_data_manipulation.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/orm_data_manipulation.rst",
+      "bytes": 24777,
+      "sha256": "6d154be307b61a00c1f13ff6afb6d1bda2f20a0b73f59f61f88b4b87a1e435f9"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/orm_related_objects.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/orm_related_objects.rst",
+      "bytes": 37316,
+      "sha256": "4a7e76e71735c69d5c842c14aa38d01891b55a5ad1bff70025d76058b6a5d770"
+    },
+    {
+      "path": "corpus/raw/1.4.52/tutorial/tutorial_nav_include.rst",
+      "sqlalchemy_version": "1.4.52",
+      "source_path": "doc/build/tutorial/tutorial_nav_include.rst",
+      "bytes": 309,
+      "sha256": "65b1137f234f621664bc8bf7c1332551d0c5705c7d6febb2d77229c02a484ce5"
+    },
+    {
+      "path": "corpus/raw/2.0.51/changelog/migration_20.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/changelog/migration_20.rst",
+      "bytes": 93197,
+      "sha256": "cdda3d48f6ed4a4ceac1f0993e4e81754ace919cb09e8b665f5db20e304b11e9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/api_basics.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/api_basics.rst",
+      "bytes": 134,
+      "sha256": "172b95506a4fa3dd54fd2309f6080d4debb038346c24ac0525cc32a3b63c8205"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/compiler.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/compiler.rst",
+      "bytes": 190,
+      "sha256": "7749e235fc9accb24b0f5a117609555d2a2ea74e1a65fc9d3c13208d3fb63593"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/connections.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/connections.rst",
+      "bytes": 120278,
+      "sha256": "932612ac5e78fde9117e80169dfee28ffffe71e100d32436c9b3592e0f609f66"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/constraints.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/constraints.rst",
+      "bytes": 34635,
+      "sha256": "ab7f7572514048b354ec3d957f73d9940ea900b8fcc779f272c3c3f887f50a1d"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/custom_types.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/custom_types.rst",
+      "bytes": 32406,
+      "sha256": "592dc783330565de07312e23d0d7200f8b285f084a5f9cf55261cada4bc410ee"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/ddl.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/ddl.rst",
+      "bytes": 11808,
+      "sha256": "58eca684b355c5e12544733ffaed90c320d4b1d741649513f996b3bc555bb9bc"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/defaults.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/defaults.rst",
+      "bytes": 34020,
+      "sha256": "7acacaf4c9139a6d2fc31c8c3f2971aa0fed0a705d0abe54f98189205926ebd2"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/dml.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/dml.rst",
+      "bytes": 1352,
+      "sha256": "0ef7040073e5029404e5fd27b959857d044ab7189a6a0856bc7ca9abd06fc9bb"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/engines.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/engines.rst",
+      "bytes": 29040,
+      "sha256": "a50c8368959211151e6de430fc8bf5826a964613195bcf2aeb0c3c81a1e76d61"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/engines_connections.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/engines_connections.rst",
+      "bytes": 146,
+      "sha256": "21f85ad2e7cf95a20e3aa1496cd895bf0aaea4c265b6e0dc77bf43ea4ee47ab2"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/event.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/event.rst",
+      "bytes": 7172,
+      "sha256": "799037ed1b3a9b5fbc823d72e076e39f62b9df02a9d2e0db2527eae7ebf4806a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/events.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/events.rst",
+      "bytes": 855,
+      "sha256": "26066032838007406a94910d2e510031f3c3cfd32fd9f68efadecceecd7f24a6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/exceptions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/exceptions.rst",
+      "bytes": 109,
+      "sha256": "8ec5a4168455a36c495de0b738798a98adde2eef094284adc4b1c5709c1a09f8"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/expression_api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/expression_api.rst",
+      "bytes": 466,
+      "sha256": "294030fec41733e6da60150be3a8f9736c53380df4f310015535729547f3083b"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/foundation.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/foundation.rst",
+      "bytes": 642,
+      "sha256": "b244aefab2fa9766728832bcf77ed33740518b729446fa5c52b1c590fc6a2d50"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/functions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/functions.rst",
+      "bytes": 2949,
+      "sha256": "a386ac1d1b7f1442868d0361bab3278948a716882479e2cd0169dfc4a60f958d"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/future.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/future.rst",
+      "bytes": 545,
+      "sha256": "3424d4f7adeb03252cf66bbcb1ec54cfb1fb07e7867deb63245434e60919abe3"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/index.rst",
+      "bytes": 441,
+      "sha256": "4ea5e59cd294d6d70de1de875ad86da557d5fdb3ebeb4e0b7444dac798d310cf"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/inspection.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/inspection.rst",
+      "bytes": 1856,
+      "sha256": "5ca69f1b60edaf75327fa75fe28e0ece3611363aa2074491252306a59b50f5ed"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/internals.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/internals.rst",
+      "bytes": 1417,
+      "sha256": "4b446a0613737b82e471baa21735cbf1bac6cc3a7970db62a23907788c66c18d"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/metadata.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/metadata.rst",
+      "bytes": 23318,
+      "sha256": "aca6b0f58ecef4ff0328612b5c51312a2a18358a50e8408e67880c97094cab50"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/operators.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/operators.rst",
+      "bytes": 24381,
+      "sha256": "7f69605d89fdcf105076d3ad9de374fa20a94cd9c23d365e70366f626691a837"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/pooling.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/pooling.rst",
+      "bytes": 33035,
+      "sha256": "58412442e4c2a7b02beb769134628ae9229eedd9eca12c7ab29d5ff78e4e1c64"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/reflection.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/reflection.rst",
+      "bytes": 24461,
+      "sha256": "f2533d9e7aa2e3d3667cc51516b7f9e9d2676bb1b4b7b9cf02b83772628cd81c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/schema.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/schema.rst",
+      "bytes": 1709,
+      "sha256": "46f9bbd5983af2aa5bd3a70661eb3fae96af32fc5561bd609552d9ae147db976"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/selectable.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/selectable.rst",
+      "bytes": 3832,
+      "sha256": "cb4bffeb7eddd52dc66fac81c5bb2c82a2be9810fb72a6e81088b847ba93f8b4"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/serializer.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/serializer.rst",
+      "bytes": 139,
+      "sha256": "a66ff913549e72019c431789e3d4d161fd2bc63502f67f004a7921e9f43e3c5c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/sqlelement.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/sqlelement.rst",
+      "bytes": 4769,
+      "sha256": "d3c8a887af481c5443bae9a5e296f8f20eb12e286c1ae268c30d9c34b85f9f24"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/tutorial.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/tutorial.rst",
+      "bytes": 425,
+      "sha256": "517a8b281a6328d03693613ded84cca47ccf877dc6f277a090d2ee9948cbb3b4"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/type_api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/type_api.rst",
+      "bytes": 332,
+      "sha256": "72c126bbe5f81917af09f7fde787f9cb2376dbcb10d37f2f8256f012ab483abf"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/type_basics.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/type_basics.rst",
+      "bytes": 10248,
+      "sha256": "6994fd0f42500c91934fb627932a4b0e9bbfe284d29507d23bc921535bb08180"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/types.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/types.rst",
+      "bytes": 142,
+      "sha256": "6416707899dbe506d0c30c5cbd171582c226e559a1c9fa0999e91ef6309b4761"
+    },
+    {
+      "path": "corpus/raw/2.0.51/core/visitors.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/core/visitors.rst",
+      "bytes": 1321,
+      "sha256": "50c7d3207f46273ef69dd64100112271f5af1560986252bc30923382a4f03a2f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/errors.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/errors.rst",
+      "bytes": 81992,
+      "sha256": "fdf46e7af85d1adee298c728df56ad5b8209c41de8dbd850d078218fd00c539a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/connections.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/connections.rst",
+      "bytes": 25720,
+      "sha256": "e41e0e4783a9ad045248fb9904d3f85d9144078ffd6d7489786962c7926886ef"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/index.rst",
+      "bytes": 387,
+      "sha256": "6afd85e5385f67094a837262c486d4e91bf257005f959c0883dda6b337fac2c6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/installation.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/installation.rst",
+      "bytes": 844,
+      "sha256": "648bb9ffb4ec7c0f81e1e3bf85bb970dd9c61fbadad853bc769205ea8175a578"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/metadata_schema.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/metadata_schema.rst",
+      "bytes": 4031,
+      "sha256": "1d5cd0707dbe498c8e1b9f06aaac1517e66ece2f3231bc6639dcbd0d9df36e46"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/ormconfiguration.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/ormconfiguration.rst",
+      "bytes": 19739,
+      "sha256": "2e00ea2d3ba3c828f32ce76b51b7653c0a533f6453bfc97826ca53e2b884f5f9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/performance.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/performance.rst",
+      "bytes": 19912,
+      "sha256": "a31b97dab879c622ed3471cce1c7ca7a7c5814117223429da3edfff3186f78cf"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/sessions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/sessions.rst",
+      "bytes": 26163,
+      "sha256": "87dc0c96fcbd401561b9e2667a7d54a41833d2a73577c83dea444c7abc777e67"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/sqlexpressions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/sqlexpressions.rst",
+      "bytes": 21464,
+      "sha256": "c22086ee791e2f1a780a07210ae22c778fcca5ef05d47d0fc2d8ab0182ac3273"
+    },
+    {
+      "path": "corpus/raw/2.0.51/faq/thirdparty.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/faq/thirdparty.rst",
+      "bytes": 2610,
+      "sha256": "088dc3b9fefbc39e469d59cfda69323182fa12d6a083b0d77c9e16282319bb52"
+    },
+    {
+      "path": "corpus/raw/2.0.51/glossary.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/glossary.rst",
+      "bytes": 69236,
+      "sha256": "6ff65bb62e8fa3a04d850cec2f1bf8c2c5f0889fc0aa40f613c8fe0a66e1f0b2"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/backref.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/backref.rst",
+      "bytes": 7162,
+      "sha256": "ddf13a4f06714f0d4cc1aff70f77825c5640621773a69b1e439794945ff5ed03"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/basic_relationships.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/basic_relationships.rst",
+      "bytes": 47421,
+      "sha256": "18074ed8dbcbf8d2d67450ad08c43f7c063ce6be744f2a27c9d137f79ca37d8c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/cascades.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/cascades.rst",
+      "bytes": 32898,
+      "sha256": "889277975aad02d7f4238c56527270aa35a9569605f9986d17dc5c75395b575e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/classical.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/classical.rst",
+      "bytes": 51,
+      "sha256": "2a5c68f64197efb433d2b3c934b74b1b7ff4f89c8f80b869e2340e830ae6912d"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/collection_api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/collection_api.rst",
+      "bytes": 22788,
+      "sha256": "db0b8281a9831289afbea9ed107411f5d41ae13307008b6e17b70537dc5dd265"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/collections.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/collections.rst",
+      "bytes": 232,
+      "sha256": "54420d7029e42cb1096d1b4f9b2a6e9b00f58be935399dde7e7c3c7ae9e8eeb6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/composites.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/composites.rst",
+      "bytes": 16659,
+      "sha256": "c8b6706bde1ea54a2f1a3436bcda84e15b4883b27f6641e00c24555a1f43ea6c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/constructors.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/constructors.rst",
+      "bytes": 293,
+      "sha256": "a4089f4f3aba7874848d22ba3753ca09932bf07b6f8ba60117b2fccee36d74fe"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/contextual.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/contextual.rst",
+      "bytes": 14390,
+      "sha256": "a4b66ff770ee6409668fa07220704ee795b0912bf71098653de0b4d51aff303f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/dataclasses.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/dataclasses.rst",
+      "bytes": 39247,
+      "sha256": "88aca9e28253408acfe8bd639ce96124384302151fa0730afa0ea6a038ced0a6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/declarative_config.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/declarative_config.rst",
+      "bytes": 17672,
+      "sha256": "aed2dd61622495b22447a9415da5e69e6b0e5629cff88af2f9960b687323b86f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/declarative_mapping.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/declarative_mapping.rst",
+      "bytes": 432,
+      "sha256": "21443f73fbaef9e094599b80ad2785ee24eb451eee3888ab40d65e53e0973b0a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/declarative_mixins.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/declarative_mixins.rst",
+      "bytes": 33235,
+      "sha256": "7b4add0d611b0098ac105509c0927bc89576bbc4981080197b3dc87cd22a738b"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/declarative_styles.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/declarative_styles.rst",
+      "bytes": 7244,
+      "sha256": "c99e6aea9958a19b48c2b17b7288cc6004a5061f88ab3d504696e7704ff97f79"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/declarative_tables.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/declarative_tables.rst",
+      "bytes": 81005,
+      "sha256": "b75910623f7bc5a83de23a03a3978c891dd84c291f446a2e7c735035b74707b7"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/events.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/events.rst",
+      "bytes": 4246,
+      "sha256": "327f55482f11baaab94034190aab7a3fcfd9c43180a26588f8350d009873a226"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/examples.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/examples.rst",
+      "bytes": 2602,
+      "sha256": "a42aa39b8f46d82f03d075af85e72196c0a190baae2a3d12623f6b9d73190a0e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/exceptions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/exceptions.rst",
+      "bytes": 110,
+      "sha256": "3c3599fc484de0729d2d6aead943ba5a593a6b1a7febc24afbae3062c35ab333"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extending.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extending.rst",
+      "bytes": 312,
+      "sha256": "37fabefab9b17800771fcc80ffddccfcd0d9e5e8eb2430f9807a85588e59e51a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/associationproxy.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/associationproxy.rst",
+      "bytes": 30159,
+      "sha256": "d1706f5dad458b093d5fc625247af02a1186c6d3247ea3621d77bd891ee6da52"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/asyncio.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/asyncio.rst",
+      "bytes": 43695,
+      "sha256": "23d93dc4108770e56a8560bdcbc54f52406aad5b2eb412a81237fa727339f329"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/automap.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/automap.rst",
+      "bytes": 359,
+      "sha256": "5bd831c30770d1d4282084cfd0ee1aa3cb3e0cc011c217ee82be1847b8e338b2"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/baked.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/baked.rst",
+      "bytes": 20182,
+      "sha256": "449d4990b8758ca3028fc1c8b1007c738474d1a9396e03abd5ae1e22283b5702"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/api.rst",
+      "bytes": 542,
+      "sha256": "441e2275401bf2f011ea7b6807a1aa04c132e827a3d13f0023419388eae7f585"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/basic_use.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/basic_use.rst",
+      "bytes": 715,
+      "sha256": "4ebe8437f7dabad00a6fdc4ae1d6a70a674476febbc84348dc64c38e32bac110"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/index.rst",
+      "bytes": 663,
+      "sha256": "a6d37eb33cb3fe11a5b3f1c105bda06bb91c87843a5b00616bc650514e070113"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/inheritance.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/inheritance.rst",
+      "bytes": 139,
+      "sha256": "350e9f66e8a04f6df8f7ac7438574f6e0234818b69e9c56b65b09bd57e7b2cfa"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/mixins.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/mixins.rst",
+      "bytes": 145,
+      "sha256": "bc530df0a9e4972493e7b513cd88c699ec2dd2b6f12171fc9300f77cc158e5a1"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/relationships.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/relationships.rst",
+      "bytes": 565,
+      "sha256": "381e8288d6ed55cfede2c8c6e7755640b573770cba7184757ff726c140424bf6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/declarative/table_config.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/declarative/table_config.rst",
+      "bytes": 487,
+      "sha256": "0106efe535834ee24703b91080736103578dcba9eb0d9264fb1a46a5be695e37"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/horizontal_shard.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/horizontal_shard.rst",
+      "bytes": 290,
+      "sha256": "b4e4905c9ebb82364e61525819b025d1b9a333e55e81a54eb84c4f7bd833364a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/hybrid.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/hybrid.rst",
+      "bytes": 294,
+      "sha256": "962e386a1a5da7527645af9c601c2676a46739a38e93b9d45e399d103f2e7b60"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/index.rst",
+      "bytes": 681,
+      "sha256": "1e25f239a2dbb65e7581ebdb49fc17f79564c423746138efdd47dc13d4bdd563"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/indexable.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/indexable.rst",
+      "bytes": 187,
+      "sha256": "a218215425d73e25f83897feaca1b907cce2d435f5afafb358f75fa2b8f023a2"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/instrumentation.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/instrumentation.rst",
+      "bytes": 458,
+      "sha256": "256521031b972bd0c652061aba1ecfc173a87a024455857258109b23f38a3c1f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/mutable.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/mutable.rst",
+      "bytes": 505,
+      "sha256": "fef307f76e3600028648e7ce597decdba8549877b028b6601e466af2af83297a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/mypy.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/mypy.rst",
+      "bytes": 23376,
+      "sha256": "2ba5f60e5faf980d3f141afa2852b3bb20b9b739d4959c08178b3d95f8f91b7e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/extensions/orderinglist.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/extensions/orderinglist.rst",
+      "bytes": 282,
+      "sha256": "435aa3e22fb3c779f4de3ffb654bcfbeb36c16de1e9b7b125e175c5cc8e7a930"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/index.rst",
+      "bytes": 454,
+      "sha256": "de899609752873821f4c0340f814df6f589dbdb82a2000d72ec7825fc0a80ae5"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/inheritance.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/inheritance.rst",
+      "bytes": 51351,
+      "sha256": "4acac5bc3c93ec200b6dd0bea732a887bb8305958bbfaa56e05f907b10f4656f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/inheritance_loading.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/inheritance_loading.rst",
+      "bytes": 68,
+      "sha256": "ebcf267925c00cc169b84255d729740f9606beab909c0b97dba0c5b4660e9e91"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/internals.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/internals.rst",
+      "bytes": 1503,
+      "sha256": "da8f35871f8acabfb11ea3e8e67be49814d0eac163085a6cd885ad484023ae46"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/join_conditions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/join_conditions.rst",
+      "bytes": 52610,
+      "sha256": "462ffc7145a5cadcabc0eb2425444f2a94827af174565d88238eccc75da12a79"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/large_collections.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/large_collections.rst",
+      "bytes": 28903,
+      "sha256": "249354dfa31b400ddb69dfde599ed2a3afce6ac3454c7cbe092ff41aa063dc3a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/loading.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/loading.rst",
+      "bytes": 53,
+      "sha256": "5ad29a49d788141f458dc874b3a6194e702223351dcf6649462cf77358ba19aa"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/loading_columns.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/loading_columns.rst",
+      "bytes": 64,
+      "sha256": "c8edb5a13185bdde742c9a48afe3857c54da26a4a379e9a4eee950461571461e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/loading_objects.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/loading_objects.rst",
+      "bytes": 62,
+      "sha256": "5c7c3619569a4d22d63b2db8eaf32361c881e23865f3db962f140a797b249ccc"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/loading_relationships.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/loading_relationships.rst",
+      "bytes": 70,
+      "sha256": "c94e0e8c661822dfb0b3a70ada48086dbfc3e73f1ec43a5e08ff4509e2880697"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/mapped_attributes.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/mapped_attributes.rst",
+      "bytes": 12668,
+      "sha256": "e02cf81b70f41a249df11e2f5c2bb302dd59a77ffac6882bf2a5cd3e65f27bed"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/mapped_sql_expr.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/mapped_sql_expr.rst",
+      "bytes": 13189,
+      "sha256": "02ae7d49922576719ff32f4c725fd45714fa11e492a6dd0bb745314c74b78b9a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/mapper_config.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/mapper_config.rst",
+      "bytes": 795,
+      "sha256": "d1d54e9de4ded8a794bd0b38aa985c9865ace7487a97e5d8083848ea755a9593"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/mapping_api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/mapping_api.rst",
+      "bytes": 4320,
+      "sha256": "a6ad29eca0a86fea00a1de0abd377044206d0824fa7905d855012b2f28f900ce"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/mapping_columns.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/mapping_columns.rst",
+      "bytes": 174,
+      "sha256": "ee9d201ec4c5965ac818cb019c11a0c4655d2503cec651b131cef210454f620f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/mapping_styles.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/mapping_styles.rst",
+      "bytes": 26979,
+      "sha256": "6a0d5a87e37ef1c72dad4691e1d3cf0df0cb49ecf7154ba1b66a9d6dad465369"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/nonstandard_mappings.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/nonstandard_mappings.rst",
+      "bytes": 9309,
+      "sha256": "e9d84b44005c4b21a506bb4c80735bdbba481c44a8680e7af28ff868067949d6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/persistence_techniques.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/persistence_techniques.rst",
+      "bytes": 36191,
+      "sha256": "74d6684f08b991e0411577073b08f11e7aa9a84041030e4e46172a4564b8120f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/query.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/query.rst",
+      "bytes": 61,
+      "sha256": "04596e79e191714107f9770aaf62351106d79e2736b8fc18d19040a5021b4b3d"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide.rst",
+      "bytes": 63,
+      "sha256": "f2a0ce806df626479c4829c44e637ab2f1ec5b5533afdd3cc64cde16970bc1e9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/_deferred_setup.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/_deferred_setup.rst",
+      "bytes": 4019,
+      "sha256": "2b83bd245e348243e96a3942827d39c73537915d4510763e668eac498f3aa6c6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/_dml_setup.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/_dml_setup.rst",
+      "bytes": 3706,
+      "sha256": "21ad49c9b98ccdc80970e45f55e99543eb4393417156ac42387b06566176ae2f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/_end_doctest.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/_end_doctest.rst",
+      "bytes": 88,
+      "sha256": "70177709747b6f5d84301254d877c4fdec3627d20c3c03dc3e2013ae93c6fd1f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/_inheritance_setup.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/_inheritance_setup.rst",
+      "bytes": 3690,
+      "sha256": "3a42d93381db8732a414abcfc291a35a26c2f10b76838758ba735be3d959be6c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/_plain_setup.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/_plain_setup.rst",
+      "bytes": 3849,
+      "sha256": "a6facdcc6de49280f71c34bb9584a0a968ebfd58a5dbeea0967b5134257e73c1"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/_single_inheritance.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/_single_inheritance.rst",
+      "bytes": 2290,
+      "sha256": "8f4363429ca0ed34371629f6f32e56184d3cbedad10a71dedcbf1881f18a44f6"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/api.rst",
+      "bytes": 21114,
+      "sha256": "f34d8f4fa9836d63ede0b17d8abff42f2b2da6fb59876f2ccc6f7bd05b42133f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/columns.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/columns.rst",
+      "bytes": 36374,
+      "sha256": "77bd8647f7d3869b26f614224988bc51d55afd7b6026e7efba946ea292f99e51"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/dml.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/dml.rst",
+      "bytes": 57219,
+      "sha256": "2e333a7ba026a6b165c323d01cbe743230057d4edfc3edbebec035fb69eb57f7"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/index.rst",
+      "bytes": 1386,
+      "sha256": "049d01df55703a45b49a95943ae3f4dc5ce9e65d30e22009c7a69a3900df4786"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/inheritance.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/inheritance.rst",
+      "bytes": 45564,
+      "sha256": "4a2053bc5f74e986dc12af874c123a6476150706904eb5d124858bb1b229df7f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/query.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/query.rst",
+      "bytes": 2126,
+      "sha256": "56daa4fe2e8bc3e1c734fab9148445b284ff6c968cb581984e0f6a5496c20ddf"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/queryguide_nav_include.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/queryguide_nav_include.rst",
+      "bytes": 301,
+      "sha256": "8a89fa2e85377115b0d42f790d372a775a9d0936046053d40db0f7d295158838"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/relationships.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/relationships.rst",
+      "bytes": 50284,
+      "sha256": "4a46190f2274fff077c2839a97c406322b47381857de1ed200ffac6691598dbf"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/queryguide/select.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/queryguide/select.rst",
+      "bytes": 47600,
+      "sha256": "b87e36bc94eef95a273dd338d61f66eeb5375aa6b6b7d8962cc28b02e01e1ae1"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/quickstart.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/quickstart.rst",
+      "bytes": 19076,
+      "sha256": "a55bab6c06bb882365f6a1e3df8e75c4e783231647eb05cedff2cae0ce63ade7"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/relationship_api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/relationship_api.rst",
+      "bytes": 220,
+      "sha256": "cafb658992125e780f93d6ba1237463bcac07a5cca0fd6965356418ab3e7d02a"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/relationship_persistence.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/relationship_persistence.rst",
+      "bytes": 12198,
+      "sha256": "261e7223b975afd6a3e3b65f5c91f25c8090232806854bf912ea1d4a119d31f9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/relationships.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/relationships.rst",
+      "bytes": 540,
+      "sha256": "fa408d180aed775c0ec4b8951a548ca3913f9c6b8e9fe7b7458ee3431ddbbd40"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/scalar_mapping.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/scalar_mapping.rst",
+      "bytes": 211,
+      "sha256": "253a6eaafd9fac8cef6fb17bfc50f431491ef63c762e25a362c9994829243d44"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/self_referential.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/self_referential.rst",
+      "bytes": 8216,
+      "sha256": "e2cf97cfa83686a820f660896c9d9e08a2ba36e91e471774eedf1f6883adebbb"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/session.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/session.rst",
+      "bytes": 565,
+      "sha256": "6b258bb8190e398d7dbc60a2ad2651a1e16d903357c5f6027572ba5aec39182c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/session_api.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/session_api.rst",
+      "bytes": 1841,
+      "sha256": "6417fd0322de261e55db2b6a3f8f7873c65c0122027d983a3b94681f4a6e3965"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/session_basics.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/session_basics.rst",
+      "bytes": 46752,
+      "sha256": "fdaeee879d1c6eac1bd85b351cc19d35a7e8060f2f8eb15d98362fa1a74daed9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/session_events.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/session_events.rst",
+      "bytes": 30327,
+      "sha256": "717449800555316ea393eb4fc5908460d2e890174dbd40e18e3a5cb6b43ac6f9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/session_state_management.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/session_state_management.rst",
+      "bytes": 27592,
+      "sha256": "4e3078e46945da72e501d194bf559fb9ea557e7382b37c43f35c36280301c531"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/session_transaction.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/session_transaction.rst",
+      "bytes": 27568,
+      "sha256": "b11a8f1eb31b6bf052581ecc6ad14e5fe4a1aa6e2bbfa24cdceb8193d7d0542f"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/tutorial.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/tutorial.rst",
+      "bytes": 403,
+      "sha256": "f6e6b613e872c24ab903cb3fb644bba13e22f1971385acb1ce9bdfc8f788c4ff"
+    },
+    {
+      "path": "corpus/raw/2.0.51/orm/versioning.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/orm/versioning.rst",
+      "bytes": 11013,
+      "sha256": "cc3914b932257a7f58f3d593babaf667d02272ba1ca2ed75ccdf07632fc4e0fa"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/data.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/data.rst",
+      "bytes": 2069,
+      "sha256": "611d3e2920353a0514c9a1709ebc22d56c9efa397ce76de96b61d7921c6f6404"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/data_insert.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/data_insert.rst",
+      "bytes": 13899,
+      "sha256": "6a0ba264e9b10b5ba8b8ff0145e2ddd4684868150a02502934ebfc754d65088c"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/data_select.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/data_select.rst",
+      "bytes": 79135,
+      "sha256": "d7df0b1869c7a9ede7b80383b550106a2e3dda3228e823fae74704b91c53f2df"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/data_update.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/data_update.rst",
+      "bytes": 14365,
+      "sha256": "a8364bb24503e6e6393032d5a9cd3f00c99a9c4ef18b8f01222359d5b0b8beb8"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/dbapi_transactions.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/dbapi_transactions.rst",
+      "bytes": 19765,
+      "sha256": "5ba3846a0d5675ebbddde9b00b57ccee0fb84ae2e54680b46a88fdbd4a19737e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/engine.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/engine.rst",
+      "bytes": 3366,
+      "sha256": "5720071af52f62129d30ebec2d9f5342101cd04bc4cf9da16bfa51acad27ade9"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/further_reading.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/further_reading.rst",
+      "bytes": 747,
+      "sha256": "e08f621acffb938bde13133faecba21b9d5717a179e8c69dcb11a8068ea5d28b"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/index.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/index.rst",
+      "bytes": 6756,
+      "sha256": "49246f48eb1d9709e43756a7a25f0b95ed439e5aa42a7df99dc9b762a2ac480e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/metadata.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/metadata.rst",
+      "bytes": 30382,
+      "sha256": "e77e091d9dc913feb36bcd981ded1d884de6f20c4e461641e125109d75d002b2"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/orm_data_manipulation.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/orm_data_manipulation.rst",
+      "bytes": 24216,
+      "sha256": "80a0b9d2a656df564cdf9e239d6ac379afe6d3ac4381b71d9eb944bded62588e"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/orm_related_objects.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/orm_related_objects.rst",
+      "bytes": 28871,
+      "sha256": "437389b05f32c0811dd1e9f84052e4c2245e3c3c7a7bc6db2b07328e4f01d9fa"
+    },
+    {
+      "path": "corpus/raw/2.0.51/tutorial/tutorial_nav_include.rst",
+      "sqlalchemy_version": "2.0.51",
+      "source_path": "doc/build/tutorial/tutorial_nav_include.rst",
+      "bytes": 309,
+      "sha256": "65b1137f234f621664bc8bf7c1332551d0c5705c7d6febb2d77229c02a484ce5"
+    }
+  ]
+}
