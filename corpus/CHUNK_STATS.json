@@ -1,0 +1,24 @@
+{
+  "generated_by": "rag/chunk.py",
+  "parameters": {
+    "target": 1800,
+    "hard_max": 2400,
+    "overlap_max": 400
+  },
+  "n_chunks": 3284,
+  "n_chars": 3946041,
+  "by_version": {
+    "1.4.52": 1541,
+    "2.0.51": 1743
+  },
+  "with_code": 2461,
+  "oversized": 34,
+  "size": {
+    "min": 120,
+    "median": 1299,
+    "p75": 1601,
+    "p90": 1740,
+    "p99": 2451,
+    "max": 5346
+  }
+}

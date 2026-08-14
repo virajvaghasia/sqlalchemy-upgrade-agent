@@ -30,24 +30,33 @@ next.
 
 ```
 # runnable: uv run pytest
-42 passed, 1 warning in 0.52s
+65 passed, 1 warning in 0.48s
 ```
 
-Four files, and none of them check that SQLAlchemy works:
+Five files, and none of them check that SQLAlchemy works:
 
 ```
 # runnable: uv run pytest --collect-only -q | grep '^tests/'
+tests/test_chunk.py: 23
 tests/test_corpus.py: 25
 tests/test_db_config.py: 5
 tests/test_models.py: 6
 tests/test_seed.py: 6
 ```
 
-The first three are Phase 0's and are what the rest of this section describes.
-`test_corpus.py` arrived with Phase 1 Step 1 and pins a different kind of claim — not what
-the app does, but **what is in the retrieval corpus and what was deliberately left out**. The
-decision it guards is in [`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 1; the shape is
-the same one §6.1 argues for, which is why it lives here rather than somewhere new.
+`test_db_config.py`, `test_models.py` and `test_seed.py` are Phase 0's, and are what the rest
+of this section describes. The other two arrived with Phase 1 and pin a different kind of claim
+— not what the app does, but **what went into the retrieval index**:
+
+- `test_corpus.py` (Step 1) — what is in the corpus and what was deliberately left out.
+- `test_chunk.py` (Step 2) — what the chunker must never do: split a code block, sever a
+  sentence from the example it introduces, carry a partial block as overlap, or index Sphinx
+  markup as if it were content. One of its tests found a bug the eye had missed — RST treats
+  overlined and underlined `===` as different heading levels, and conflating them silently
+  stripped every section of its parent heading.
+
+The decisions they guard are in [`../phases/PHASE-1.md`](../phases/PHASE-1.md) Steps 1–2; the
+shape is the same one §6.1 argues for, which is why they live here rather than somewhere new.
 
 **Every test pins a claim some document makes.** That is the design, and it comes from a real
 failure: [`03-PRACTICE-APP.md`](03-PRACTICE-APP.md) asserted *"Six tables"* in prose for 292

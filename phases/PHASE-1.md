@@ -8,8 +8,8 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 | step | state | machine | what exists |
 |---|---|---|---|
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
-| [2. chunk it](#2-chunk-it) | **next** | Mac | — |
-| [3. embed and store](#3-embed-and-store) | not started | **whichever is free** | — |
+| [2. chunk it](#2-chunk-it) | **done** 2026-08-14 | Mac | `rag/chunk.py`, 3284 chunks, `corpus/CHUNK_STATS.json` |
+| [3. embed and store](#3-embed-and-store) | **next** | **whichever is free** | — |
 | [4. retrieve and answer](#4-retrieve-and-answer) | not started | **whichever is free** | — |
 | [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | not started | either | — |
 
@@ -281,6 +281,67 @@ Things that will bite, all worth writing down when they do:
 
 **Done when:** a chunking script produces chunks with their source file, heading path and
 character range — and you can eyeball ten at random and find each one self-contained.
+
+#### Done — `rag/chunk.py`
+
+```
+# runnable: uv run python -m rag.chunk
+chunks: corpus/chunks.jsonl
+  target=1800  hard_max=2400  overlap_max=400
+  3284 chunks   3946041 chars
+    1.4.52    1541 chunks
+    2.0.51    1743 chunks
+  with a code block: 2461   over hard_max: 34
+  size  min=120  median=1299  p75=1601  p90=1738  p99=2451  max=5346
+```
+
+**The size was derived, not chosen.** Measuring the corpus first:
+
+| | n | median | p75 | p90 | p99 |
+|---|---|---|---|---|---|
+| RST sections | 2351 | **1274** | 2569 | 3816 | 7149 |
+| literal (code) blocks | 3811 | 275 | 489 | 782 | **1723** |
+
+Two numbers decide it and they agree. The **median section is 1274 characters** — a section is
+already "one idea with a heading on it", the unit the author chose, so a target above 1274
+leaves most of them whole. The **99th-percentile code block is 1723** — a budget below that
+guarantees splitting examples. `TARGET = 1800` clears both.
+
+#### What the "eyeball ten at random" gate actually caught
+
+The gate is not ceremony. Four defects survived a passing script and were only visible in the
+samples:
+
+| what the sample showed | cause | fix |
+|---|---|---|
+| a chunk that was just `===============` | overlined titles (`===` / title / `===`) were not detected, so the overline became its own chunk | detect overlines |
+| **10.8%** of chunks under 150 chars — `.. _anchor:`, `.. toctree::`, `.. autoclass::` | Sphinx *instructions* were being indexed as content | `is_content()` + a `MIN_CHARS` floor |
+| a chunk opening `"sed on"` — a word cut in half | overlap carried a raw `tail[-200:]` slice | overlap carries **whole prose blocks** or nothing |
+| `"...based on the"` ending one chunk, `"argument given::"` starting the next | in RST the line ending `::` is the last line of the introducing paragraph, and it was being severed from its own example | the paragraph is pulled into the code atom |
+
+Junk rate went **10.8% → 0.6%**, minimum chunk **8 → 120** characters, and chunks with no
+heading at all **239 → 1**.
+
+**A fifth defect was found by a test rather than the eye**, and it is the subtlest: per the RST
+spec, **overline+underline is a different heading level from underline-only with the same
+character**. SQLAlchemy relies on this — page titles are overlined `===`, sections are underlined
+`===`. Keying the level on the character alone collapsed them, and every section silently lost
+its parent heading. Fixed, the ancestry is real:
+
+```
+# runnable: the deepest heading_path in corpus/chunks.jsonl
+Working with Engines and Connections > Using Transactions >
+  Nesting of Transaction Blocks > Arbitrary Transaction Nesting as an Antipattern
+```
+
+**Two things are deliberately left alone.** `glossary.rst` is one `.. glossary::` directive
+holding every term — 69236 bytes at 2.0 — so it is split per term rather than chunked as prose.
+And RST markup is kept **raw**: `:class:`_orm.Session`` is not rewritten to `Session`, because
+that is a fix for a problem Step 5 has not yet demonstrated ([`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D04**).
+
+**Still open for a human:** run `uv run python -m rag.chunk --sample 10` and confirm each of the
+ten reads as one self-contained idea. The seed is fixed at `20260814`, so the ten are the same
+ten every time and a review of them can be cited.
 
 ### 3. Embed and store
 

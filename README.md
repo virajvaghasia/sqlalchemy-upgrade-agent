@@ -8,7 +8,7 @@ happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden 
 system is later evaluated against.
 
 **Status:** Phase 0 complete except its Day 3 tunnel, which is blocked on someone else rather
-than on work. **Phase 1 is current, and Step 1 (the corpus) is done.** Pinned to SQLAlchemy
+than on work. **Phase 1 is current: Steps 1–2 (corpus, chunking) are done.** Pinned to SQLAlchemy
 **1.4.52**; breakages verified against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md)
 for the six-phase arc.
 
@@ -23,7 +23,7 @@ actually have:
 | if you want to… | read, in this order | roughly |
 |---|---|---|
 | **know where the project is** | this Status line → [`phases/PHASE-1.md`](phases/PHASE-1.md) → the last entry of [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | 15 min |
-| **understand what was built most recently** | [`phases/PHASE-1.md`](phases/PHASE-1.md) Step 1 → `rag/corpus.py` → `tests/test_corpus.py` | 30 min |
+| **understand what was built most recently** | [`phases/PHASE-1.md`](phases/PHASE-1.md) Steps 1–2 → `rag/corpus.py`, `rag/chunk.py` → `tests/test_chunk.py` | 30 min |
 | **revise for an interview** | [`study/09-DECISIONS.md`](study/09-DECISIONS.md) — every decision, what was rejected, and why. **Start here for this**, not with the study files | 1 hour |
 | **go deeper on the evidence** | [Three findings](#three-findings-worth-knowing-before-you-read-anything-else) below → [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) Groups A–H → [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22 | a few hours |
 | **learn SQLAlchemy properly** | [`study/README.md`](study/README.md), then follow its numbering | days |
@@ -73,6 +73,8 @@ records where every file came from and which release it documents.
 ```bash
 uv run python -m rag.corpus            # fetch if absent, then report
 uv run python -m rag.corpus --check    # re-hash every file against the manifest
+uv run python -m rag.chunk             # cut it into 3284 retrievable chunks
+uv run python -m rag.chunk --sample 10 # print ten at random to eyeball
 ```
 
 ---
@@ -88,8 +90,8 @@ deliverables/          what a phase produced — BREAKAGES.md is Phase 0's
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
-corpus/                MANIFEST.json, the provenance record. raw/ is fetched, never committed
-tests/                 42 tests pinning what the docs claim
+corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
+tests/                 65 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -113,7 +115,7 @@ to "§18" is unambiguous in either file.
 | [`study/06-POSTGRES.md`](study/06-POSTGRES.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`study/08-LAB.md`](study/08-LAB.md) | lab PC from scratch — SSH / Tailscale / clone / Docker Engine / GPU-in-container / Ollama. A runbook, like `03`, plus the sitting diary in Ubuntu words |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 33 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 35 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -148,7 +150,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-42 passed, 1 warning in 0.52s
+65 passed, 1 warning in 0.48s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,

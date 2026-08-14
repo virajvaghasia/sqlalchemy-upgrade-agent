@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D33`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D35`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 42 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 65 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
   is an instrument pointed at SQLAlchemy and pinned to 1.4.52; this one is pointed at text and
   imports no SQLAlchemy. `corpus/MANIFEST.json` is committed, `corpus/raw/` is not.

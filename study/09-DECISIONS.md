@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D35`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -497,17 +497,54 @@ section as the honest edge of the project.
 > unloaded between phases — a real architectural consequence.
 > **Settle this in Step 3**, with the VRAM number measured on the lab PC.
 
-### D33 — Chunk size and overlap ⚠️
+### D33 — Chunk size 1800 characters, overlap by whole block — **settled 2026-08-14**
 
-> **Decided** — nothing yet. This is Step 2.
-> **What the decision has to trade:** too large and the embedding averages several ideas into
-> mush; too small and a chunk loses the context that made it an answer. Overlap trades storage
-> for not losing answers that straddle a boundary.
-> **Two constraints already known** from the corpus: code blocks must not be split — half a
-> `before`/`after` pair is worse than neither — and headings are context, since a chunk saying
-> *"this was removed in 2.0"* is useless without the heading naming what "this" is.
-> **This one is cheap to get wrong.** Chunking is a pure function of the corpus and re-runs in
-> seconds. Embedding is not, which is why D31 and D32 are the ones to slow down for.
+> **Decided** — `TARGET = 1800` characters, `HARD_MAX = 2400`, and overlap carried as **whole
+> prose blocks** up to 400 characters rather than as a character slice. 3284 chunks.
+> **Instead of** — the common default of ~512 tokens with 10–20% character overlap, copied from
+> a tutorial.
+> **Because the corpus was measured first**, and two numbers agree:
+>
+> | | n | median | p99 |
+> |---|---|---|---|
+> | RST sections | 2351 | **1274** | 7149 |
+> | literal (code) blocks | 3811 | 275 | **1723** |
+>
+> A section is already "one idea with a heading on it" — the unit the author chose — so a target
+> above the 1274 median leaves most of them whole. And the 99th-percentile code block is 1723,
+> so a budget below that *guarantees* splitting examples. 1800 clears both.
+> **Asked as** — *"How did you pick your chunk size?"* Almost everyone answers "512 tokens, it's
+> the standard." Answering with the distribution of the corpus is the differentiator.
+
+### D34 — Overlap is whole blocks, not characters — **a correction, kept on purpose**
+
+> **Decided** — carry the previous chunk's last complete **prose** block if it is under 400
+> characters. Never a partial slice, never a code block.
+> **Instead of** — `tail[-200:]`, which is what the first version did and what most examples do.
+> **Because the ten-sample review showed what a character slice produces:** one chunk opened with
+> `"sed on"` — a word cut in half — and another opened with an orphaned fragment of the previous
+> glossary term, which read as the definition of the term that followed it.
+> **The deeper reason, which is the transferable one:** overlap exists so an answer straddling a
+> boundary is not lost, and that matters when the boundary is **arbitrary**. This chunker only
+> splits between paragraphs and code blocks — boundaries the author chose. Character overlap was
+> solving a problem the design had already removed, while adding a new one.
+> **Asked as** — *"Why do you use overlap?"* — the good follow-up is *"does your splitter even
+> need it?"*, and most people have never asked themselves that.
+
+### D35 — The "eyeball ten at random" gate is not ceremony
+
+> **Decided** — a human reads ten fixed-seed random chunks before Step 2 is called done.
+> **Because it caught four defects a passing script did not**, none of which any test would have
+> been written for in advance: a chunk that was just `===============`, 10.8% of chunks being
+> Sphinx *instructions* (`.. toctree::`, `.. autoclass::`) rather than content, the truncated
+> `"sed on"`, and a sentence severed from the example it introduced. Junk rate went **10.8% →
+> 0.6%**; minimum chunk **8 → 120** characters; chunks with no heading **239 → 1**.
+> **And one defect the eye missed that a test caught** — RST treats overlined `===` and
+> underlined `===` as *different* heading levels; conflating them silently stripped every section
+> of its parent heading. **The two methods are not substitutes.**
+> **Asked as** — *"How do you know your chunking is any good?"* — "I looked at the output" is a
+> better answer than a metric, at this stage, because there is no ground truth yet to compute a
+> metric against.
 
 ---
 
