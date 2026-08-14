@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D36`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D37`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -583,6 +583,43 @@ section as the honest edge of the project.
 > **Asked as** — *"Your GPU box was unavailable. What did you do?"* The good answer is not "I
 > waited" or "I split the job" — it is *"I checked how big the job actually was, and made the
 > output portable so the machine stopped mattering."*
+
+### D37 — Benchmark both machines on speed and headroom, never on answer quality
+
+> **Decided** — Step 3 takes `--device` as a flag and reports throughput and peak memory. Run
+> it on both machines, and choose on **speed and memory headroom**.
+> **Instead of** — embedding on both and picking whichever gives "better" retrieval.
+> **Because there is no quality difference to find.** With the model revision, dtype and
+> normalization pinned (D36), both machines produce the same vectors — differences land around
+> 1e-6, which cosine ranking cannot see. A bake-off assumes the runs can differ in quality; if
+> they are pinned correctly, they cannot.
+>
+> **And if they DO differ meaningfully, that is a bug rather than a result.** It means something
+> is unpinned: a different revision pulled, a different dtype, one half normalized and the other
+> not. Keep this as a diagnostic — *"if the two boxes disagree, something is unpinned"* — and
+> chase the discrepancy rather than crowning a winner.
+>
+> **What genuinely differs, and is worth measuring:**
+>
+> | | RTX 3060 | Apple M4 |
+> |---|---|---|
+> | memory model | **12288 MiB dedicated**, 7115 free with `qwen2.5-coder:7b` resident | 16 GiB unified, shared with macOS and Qdrant |
+> | availability | shared machine | always |
+> | throughput | unmeasured — the actual question | unmeasured |
+>
+> The memory row is the one with architectural consequences. **If a machine cannot hold the
+> embedder and the generator at once, every query must unload one to load the other** — that is
+> a design constraint, not a tuning detail, and it is what running on both actually reveals.
+>
+> **The comparison worth running is between MODELS, not machines.** "Which is better" is the
+> right question aimed at the wrong thing: BGE-M3 versus `all-MiniLM-L6-v2`, `e5-large` or
+> `nomic-embed-text` changes retrieval quality (D32, still unjustified). Two machines running
+> the same pinned model do not.
+>
+> **Asked as** — *"How did you choose your hardware?"* The trap is answering with a quality
+> comparison that cannot exist. The answer that shows understanding is *"the vectors are
+> identical by construction, so the only real questions were throughput and whether both models
+> fit in memory at once."*
 
 ---
 

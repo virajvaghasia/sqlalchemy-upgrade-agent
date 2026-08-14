@@ -387,6 +387,26 @@ and resumable after a failure instead of restartable.
 **Pin the model revision explicitly**, not just its name. "BGE-M3" is not reproducible; a
 revision hash is.
 
+#### Running it on both machines — the right comparison
+
+`--device` is a flag (`mps` / `cuda` / `cpu`), so the same code runs on either machine, and the
+run reports **throughput and peak memory**. Run it on the Mac now, and on the 3060 when it is
+free.
+
+**Compare speed and memory headroom. Do not compare answer quality — there is none to compare.**
+With the revision, dtype and normalization pinned, both machines produce the same vectors;
+differences land near 1e-6, which cosine ranking cannot see. **If the two machines disagree
+meaningfully, that is a bug, not a result** — something is unpinned, and the discrepancy is what
+to chase. Keep that as a diagnostic.
+
+What actually differs is whether **both models fit at once**: 7115 MiB free on the 3060 with
+`qwen2.5-coder:7b` resident, versus 16 GiB of unified memory on the Mac shared with macOS and
+Qdrant. If a machine cannot hold the embedder and the generator together, every query has to
+unload one to load the other — an architectural consequence, not a tuning detail.
+
+The comparison that *does* move retrieval quality is between **models**, not machines — see
+[`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D32** and **D37**.
+
 **Done when:** a count of vectors in Qdrant matches the count of chunks, and a hand-written
 query returns something plausible.
 
