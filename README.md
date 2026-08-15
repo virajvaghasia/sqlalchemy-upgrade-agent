@@ -162,9 +162,13 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 ### Tests
 
 ```
-# runnable: uv run pytest 2>&1 | tail -1
-114 passed, 1 warning in 1.04s
+# runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
+114 tests collected in 0.46s
 ```
+
+Three of them skip when Qdrant is not running, so a run reports 114 passed with it up and 111
+passed / 3 skipped without. The block counts what is *collected* because that does not depend on
+what happens to be running.
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
 the six-mapped-classes/eight-tables split, that seeding twice produces byte-identical data, and

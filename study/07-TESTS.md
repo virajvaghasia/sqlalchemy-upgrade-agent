@@ -29,9 +29,15 @@ next.
 ### 6.1 What these tests are for
 
 ```
-# runnable: uv run pytest 2>&1 | tail -1
-114 passed, 1 warning in 1.04s
+# runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
+114 tests collected in 0.46s
 ```
+
+**Collected, not passed — and the difference is the point.** `uv run pytest` reports *114 passed*
+here and *111 passed, 3 skipped* on CI, because three `test_index.py` checks skip when no Qdrant
+is reachable. A headline number that changes with the environment is not a headline number, so
+the block counts what is collected, which does not move. The CI job that verifies every
+`# runnable` block found this; reading never would have.
 
 Nine files, and none of them check that SQLAlchemy works:
 

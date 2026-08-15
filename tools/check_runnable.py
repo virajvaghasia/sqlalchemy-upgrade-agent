@@ -62,6 +62,8 @@ ENV_MARKERS = {
     "docker history": "needs a built image",
     "docker image": "needs a built image",
     "docker ps": "needs running containers",
+    "docker volume": "needs a volume created by a previous compose run",
+    "/var/lib/docker": "the Docker VM's filesystem, not the host's",
     "docker compose up": "starts containers; slow and stateful",
     "docker compose -f": "starts containers with an override file",
     "nvidia-smi": "lab PC only",
@@ -88,6 +90,12 @@ ENV_MARKERS = {
     "psql": "needs a running database",
 }
 
+# An output that is true of THIS machine and no other — a platform-specific
+# filename, a CPU architecture. The command is fine; the output cannot be
+# universal, so the doc says so where a reader sees it rather than the tool
+# silently exempting it.
+MACHINE_MARKER = "machine-specific"
+
 MUTATION_MARKERS = (", then ", "then uv run", "then, ")
 HISTORY_MARKERS = ("before ", "first draft", "event only", "old ", "previously")
 
@@ -111,6 +119,8 @@ class Block:
         # HISTORY is decided on the ANNOTATION only. "(before the config
         # existed)" describes when the output was true; the same words inside a
         # command would mean nothing of the kind.
+        if MACHINE_MARKER in self.note.lower():
+            return "ENV", f"machine-specific output: {self.note}"
         if any(m in self.note.lower() for m in HISTORY_MARKERS):
             return "HISTORY", f"labelled as a past state: {self.note}"
         if self.command.strip().startswith("the same"):
