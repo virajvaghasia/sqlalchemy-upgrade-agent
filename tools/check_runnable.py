@@ -84,6 +84,7 @@ ENV_MARKERS = {
     "git config": "reads this machine's git identity",
     "git check-ignore": "environment-specific",
     "rag.embed": "loads a 2.2GB model",
+    "embeddings.npy": "reads the embedding run's output; CI cannot produce it without the 2.2GB model",
     "rag.ask": "nondeterministic model output",
     "rag.probe": "nondeterministic model output; minutes to run",
     "rag.index": "needs Qdrant running",
