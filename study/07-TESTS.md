@@ -29,7 +29,7 @@ next.
 ### 6.1 What these tests are for
 
 ```
-# runnable: uv run pytest
+# runnable: uv run pytest 2>&1 | tail -1
 114 passed, 1 warning in 1.04s
 ```
 

@@ -50,6 +50,19 @@ underlying claim turned out to be wrong or unreproducible — the §14 state tra
 behind it, the hardcoded `issue_id in (1, 3)`, the flush/commit answer, the `1013 / 7 / 8`
 table. Assume the same will happen again.
 
+**It is now enforced rather than remembered.** `uv run python -m tools.check_runnable` extracts
+every `# runnable` block, runs its command, and compares verbatim; the `docs reproduce` CI job
+runs it on every PR. **Run it after touching any doc that shows output.**
+
+That tool exists because the rule had already failed silently. `study/02-MIGRATION-2.0.md`
+quoted `seed.py 1013` and `TOTAL 1042` for weeks after Day 6's `is_seeded` guard made the real
+figure `0` and `29` — and `phases/PHASE-0.md` had an audit script that crashed, because
+`BREAKAGES.md` moved to `deliverables/` and nothing re-ran it. Neither was caught by reading.
+
+Blocks that genuinely cannot run here — lab PC, GPU, sudo, a container — are classified `ENV`
+with a stated reason rather than exempted quietly, so the count of unverifiable blocks is
+visible instead of growing.
+
 ### The example rule — the other half of it
 
 **An explanation without an example is not finished.** Every concept a doc introduces carries

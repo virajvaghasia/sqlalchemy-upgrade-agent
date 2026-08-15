@@ -162,7 +162,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 ### Tests
 
 ```
-# runnable: uv run pytest
+# runnable: uv run pytest 2>&1 | tail -1
 114 passed, 1 warning in 1.04s
 ```
 
@@ -204,9 +204,11 @@ Each prints what the library actually does. Nothing in these asserts a number it
 the hidden four. (§19)
 
 ```
-# runnable: SQLALCHEMY_WARN_20=1 uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep
+# runnable: SQLALCHEMY_WARN_20=1 uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep \
+#             2>&1 | grep 'distinct,'
   RemovedIn20Warning  —  4 distinct, 29 occurrences
   MovedIn20Warning  —  1 distinct, 6 occurrences
+  LegacyAPIWarning  —  1 distinct, 4 occurrences
 ```
 
 **Neither migration tool is the inventory.** The warning sweep misses patterns that raise
@@ -215,7 +217,8 @@ tool misses a different subset, and one pattern is called *safe* by both and sti
 
 ```
 # runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
-#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 2>&1 \
+#             | grep 'patterns FAIL'
   22 of 24 patterns FAIL on 2.0.51
 ```
 

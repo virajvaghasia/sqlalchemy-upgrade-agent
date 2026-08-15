@@ -309,7 +309,7 @@ __pycache__      ← still there, with the bare pattern
 Your `.venv` holds files like:
 
 ```
-# runnable: find .venv -name "*.so" -path "*sqlalchemy*"
+# runnable: find .venv -name "cprocessors*.so" -path "*sqlalchemy*"
 .venv/lib/python3.11/site-packages/sqlalchemy/cprocessors.cpython-311-darwin.so
 ```
 
@@ -375,7 +375,7 @@ they ever get a shell.
 Some Python packages are pure Python. Many aren't. SQLAlchemy isn't:
 
 ```
-# runnable: find .venv -name "*.so" -path "*sqlalchemy*"
+# runnable: find .venv -name "*.so" -path "*sqlalchemy*" -exec basename {} \;
 cimmutabledict.cpython-311-darwin.so
 cprocessors.cpython-311-darwin.so
 cresultproxy.cpython-311-darwin.so
@@ -452,7 +452,7 @@ The exact wheel predicted from PyPI. No compiler ran. 4.3 seconds.
 Your Docker Desktop runs a Linux VM on arm64:
 
 ```
-# runnable: docker info
+# runnable: docker info --format 'os={{.OSType}}  arch={{.Architecture}}'
 os=linux  arch=aarch64
 ```
 

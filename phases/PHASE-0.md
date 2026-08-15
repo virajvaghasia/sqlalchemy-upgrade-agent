@@ -269,9 +269,9 @@ Counted rather than remembered, so this section cannot quietly go stale:
 #   def n(p):
 #       q = pathlib.Path(p)
 #       return len(list(q.glob('*.py'))) if q.is_dir() else 0
-#   b = pathlib.Path('BREAKAGES.md')
+#   b = pathlib.Path('deliverables/BREAKAGES.md')
 #   rows = [
-#    ('BREAKAGES.md', f\"{len(re.findall(r'^### ', b.read_text(), re.M))} entries (target 10)\"),
+#    ('deliverables/BREAKAGES.md', f\"{len(re.findall(r'^### ', b.read_text(), re.M))} entries (target 10)\"),
 #    ('experiments/sqlalchemy_1_4_vs_2_0/', f'{n(\"experiments/sqlalchemy_1_4_vs_2_0\")} modules'),
 #    ('Dockerfile', 'yes' if pathlib.Path('Dockerfile').exists() else 'MISSING'),
 #    ('.dockerignore', 'yes' if pathlib.Path('.dockerignore').exists() else 'MISSING'),
@@ -283,14 +283,14 @@ Counted rather than remembered, so this section cannot quietly go stale:
 #   ]
 #   w = max(len(a) for a,_ in rows)
 #   for a,c in rows: print(f'{a:<{w}}  {c}')"
-BREAKAGES.md                        23 entries (target 10)
+deliverables/BREAKAGES.md           23 entries (target 10)
 experiments/sqlalchemy_1_4_vs_2_0/  12 modules
 Dockerfile                          yes
 .dockerignore                       yes
 entrypoint.sh                       yes
 docker-compose.yml                  yes
-tests/                              4 files
-.github/workflows/                  NOT BUILT
+tests/                              10 files
+.github/workflows/                  1 workflows
 ```
 
 **`.github/workflows/` is the remaining work on this machine.** It comes last for a reason:
@@ -298,8 +298,8 @@ CI's gate is *"a PR with a deliberately failing test that GitHub refuses to merg
 tests to exist before a workflow can run them.
 
 ```
-# runnable: uv run pytest tests/test_db_config.py tests/test_models.py tests/test_seed.py
-17 passed, 1 warning in 0.55s
+# runnable: uv run pytest tests/test_db_config.py tests/test_models.py tests/test_seed.py 2>&1 | tail -1
+17 passed, 1 warning in 0.46s
 ```
 
 (Named file by file on purpose. A bare `uv run pytest` now also collects Phase 1's

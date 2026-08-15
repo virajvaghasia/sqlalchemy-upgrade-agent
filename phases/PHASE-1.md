@@ -188,9 +188,9 @@ Three things that table decides:
 The same tutorial page, at the two pinned tags:
 
 ```
-# runnable: grep -n 'create_engine("sqlite' sqlalchemy-rel_*/doc/build/tutorial/engine.rst
-sqlalchemy-rel_1_4_52/doc/build/tutorial/engine.rst:37:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True, future=True)
-sqlalchemy-rel_2_0_51/doc/build/tutorial/engine.rst:36:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+# runnable: grep -n 'create_engine("sqlite' corpus/raw/*/tutorial/engine.rst
+corpus/raw/1.4.52/tutorial/engine.rst:37:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True, future=True)
+corpus/raw/2.0.51/tutorial/engine.rst:36:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
 ```
 
 1.4 teaches `future=True` as the forward-compatibility switch — `study/02-MIGRATION-2.0.md` §18
