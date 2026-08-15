@@ -9,6 +9,25 @@ dependencies = [
     "sqlalchemy==1.4.52",
 ]
 
+# The embedding stack is an EXTRA, not a core dependency, and that is load-bearing.
+# `requirements.txt` is generated with `uv export --no-hashes --no-emit-project` and
+# the Dockerfile installs it, so anything listed above ships inside the app image.
+# torch alone is roughly 2GB and the app container never embeds anything — it runs
+# the 1.4 app. Same rule as issues.db: the image holds what it actually runs.
+#
+#     uv sync --extra embed       # on a machine that will embed
+#     uv sync                     # everywhere else, unchanged
+[project.optional-dependencies]
+embed = [
+    # BGE-M3 through sentence-transformers rather than FlagEmbedding. FlagEmbedding
+    # exposes BGE-M3's dense, sparse and ColBERT outputs; sentence-transformers gives
+    # dense only. Dense-only is exactly the Phase 1 constraint (09-DECISIONS.md D04 —
+    # build the naive version first), so the simpler library is also the one that
+    # cannot accidentally smuggle in hybrid retrieval two phases early.
+    "sentence-transformers>=3.0",
+    "qdrant-client>=1.9",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",

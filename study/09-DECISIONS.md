@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D37`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D39`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -82,9 +82,14 @@ it. The shape is always the same:
 > best practices copied from a blog post and you cannot say what they bought. Built in Phase 3,
 > after watching dense retrieval confidently return the wrong chunk, each is a number you
 > earned.
-> **The worked case already exists:** the query *"what replaces `Query.get()`"* is one keyword
-> search nails and meaning search fumbles, because `Query.get` is a literal string. Phase 1
-> exists to make that failure real rather than illustrative.
+> **The worked case that was assumed, and then measured — read both halves.** The query *"what
+> replaces `Query.get()`"* was cited from the roadmap onward as one keyword search nails and
+> meaning search fumbles, because `Query.get` is a literal string. **On 2026-08-14 it was
+> measured and BGE-M3 ranked the right chunk 1 of 3284.** The illustration does not reproduce.
+> Phase 1 still exists to make failure real rather than illustrative — that is exactly why the
+> assumed example got checked, and Step 5 now has to find one that fails for real. Evidence that
+> does hold: the `future=True` version skew, and 26.6% of the index being cross-version
+> duplicates that eat top-k slots (D38).
 > **Asked as** — *"Why is your retrieval bad?"* — and the answer *"deliberately, and here is
 > the file of failures it produced"* is far stronger than a system that was always fine.
 
@@ -620,6 +625,46 @@ section as the honest edge of the project.
 > comparison that cannot exist. The answer that shows understanding is *"the vectors are
 > identical by construction, so the only real questions were throughput and whether both models
 > fit in memory at once."*
+
+### D38 — 26.6% of the index is a cross-version duplicate, and it is not fixed yet
+
+> **Found** — 437 texts appear twice in the index, involving 874 of 3284 chunks. **Every single
+> duplicate is across versions** (1.4 text identical to 2.0 text) and **none is within a
+> version**: much of SQLAlchemy's prose did not change between releases, so the same paragraph
+> is embedded twice.
+> **Discovered by** checking whether any two vectors were byte-identical — 443 pairs were — then
+> grouping the chunks by `(heading_path, text)` to find out why.
+> **It costs top-k slots, observed rather than predicted.** The first real query run,
+> *"why can't I call `engine.execute` any more?"*, returned the **same** `errors.rst` passage at
+> ranks 1 and 2 — one tagged 1.4.52, one 2.0.51. Two of five slots on one passage.
+> **Deliberately not fixed.** Deduplication is a fix, and Step 5 measures the cost across real
+> questions rather than one. The fix is also not obvious: identical text at two versions is not
+> always redundant, because sometimes the *version* is the answer.
+> **Asked as** — *"What surprised you when you first built the index?"*
+
+### D39 — The `Query.get()` failure was assumed for three months and did not reproduce
+
+> **Claimed, from `ROADMAP.md` onward** — the query *"what replaces `Query.get()`"* is one
+> keyword search nails and dense retrieval fumbles, because `Query.get` is a literal string.
+> Cited in the roadmap glossary, `PHASE-1.md`, and this file's own **D04**.
+> **Measured 2026-08-14** — BGE-M3 ranked the right chunk **1 of 3284**.
+>
+> ```
+> chunks in the corpus literally containing 'Query.get': 4
+> rank of the FIRST chunk containing 'Query.get': 1 out of 3284
+> ```
+>
+> **What this does not mean.** It is one query, one model, one corpus. It does **not** show
+> hybrid search is unnecessary — Step 5 is the real test, with a list of questions.
+> **What it does mean.** The worked example this project has been citing since before any code
+> existed does not reproduce, and repeating it would be exactly the unmeasured claim
+> `CLAUDE.md` exists to prevent. All three places now carry the correction rather than the
+> original.
+> **Two plausible causes, neither verified:** BGE-M3 is stronger than the prediction assumed,
+> and the corpus contains only **4** chunks with that string — so there is little for search to
+> drift toward.
+> **Asked as** — *"Did anything in your plan turn out to be wrong?"* This is the answer. A
+> project where nothing was ever disproved is a project where nothing was ever checked.
 
 ---
 
