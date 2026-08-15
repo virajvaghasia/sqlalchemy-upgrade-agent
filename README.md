@@ -24,6 +24,7 @@ actually have:
 |---|---|---|
 | **know where the project is** | this Status line → [`phases/PHASE-1.md`](phases/PHASE-1.md) → the last entry of [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | 15 min |
 | **understand what was built most recently** | [`phases/PHASE-1.md`](phases/PHASE-1.md) Steps 1–2 → `rag/corpus.py`, `rag/chunk.py` → `tests/test_chunk.py` | 30 min |
+| **learn what Phase 1 is actually doing** | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) §R1 — from zero, no retrieval background assumed | 45 min |
 | **revise for an interview** | [`study/09-DECISIONS.md`](study/09-DECISIONS.md) — every decision, what was rejected, and why. **Start here for this**, not with the study files | 1 hour |
 | **go deeper on the evidence** | [Three findings](#three-findings-worth-knowing-before-you-read-anything-else) below → [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) Groups A–H → [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22 | a few hours |
 | **learn SQLAlchemy properly** | [`study/README.md`](study/README.md), then follow its numbering | days |
@@ -91,7 +92,7 @@ logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 65 tests pinning what the docs claim
+tests/                 77 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -115,7 +116,8 @@ to "§18" is unambiguous in either file.
 | [`study/06-POSTGRES.md`](study/06-POSTGRES.md) | **§5, the database inside one of them** — psql without a published port, the three databases, what `create_all()` emits on Postgres vs SQLite, roles |
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`study/08-LAB.md`](study/08-LAB.md) | lab PC from scratch — SSH / Tailscale / clone / Docker Engine / GPU-in-container / Ollama. A runbook, like `03`, plus the sitting diary in Ubuntu words |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 37 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) | **§R1– — RAG explained from zero** — what a language model cannot do, what retrieval changes, why the corpus is a ceiling, and why a bigger one is worse. Built one sitting at a time |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 39 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -150,7 +152,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-65 passed, 1 warning in 0.48s
+77 passed, 1 warning in 0.52s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
