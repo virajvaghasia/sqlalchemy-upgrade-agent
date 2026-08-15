@@ -30,7 +30,7 @@ next.
 
 ```
 # runnable: uv run pytest
-111 passed, 1 warning in 1.12s
+114 passed, 1 warning in 1.04s
 ```
 
 Nine files, and none of them check that SQLAlchemy works:
@@ -38,7 +38,7 @@ Nine files, and none of them check that SQLAlchemy works:
 ```
 # runnable: uv run pytest --collect-only -q | grep '^tests/'
 tests/test_ask.py: 12
-tests/test_chunk.py: 23
+tests/test_chunk.py: 26
 tests/test_corpus.py: 25
 tests/test_db_config.py: 5
 tests/test_embed.py: 12
