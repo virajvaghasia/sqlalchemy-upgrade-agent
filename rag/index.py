@@ -178,30 +178,55 @@ def build(recreate: bool) -> None:
     print("counts match")
 
 
-def search(query: str, limit: int = 5, version: str | None = None) -> None:
+_QUERY_MODEL = None
+
+
+def query_vector(query: str) -> list[float]:
+    """
+    Embed one question, using the corpus's own settings.
+
+    Every one of these must match `rag/embed.py` or the question lands in a
+    different space from the vectors it is compared against — and the failure is
+    silent, because search still returns results, merely ranked wrong. That is
+    why they are read from `embed` rather than restated here.
+
+    The model is cached in a module global: loading BGE-M3 takes ~5 seconds and
+    a session asking several questions should pay that once.
+    """
+    global _QUERY_MODEL
+    if _QUERY_MODEL is None:
+        from sentence_transformers import SentenceTransformer
+
+        _QUERY_MODEL = SentenceTransformer(
+            embed.MODEL_ID, revision=embed.MODEL_REVISION, device=embed.pick_device(None)
+        )
+        _QUERY_MODEL.max_seq_length = embed.MAX_SEQ_LENGTH
+    return _QUERY_MODEL.encode(
+        [query], normalize_embeddings=embed.NORMALIZE, convert_to_numpy=True
+    )[0].tolist()
+
+
+def retrieve(query: str, limit: int = 5, version: str | None = None):
+    """Top-`limit` hits, newest-first by score. Shared by --search and rag.ask."""
     from qdrant_client import models
-    from sentence_transformers import SentenceTransformer
 
     _, _, stats, _ = load_inputs()
-    name = collection_name(stats)
-    c = client()
-
-    model = SentenceTransformer(embed.MODEL_ID, revision=embed.MODEL_REVISION,
-                                device=embed.pick_device(None))
-    model.max_seq_length = embed.MAX_SEQ_LENGTH
-    # normalize_embeddings must match how the corpus was embedded, or the query
-    # lives in a different space from everything it is being compared against.
-    vector = model.encode([query], normalize_embeddings=embed.NORMALIZE,
-                          convert_to_numpy=True)[0].tolist()
-
     flt = (
         models.Filter(must=[models.FieldCondition(
             key="sqlalchemy_version", match=models.MatchValue(value=version))])
         if version else None
     )
-    hits = c.query_points(collection_name=name, query=vector, limit=limit,
-                          query_filter=flt, with_payload=True).points
+    return client().query_points(
+        collection_name=collection_name(stats),
+        query=query_vector(query),
+        limit=limit,
+        query_filter=flt,
+        with_payload=True,
+    ).points
 
+
+def search(query: str, limit: int = 5, version: str | None = None) -> None:
+    hits = retrieve(query, limit=limit, version=version)
     print(f"\n=== {query}" + (f"   [version={version}]" if version else ""))
     for rank, hit in enumerate(hits, 1):
         p = hit.payload
