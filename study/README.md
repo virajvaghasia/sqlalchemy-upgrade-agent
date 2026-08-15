@@ -18,8 +18,9 @@ when measured, the correction is kept rather than quietly edited out.
 | [`07-TESTS.md`](07-TESTS.md) | the test suite, and how to tell whether tests cover anything | §6 |
 | [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama. Includes the 2026-08-13 sitting diary in Ubuntu words | — |
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **every design decision, what was rejected, and why** — written for interview revision. Cite entries by ID (`D19`) | — |
+| [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — what a language model cannot do, what retrieval changes, and why the corpus is a ceiling. Written one sitting at a time | §R1– |
 
-## Two numbering families, and why
+## Three numbering families, and why
 
 **File numbers are reading order. Section numbers are subject continuity.** They are different
 things and they do not line up — deliberately.
@@ -29,11 +30,15 @@ things and they do not line up — deliberately.
   to "§18" is unambiguous across the pair.
 - **`04`–`07` share a second run, `§1`–`§6`**, for the same reason: `05` continues `04`,
   `06` continues `05`. One container, then several, then the database in one, then the tests.
+- **`10` uses a third run, `§R1`–, for retrieval.** The `R` prefix is not decoration: without
+  it, `§1` would mean Docker in one family and RAG in another. A letter makes a collision
+  impossible rather than merely unlikely.
 - **`03`, `08` and `09` have no sections.** They are not chapters. `03` is the practice-app
   runbook; `08` is the lab PC sitting (Phase 0 Day 3 → Day 10); `09` is a **register** whose
   entries carry stable IDs (`D01`…) so they stay citable when the file is reordered.
 
-So `§4.1` means Compose networking and `§18` means the Result API, and neither is ambiguous.
+So `§4.1` means Compose networking, `§18` means the Result API and `§R1` means why retrieval
+exists — none of them ambiguous.
 What you cannot do is assume `§5` belongs to the file numbered `05` — check the table above.
 
 Splitting only happens when a file has grown to cover two genuinely different subjects, and the

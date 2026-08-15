@@ -9,7 +9,7 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 |---|---|---|---|
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
 | [2. chunk it](#2-chunk-it) | **done** 2026-08-14 | Mac | `rag/chunk.py`, 3284 chunks, `corpus/CHUNK_STATS.json` |
-| [3. embed and store](#3-embed-and-store) | **next** | **whichever is free** | — |
+| [3. embed and store](#3-embed-and-store) | **3a done** 2026-08-14 · 3b (Qdrant) next | Mac (M4/Metal) | `rag/embed.py`, 3284 × 1024 vectors, `corpus/EMBED_STATS.json` |
 | [4. retrieve and answer](#4-retrieve-and-answer) | not started | **whichever is free** | — |
 | [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | not started | either | — |
 
@@ -68,6 +68,12 @@ confidently return the wrong chunk, and each one is a number earned.
 *"what replaces `Query.get()`"* is one a keyword search nails and a meaning search fumbles.
 **Phase 1 exists to make that failure real rather than illustrative.** Do not fix it here.
 
+> **Measured 2026-08-14, and it did not fumble.** BGE-M3 ranked the right chunk **1 of 3284**.
+> The illustration above is the one this project has cited since the roadmap was written, and it
+> does not reproduce. Step 3's write-up has the measurement. The argument for Phase 3 still
+> stands on other evidence — the `future=True` version skew, and 26.6% of the index being
+> cross-version duplicates — but **Step 5 has to find a failure that is real, not assumed.**
+
 ## The pipeline, and where each piece runs
 
 ```
@@ -80,17 +86,19 @@ question ──embed────────────────────
 
 | step | machine | why |
 |---|---|---|
-| download, chunk | Mac | text processing, no GPU |
-| embed the corpus | **lab PC** | thousands of passages; CPU is the bottleneck |
-| Qdrant | lab PC | lives next to the vectors |
+| download, chunk | Mac | text processing, no accelerator |
+| embed the corpus | **either** — done on the Mac | measured: M4/Metal at 5.2 chunks/s, 627s for all 3284 |
+| Qdrant | either | lives next to the vectors; both machines run Docker |
 | embed one question | either | a single short string |
-| Ollama | **lab PC** | the 3060, measured at 62.23 tok/s |
+| Ollama | **lab PC** | the 3060, measured at 62.23 tok/s. Not yet measured on the Mac |
 
-**The Day 3 tunnel matters here, not in Phase 0.** Every GPU step above means AnyDesk or
-sitting at that desk until Tailscale is shared. Phase 0's checkbox did not care; this does.
+**This table used to say `lab PC` for embedding, and the Day 3 tunnel used to matter here.**
+Neither survived contact: the whole corpus embedded on the Mac in **10 minutes**, so the
+expensive step was never expensive enough to need the 3060. See *The machine question* above
+and [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D27**.
 
-**Start on the Mac anyway.** Steps 1–3 need no GPU, and a small corpus subset embeds on CPU
-fine — enough to get end-to-end before the volume matters.
+Ollama is the remaining row with a real reason to prefer the 3060, and even that is untested on
+Metal.
 
 ---
 
@@ -409,6 +417,103 @@ The comparison that *does* move retrieval quality is between **models**, not mac
 
 **Done when:** a count of vectors in Qdrant matches the count of chunks, and a hand-written
 query returns something plausible.
+
+#### Done (3a — embedding) — `rag/embed.py`
+
+```
+# runnable: uv run python -m rag.embed --batch-size 8   (progress bars stripped)
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   mps   batch_size=8   max_seq_length=2048
+chunks   3284   4229821 chars
+loaded in 4.7s
+tokens   max=1586  mean=363  truncated=0
+vectors  3284 x 1024  float32  -> corpus/embeddings.npy
+encode   627.1s   5.2 chunks/s
+memory   torch_allocated_mib = 2165.9
+memory   process_peak_rss_mib = 944.1
+```
+
+13 MB on disk. **Zero truncated** — `MAX_SEQ_LENGTH = 2048` was a guess with headroom, and the
+measured maximum is 1586 tokens, so it holds. The vectors check out: all 3284 norms are exactly
+1.0 (normalization is on), no NaN, no Inf, no zero rows.
+
+##### Bigger batches are *slower* on Metal
+
+Backwards from the CUDA habit, measured on 256 chunks:
+
+| batch | chunks/s |
+|---|---|
+| 2 | 7.4 |
+| 4 | 7.4 |
+| 8 | 6.3 – 7.7 *(two runs, same setting)* |
+| 32 | 5.9 |
+| 64 | 3.6 |
+
+**Read this carefully: 2, 4 and 8 are indistinguishable.** Batch 8 measured 7.7 once and 6.3
+another time, so that spread is noise and "8 is optimal" is not a claim this data supports. What
+it does support is that **32 and 64 are clearly worse**. Likely cause: batches are padded to
+their longest sequence, so a wider batch drags more short chunks up to a long one.
+
+**A methodological flaw worth admitting:** `--limit 256` takes the *first* 256 chunks, not a
+random sample. Those came out at ~7.4 chunks/s while the full run managed 5.2 — so the sweep was
+measured on an unrepresentative, shorter-than-average slice. The ranking between batch sizes is
+still informative; the absolute numbers were not the corpus.
+
+##### 26.6% of the index is a cross-version duplicate
+
+Found by checking whether any two vectors were byte-identical, which 443 pairs were:
+
+```
+# runnable: group corpus/chunks.jsonl by (heading_path, text)
+distinct texts: 2847   texts appearing more than once: 437
+chunks involved in a duplicate: 874
+  duplicated ACROSS versions (1.4 text == 2.0 text): 437
+  duplicated WITHIN one version:                      0
+```
+
+**Every single duplicate is cross-version, and none is within a version.** Much of SQLAlchemy's
+prose simply did not change between 1.4 and 2.0, so the same paragraph exists in both trees and
+gets embedded twice.
+
+**This costs top-k slots, and it showed up on the first query run.** Asking *"why can't I call
+engine.execute any more?"* returns, at ranks 1 and 2, the *same text* from `errors.rst` — once
+tagged 1.4.52 and once 2.0.51. Two of five slots spent on one passage.
+
+**Not fixed here, on purpose.** Deduplication is a fix, and Step 5 is where the cost gets
+measured across real questions rather than one. What the fix should key on is also not obvious:
+identical text at two versions is not always redundant, since the *version* is sometimes the
+answer.
+
+##### The predicted `Query.get()` failure did not happen
+
+This one contradicts the plan, so it is recorded rather than quietly dropped.
+
+`ROADMAP.md`'s glossary, this file, and `09-DECISIONS.md` **D04** all use the same illustration:
+*"what replaces `Query.get()`"* is supposed to be a query keyword search nails and **meaning
+search fumbles**, because `Query.get` is a literal string. Phase 1 was meant to make that failure
+real. Measured:
+
+```
+# runnable: embed the query, rank all 3284 vectors by cosine
+chunks in the corpus literally containing 'Query.get': 4
+how many of those are in the top 5: 1
+rank of the FIRST chunk containing 'Query.get': 1 out of 3284
+```
+
+**Rank 1 of 3284.** BGE-M3 did not fumble it.
+
+**What this does and does not mean.** It does *not* show hybrid search is unnecessary — that is
+one query, one model, one corpus, and Step 5 is the real test with a list of questions. It does
+show that **the specific worked example this project has been citing since the roadmap was
+written does not reproduce**, and continuing to cite it as though it does would be exactly the
+kind of unmeasured claim `CLAUDE.md` exists to prevent.
+
+Two plausible reasons, neither verified: BGE-M3 is a stronger model than the prediction assumed,
+and the corpus only contains **4** chunks with that string — so there is very little for search
+to "drift toward". Step 5 needs to find a case that fails for real.
+
+**Still to do in Step 3b:** Qdrant. The vectors exist and are searchable with a dot product
+today; putting them in a database is what makes filtering and scale possible.
 
 ### 4. Retrieve and answer
 

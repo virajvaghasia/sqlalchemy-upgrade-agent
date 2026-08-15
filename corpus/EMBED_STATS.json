@@ -1,0 +1,28 @@
+{
+  "generated_by": "rag/embed.py",
+  "model": "BAAI/bge-m3",
+  "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+  "revision_pinned": true,
+  "normalize": true,
+  "dtype": "float32",
+  "max_seq_length": 2048,
+  "dim": 1024,
+  "n_vectors": 3284,
+  "tokens": {
+    "max": 1586,
+    "mean": 363,
+    "truncated": 0
+  },
+  "run": {
+    "device": "mps",
+    "batch_size": 8,
+    "load_seconds": 4.7,
+    "encode_seconds": 627.1,
+    "chunks_per_second": 5.2,
+    "peak_memory": {
+      "torch_allocated_mib": 2165.9,
+      "process_peak_rss_mib": 944.1
+    },
+    "complete": true
+  }
+}

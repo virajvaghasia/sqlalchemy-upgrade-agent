@@ -538,7 +538,7 @@ in chunks — each of its 23 entries is one:
 | question | dense (meaning) | sparse / BM25 (keywords) |
 |---|---|---|
 | *"why can't I run a query straight off the engine any more?"* | **finds entry 1** — no shared words with `engine.execute`, but the same meaning | misses — the user typed none of those words |
-| *"what replaces `Query.get()`"* | may drift to other `Query` entries, all similar in meaning | **nails it** — `Query.get` is a literal string in the corpus |
+| *"what replaces `Query.get()`"* | ~~may drift to other `Query` entries~~ — **measured 2026-08-14: ranked it 1 of 3284.** See below | **nails it** — `Query.get` is a literal string in the corpus |
 
 That table is the whole argument for **hybrid search**, and the reason Phase 1 is deliberately
 dense-only: you have to watch the second row fail before the fix means anything.
