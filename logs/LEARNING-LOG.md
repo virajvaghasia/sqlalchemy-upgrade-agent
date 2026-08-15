@@ -391,3 +391,32 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
   none, so it is a pure function of the two tags and the selection rules and a diff on it
   means the corpus really moved. Checked rather than claimed: `--force` re-downloads both
   tarballs and reproduces the file byte-for-byte.
+
+### Aug 15 — Phase 1 Steps 3–5, and three things that turned out wrong `(→ phases/PHASE-1.md)`
+
+- **The `Query.get()` example never reproduced.** Cited from the roadmap onward as the case
+  dense retrieval fumbles; BGE-M3 ranked it **1 of 3284**. Corrected in all three places that
+  claimed it. The *underlying* claim survived on other symbols — see below.
+- **26.6% of the index is a cross-version duplicate.** 437 texts appear twice, every one of
+  them 1.4-text == 2.0-text, none within a version. It cost a top-k slot on the very first
+  query run.
+- **Bigger batches are slower on Metal** — 64 → 3.6 chunks/s against 7.4 at batch 4. And
+  `--limit` takes the *first* n chunks rather than a sample, so that sweep ran on a
+  shorter-than-average slice. Both worth saying out loud rather than reporting the ranking as
+  if it were clean.
+- **The worst bug was in the prompt, the one component nobody suspects** because it is
+  hand-written rather than measured. A "say exactly: the sources do not answer this" clause
+  made the model refuse a question whose answer was *in the prompt*. Two wrong hypotheses were
+  tested first (duplicates eating slots; retrieval ranking it too low) and both were ruled out
+  by experiment before the real cause was found. Removing the clause entirely made it invent a
+  method signature. The clause is necessary AND over-fires; the wording that threads it was
+  chosen by testing both failure directions.
+- **`simple` and `broken` are different.** D04 withholds hybrid search and reranking. It does
+  not license shipping a component that does not work — with the bad prompt in place, every
+  Step 5 failure would have been unattributable.
+- **The finding that makes Phase 3 measurable:** a retrieval miss means two different things.
+  The symbol is in the corpus and search missed it (**fixable**), or it is in no chunk at all
+  (**the ceiling**). Step 5 found 4 and 1. Without the split, Phase 3 would be graded against a
+  target including something it can never move.
+- **The report does not grade itself.** 19 answers, all marked `UNVERIFIED`. A script scoring
+  its own model's output with the same model family measures self-consistency, not truth.
