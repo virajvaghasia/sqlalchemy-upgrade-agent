@@ -8,15 +8,32 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 | step | state | machine | what exists |
 |---|---|---|---|
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
-| [2. chunk it](#2-chunk-it) | **done** 2026-08-14 | Mac | `rag/chunk.py`, 3284 chunks, `corpus/CHUNK_STATS.json` |
+| [2. chunk it](#2-chunk-it) | **built** 2026-08-14 · char range added 08-15 | Mac | `rag/chunk.py`, 3284 chunks. **Gate open:** eyeball ten |
 | [3. embed and store](#3-embed-and-store) | **done** 2026-08-14 | Mac (M4/Metal) | `rag/embed.py` + `rag/index.py`, 3284 × 1024 vectors in Qdrant |
 | [4. retrieve and answer](#4-retrieve-and-answer) | **done** 2026-08-15 | Mac — 18.4 tok/s | `rag/ask.py` — **the hard gate is met** |
-| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **done** 2026-08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`, 19 questions — **verdicts still a human's job** |
+| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **built** 2026-08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`. **Gate open:** 19 verdicts |
 
 **Picking this up cold?** Read each step's write-up in order — they carry the measurements and
-the corrections. **All five steps are built.** What remains is human: the 19 `UNVERIFIED`
-verdicts in [`../deliverables/FAILURES.md`](../deliverables/FAILURES.md), and the ten sample
-chunks from Step 2.
+the corrections.
+
+> ### Phase 1 is BUILT, not COMPLETE — and the difference is not a formality
+>
+> All five steps run and the pipeline gate is met. **Three of this file's own stated criteria
+> are still open, and every one of them is a human's:**
+>
+> | open gate | where | who |
+> |---|---|---|
+> | eyeball ten chunks at random and find each self-contained | Step 2 *Done when* | **Viraj** |
+> | 19 `UNVERIFIED` verdicts — is each answer right? | Step 5 *Done when* | **Viraj** |
+> | the five cold verification questions | [Verification](#verification) | **Viraj** |
+>
+> **One criterion was silently unmet until 2026-08-15 and is now fixed.** Step 2 asks for chunks
+> carrying *"source file, heading path and character range"*. They carried a length (`n_chars`)
+> and no offsets — which names a file but not a place in it. `char_start` / `char_end` now ship,
+> verified on 400 sampled chunks. Texts and ids were byte-identical afterwards, so the vectors
+> did not need rebuilding.
+>
+> That miss is the argument for the gates: **the code passing is not the phase passing.**
 
 ### The machine question, reopened 2026-08-14
 
@@ -294,6 +311,17 @@ Things that will bite, all worth writing down when they do:
 
 **Done when:** a chunking script produces chunks with their source file, heading path and
 character range — and you can eyeball ten at random and find each one self-contained.
+
+> **The character range was missed on the first pass, and shipped 2026-08-15.** Chunks carried
+> `n_chars` — a *length* — which is not a range. It names a file but not a place in it, so a
+> reader who distrusts a retrieved passage cannot open the original at the right spot. They now
+> carry `char_start` / `char_end`, checked against the source on 400 sampled chunks, all 400
+> bracketed correctly. Chunk texts and ids came out byte-identical, so the embeddings did not
+> need rebuilding.
+>
+> Worth noticing *how* it was missed: the step was marked done because the script ran and the
+> output looked right. Nothing checked the sentence in this file word by word. That is what the
+> gates are for.
 
 #### Done — `rag/chunk.py`
 
