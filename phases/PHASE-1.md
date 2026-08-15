@@ -11,10 +11,12 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 | [2. chunk it](#2-chunk-it) | **done** 2026-08-14 | Mac | `rag/chunk.py`, 3284 chunks, `corpus/CHUNK_STATS.json` |
 | [3. embed and store](#3-embed-and-store) | **done** 2026-08-14 | Mac (M4/Metal) | `rag/embed.py` + `rag/index.py`, 3284 × 1024 vectors in Qdrant |
 | [4. retrieve and answer](#4-retrieve-and-answer) | **done** 2026-08-15 | Mac — 18.4 tok/s | `rag/ask.py` — **the hard gate is met** |
-| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **next** | Mac | — |
+| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **done** 2026-08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`, 19 questions — **verdicts still a human's job** |
 
-**Picking this up cold?** Read each done step's write-up in order — they carry the measurements
-and the corrections. Step 5 is still a plan, so there is nothing measured in it yet.
+**Picking this up cold?** Read each step's write-up in order — they carry the measurements and
+the corrections. **All five steps are built.** What remains is human: the 19 `UNVERIFIED`
+verdicts in [`../deliverables/FAILURES.md`](../deliverables/FAILURES.md), and the ten sample
+chunks from Step 2.
 
 ### The machine question, reopened 2026-08-14
 
@@ -705,6 +707,73 @@ record where it fails:
 
 **Done when:** a file of real failures with the retrieved-but-wrong chunk shown. That file is
 the argument for everything in Phase 3.
+
+#### Done — `rag/probe.py` → [`../deliverables/FAILURES.md`](../deliverables/FAILURES.md)
+
+19 questions across 5 categories, drawn from `BREAKAGES.md` — answers already known, already
+hand-verified, and deliberately **not in the corpus** (D09), so asking about them is a fair test
+rather than a lookup of the answer key.
+
+```
+# runnable: uv run python -m rag.probe
+{ "refused": 8, "uncited": 3, "version_mixed": 13, "symbol_missing": 5,
+  "single_source": 6, "retrieval_failure": 4, "ceiling": 1,
+  "any_duplicate_slot": 2, "total_duplicate_slots": 2, "questions": 19 }
+```
+
+##### The script does not grade answers, and that is deliberate
+
+Every answer is written out marked **`UNVERIFIED`** with a blank verdict line. D06 says the
+golden dataset is hand-verified, never auto-generated — and a script that decided which of its
+own answers were correct would be scoring against a key written by the same model family that
+produced them. That measures self-consistency, not truth.
+
+What it computes instead are **mechanical signals**: true or false without opinion. `refused`,
+`uncited`, `duplicate_slots`, `version_mixed`, `single_source`. **None of them is automatically
+a failure** — `refused` is the *correct* output for a question the corpus cannot answer.
+
+##### The finding: two failures that look identical and need opposite fixes
+
+Five questions retrieved nothing containing the symbol they asked about. Left there, that reads
+as one problem. The script also counts how many chunks in the **whole corpus** contain that
+symbol, and the five split cleanly:
+
+| symbol | chunks in corpus | retrieved | so the failure is |
+|---|---|---|---|
+| `table_names` | **6** | ✗ | **retrieval** — the answer was there and search missed it |
+| `keys()` | **7** | ✗ | **retrieval** |
+| `cascade_backrefs` | **12** | ✗ | **retrieval** |
+| `backref` | present | ✗ | **retrieval** |
+| `has_table` | **0** | ✗ | **the ceiling** — there is nothing to find |
+
+```
+retrieval_failure: 4      <- what hybrid search and reranking are aimed at
+ceiling:           1      <- a corpus decision wearing a retrieval costume
+```
+
+**This is the number Phase 3 has to beat, and the one it cannot touch.** Without the split, four
+fixable failures and one unfixable one would have been reported as "five retrieval problems",
+and Phase 3 would have been measured against a target that includes something it can never move.
+
+`has_table` is D07's API-reference hole showing up concretely: it is an API-reference item, and
+the API reference is not in the `.rst` source. R1.4's ceiling argument, in one row of a table.
+
+##### The prediction was wrong about *which* symbol, and right about the failure
+
+`Query.get()` was cited from the roadmap onward as the case dense retrieval fumbles. It did not
+(D39 — ranked 1 of 3284). But **the underlying claim holds**: the `symbol` category has the
+worst results of any — **4 of 6 refused, 3 of 6 retrieval failures** — it just shows up on
+`table_names`, `keys()` and `has_table` instead.
+
+That is a better outcome than either being right or being wrong. The illustration was replaced
+by evidence.
+
+##### What is still a human's job
+
+Every verdict. The file has 19 `UNVERIFIED` lines waiting for `CORRECT` / `WRONG` / `PARTIAL`
+and one sentence each. **The signals say where to look; they do not say what is true.** In
+particular the 13 `version_mixed` questions need reading — most are harmless, and the point of
+D10 was to find the ones that are not.
 
 ---
 

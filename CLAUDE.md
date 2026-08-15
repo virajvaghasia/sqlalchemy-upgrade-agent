@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D44`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D46`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 98 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 111 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
   is an instrument pointed at SQLAlchemy and pinned to 1.4.52; this one is pointed at text and
   imports no SQLAlchemy. `corpus/MANIFEST.json` is committed, `corpus/raw/` is not.
@@ -453,3 +453,22 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **Docs the change invalidated were fixed, not left:** `README.md`, `study/07-TESTS.md`
   and `CLAUDE.md` now say 42; `phases/PHASE-0.md`'s block names its three files explicitly so
   it stays Phase 0's record and still reproduces.
+
+### 2026-08-15 — Phase 1 Steps 3b, 4 and 5 (all built)
+- Qdrant `v1.19.0` pinned; collection name carries model + revision so two revisions cannot mix
+  (D41). One published port, `127.0.0.1`-bound, because Qdrant's client is a host script and the
+  host genuinely is "outside" — the no-ports rule applied, not bent (D42).
+- **A healthcheck that lied.** `CMD-SHELL` runs `/bin/sh`; `/dev/tcp` is a *bash* builtin. The
+  container served traffic and reported `unhealthy` forever. Written up in `05-COMPOSE.md` §4.2.
+- `rag/ask.py` — the Phase 1 hard gate is met. Generation on the M4 is **18.4 tok/s** against the
+  3060's 62.23, which is D27's last unmeasured number and the biggest gap in the project.
+- **The prompt was the bug.** Two wrong hypotheses tested and discarded first. The refusal clause
+  is load-bearing (without it the model invents API signatures) and over-fires (strict wording
+  refused an answerable question). D43, and D44 for why fixing it was correct rather than
+  "tuning" — *simple* and *broken* are different.
+- `rag/probe.py` → `deliverables/FAILURES.md`, the Phase 1 deliverable. **It records signals and
+  never verdicts** (D46). 19 answers marked `UNVERIFIED`, waiting on a human.
+- **The split worth keeping:** a retrieval miss is either "in the corpus, not found" (Phase 3 can
+  fix) or "in no chunk at all" (the ceiling). 4 and 1. Computed mechanically, not read off by
+  eye (D45).
+- Still human-only: the 19 verdicts, and the ten Step 2 sample chunks.

@@ -8,7 +8,8 @@ happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden 
 system is later evaluated against.
 
 **Status:** Phase 0 complete except its Day 3 tunnel, which is blocked on someone else rather
-than on work. **Phase 1 is current: Steps 1–2 (corpus, chunking) are done.** Pinned to SQLAlchemy
+than on work. **Phase 1: all five steps built — a question typed at a terminal returns an answer
+with its sources.** What remains is human verification, not code. Pinned to SQLAlchemy
 **1.4.52**; breakages verified against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md)
 for the six-phase arc.
 
@@ -83,6 +84,7 @@ docker compose up -d qdrant
 uv run python -m rag.index             # load them into Qdrant
 uv run python -m rag.index --search "why can't I call engine.execute any more?"
 uv run python -m rag.ask "why can't I call engine.execute any more?"   # answer + sources
+uv run python -m rag.probe             # 19 probe questions -> deliverables/FAILURES.md
 ```
 
 ---
@@ -94,12 +96,12 @@ README.md              this file — the map
 CLAUDE.md              how the AI assistant works on this repo
 phases/                the plan: the six-phase arc, and the current phase in detail
 study/                 the teaching material, numbered in reading order
-deliverables/          what a phase produced — BREAKAGES.md is Phase 0's
+deliverables/          what a phase produced — BREAKAGES.md is Phase 0's, FAILURES.md is Phase 1's
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 98 tests pinning what the docs claim
+tests/                 111 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -116,6 +118,7 @@ to "§18" is unambiguous in either file.
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
 | [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
 | [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
+| [`deliverables/FAILURES.md`](deliverables/FAILURES.md) | **the Phase 1 deliverable** — 19 questions, where retrieval breaks, and the split between failures Phase 3 can fix and the corpus ceiling it cannot. Verdicts are UNVERIFIED by design |
 | [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages; seeds the Phase 2 golden dataset |
 | [`study/03-PRACTICE-APP.md`](study/03-PRACTICE-APP.md) | the design of the app under test, and why this schema |
 | [`study/04-DOCKER.md`](study/04-DOCKER.md) | **§1–§3, one container** — opens with a one-page plain-language summary, then layers, the build cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root. Every number measured against this repo |
@@ -124,7 +127,7 @@ to "§18" is unambiguous in either file.
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`study/08-LAB.md`](study/08-LAB.md) | lab PC from scratch — SSH / Tailscale / clone / Docker Engine / GPU-in-container / Ollama. A runbook, like `03`, plus the sitting diary in Ubuntu words |
 | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) | **§R1– — RAG explained from zero** — what a language model cannot do, what retrieval changes, why the corpus is a ceiling, and why a bigger one is worse. Built one sitting at a time |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 44 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 46 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -159,7 +162,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-98 passed, 1 warning in 1.35s
+111 passed, 1 warning in 1.12s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
