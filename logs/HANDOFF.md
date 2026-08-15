@@ -511,3 +511,133 @@ or contradicting that is the point.
 Step 2, chunking, runs entirely on the Mac and needs nothing from this PC. Step 3 opens with the
 number from REPLY 4.2, because if BGE-M3 does not fit in the free VRAM the model choice changes
 before any embedding is run rather than after.
+
+---
+
+# Round 5 — embed on the 3060
+
+Everything below is on `main` as of 2026-08-14. Round 4's ASK 4.1 is superseded by ASK 5.1,
+which does the same thing plus the rest of the pipeline.
+
+## Read this before starting: the 10 minutes is not the whole job
+
+The embedding run itself took **627 seconds on the Mac** — about ten minutes. On a fresh clone
+this machine also has to download the toolchain and the model first:
+
+| step | roughly | why |
+|---|---|---|
+| `uv sync --extra embed` | **several GB** | torch built for CUDA is much larger than the Mac's build |
+| BGE-M3 download | ~2.2 GB | cached afterwards, so only the first run pays it |
+| corpus fetch | ~9 MB | two tarballs from GitHub |
+| the actual embed | ~10 min on the Mac, unknown here | the only part that uses the GPU |
+
+**Budget 30–45 minutes for the first run**, mostly network. Every run after that is the ten
+minutes.
+
+**The 3060 is in use by its other user until roughly 2026-08-16.** None of ASK 5.1 needs the
+GPU — it is downloads and CPU text processing — so it can be done early, leaving only ASK 5.2
+for when the card is free.
+
+## ASK 5.1 — set up and rebuild the inputs
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git status -sb          # this clone was left on phase-0/repo-structure, not main
+git checkout main
+git pull
+
+uv sync --extra embed   # the big one: torch + CUDA. Several GB.
+
+uv run python -m rag.corpus     # fetches the 270 .rst files. Not in git (D11).
+uv run python -m rag.chunk      # regenerates chunks.jsonl. Also not in git.
+```
+
+**What to check, and it is a real portability test.** The Mac produced these:
+
+```
+  TOTAL        270 files   4058424 bytes
+  3284 chunks   3946041 chars
+```
+
+**If Linux produces different numbers, that is a finding, not a nuisance** — it would mean the
+chunker is platform-dependent, and the two machines would be embedding different text while
+believing they agree. Paste whatever it actually prints.
+
+### REPLY 5.1
+
+```
+(paste here)
+```
+
+## ASK 5.2 — embed, and sweep the batch size
+
+Needs the GPU.
+
+```bash
+# a short run first, to confirm CUDA is actually being used
+uv run python -m rag.embed --limit 256 --device cuda --batch-size 8
+
+# then the batch sweep — see the note below for why this matters here
+for b in 8 32 64 128; do
+    uv run python -m rag.embed --limit 256 --device cuda --batch-size $b 2>&1 | grep -E '^encode'
+done
+
+# then the full run at whichever batch size won
+uv run python -m rag.embed --device cuda --batch-size <best>
+```
+
+**Why sweep again rather than reuse the Mac's answer.** On Metal, bigger batches were *slower*
+— 64 gave 3.6 chunks/s against 7.4 at batch 4. That is a Metal result and there is no reason to
+expect it on CUDA, where larger batches usually win. **Copying the Mac's batch size to this
+machine would be exactly the kind of unmeasured assumption this repo keeps removing.** The sweep
+goes higher here (128) for the same reason.
+
+**The vectors will be compatible with the Mac's**, because `MODEL_REVISION` is pinned to
+`5617a9f61b028005a4858fdac845db406aefb181`, `NORMALIZE` is `True` and the dtype is float32. If
+this run reports a different revision, **stop** — something is unpinned, and that is a bug
+rather than a result (`study/09-DECISIONS.md` D37).
+
+### REPLY 5.2
+
+```
+(paste here)
+```
+
+## ASK 5.3 — VRAM with both models loaded
+
+This is Round 4's ASK 4.2, unchanged and still not answered. It decides whether this machine can
+serve retrieval and generation at the same time.
+
+```bash
+# with nothing loaded
+nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv
+
+# then load the generator and ask it something, so it is resident
+ollama run qwen2.5-coder:7b "say hi" >/dev/null
+ollama ps
+nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv
+
+# then run the embedder WHILE the generator is loaded, and watch
+uv run python -m rag.embed --limit 256 --device cuda --batch-size 32
+nvidia-smi --query-gpu=memory.total,memory.used,memory.free --format=csv
+```
+
+Phase 0 measured **7115 MiB** free of **12288** with `qwen2.5-coder:7b` resident. BGE-M3 wanted
+about **2166 MiB** of torch allocation on the Mac. If both fit here, retrieval and generation can
+coexist; if not, every query has to unload one to load the other, which is an architectural
+consequence rather than a tuning detail.
+
+### REPLY 5.3
+
+```
+(paste here)
+```
+
+## What is still NOT being asked
+
+- **No Tailscale commands.** Round 3's rule stands: one `tailscaled` holds one account.
+- **No `~/.claude`, no `claude` TUI, no `/login`.**
+- **Do not commit anything from that machine yet.** `corpus/EMBED_STATS.json` is committed and
+  currently describes the Mac's run; a second run would overwrite it. Paste the numbers into the
+  REPLY blocks and they get recorded from here, so both machines' results survive instead of one
+  silently replacing the other.
