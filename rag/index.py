@@ -161,6 +161,12 @@ def build(recreate: bool) -> None:
                         "heading_path": chunks[cid]["heading_path"],
                         "text": chunks[cid]["text"],
                         "n_chars": chunks[cid]["n_chars"],
+                        # The character range in the source file. A retrieved
+                        # passage you distrust is one you want to open at the
+                        # original — PHASE-1.md Step 2 requires it, and without
+                        # it a citation names a file but not a place in it.
+                        "char_start": chunks[cid]["char_start"],
+                        "char_end": chunks[cid]["char_end"],
                         "has_code": chunks[cid]["has_code"],
                     }
                     for cid in window

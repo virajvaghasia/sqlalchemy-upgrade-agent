@@ -8,8 +8,9 @@ happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden 
 system is later evaluated against.
 
 **Status:** Phase 0 complete except its Day 3 tunnel, which is blocked on someone else rather
-than on work. **Phase 1: all five steps built — a question typed at a terminal returns an answer
-with its sources.** What remains is human verification, not code. Pinned to SQLAlchemy
+than on work. **Phase 1 is built, not complete** — a question typed at a terminal returns an answer with its
+sources, and all five steps run. Three of the phase's own gates are still open, and all three
+are human: ten chunks to eyeball, 19 answer verdicts, five cold questions. Pinned to SQLAlchemy
 **1.4.52**; breakages verified against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md)
 for the six-phase arc.
 
@@ -101,7 +102,7 @@ logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 111 tests pinning what the docs claim
+tests/                 114 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -162,7 +163,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-111 passed, 1 warning in 1.12s
+114 passed, 1 warning in 1.04s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,

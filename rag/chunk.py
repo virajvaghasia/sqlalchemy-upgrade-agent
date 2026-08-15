@@ -195,21 +195,27 @@ def split_sections(lines: list[str]) -> list[tuple[list[str], int, int]]:
     return sections
 
 
-def split_blocks(lines: list[str]) -> list[tuple[str, str]]:
+def split_blocks(lines: list[str]) -> list[tuple[str, str, int, int]]:
     """
-    Break a section body into atoms: ("code", text) or ("prose", text).
+    Break a section body into atoms: ("code"|"prose", text, first_line, last_line).
 
     A "code" atom is never split by the packer. Everything else is a paragraph,
     which is small enough that splitting between paragraphs loses nothing.
+
+    Line numbers are relative to `lines` and are carried so a chunk can report
+    the character range it came from. Without them a chunk knows its source file
+    but not *where* in it — and "go and read the original" is the first thing
+    anyone does with a retrieved passage they distrust.
     """
-    blocks: list[tuple[str, str]] = []
+    blocks: list[tuple[str, str, int, int]] = []
     buf: list[str] = []
+    buf_start = 0
     i = 0
 
-    def flush():
+    def flush(end: int):
         text = "\n".join(buf).strip("\n")
         if text.strip():
-            blocks.append(("prose", text))
+            blocks.append(("prose", text, buf_start, end))
         buf.clear()
 
     while i < len(lines):
@@ -219,7 +225,7 @@ def split_blocks(lines: list[str]) -> list[tuple[str, str]]:
         # A glossary directive holds every term in one indented block. Handled
         # by the caller; here it just must not become a single atom.
         if directive and directive.group(1) == "glossary":
-            flush()
+            flush(i - 1)
             i += 1
             continue
 
@@ -238,9 +244,11 @@ def split_blocks(lines: list[str]) -> list[tuple[str, str]]:
             # inseparable — which is the point of not splitting code blocks in
             # the first place. Capped, so a long paragraph is not dragged along.
             prefix: list[str] = []
+            block_start = i
             if buf:
                 if len("\n".join(buf)) <= LEAD_IN_MAX:
                     prefix = list(buf)
+                    block_start = buf_start
                     buf.clear()
                 else:
                     # Paragraph too long to duplicate wholesale. Keep only its
@@ -249,23 +257,27 @@ def split_blocks(lines: list[str]) -> list[tuple[str, str]]:
                     # the rest stand as its own chunk. Without this the code
                     # atom opens on a fragment like "statement executions::".
                     prefix = [buf.pop()]
-                    flush()
+                    flush(i - 2)
+                    block_start = i - 1
             start = i
             i += 1
             # Consume the indented run, blank lines included — a blank line
             # inside a code block does not end it.
             while i < len(lines) and (not lines[i].strip() or lines[i].startswith((" ", "\t"))):
                 i += 1
-            blocks.append(("code", "\n".join(prefix + lines[start:i]).strip("\n")))
+            blocks.append(("code", "\n".join(prefix + lines[start:i]).strip("\n"),
+                           block_start, i - 1))
             continue
 
         if not line.strip():
-            flush()
+            flush(i - 1)
         else:
+            if not buf:
+                buf_start = i
             buf.append(line)
         i += 1
 
-    flush()
+    flush(len(lines) - 1)
     return blocks
 
 
@@ -304,7 +316,7 @@ def is_content(text: str) -> bool:
     return len(" ".join(kept)) >= 40
 
 
-def merge_small(chunks: list[str], floor: int) -> list[str]:
+def merge_small(chunks: list[tuple[str, int, int]], floor: int) -> list[tuple[str, int, int]]:
     """
     Fold anything under `floor` into its neighbour rather than emitting it.
 
@@ -313,19 +325,21 @@ def merge_small(chunks: list[str], floor: int) -> list[str]:
     adjacent chunk keeps the sentence in the index. Only a chunk with no
     neighbour at all — a whole section shorter than the floor — is dropped, and
     `is_content` has already removed the markup-only ones by this point.
+
+    A merge widens the line span to cover both, so the range still describes
+    everything the chunk actually contains.
     """
-    out: list[str] = []
-    for text in chunks:
-        if out and len(text) < floor:
-            out[-1] = out[-1] + "\n\n" + text
-        elif out and len(out[-1]) < floor:
-            out[-1] = out[-1] + "\n\n" + text
+    out: list[tuple[str, int, int]] = []
+    for text, first, last in chunks:
+        if out and (len(text) < floor or len(out[-1][0]) < floor):
+            prev_text, prev_first, prev_last = out[-1]
+            out[-1] = (prev_text + "\n\n" + text, min(prev_first, first), max(prev_last, last))
         else:
-            out.append(text)
-    return [c for c in out if len(c) >= floor]
+            out.append((text, first, last))
+    return [c for c in out if len(c[0]) >= floor]
 
 
-def glossary_entries(lines: list[str]) -> list[tuple[str, str]]:
+def glossary_entries(lines: list[str]) -> list[tuple[str, str, int, int]]:
     """
     One atom per glossary term.
 
@@ -333,18 +347,19 @@ def glossary_entries(lines: list[str]) -> list[tuple[str, str]]:
     Consecutive term lines share a definition, which RST allows and SQLAlchemy
     uses ("1.x style / 2.0 style / 1.x-style" are one entry).
     """
-    entries: list[tuple[str, str]] = []
+    entries: list[tuple[str, str, int, int]] = []
     inside = False
     base: int | None = None
     current: list[str] = []
+    start = 0
 
-    def flush():
+    def flush(end: int):
         text = "\n".join(current).strip("\n")
         if text.strip():
-            entries.append(("prose", text))
+            entries.append(("prose", text, start, end))
         current.clear()
 
-    for line in lines:
+    for n, line in enumerate(lines):
         directive = DIRECTIVE.match(line)
         if directive and directive.group(1) == "glossary":
             inside, base = True, None
@@ -352,6 +367,8 @@ def glossary_entries(lines: list[str]) -> list[tuple[str, str]]:
         if not inside:
             continue
         if not line.strip():
+            if not current:
+                start = n
             current.append(line)
             continue
         indent = len(line) - len(line.lstrip())
@@ -361,9 +378,12 @@ def glossary_entries(lines: list[str]) -> list[tuple[str, str]]:
             # A new term starts here — unless the previous line was also a term
             # with no definition yet, in which case they share one.
             if current and any(l.strip() and (len(l) - len(l.lstrip())) > base for l in current):
-                flush()
+                flush(n - 1)
+                start = n
+        if not current:
+            start = n
         current.append(line)
-    flush()
+    flush(len(lines) - 1)
     return entries
 
 
@@ -371,37 +391,39 @@ def glossary_entries(lines: list[str]) -> list[tuple[str, str]]:
 # Packing
 # ---------------------------------------------------------------------------
 
-def pack(blocks: list[tuple[str, str]], target: int, hard_max: int, overlap_max: int):
+def pack(blocks: list[tuple[str, str, int, int]], target: int, hard_max: int,
+         overlap_max: int) -> list[tuple[str, int, int]]:
     """
     Greedily fill chunks up to `target`, never splitting a block.
+
+    Returns (text, first_line, last_line). The line span is the range the chunk
+    was assembled from, so a reader can go back to the source and find it.
 
     Packing runs per section, so overlap never bleeds the end of one section
     into the start of the next — that would attach text to a heading which does
     not describe it, and the heading is the whole point of carrying a path.
     """
-    chunks: list[str] = []
-    current: list[tuple[str, str]] = []
+    chunks: list[tuple[str, int, int]] = []
+    current: list[tuple[str, str, int, int]] = []
     size = 0
 
     def emit():
-        text = "\n\n".join(t for _, t in current)
+        text = "\n\n".join(t for _, t, _, _ in current)
         if text.strip():
-            chunks.append(text)
+            chunks.append((text, min(a for _, _, a, _ in current),
+                           max(b for _, _, _, b in current)))
 
-    for kind, text in blocks:
+    for block in blocks:
+        kind, text, _, _ = block
         n = len(text)
         if current and size + n + 2 > target:
             emit()
             # Carry the previous block only if it is a whole prose block and
             # small enough to be worth duplicating. Never a partial slice.
-            last_kind, last_text = current[-1]
-            current = (
-                [(last_kind, last_text)]
-                if last_kind == "prose" and len(last_text) <= overlap_max
-                else []
-            )
-            size = sum(len(t) + 2 for _, t in current)
-        current.append((kind, text))
+            last = current[-1]
+            current = [last] if last[0] == "prose" and len(last[1]) <= overlap_max else []
+            size = sum(len(t) + 2 for _, t, _, _ in current)
+        current.append(block)
         size += n + 2
         if size >= hard_max:
             emit()
@@ -417,6 +439,13 @@ def chunk_file(path: pathlib.Path, version: str, source_path: str) -> list[dict]
     lines = text.split("\n")
     out: list[dict] = []
 
+    # Byte/char offset of the start of each line, so a line span converts to the
+    # character range PHASE-1.md Step 2 asks every chunk to carry. Built once per
+    # file rather than recomputed per chunk.
+    line_offset = [0]
+    for line in lines:
+        line_offset.append(line_offset[-1] + len(line) + 1)
+
     is_glossary = path.name == "glossary.rst"
 
     for heading_path, start, end in split_sections(lines):
@@ -425,17 +454,24 @@ def chunk_file(path: pathlib.Path, version: str, source_path: str) -> list[dict]
             blocks = glossary_entries(body)
         else:
             blocks = split_blocks(body)
-        blocks = [(kind, text) for kind, text in blocks if is_content(text)]
+        blocks = [b for b in blocks if is_content(b[1])]
         if not blocks:
             continue
 
-        for text_chunk in merge_small(pack(blocks, TARGET, HARD_MAX, OVERLAP_MAX), MIN_CHARS):
+        packed = merge_small(pack(blocks, TARGET, HARD_MAX, OVERLAP_MAX), MIN_CHARS)
+        for text_chunk, first, last in packed:
+            # Line numbers from the splitters are relative to the section body;
+            # `start` shifts them back to the file.
+            char_start = line_offset[min(start + first, len(lines))]
+            char_end = line_offset[min(start + last + 1, len(lines))]
             out.append({
                 "sqlalchemy_version": version,
                 "source_path": source_path,
                 "heading_path": heading_path,
                 "text": text_chunk,
                 "n_chars": len(text_chunk),
+                "char_start": char_start,
+                "char_end": char_end,
                 "has_code": "::" in text_chunk or ".. code-block::" in text_chunk,
             })
     return out

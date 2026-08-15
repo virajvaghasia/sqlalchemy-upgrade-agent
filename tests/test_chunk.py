@@ -81,7 +81,7 @@ def test_table_rule_is_not_read_as_a_heading():
 
 def test_code_block_is_one_atom():
     blocks = chunk.split_blocks(SAMPLE.split("\n"))
-    code = [text for kind, text in blocks if kind == "code"]
+    code = [b[1] for b in blocks if b[0] == "code"]
     assert len(code) == 1
     assert ">>> session.execute(select(User))" in code[0]
     assert "[(User(id=1),)]" in code[0]
@@ -91,32 +91,32 @@ def test_code_atom_keeps_the_sentence_that_introduces_it():
     """In RST the line ending `::` is the last line of the introducing
     paragraph. Severed, the example arrives with nothing saying what it shows."""
     blocks = chunk.split_blocks(SAMPLE.split("\n"))
-    code = next(text for kind, text in blocks if kind == "code")
+    code = next(b[1] for b in blocks if b[0] == "code")
     assert "A paragraph before the example, ending in a colon::" in code
 
 
 def test_pack_never_splits_a_block():
     big = "x" * 5000
-    blocks = [("code", big)]
-    out = chunk.pack(blocks, chunk.TARGET, chunk.HARD_MAX, chunk.OVERLAP_MAX)
-    assert out == [big], "an oversized code block is emitted whole, not cut"
+    out = chunk.pack([("code", big, 0, 9)], chunk.TARGET, chunk.HARD_MAX, chunk.OVERLAP_MAX)
+    assert [t for t, _, _ in out] == [big], "an oversized code block is emitted whole, not cut"
 
 
 def test_overlap_carries_whole_blocks_only():
     """The first version carried `tail[-200:]` and produced a chunk opening
     with the word "sed on". Overlap is whole prose blocks or nothing."""
-    blocks = [("prose", "A" * 300), ("prose", "B" * 1700), ("prose", "C" * 1700)]
+    blocks = [("prose", "A" * 300, 0, 1), ("prose", "B" * 1700, 2, 3),
+              ("prose", "C" * 1700, 4, 5)]
     out = chunk.pack(blocks, chunk.TARGET, chunk.HARD_MAX, chunk.OVERLAP_MAX)
-    for text in out:
+    for text, _, _ in out:
         for part in text.split("\n\n"):
             assert part in {"A" * 300, "B" * 1700, "C" * 1700}, "a partial block was carried"
 
 
 def test_code_is_never_carried_forward():
     """A duplicated half-example is the failure this module exists to avoid."""
-    blocks = [("code", "c" * 300), ("prose", "p" * 1700)]
+    blocks = [("code", "c" * 300, 0, 1), ("prose", "p" * 1700, 2, 3)]
     out = chunk.pack(blocks, chunk.TARGET, chunk.HARD_MAX, chunk.OVERLAP_MAX)
-    assert sum(text.count("c" * 300) for text in out) == 1
+    assert sum(text.count("c" * 300) for text, _, _ in out) == 1
 
 
 # --- what counts as content ------------------------------------------------
@@ -163,8 +163,68 @@ def test_glossary_splits_per_term():
 """
     entries = chunk.glossary_entries(text.split("\n"))
     assert len(entries) == 2
+    assert all(len(e) == 4 for e in entries), "entries carry (kind, text, first, last)"
     assert "crud" in entries[0][1] and "executemany" not in entries[0][1]
     assert "executemany" in entries[1][1]
+
+
+# --- the character range PHASE-1.md Step 2 requires ------------------------
+
+# SAMPLE above is deliberately tiny and every chunk from it falls under
+# MIN_CHARS, so it is dropped. These tests need paragraphs that survive.
+RANGE_SAMPLE = """\
+================
+Engine and Rows
+================
+
+""" + "\n\n".join(
+    f"Paragraph {n} explains a distinct part of the engine and connection API in "
+    f"enough words that the chunker keeps it rather than folding it away as markup."
+    for n in range(1, 8)
+) + """
+
+Using SELECT
+============
+
+""" + "\n\n".join(
+    f"Section paragraph {n} describes selecting rows and how the 2.0 form differs "
+    f"from the 1.4 one, at a length the minimum-size floor will not discard."
+    for n in range(1, 6)
+) + "\n"
+
+def test_a_chunk_reports_where_in_the_source_it_came_from(tmp_path):
+    """Step 2's "Done when" asks for source file, heading path AND character
+    range. The first version shipped a length (`n_chars`) and no offsets, which
+    names a file but not a place in it — so a reader who distrusts a retrieved
+    passage cannot go and open the original."""
+    src = tmp_path / "sample.rst"
+    src.write_text(RANGE_SAMPLE)
+    chunks = chunk.chunk_file(src, "2.0.51", "doc/build/sample.rst")
+    assert chunks
+    for c in chunks:
+        assert "char_start" in c and "char_end" in c
+        assert 0 <= c["char_start"] < c["char_end"] <= len(RANGE_SAMPLE)
+
+
+def test_the_range_actually_brackets_the_chunk(tmp_path):
+    """An offset that is present but wrong is worse than one that is absent."""
+    src = tmp_path / "sample.rst"
+    src.write_text(RANGE_SAMPLE)
+    for c in chunk.chunk_file(src, "2.0.51", "doc/build/sample.rst"):
+        span = RANGE_SAMPLE[c["char_start"]:c["char_end"]]
+        body = [l.strip() for l in c["text"].split("\n") if l.strip()]
+        assert body[0] in span, f"chunk starts outside its own range: {body[0]!r}"
+        assert body[-1] in span, f"chunk ends outside its own range: {body[-1]!r}"
+
+
+def test_every_chunk_in_the_corpus_has_a_sane_range():
+    """chunks.jsonl is generated and gitignored, so this skips in CI."""
+    import json
+    if not chunk.CHUNKS_PATH.exists():
+        pytest.skip("no chunks.jsonl — run rag.chunk")
+    chunks = [json.loads(l) for l in chunk.CHUNKS_PATH.read_text().splitlines()]
+    for c in chunks:
+        assert c["char_start"] < c["char_end"], c["id"]
 
 
 # --- the corpus that actually got chunked ----------------------------------
