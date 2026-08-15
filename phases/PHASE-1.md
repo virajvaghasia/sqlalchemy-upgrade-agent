@@ -333,7 +333,7 @@ chunks: corpus/chunks.jsonl
     1.4.52    1541 chunks
     2.0.51    1743 chunks
   with a code block: 2461   over hard_max: 34
-  size  min=120  median=1299  p75=1601  p90=1738  p99=2451  max=5346
+  size  min=120  median=1299  p75=1601  p90=1740  p99=2451  max=5346
 ```
 
 **The size was derived, not chosen.** Measuring the corpus first:
