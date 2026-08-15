@@ -62,6 +62,61 @@ services:
     # To poke at the database yourself, you do not need a port either:
     #   docker compose exec db psql -U postgres
 
+  qdrant:
+    # Pinned for the same reason as postgres above. `latest` currently resolves to
+    # the identical digest, so this changes nothing today and prevents the day it
+    # would — which is the whole point of pinning (09-DECISIONS.md D16).
+    image: qdrant/qdrant:v1.19.0
+
+    volumes:
+      - qdrantdata:/qdrant/storage
+
+    # THIS is where the no-published-ports rule stops applying, and the reason
+    # matters more than the exception.
+    #
+    # `db` publishes nothing because its only client, `app`, is another container
+    # on this network. Publishing a port is for traffic arriving from OUTSIDE, and
+    # `app` is not outside.
+    #
+    # Qdrant's client is `rag/index.py`, which runs on the HOST — it is a script
+    # you invoke, not a service in this file. So the host genuinely IS outside, and
+    # a published port is the correct tool rather than a shortcut.
+    #
+    # Bound to 127.0.0.1 explicitly. The short form `6333:6333` binds 0.0.0.0,
+    # which exposes an unauthenticated vector database to every machine on the
+    # network you are sitting on — a coffee-shop wifi problem, not a theoretical
+    # one. This form is reachable from this machine and nowhere else.
+    ports:
+      - "127.0.0.1:6333:6333"
+
+    # The Qdrant image ships bash but no curl, wget or nc, so the usual
+    # `curl -f http://localhost:6333/readyz` is not available. bash's /dev/tcp
+    # opens the socket and speaks just enough HTTP to read the status line, which
+    # tests readiness rather than merely "is the port accepting connections".
+    #
+    # NOTE THE `CMD` + EXPLICIT `bash -c`, and do not "simplify" it to CMD-SHELL.
+    # CMD-SHELL runs the string through `/bin/sh`, which on this image is dash,
+    # and **`/dev/tcp` is a bash builtin rather than a real device** — dash reports
+    # `cannot create /dev/tcp/...: Directory nonexistent` and the probe fails on
+    # every attempt.
+    #
+    # Written first as CMD-SHELL, and the container sat `unhealthy` while serving
+    # traffic perfectly well. That is the worst failure shape available: anything
+    # later using `condition: service_healthy` would wait forever on a service
+    # that was ready the whole time.
+    healthcheck:
+      test:
+        - "CMD"
+        - "bash"
+        - "-c"
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/6333 &&
+          printf 'GET /readyz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '200 OK' <&3
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
   app:
     # `build:` instead of a registry pull — this one is built from the Dockerfile
     # in this directory.
@@ -89,7 +144,13 @@ services:
         # Wait for the healthcheck to pass, not merely for the container to exist.
         condition: service_healthy
 
-# Named volume. Docker manages the storage, and it survives `docker compose down`.
-# Only `docker compose down -v` removes it.
+# Named volumes. Docker manages the storage, and they survive `docker compose down`.
+# Only `docker compose down -v` removes them.
+#
+# qdrantdata holds the vector index. Losing it costs one `rag.index` run — about a
+# second, since the vectors themselves live in corpus/embeddings.npy, which is the
+# artifact worth protecting. That split is deliberate: D36 keeps embedding output
+# in a file precisely so the database is cheap to rebuild and never the only copy.
 volumes:
   pgdata:
+  qdrantdata:

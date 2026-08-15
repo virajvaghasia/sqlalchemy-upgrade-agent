@@ -9,17 +9,18 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 |---|---|---|---|
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
 | [2. chunk it](#2-chunk-it) | **done** 2026-08-14 | Mac | `rag/chunk.py`, 3284 chunks, `corpus/CHUNK_STATS.json` |
-| [3. embed and store](#3-embed-and-store) | **3a done** 2026-08-14 · 3b (Qdrant) next | Mac (M4/Metal) | `rag/embed.py`, 3284 × 1024 vectors, `corpus/EMBED_STATS.json` |
-| [4. retrieve and answer](#4-retrieve-and-answer) | not started | **whichever is free** | — |
+| [3. embed and store](#3-embed-and-store) | **done** 2026-08-14 | Mac (M4/Metal) | `rag/embed.py` + `rag/index.py`, 3284 × 1024 vectors in Qdrant |
+| [4. retrieve and answer](#4-retrieve-and-answer) | **next** | Mac — `qwen2.5-coder:7b` already local | — |
 | [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | not started | either | — |
 
-**Picking this up cold?** Read Step 1's decision table, then Step 2. Steps 3–5 are plans, not
-findings — there is nothing measured in them yet, so there is nothing there to learn from.
+**Picking this up cold?** Read each done step's write-up in order — they carry the measurements
+and the corrections. Steps 4–5 are still plans, so there is nothing measured in them yet.
 
 ### The machine question, reopened 2026-08-14
 
-The table above used to say **lab PC** for Steps 3 and 4. It now says *whichever is free*, and
-the reason is worth keeping.
+The table above used to say **lab PC** for Steps 3 and 4. Step 3 then ran on the Mac in ten
+minutes, and Step 4's generator turned out to be installed here already. The reason the plan
+changed is worth keeping.
 
 **The lab PC is shared, and it went away for two days** — the other user needed the 3060. A
 plan whose only answer to that is "wait" has a single point of failure that is somebody else's
@@ -38,7 +39,8 @@ Apple M4    10 cores    16 GiB unified memory    arm64    Docker 29.2.0
 | memory model | VRAM is a separate, hard budget | unified — the GPU sees system memory |
 | availability | **shared; unavailable ~2 days from 2026-08-14** | always |
 | Docker | Engine 29.7.2 | Desktop 29.2.0 |
-| measured throughput | `qwen2.5-coder:7b` at **62.23 tok/s** | **not yet measured** |
+| measured throughput | `qwen2.5-coder:7b` at **62.23 tok/s** | embedding **5.2 chunks/s**; generation not yet measured |
+| `qwen2.5-coder:7b` present | yes | **yes — already pulled, 4.7 GB** |
 
 **What this does not say is that the Mac is fast enough.** Nothing has been timed on it, and
 16 GiB shared between macOS, Qdrant, an embedder and a 4.7 GB generator is tight where 12288
@@ -512,8 +514,100 @@ Two plausible reasons, neither verified: BGE-M3 is a stronger model than the pre
 and the corpus only contains **4** chunks with that string — so there is very little for search
 to "drift toward". Step 5 needs to find a case that fails for real.
 
-**Still to do in Step 3b:** Qdrant. The vectors exist and are searchable with a dot product
-today; putting them in a database is what makes filtering and scale possible.
+#### Done (3b — Qdrant) — `rag/index.py`
+
+```
+# runnable: docker compose up -d qdrant && uv run python -m rag.index
+created collection sqlalchemy-upgrade-agent-bge-m3-5617a9f6  dim=1024  distance=COSINE
+points in Qdrant: 3284   vectors on disk: 3284
+counts match
+```
+
+##### Why a database at all, when a dot product already worked
+
+Worth being honest about, because the obvious answer is wrong. `rag/embed.py` leaves 3284 unit
+vectors in a NumPy array and searching them is one line — `vectors @ query` — which is fast at
+this size. **Speed is not the reason.** Three things are:
+
+- **Filtering.** Every chunk carries its version. "Only 2.0 pages" is a filtered search, which a
+  flat array cannot express without rebuilding itself per query. Phase 3 needs it.
+- **The payload travels with the vector.** Step 4 prints sources next to the answer, so the text
+  must come back *from the search* rather than from a separate lookup that could drift.
+- **It stops being a script.** An in-memory array is something one process can use. A database is
+  something several processes and the Phase 5 agent can share.
+
+Claiming a 3284-row array needed a vector database would not survive one follow-up question.
+
+##### The collection name carries the model and the revision
+
+`sqlalchemy-upgrade-agent-bge-m3-5617a9f6`, not `chunks`.
+
+Vectors from two model revisions are not comparable — cosine between them is noise, not
+degradation. Qdrant has no collection-level metadata field to record what produced a collection,
+so the fact goes where it cannot be ignored: **the name**. Re-embed with a different revision and
+you get a *different collection* rather than a silently mixed one. Same move as declaring
+`image:` in Compose — make the wrong thing inexpressible rather than merely discouraged.
+
+##### A published port, which this repo's own rule says not to do
+
+`db` publishes nothing, because its only client is another container. The rule was never "ports
+are bad" — it was *"publishing is for traffic arriving from outside, and `app` is not outside."*
+
+Qdrant's client is `rag/index.py`, a script you run on the host. **The host genuinely is
+outside**, so a published port is the right tool here rather than a shortcut. Bound explicitly:
+
+```yaml
+ports:
+  - "127.0.0.1:6333:6333"
+```
+
+The short form `6333:6333` binds `0.0.0.0`, which puts an **unauthenticated vector database on
+every network the laptop joins**. That is a coffee-shop problem, not a theoretical one.
+
+##### The healthcheck that lied — worth reading, it is the best failure here
+
+First version used `CMD-SHELL`. The container ran perfectly, served every request, and reported
+`unhealthy` forever:
+
+```
+# runnable: docker inspect sqlalchemy-upgrade-agent-qdrant-1 --format '{{json .State.Health.Log}}'
+exit: 2
+out: '/bin/sh: 1: cannot create /dev/tcp/127.0.0.1/6333: Directory nonexistent'
+```
+
+The Qdrant image has no `curl`, `wget` or `nc` — only `bash`. So the check uses bash's `/dev/tcp`
+to open a socket and speak enough HTTP to read the status line. **But `/dev/tcp` is a bash
+builtin, not a real device**, and `CMD-SHELL` runs the string through `/bin/sh`, which is dash
+here. Dash has no such feature and fails on every probe.
+
+Fixed by using `CMD` with an explicit `bash -c`. Healthy in 4 seconds.
+
+**Why this is the worst failure shape available:** nothing crashed, nothing logged an error, and
+the service was ready the whole time. Anything later depending on `condition: service_healthy`
+would have waited forever on a container that was fine — a hang with no error anywhere.
+
+##### Filtering, demonstrated on the duplicate problem
+
+The unfiltered search for *"why can't I call engine.execute any more?"* returns the same
+`errors.rst` passage at ranks 1 and 2 — the cross-version duplicate from D38, eating a slot.
+Adding the filter recovers it:
+
+```
+# runnable: uv run python -m rag.index --search "..." --version 2.0.51
+1. 0.633  2.0.51  doc/build/errors.rst          (was rank 1)
+2. 0.605  2.0.51  changelog/migration_20.rst    (was rank 3 — the 1.4 duplicate is gone)
+```
+
+**This is not turned on by default**, and that is deliberate: D10 keeps the skew and the
+duplication visible so Step 5 can measure what they cost. The filter existing is what makes
+Phase 3's fix a one-line change rather than a rebuild.
+
+##### Persistence
+
+The vectors live in a named volume and survive a restart — `points: 3284, status: green` after
+`docker compose up -d`. **Losing that volume costs one `rag.index` run of about a second**,
+because the vectors themselves are a file. That split is the point of D36: the database is never
+the only copy of anything expensive.
 
 ### 4. Retrieve and answer
 

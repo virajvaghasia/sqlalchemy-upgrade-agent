@@ -343,6 +343,51 @@ The conditions available:
 | `service_healthy` | its healthcheck passes |
 | `service_completed_successfully` | it ran and exited 0 — for migration/init jobs |
 
+#### `CMD-SHELL` is `/bin/sh`, and that broke a healthcheck for real
+
+Added 2026-08-14, when the `qdrant` service arrived. The container ran perfectly, answered every
+request, and reported `unhealthy` forever.
+
+The Qdrant image has no `curl`, `wget` or `nc` — only `bash`. So the check used **bash's
+`/dev/tcp`**, which opens a TCP socket as if it were a file:
+
+```yaml
+# BROKEN
+healthcheck:
+  test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/6333 && ..."]
+```
+
+```
+# runnable: docker inspect sqlalchemy-upgrade-agent-qdrant-1 --format '{{json .State.Health.Log}}'
+exit: 2
+out: '/bin/sh: 1: cannot create /dev/tcp/127.0.0.1/6333: Directory nonexistent'
+```
+
+**`/dev/tcp` is a bash builtin, not a real device.** Nothing is there on the filesystem — bash
+intercepts the path and opens a socket instead. `CMD-SHELL` runs its string through `/bin/sh`,
+which on Debian is **dash**, and dash has no such feature. It tries to create an actual file, in
+a directory that does not exist, and fails on every probe.
+
+The fix is to name the shell rather than assume it:
+
+```yaml
+# WORKS
+healthcheck:
+  test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333 && ..."]
+```
+
+**Two things worth taking from this beyond the specific bug.**
+
+`CMD` versus `CMD-SHELL` is the same distinction as in the Dockerfile (§2.5): `CMD` is an argv
+array executed directly, `CMD-SHELL` wraps the string in `/bin/sh -c`. Anywhere you rely on a
+**bash** feature — `/dev/tcp`, `[[ ]]`, arrays, `${var,,}` — `CMD-SHELL` will not give it to you.
+
+And this is the **worst failure shape a healthcheck has**: nothing crashed, nothing logged an
+error, and the service was ready the whole time. A green service reporting `unhealthy` means
+anything using `condition: service_healthy` waits forever on something that is fine — a hang
+with no error anywhere to explain it. **A healthcheck that lies is worse than no healthcheck**,
+because `depends_on` trusts it.
+
 There is also `start_period:`, a grace window during which failures do not count toward
 `retries`. Postgres does not need one; a JVM service will.
 

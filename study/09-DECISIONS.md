@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D39`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D42`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -665,6 +665,52 @@ section as the honest edge of the project.
 > drift toward.
 > **Asked as** — *"Did anything in your plan turn out to be wrong?"* This is the answer. A
 > project where nothing was ever disproved is a project where nothing was ever checked.
+
+### D40 — Qdrant over a NumPy dot product — and **not** for speed
+
+> **Decided** — load the vectors into Qdrant (`v1.19.0`, pinned) rather than searching the array
+> in memory.
+> **Instead of** — `vectors @ query`, which is one line, needs no container, and is genuinely
+> fast over 3284 rows.
+> **Because — and the honest part is what is *not* claimed:** speed is not the reason at this
+> scale. Three things are:
+> - **Filtering.** Every chunk carries its version; "only 2.0 pages" is a filtered search, which
+>   a flat array cannot express without rebuilding itself per query. Phase 3 needs it.
+> - **The payload travels with the vector**, so Step 4 can print sources *from the search result*
+>   rather than from a separate lookup that could drift out of step.
+> - **It stops being a script.** An in-memory array is something one process can use; a database
+>   is something several processes and the Phase 5 agent can share.
+> **Asked as** — *"Why a vector database for 3000 documents?"* This is a trap question, and
+> *"honestly, not for speed — for filtering and because the payload has to come back with the
+> hit"* is the answer that survives the follow-up. Claiming performance would not.
+
+### D41 — The collection name carries the model and the revision
+
+> **Decided** — `sqlalchemy-upgrade-agent-bge-m3-5617a9f6`.
+> **Instead of** — `chunks`, or the project name alone.
+> **Because** vectors from two model revisions are not comparable (D36), and **Qdrant has no
+> collection-level metadata field** in which to record what produced a collection. So the fact
+> goes where it cannot be ignored: the name. Re-embed at a different revision and you get a
+> *different collection* rather than a silently mixed one.
+> **Same move as D20** — declaring `image:` so Compose cannot invent a second image. Make the
+> wrong thing **inexpressible** rather than merely discouraged.
+> **Asked as** — *"How do you handle re-embedding when the model changes?"*
+
+### D42 — One published port, bound to 127.0.0.1, against this repo's own rule
+
+> **Decided** — `ports: ["127.0.0.1:6333:6333"]` on the `qdrant` service, while `db` still
+> publishes nothing.
+> **Instead of** — no ports (consistent, but then the loader cannot reach it), or `6333:6333`
+> (the form every tutorial shows).
+> **Because the rule was never "ports are bad".** It was *"publishing is for traffic arriving
+> from outside, and `app` is not outside."* Qdrant's client is `rag/index.py`, a script run on
+> the host — **the host genuinely is outside**, so the exception is the rule being applied
+> correctly rather than bent.
+> **And the bind address is the part that matters.** `6333:6333` binds `0.0.0.0`, putting an
+> **unauthenticated vector database on every network the laptop joins**. That is a coffee-shop
+> problem, not a theoretical one.
+> **Asked as** — *"Walk me through your compose file"* — being able to say why one service
+> publishes and another does not, in one sentence, is the whole answer.
 
 ---
 

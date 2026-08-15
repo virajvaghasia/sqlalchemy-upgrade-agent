@@ -76,6 +76,12 @@ uv run python -m rag.corpus            # fetch if absent, then report
 uv run python -m rag.corpus --check    # re-hash every file against the manifest
 uv run python -m rag.chunk             # cut it into 3284 retrievable chunks
 uv run python -m rag.chunk --sample 10 # print ten at random to eyeball
+
+uv sync --extra embed                  # torch + sentence-transformers (big; not in the image)
+uv run python -m rag.embed             # 3284 x 1024 vectors -> corpus/embeddings.npy
+docker compose up -d qdrant
+uv run python -m rag.index             # load them into Qdrant
+uv run python -m rag.index --search "why can't I call engine.execute any more?"
 ```
 
 ---
@@ -92,7 +98,7 @@ logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 77 tests pinning what the docs claim
+tests/                 86 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -117,7 +123,7 @@ to "§18" is unambiguous in either file.
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`study/08-LAB.md`](study/08-LAB.md) | lab PC from scratch — SSH / Tailscale / clone / Docker Engine / GPU-in-container / Ollama. A runbook, like `03`, plus the sitting diary in Ubuntu words |
 | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) | **§R1– — RAG explained from zero** — what a language model cannot do, what retrieval changes, why the corpus is a ceiling, and why a bigger one is worse. Built one sitting at a time |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 39 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 42 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -152,7 +158,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest
-77 passed, 1 warning in 0.52s
+86 passed, 1 warning in 0.88s
 ```
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,
