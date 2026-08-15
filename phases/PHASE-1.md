@@ -10,11 +10,11 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
 | [2. chunk it](#2-chunk-it) | **done** 2026-08-14 | Mac | `rag/chunk.py`, 3284 chunks, `corpus/CHUNK_STATS.json` |
 | [3. embed and store](#3-embed-and-store) | **done** 2026-08-14 | Mac (M4/Metal) | `rag/embed.py` + `rag/index.py`, 3284 × 1024 vectors in Qdrant |
-| [4. retrieve and answer](#4-retrieve-and-answer) | **next** | Mac — `qwen2.5-coder:7b` already local | — |
-| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | not started | either | — |
+| [4. retrieve and answer](#4-retrieve-and-answer) | **done** 2026-08-15 | Mac — 18.4 tok/s | `rag/ask.py` — **the hard gate is met** |
+| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **next** | Mac | — |
 
 **Picking this up cold?** Read each done step's write-up in order — they carry the measurements
-and the corrections. Steps 4–5 are still plans, so there is nothing measured in them yet.
+and the corrections. Step 5 is still a plan, so there is nothing measured in it yet.
 
 ### The machine question, reopened 2026-08-14
 
@@ -39,12 +39,13 @@ Apple M4    10 cores    16 GiB unified memory    arm64    Docker 29.2.0
 | memory model | VRAM is a separate, hard budget | unified — the GPU sees system memory |
 | availability | **shared; unavailable ~2 days from 2026-08-14** | always |
 | Docker | Engine 29.7.2 | Desktop 29.2.0 |
-| measured throughput | `qwen2.5-coder:7b` at **62.23 tok/s** | embedding **5.2 chunks/s**; generation not yet measured |
+| measured throughput | `qwen2.5-coder:7b` at **62.23 tok/s** | embedding **5.2 chunks/s**, generation **18.4 tok/s** |
 | `qwen2.5-coder:7b` present | yes | **yes — already pulled, 4.7 GB** |
 
-**What this does not say is that the Mac is fast enough.** Nothing has been timed on it, and
-16 GiB shared between macOS, Qdrant, an embedder and a 4.7 GB generator is tight where 12288
-MiB of dedicated VRAM is not. The claim is narrower: **the question is answerable here, today.**
+**Answered, 2026-08-15: the Mac was fast enough for all of Phase 1.** The whole corpus embedded
+in ten minutes and questions answer in about five seconds. The 3060 is **3.4× faster at
+generation** (62.23 vs 18.4 tok/s), which is the largest gap measured and the first real reason
+to prefer it — but not one that changes anything at a terminal prompt.
 
 **The design target this changes:** Steps 3 and 4 take the device as a **flag**, not an
 assumption — same code, `--device mps` or `--device cuda` or `--device cpu`. If the Mac is too
@@ -92,15 +93,15 @@ question ──embed────────────────────
 | embed the corpus | **either** — done on the Mac | measured: M4/Metal at 5.2 chunks/s, 627s for all 3284 |
 | Qdrant | either | lives next to the vectors; both machines run Docker |
 | embed one question | either | a single short string |
-| Ollama | **lab PC** | the 3060, measured at 62.23 tok/s. Not yet measured on the Mac |
+| Ollama | either | 3060 **62.23 tok/s**, M4 **18.4 tok/s** — 3.4x, the biggest gap measured |
 
 **This table used to say `lab PC` for embedding, and the Day 3 tunnel used to matter here.**
 Neither survived contact: the whole corpus embedded on the Mac in **10 minutes**, so the
 expensive step was never expensive enough to need the 3060. See *The machine question* above
 and [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D27**.
 
-Ollama is the remaining row with a real reason to prefer the 3060, and even that is untested on
-Metal.
+Ollama is the remaining row with a real reason to prefer the 3060, and now it is measured rather
+than assumed: 3.4× on generation, against 1× on everything else.
 
 ---
 
@@ -619,6 +620,79 @@ lucky one, and no way to do Phase 2 at all.
 
 **Done when:** `ask "why can't I call engine.execute any more?"` returns an answer and its
 sources.
+
+#### Done — `rag/ask.py`. **The hard gate is met.**
+
+```
+# runnable: uv run python -m rag.ask "why can't I call engine.execute any more?"
+Q: why can't I call engine.execute any more?
+
+You can no longer call `engine.execute` directly because it relies on "bound metadata"
+and "implicit, connectionless" execution patterns, which are removed in SQLAlchemy 2.0
+[4]. Instead, you should use the `Connection.execute` method of a `Connection` object
+obtained from an `Engine`, or use the ORM's `Session` to execute statements [1].
+
+[qwen2.5-coder:7b  78 tokens  18.4 tok/s  4.9s wall  prompt 1913 tokens]
+------------------------------------------------------------------------------
+SOURCES
+[1] 0.633  SQLAlchemy 2.0.51  doc/build/errors.rst …
+```
+
+Correct, cited, and the five sources print underneath every time — never behind a flag.
+
+##### Generation speed on the Mac, which D27 had left unmeasured
+
+| | tok/s |
+|---|---|
+| RTX 3060 (Phase 0) | **62.23** |
+| Apple M4, same model and tag | **18.4** |
+
+**The 3060 is roughly 3.4× faster at generation** — a much bigger gap than embedding showed, and
+the first number that gives the lab PC a real reason to exist for Phase 1. It does not change
+anything yet: 4.9 seconds a question is fine for a terminal tool.
+
+##### The bug that ate an afternoon, and it was mine
+
+The first run **refused a question whose answer was in the prompt**:
+
+```
+Q: why can't I call engine.execute any more?
+The sources do not answer this.
+```
+
+…while sources 3, 4 and 5 were literally *"'Implicit' and 'Connectionless' execution, 'bound
+metadata' removed"* and contained the string `engine.execute`.
+
+**Three hypotheses, tested in order, and the first two were wrong:**
+
+1. *The cross-version duplicate at ranks 1–2 (D38) is eating slots.* — **No.** It still refused
+   with `--version 2.0.51` (duplicate gone) and at `--k 10`.
+2. *Retrieval put the answer too low.* — **No.** Feeding it **only** the three on-topic chunks,
+   with retrieval removed as a variable entirely, still produced a refusal.
+3. *The system prompt.* — **Yes.**
+
+Same sources, three prompts, plus a question the corpus provably cannot answer — the API
+reference hole from **D07**, *"what is the exact signature of `Session.execute`?"*:
+
+| prompt | answerable question | unanswerable question |
+|---|---|---|
+| **A** `"say exactly: The sources do not answer this"` | **REFUSED** ✗ | refused ✓ |
+| **B** refusal as a last resort | answered ✓ | refused ✓ |
+| **C** no refusal clause at all | answered ✓ | **ANSWERED** ✗ |
+
+**Both failure modes are real and they pull opposite ways.** C invented a complete method
+signature for `Session.execute` out of the model's own weights — exactly the hallucination the
+clause exists to stop, and exactly the hole D07 predicted. A refused a question it could answer.
+
+So the refusal clause is **necessary** (C proves it) and the strict wording **over-fires** (A
+proves it). B is what shipped. `n=1` per cell — two questions is a diagnosis, not a benchmark,
+which is what Step 5 is for.
+
+**Why this counts as a bug rather than baseline naivety.** D04 says build the simple
+architecture first — no hybrid search, no reranking. It does not say ship a prompt that refuses
+answerable questions. *Simple* and *broken* are different, and the distinction is worth holding:
+a wrong prompt would have made every Step 5 failure unattributable, because everything would
+have failed.
 
 ### 5. Break it on purpose, and write it down
 

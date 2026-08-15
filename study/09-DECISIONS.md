@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D42`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D44`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -711,6 +711,48 @@ section as the honest edge of the project.
 > problem, not a theoretical one.
 > **Asked as** — *"Walk me through your compose file"* — being able to say why one service
 > publishes and another does not, in one sentence, is the whole answer.
+
+### D43 — The refusal clause is necessary AND over-fires, so it is worded as a last resort
+
+> **Decided** — the system prompt says *"prefer answering from what the sources do say… only if
+> the sources are genuinely silent, reply 'The sources do not answer this.'"*
+> **Instead of** — the strict form (*"if the sources do not contain the answer, say exactly…"*),
+> or no refusal instruction at all.
+> **Because both alternatives fail, in opposite directions.** Measured against one answerable
+> question and one the corpus provably cannot answer — the API-reference hole from D07:
+>
+> | prompt | answerable | unanswerable |
+> |---|---|---|
+> | strict `"say exactly"` | **REFUSED** ✗ | refused ✓ |
+> | last resort | answered ✓ | refused ✓ |
+> | none | answered ✓ | **ANSWERED** ✗ |
+>
+> Without the clause the model **invented a complete method signature** for `Session.execute`
+> from its own weights. With it phrased strictly, it refused a question whose answer was sitting
+> in the prompt — confirmed by feeding it *only* the on-topic chunks, which it also refused.
+> **How the cause was found matters as much as the answer.** Two wrong hypotheses were tested
+> and discarded first: that the cross-version duplicates (D38) were eating top-k slots — no, it
+> still refused with them filtered out and at k=10 — and that retrieval had ranked the answer too
+> low, which the only-on-topic-chunks test ruled out. The bug was in the prompt, which was the
+> one component nobody suspected because it was hand-written rather than measured.
+> **n=1 per cell.** Two questions is a diagnosis, not a benchmark.
+> **Asked as** — *"How did you tune your prompt?"* — the answer is that one instruction was
+> found to be simultaneously load-bearing and harmful, and the wording that threads it was
+> chosen by testing both failure directions rather than by taste.
+
+### D44 — A wrong prompt is a bug, not "naive baseline"
+
+> **Decided** — fix a prompt that refuses answerable questions, even though Phase 1 is
+> deliberately unsophisticated.
+> **Instead of** — leaving it, on the grounds that D04 says build the bad version first.
+> **Because *simple* and *broken* are different things.** D04 withholds hybrid search and
+> reranking — architectural fixes for retrieval problems that have not been measured yet. It
+> does not license shipping a component that does not work.
+> **The practical cost of getting this wrong:** with prompt A in place, *every* Step 5 question
+> would have failed, and every failure would have been unattributable — the file of failures
+> that is supposed to justify Phase 3 would have recorded one bug forty times.
+> **Asked as** — *"You said the system is bad on purpose. How do you tell that from actually
+> broken?"*
 
 ---
 
