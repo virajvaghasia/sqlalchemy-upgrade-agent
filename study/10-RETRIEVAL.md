@@ -171,9 +171,59 @@ ask what they mean:
 | `1024` | how many numbers describe one chunk. Each is called a **dimension** — nothing more mysterious than a column |
 | `float32` | the type of each of those numbers. *float* = has a decimal point (`0.0213`, not `3`); *32* = 32 bits = **4 bytes** each |
 
-Which makes the size of the whole thing multiplication rather than mystery — 3284 × 1024 × 4 =
-**13451264 bytes**, about 13 MB. That is the entire "understanding" the retrieval half of this
-system has, and you can recompute it.
+**And the size of the whole thing is just counting boxes.** Two steps, nothing hidden:
+
+```
+3284 chunks  ×  1024 numbers each   =  3362816 numbers in total
+3362816 numbers  ×  4 bytes each    =  13451264 bytes    (about 13 MB)
+```
+
+How many numbers there are, times how big one number is. **That is the entire "understanding"
+the retrieval half of this system has.**
+
+**Why bother computing it.** 13 MB sounds like it might *mean* something — like a bigger file
+held more meaning, or came from a smarter model. It does not. The size is fixed the moment you
+pick **how many chunks** and **how many dimensions**, and nothing about the quality of the
+retrieval is in it. Swap in a 384-dimension model and the file is 3284 × 384 × 4 = **5 MB** —
+smaller, and (measured, `09-DECISIONS.md` **D32**) it retrieves just as well.
+
+#### Why the chunks are not all exactly 1800
+
+Because **the chunker never cuts a paragraph or a code block in half.** It adds whole blocks
+until the next one will not fit, then stops — wherever that lands.
+
+Packing a box that holds 1800 grams, with books. At 1500g the next book weighs 500g. Adding it
+overflows, so you close the box at **1500**. You cannot tear the book in half.
+
+```
+# runnable: uv run python -c "
+# import json, collections
+# n=[json.loads(l)['n_chars'] for l in open('corpus/chunks.jsonl')]
+# b=collections.Counter(min(x//300*300, 2400) for x in n)
+# for k in sorted(b): print(f'{k:>5}-{k+299:<5} {b[k]:>5}  {chr(35)*(b[k]//25)}')
+# print('exactly 1800:', sum(1 for x in n if x==1800))"
+    0-299     170  ######
+  300-599     357  ##############
+  600-899     453  ##################
+  900-1199    463  ##################
+ 1200-1499    720  ############################
+ 1500-1799   1015  ########################################
+ 1800-2099     48  #
+ 2100-2399     24
+ 2400-2699     34  #
+exactly 1800: 1
+```
+
+**One chunk out of 3284 is exactly 1800.** Two things pull the rest below it:
+
+- **The next block did not fit** — that is the bulge at 1500–1799, the fullest boxes.
+- **The section simply ended.** A section only 400 characters long *is* a 400-character chunk.
+  There is nothing left to add; packing resumes in the next section, under a different heading.
+
+**1800 is a ceiling, not a quota** — and that is the right shape. Forcing every chunk to exactly
+1800 would mean cutting mid-sentence and mid-code-block, which is the one thing Step 2 exists to
+prevent. The handful *above* 1800 are single code blocks larger than the entire budget, emitted
+whole rather than cut: an honest oversized chunk beats a silently truncated example.
 
 **§R2 takes all of this apart properly** — what a dimension really is, why 1024 rather than 2,
 and why `float32` rather than the half-size `float16` that is genuinely tempting. For now the
