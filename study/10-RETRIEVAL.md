@@ -435,15 +435,30 @@ The `Session.execute()` method in SQLAlchemy 2.0 takes the following arguments:
 (self, statement: 'Executable', params: 'Optional[_CoreAnyExecuteParams]' = None, *, execution_options: 'OrmExecuteOptionsParameter' = immutabledict({}), bind_arguments: 'Optional[_BindArguments]' = None, _parent_execute_state: 'Optional[Any]' = None, _add_event: 'Optional[Any]' = None) -> 'Result[Any]'
 ```
 
-**Six parameters. It named two.** `execution_options` and `bind_arguments` are real, documented,
-user-facing arguments, and they are simply absent — because they live in the API reference, which
-is the part our corpus does not have. The five sources it cited are narrative pages that mention
-`Session.execute` in passing.
+That signature is a wall, so line it up against the answer:
+
+| parameter | public? | did the answer mention it? |
+|---|---|---|
+| `statement` | yes | ✅ *"a SQL expression or string"* |
+| `params` | yes | ✅ *"an optional dictionary of parameters"* |
+| `execution_options` | yes | ❌ **missing** |
+| `bind_arguments` | yes | ❌ **missing** |
+| `_parent_execute_state` | no — leading `_` | — not user-facing |
+| `_add_event` | no — leading `_` | — not user-facing |
+
+**Four public parameters. It named two.** (An earlier draft of this section said "six, it named
+two" by counting the two underscore-prefixed internals. That was wrong in the direction that
+flattered the point, which is the worst direction to be wrong in — half is bad enough without
+inflating it to a third.)
+
+`execution_options` and `bind_arguments` are real, documented, user-facing arguments, and they
+are simply absent — because they live in the API reference, which is the part our corpus does not
+have. The five sources it cited are narrative pages that mention `Session.execute` in passing.
 
 **A refusal would have been the good outcome.** A refusal tells you the system does not know. What
-you get instead is fluent, sourced, plausible, and **one third complete**, with nothing in the
-output marking which two thirds are missing. You would catch it only by already knowing the
-answer — the one situation in which you did not need to ask.
+you get instead is fluent, sourced, plausible, and **half complete**, with nothing in the output
+marking which half is missing. You would catch it only by already knowing the answer — the one
+situation in which you did not need to ask.
 
 That is what a ceiling does: **it does not announce itself.** Phase 3 cannot fix it, Phase 5
 cannot fix it, and better ranking cannot help, because the missing parameters are in no chunk to
