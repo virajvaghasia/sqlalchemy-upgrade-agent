@@ -330,29 +330,29 @@ all 270 files match the manifest
 ```
 
 ```
-# runnable: uv run python -m rag.chunk | sed -n '3p'
-  3284 chunks   3946041 chars
+# runnable: uv run python -c "import json; s=json.load(open('corpus/CHUNK_STATS.json')); print(s['n_chunks'], s['n_chars'])"
+3284 3946041
 ```
 
-> ⚠️ **That second command is not read-only, and the trap is worth more than the number.**
-> `rag/chunk.py` writes `corpus/chunks.jsonl` and `corpus/CHUNK_STATS.json` **every time it runs**
-> — including with `--sample`, which writes *before* it prints the samples. It is safe here only
-> because the chunker is deterministic, so re-running reproduces the file byte-for-byte.
+> **Why that reads the stats file instead of just running the chunker.**
+> The obvious command is `uv run python -m rag.chunk`, and it would print the same numbers — but
+> **a full run rewrites `corpus/chunks.jsonl` and `corpus/CHUNK_STATS.json`.** It is a build
+> command, not a check.
 >
-> It is **not** safe while anything downstream is mid-run. `embeddings.npy` is row-aligned to
-> `chunks.jsonl` by position: row *i* is chunk *i*. Rewrite the chunks under a running embed and
-> you get an index whose vectors point at the wrong text — **and nothing errors.** Search keeps
-> returning results; they are just attached to the wrong sources.
+> It looks harmless, because the chunker is deterministic and the rewrite reproduces both files
+> byte-for-byte. It is not harmless while anything downstream is running: `embeddings.npy` is
+> row-aligned to `chunks.jsonl` **by position** — row *i* is chunk *i*. Rewrite the chunks under
+> a running embed and you get an index whose vectors point at the wrong text. **Nothing errors.**
+> Search keeps returning results; they are simply attached to the wrong sources.
 >
-> To read the same numbers without writing anything:
+> Reading `CHUNK_STATS.json` opens a file and writes nothing, which is what a check should do.
 >
-> ```
-> # runnable: uv run python -c "import json; s=json.load(open('corpus/CHUNK_STATS.json')); print(s['n_chunks'], s['n_chars'])"
-> 3284 3946041
-> ```
+> **`--sample` used to have the same problem and no longer does** — it printed ten chunks *and*
+> rewrote both files. It now builds in memory and touches nothing, because a flag whose purpose
+> is "show me some examples" should not have side effects. Pinned by a test.
 >
-> The general habit: **before running a "verification" command, check whether it mutates the thing
-> it verifies.** A surprising number of them do.
+> **The habit, which outlives this example:** before running a command to *verify* something,
+> check whether it *mutates* the thing it verifies. A surprising number do.
 
 ### R1.4 The corpus is a ceiling
 
