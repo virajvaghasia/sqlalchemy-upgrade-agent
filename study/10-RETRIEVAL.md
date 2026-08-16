@@ -4,7 +4,7 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R1 onwards** — the ret
 which is a third numbering family alongside §0–§22 (SQLAlchemy) and §1–§6 (infrastructure). The
 `R` prefix exists so `§R1` can never be misread as `§1`; see [`README.md`](README.md).
 
-This file exp33lains **what Phase 1 is actually doing and why**, from zero. It assumes you know
+This file explains **what Phase 1 is actually doing and why**, from zero. It assumes you know
 Python and databases and nothing at all about retrieval or language models.
 
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) is the *plan* — what was decided and what is
