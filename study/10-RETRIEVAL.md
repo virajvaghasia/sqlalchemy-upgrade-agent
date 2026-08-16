@@ -755,17 +755,43 @@ multiplication rather than mystery:
 
 **That is exactly the `bytes 13451264` printed above.** Nothing is hidden in the format.
 
-Why not the neighbours:
+**What the 32 bits actually buy.** They hold roughly **7 significant decimal digits**. Our
+numbers look like `0.0213` and every one sits between -1 and 1, so float32 can tell apart values
+about `0.0000001` apart.
+
+**Why that is far more than enough here.** The only thing this system does with these numbers is
+add up 1024 products and compare the totals — and it only needs the **ordering** to come out
+right (§R2.5). The gaps that decide an ordering are large: the top hit for *"why can't I call
+engine.execute any more?"* scored 0.633 against a 0.540 baseline, a gap of **0.09**. float32
+resolves about 0.0000001. **That is a million times finer than the difference being judged.**
+Precision is not the binding constraint, and it is worth knowing which constraint is.
+
+Now the neighbours:
 
 | | bytes each | our file would be | |
 |---|---|---|---|
-| `float16` | 2 | 6.7 MB | half the size, fewer decimal places — precision you may want back later |
-| **`float32`** | **4** | **13 MB** | what the model outputs natively |
-| `float64` | 8 | 26 MB | double the disk for decimals the model never computed |
+| `float16` | 2 | **6.7 MB** | half the size, ~3 decimal digits |
+| **`float32`** | **4** | **13 MB** | what the model computes in |
+| `float64` | 8 | 26 MB | double the disk for digits that were never computed |
 
-`float64` is the instructive one. **The model produced float32.** Storing it as float64 does not
-add accuracy — it pads real numbers with zeros. You would double the file for nothing, which is
-a good way to remember that a bigger number type is not a better one.
+**`float64` is the easy one to reject.** The model *produced* float32. Storing it wider cannot
+add accuracy — there is no eighth digit to store, so you are padding real numbers with zeros.
+Double the file for nothing. **A bigger number type is not a more accurate one; it is only a
+bigger container.**
+
+**`float16` is the interesting one, because it is genuinely tempting.** It halves the file and
+~3 decimal digits still clears a 0.09 gap comfortably. So why not?
+
+**Because at 13 MB there is nothing to buy.** Saving 6.7 MB solves no problem — the file loads
+instantly, fits in memory ten times over, and copies in a second. You would take on a real risk
+(precision that is fine *now*, and might not be after Phase 3 adds reranking, where scores get
+compared much more finely) in exchange for a saving nobody can feel.
+
+**That answer is scale-dependent, and saying so is the point.** At 10 million chunks the same
+array would be 40 GB in float32 and 20 GB in float16, and then it is a genuine decision with
+real money attached. **Here it is not a decision at all** — which is why the honest reason for
+float32 is *"the model emits it and nothing forces us off it"*, not a performance argument we
+never made.
 
 Note the last line: **every vector has length exactly 1.0.** That is not a coincidence, it is
 `normalize_embeddings=True` in `rag/embed.py` (D36). Every position has been pushed out onto the
