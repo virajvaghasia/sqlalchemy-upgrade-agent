@@ -160,6 +160,25 @@ QUERY TIME — done for every question
                                           model (Ollama) ──► answer + sources
 ```
 
+**Every number in that diagram, before anything else.** They are shown above and it is fair to
+ask what they mean:
+
+| in the diagram | what it is |
+|---|---|
+| `270 .rst` | 270 files. `.rst` is the plain-text format SQLAlchemy writes its docs in — see the Corpus bullet below for where they came from |
+| `3284 pieces` | how many chunks the corpus was cut into. **Not a target** — it is what falls out of aiming at ~1800 characters. 3946041 characters ÷ 3284 = 1202 each on average |
+| `3284 x 1024` | a table: **3284 rows**, one per chunk, and **1024 columns**, one number each. Every row is one chunk's position in meaning-space |
+| `1024` | how many numbers describe one chunk. Each is called a **dimension** — nothing more mysterious than a column |
+| `float32` | the type of each of those numbers. *float* = has a decimal point (`0.0213`, not `3`); *32* = 32 bits = **4 bytes** each |
+
+Which makes the size of the whole thing multiplication rather than mystery — 3284 × 1024 × 4 =
+**13451264 bytes**, about 13 MB. That is the entire "understanding" the retrieval half of this
+system has, and you can recompute it.
+
+**§R2 takes all of this apart properly** — what a dimension really is, why 1024 rather than 2,
+and why `float32` rather than the half-size `float16` that is genuinely tempting. For now the
+table above is enough to read the diagram without anything dangling.
+
 Read in words:
 
 - **Corpus** — the body of text the system is allowed to look things up in. Ours is 270
