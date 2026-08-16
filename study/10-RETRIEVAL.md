@@ -4,7 +4,7 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R1 onwards** — the ret
 which is a third numbering family alongside §0–§22 (SQLAlchemy) and §1–§6 (infrastructure). The
 `R` prefix exists so `§R1` can never be misread as `§1`; see [`README.md`](README.md).
 
-This file explains **what Phase 1 is actually doing and why**, from zero. It assumes you know
+This file exp33lains **what Phase 1 is actually doing and why**, from zero. It assumes you know
 Python and databases and nothing at all about retrieval or language models.
 
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) is the *plan* — what was decided and what is
@@ -743,6 +743,29 @@ A **dimension** is one slot in that list. Nothing more mysterious than a column.
 chunker aiming at 1800 and never splitting a code block, and 3284 pieces fall out —
 3946041 ÷ 3284 = **1202 characters** each on average. Aim for 900 instead and you get roughly
 twice as many. **The decision was 1800; the count is arithmetic.**
+
+**"On average" is doing work in that sentence, so pin it down.** There are two ways to say
+"typical" and they disagree:
+
+- **Mean** — add every value, divide by how many. *The average.* One enormous value drags it up.
+- **Median** — sort them all, take the middle one. *The one in the middle.* An enormous value
+  cannot drag it anywhere; it is still just one item at the end of the queue.
+
+Ours differ, and the difference decided a parameter:
+
+```
+# runnable: uv run python -c "
+# import json, statistics
+# n=[json.loads(l)['n_chars'] for l in open('corpus/chunks.jsonl')]
+# print(f'mean {statistics.mean(n):.0f}  median {statistics.median(n):.0f}  max {max(n)}')"
+mean 1202  median 1299  max 5346
+```
+
+The largest chunk is **5346** — four times the middle one — and before `glossary.rst` was split
+per term there was a single 69236-byte block in there. **The chunker was sized on the median,
+not the mean**, because a handful of giants distort an average and would have pushed the target
+above what most sections need. That is `TARGET = 1800` in `rag/chunk.py`, and it is why the same
+table in `phases/PHASE-1.md` Step 2 quotes a median.
 
 **`float32` splits into two words.** *float* — a number with a decimal point, `0.0213` rather
 than `3`. *32* — how many bits each one takes, which is **4 bytes**. Which makes the file size
