@@ -86,6 +86,7 @@ uv run python -m rag.index             # load them into Qdrant
 uv run python -m rag.index --search "why can't I call engine.execute any more?"
 uv run python -m rag.ask "why can't I call engine.execute any more?"   # answer + sources
 uv run python -m rag.probe             # 19 probe questions -> deliverables/FAILURES.md
+uv run python -m rag.compare_embedders # BGE-M3 vs a 25x smaller model, on retrieval
 ```
 
 ---
@@ -101,6 +102,7 @@ deliverables/          what a phase produced — BREAKAGES.md is Phase 0's, FAIL
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
+tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
 tests/                 114 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image

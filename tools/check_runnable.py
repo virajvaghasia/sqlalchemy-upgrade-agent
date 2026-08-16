@@ -32,6 +32,14 @@ green run that means nothing. Each block is classified:
 Only `RUN` blocks are pass/fail. **The rest are reported and counted**, so the
 number of unverifiable blocks is itself visible rather than quietly growing.
 
+KNOWN COVERAGE GAP
+
+Fenced blocks nested inside a blockquote (`> ```` `) are not scanned — the
+parser only recognises a fence at the start of a line. `study/09-DECISIONS.md`
+puts its evidence inside `>` quotes, so those blocks are unchecked. Stated here
+rather than left to be discovered, because an unknown gap in a checker is worse
+than a known one.
+
 THE ONE NORMALISATION, AND WHY IT IS NOT A LOOPHOLE
 
 pytest prints `114 passed, 1 warning in 1.04s`. The duration is genuinely
