@@ -10,9 +10,14 @@ Python and databases and nothing at all about retrieval or language models.
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) is the *plan* — what was decided and what is
 next. This is the *teaching*: the concepts underneath those decisions, with the gaps filled in.
 
-> **Sitting 1 is §R1.** Read it, run the two commands at the end, answer the three questions.
+> **Sitting 1 is §R1.** Read it, run the commands at the end, answer the four questions.
 > Then stop. §R2 is the next sitting and is not written yet — it arrives when this one has
 > landed.
+>
+> **R1.1–R1.6 are concepts; R1.7 is what happened when the concepts met the running system.**
+> R1.7 exists because one of R1.5's predictions turned out to be half wrong, and the correction
+> is worth more than the original claim. Read it last, not first — it only means something once
+> you know what it is correcting.
 
 ---
 
@@ -102,8 +107,8 @@ Every piece has a name, and the names are worth learning now because everything 
 BUILD TIME — done once, ahead of any question
 
   corpus  ──chunk──►  chunks  ──embed──►  vectors  ──►  index (Qdrant)
-   270 .rst            3284              one per chunk    searchable
-   files               pieces
+   270 .rst            3284              3284 x 1024      searchable
+   files               pieces            float32
 
 QUERY TIME — done for every question
 
@@ -120,16 +125,54 @@ Read in words:
 - **Corpus** — the body of text the system is allowed to look things up in. Ours is 270
   reStructuredText files from SQLAlchemy 1.4.52 and 2.0.51. **This is Step 1, and it is done.**
 - **Chunk** — one retrievable piece of the corpus. You do not retrieve whole files, because a
-  whole file is mostly irrelevant to any one question. Ours are 3284 pieces averaging about
-  1300 characters. **This is Step 2, and it is done.**
+  whole file is mostly irrelevant to any one question. Ours are 3284 pieces with a **median of
+  1299 characters and a mean of 1202**. **This is Step 2, and it is done.**
+
+  *Two numbers rather than one, on purpose.* An earlier draft of this file said "averaging about
+  1300", which was the **median** wearing the word "average" — the mean is 1202, and 1300 appears
+  nowhere in the stats file. The gap is small but it is not noise, and what causes it is worth
+  seeing, because it is the chunker's design showing up in the arithmetic:
+
+  ```
+  # runnable: uv run python -c "import json,sys; n=sorted(json.loads(l)['n_chars'] for l in open('corpus/chunks.jsonl')); \
+  #   [print(f'{lo:5d}-{hi:<5d} {sum(1 for x in n if lo<=x<hi):5d}  {100*sum(1 for x in n if lo<=x<hi)/len(n):5.1f}%') \
+  #    for lo,hi in [(0,300),(300,600),(600,900),(900,1200),(1200,1500),(1500,1800),(1800,2400),(2400,6000)]]"
+      0-300     170    5.2%
+    300-600     357   10.9%
+    600-900     453   13.8%
+    900-1200    463   14.1%
+   1200-1500    720   21.9%
+   1500-1800   1015   30.9%
+   1800-2400     72    2.2%
+   2400-6000     34    1.0%
+  ```
+
+  Read the shape. **Nearly a third of all chunks land in 1500–1800** — they piled up against
+  `TARGET = 1800`, because the packer keeps adding blocks until the next one would breach it. Only
+  **3.2% get past 1800** at all. So the distribution has a **ceiling on the right and no floor
+  pushing up the left**: the small chunks (a section that was simply short) have nothing to
+  balance them, and they pull the mean *below* the middle value.
+
+  That is the general lesson, and it costs nothing to learn now: **a mean and a median that
+  disagree are telling you the distribution is lopsided, and which way.** Quoting one and calling
+  it the other hides exactly that. Whenever you see a single "average" for a spread of values,
+  ask which one it is.
 - **Embed** — turn a piece of text into a list of numbers that represents its *meaning*. The
-  list is called an **embedding** or a **vector**. **This is Step 3, and it is next.**
+  list is called an **embedding** or a **vector**. Ours are **1024 numbers per chunk**, from a
+  model called BGE-M3. **This is Step 3, and it is built** — 3284 vectors, in `embeddings.npy`.
 - **Index / vector database** — a store built to answer one question very fast: *given this
-  vector, which stored vectors are closest?* Ours will be Qdrant.
-- **top-k** — the k best matches, where k is a small number like 5. You take the top few, not
-  everything above a threshold.
+  vector, which stored vectors are closest?* Ours is Qdrant. **This is Step 3b, and it is built.**
+- **top-k** — the k best matches. Ours is **`DEFAULT_K = 5`** in
+  [`../rag/ask.py`](../rag/ask.py). You take the top few, not everything above a threshold — so
+  five slots is a hard budget, which is the mechanism R1.5 turns on.
 - **Generation** — the model reads the top-k and writes the answer. Ours is `qwen2.5-coder:7b`
-  through Ollama.
+  through Ollama. **This is Step 4, and it is built** — [`../rag/ask.py`](../rag/ask.py).
+
+**Status, as of the current commit: all five steps are BUILT. Phase 1 is not COMPLETE.** The
+difference is deliberate and it is the honest bit: three of the phase's own gates are still open,
+and every one of them requires a human — eyeball ten chunks, mark 19 answer verdicts, answer five
+questions cold. A step is not done because the script ran and the output looked plausible.
+[`../phases/PHASE-1.md`](../phases/PHASE-1.md) lists the open gates.
 
 **Notice the shape.** The build-time half runs once and is slow. The query-time half runs on
 every question and must be fast. Everything expensive was moved to the left-hand side on
@@ -146,6 +189,26 @@ all 270 files match the manifest
 # runnable: uv run python -m rag.chunk | sed -n '3p'
   3284 chunks   3946041 chars
 ```
+
+> ⚠️ **That second command is not read-only, and the trap is worth more than the number.**
+> `rag/chunk.py` writes `corpus/chunks.jsonl` and `corpus/CHUNK_STATS.json` **every time it runs**
+> — including with `--sample`, which writes *before* it prints the samples. It is safe here only
+> because the chunker is deterministic, so re-running reproduces the file byte-for-byte.
+>
+> It is **not** safe while anything downstream is mid-run. `embeddings.npy` is row-aligned to
+> `chunks.jsonl` by position: row *i* is chunk *i*. Rewrite the chunks under a running embed and
+> you get an index whose vectors point at the wrong text — **and nothing errors.** Search keeps
+> returning results; they are just attached to the wrong sources.
+>
+> To read the same numbers without writing anything:
+>
+> ```
+> # runnable: uv run python -c "import json; s=json.load(open('corpus/CHUNK_STATS.json')); print(s['n_chunks'], s['n_chars'])"
+> 3284 3946041
+> ```
+>
+> The general habit: **before running a "verification" command, check whether it mutates the thing
+> it verifies.** A surprising number of them do.
 
 ### R1.4 The corpus is a ceiling
 
@@ -174,7 +237,40 @@ like this:
 
 That is not documentation. It is an *instruction* that says *"when Sphinx builds the HTML, go
 read the `Session` class's docstring and paste it here."* In the source, it is an empty promise.
-There are 660 such directives in the 1.4 tree and 743 in 2.0.
+
+**How many promises?** The number that matters is the one inside the pile we actually indexed,
+and it is reproducible from `corpus/raw/` with nothing downloaded:
+
+```
+# runnable: for v in 1.4.52 2.0.51; do printf '%-8s %4d\n' "$v" \
+#   "$(grep -rhoE '\.\. auto(class|function|module|method|attribute)::' corpus/raw/$v --include='*.rst' | wc -l | tr -d ' ')"; done
+1.4.52    514
+2.0.51    569
+```
+
+**1083 directives in our corpus that resolve to nothing.** Each one is a place where a reader of
+the rendered website would find a method signature and a parameter list, and where our retriever
+finds two lines of Sphinx configuration.
+
+The same count over the *full* documentation tree — every `.rst` in the tag, including everything
+Step 1 excluded — is **660 and 743**. That is the figure quoted in
+[`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 1, and it needs a download to reproduce:
+
+```
+# runnable: for t in rel_1_4_52 rel_2_0_51; do curl -sL \
+#     "https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/$t.tar.gz" \
+#     | tar xz "sqlalchemy-$t/doc/build"; done
+#   for t in rel_1_4_52 rel_2_0_51; do printf '%-11s %4d\n' "$t" \
+#     "$(grep -rhoE '\.\. auto(class|function|module|method|attribute)::' sqlalchemy-$t/doc/build --include='*.rst' | wc -l | tr -d ' ')"; done
+rel_1_4_52   660
+rel_2_0_51   743
+```
+
+**Two numbers, and the difference between them is the point of Step 1.** 660 is what SQLAlchemy
+ships; 514 is what survived our selection. Neither is wrong — they answer different questions, and
+a number is only meaningful once you say which pile it counted. Quote the corpus figure when
+arguing about *this system's* ceiling; quote the tree figure when arguing about *reStructuredText
+source in general*.
 
 **The consequence, stated plainly:** ask this system *"what arguments does `Session.execute()`
 take?"* and it will fail. Not because retrieval is weak — because the answer is **not in the
@@ -220,7 +316,27 @@ corpus/raw/2.0.51/tutorial/engine.rst:36:    >>> engine = create_engine("sqlite+
 ```
 
 1.4 *teaches* you to pass `future=True` — it was the forward-compatibility switch. By 2.0 it is
-gone from the tutorial entirely: it appears in 15 files of the 1.4 docs and 3 of the 2.0 docs.
+gone from the tutorial entirely:
+
+```
+# runnable: for v in 1.4.52 2.0.51; do printf '%-8s %2d files\n' "$v" \
+#   "$(grep -rl 'future=True' corpus/raw/$v --include='*.rst' | wc -l | tr -d ' ')"; done
+1.4.52   13 files
+2.0.51    2 files
+```
+
+**13 files against 2.** In the *full* documentation tree it is **15 against 3**, and the three
+files that account for the whole difference are worth naming, because each one is Step 1 doing
+what it was told:
+
+| version | file dropped | why |
+|---|---|---|
+| 1.4.52 | `changelog/migration_14.rst` | the rest of `changelog/` is excluded |
+| 1.4.52 | `changelog/migration_20.rst` | kept from **2.0 only** — the 2.0 copy is the current one |
+| 2.0.51 | `changelog/migration_14.rst` | the rest of `changelog/` is excluded |
+
+Same discipline as R1.4: **say which pile you counted.** 15/3 is true of SQLAlchemy's docs; 13/2
+is true of this system. Only the second one predicts what our retriever can return.
 
 Now trace a question through the system. Someone asks *"should I pass `future=True`?"* The search
 finds the 1.4 tutorial — a genuinely excellent, highly relevant, well-written passage about
@@ -231,6 +347,109 @@ finds the 1.4 tutorial — a genuinely excellent, highly relevant, well-written 
 Nothing in the pipeline noticed, because nothing in the pipeline knows which release that page
 describes. This is the failure that the whole of Phase 3 exists to fix, and
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 5 is where we go looking for it deliberately.
+
+#### And now it can be measured, not just asserted
+
+Everything above was written before Step 3 existed, so it was an argument. Step 3 is now built,
+which means the claim *"nothing in the pipeline can tell the two versions apart"* stops being a
+prediction and becomes a number.
+
+**One idea you need first, and only one.** Step 3 turned every chunk into a list of numbers (§R2
+explains how, and it is the next sitting). Once that exists you can ask how close any two chunks
+are, and the answer comes out as a single score called **cosine similarity**:
+
+- **1.0** means *pointing in exactly the same direction* — as far as the system is concerned, the
+  same meaning.
+- **0.0** means unrelated.
+- Anything **above about 0.95** means the system cannot meaningfully tell them apart.
+
+You do not need to know how the numbers are produced to read the result. Treat it for now as
+*"how close does this system think these two passages are?"*, and ask §R2 for the mechanism.
+
+**Start with the two pages from the grep above** — the 1.4 and 2.0 versions of the engine
+tutorial. Chunk `c01464` is the 1.4 one. What are its nearest neighbours in the whole corpus?
+
+```
+# runnable: uv run python -c "
+# import json,numpy as np
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]; V=np.load('corpus/embeddings.npy')
+# q=next(i for i,c in enumerate(r) if c['id']=='c01464')
+# s=V@V[q]
+# for i in np.argsort(-s)[:4]:
+#     print(f\"{s[i]:.4f}  {r[i]['sqlalchemy_version']}  {r[i]['id']}  {r[i]['source_path'].split('doc/build/')[-1]}\")
+# "
+1.0000  1.4.52  c01464  tutorial/engine.rst
+0.9691  2.0.51  c03211  tutorial/engine.rst
+0.8611  1.4.52  c01139  orm/quickstart.rst
+0.8343  1.4.52  c01296  orm/tutorial.rst
+```
+
+Row one is the chunk matching itself, which is why it is exactly 1.0. **Row two is the 2.0 twin at
+0.9691** — and the gap down to row three (0.8611) is enormous by comparison. The system is telling
+you, correctly, that these two passages are about the same thing.
+
+Now look at everything that differs between those two chunks:
+
+```
+# runnable: uv run python -c "
+# import json,difflib
+# r={json.loads(l)['id']: json.loads(l) for l in open('corpus/chunks.jsonl')}
+# print('\n'.join(l for l in difflib.unified_diff(
+#     r['c01464']['text'].splitlines(), r['c03211']['text'].splitlines(), lineterm='', n=0)
+#     if l[:1] in '+-' and not l.startswith(('---','+++'))))
+# "
+-:class:`_future.Engine`.   This object acts as a central source of connections
++:class:`_engine.Engine`.   This object acts as a central source of connections
+-set up.  The :class:`_future.Engine` is created by using :func:`_sa.create_engine`, specifying
+-the :paramref:`_sa.create_engine.future` flag set to ``True`` so that we make full use
+-of :term:`2.0 style` usage:
++set up.  The :class:`_engine.Engine` is created by using the
++:func:`_sa.create_engine` function:
+-    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True, future=True)
++    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+-This string indicates to the :class:`_future.Engine` three important
++This string indicates to the :class:`_engine.Engine` three important
+```
+
+**Four edits — and one of them is the entire answer to the question.** 1.4 says *"specifying the
+`future` flag set to `True`"*. 2.0 deleted that sentence. To a human those two passages give
+opposite advice. To the retriever they are 0.9691 apart, which is to say: the same.
+
+**How widespread is this?** Take every 1.4 chunk and find its closest 2.0 chunk:
+
+```
+# runnable: uv run python -c "
+# import json,numpy as np
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]; V=np.load('corpus/embeddings.npy')
+# a=[i for i,c in enumerate(r) if c['sqlalchemy_version']=='1.4.52']
+# b=[i for i,c in enumerate(r) if c['sqlalchemy_version']=='2.0.51']
+# best=(V[a]@V[b].T).max(axis=1)
+# for t in (0.99,0.95,0.90):
+#     print(f'>= {t:.2f}  {int((best>=t).sum()):5d} of {len(a)}  ({100*(best>=t).mean():.1f}%)')
+# print(f'median {np.median(best):.4f}   min {best.min():.4f}')
+# "
+>= 0.99    792 of 1541  (51.4%)
+>= 0.95   1065 of 1541  (69.1%)
+>= 0.90   1182 of 1541  (76.7%)
+median 0.9920   min 0.6204
+```
+
+**Read the median: 0.9920.** For a *typical* 1.4 chunk there exists a 2.0 chunk that the system
+considers all but identical. **Over half the 1.4 corpus has a 2.0 twin at 0.99 or above.**
+
+This is the sentence to take away, and it is stronger than anything the prose above claimed:
+
+> **The vector space does not encode version.** Not "encodes it weakly" — the two releases of a
+> page land essentially on top of each other. When a question lands near a twin pair, which twin
+> wins a top-k slot is decided in the fourth decimal place, which is to say: by noise.
+
+**And this tells you what the fix has to be.** A better *meaning* search cannot separate two
+passages that mean the same thing — that is not a flaw in the search, it is the search working.
+Reranking does not help either, because a reranker reads the same near-identical text. The only
+things that can separate them are the things that are **not** in the text: the version label we
+recorded on every file in Step 1, used as a **filter** or a routing rule. That is why **D10**
+(record skew, do not prevent it) had to keep the label even though Phase 1 never uses it — Phase 3
+cannot invent it later.
 
 **We chose not to prevent it.** We could filter to 2.0 only. We did not, because the failure is
 the *evidence* Phase 3 is built on, and a filter deletes it before it can be measured. What we
@@ -266,6 +485,63 @@ This costs real quality now to keep a number honest later. It is **D09**, and it
 most worth being able to explain, because most people have never thought about leakage between
 corpus and evaluation set until someone asks.
 
+### R1.7 What happened when we actually ran it
+
+Everything above R1.6 was written while Steps 3–5 were still plans. They are now built, and the
+system has been asked the very question R1.5 walks through. **The prediction was half right, and
+the half that was wrong is more interesting than the half that was right.**
+
+[`../deliverables/FAILURES.md`](../deliverables/FAILURES.md) question **#7** is literally
+*"should I pass future=True to create_engine?"*. What came back:
+
+> *"Yes, you should pass `future=True` to `create_engine`. This is necessary for enabling the new
+> 2.0 API in SQLAlchemy and ensuring compatibility with the upcoming version [1]."*
+
+**Wrong, in the way R1.5 predicted — and sourced from a document R1.5 did not predict.** R1.5 says
+the search will find *the 1.4 tutorial*. It did not. It found this:
+
+```
+# summary of: deliverables/FAILURES.md entry 7  (RST role markup stripped for reading;
+#   the verbatim chunk, with :class:`_engine.Engine` etc. intact, is in that file)
+[1]  0.659 · SQLAlchemy 2.0.51 · doc/build/changelog/migration_20.rst
+     "Migration to 2.0 Step Four - Use the ``future`` flag on Engine"
+
+     The Engine object features an updated transaction-level API in version 2.0.
+     In 1.4, this new API is available by passing the flag future=True to the
+     create_engine function.
+```
+
+Read that source carefully, because three separate things are going on and they are all worth
+learning:
+
+**One — the retrieved page is a 2.0 page.** So the obvious fix, *"just filter the corpus to 2.0
+and the skew problem goes away"*, **would not have caught this.** If you take one thing from R1.7,
+take that. A version filter is a real improvement and it is not sufficient.
+
+**Two — the passage is version-*conditional*, and the condition is the whole answer.** It says
+*"**In 1.4**, this new API is available by passing the flag `future=True`."* A human reads the
+opening two words and knows this does not apply to them. The model dropped them and reported the
+recommendation as current. The give-away is in its own wording: it wrote *"compatibility with the
+**upcoming** version"* — but 2.0 is not upcoming, it is the version being asked about. That phrase
+leaked out of 1.4-era framing inside a 2.0 file.
+
+So version skew is not only *"a page from the wrong version"*. It is also **a page from the right
+version that describes the wrong version**, and no metadata on the file can catch that, because
+the file's metadata is correct.
+
+**Three — the system retrieved its own correction and did not use it.** Result `[2]` was
+`core/future.rst` at 2.0, which says the `future` parameter *"continues to remain available for
+backwards-compatibility support, however if specified must be left at the value of `True`"* — in
+other words, in 2.0 it does nothing. **The right nuance was in the top-k and the answer cited only
+`[1]`.** That is the `single_source` signal recorded on the entry, and it is a *generation*
+failure sitting on top of a retrieval failure. Note what made it visible: the sources were
+printed. This is R1.2's *"it becomes checkable"* paying out, exactly once, in a real case.
+
+**The verdict on #7 is `UNVERIFIED`, and that is not an oversight.** All 19 entries in
+`FAILURES.md` are unverified, and marking them is a human gate — the golden dataset is
+hand-verified, never auto-generated ([`09-DECISIONS.md`](09-DECISIONS.md) **D09**'s sibling
+principle). A system that grades its own homework reports whatever number you wanted.
+
 ---
 
 ## Vocabulary from this sitting
@@ -279,32 +555,41 @@ Say each of these out loud in one sentence before moving on.
 | **RAG** | retrieve passages, add them to the prompt, let the model read rather than recall |
 | **corpus** | the body of text the system may look things up in — a hard ceiling on what it can answer |
 | **chunk** | one retrievable piece of the corpus; the unit search returns |
-| **embedding / vector** | a list of numbers representing a text's meaning |
+| **embedding / vector** | a list of numbers representing a text's meaning — ours are 1024 long |
+| **cosine similarity** | one score for how close two texts are: 1.0 = the same direction, 0.0 = unrelated. Above ~0.95 the system cannot tell them apart. Qdrant is configured with `Distance.COSINE` |
 | **vector database / index** | a store that answers *"which stored vectors are closest to this one?"* fast |
-| **top-k** | the fixed number of chunks retrieval hands to the model — the slots everything competes for |
+| **top-k** | the fixed number of chunks retrieval hands to the model — the slots everything competes for. Ours is `DEFAULT_K = 5` |
 | **recall** | of the answers that exist, how many are found |
 | **precision** | of what is returned, how much is relevant |
-| **version skew** | a page from the wrong version answering confidently and wrongly |
+| **version skew** | **two shapes.** (a) a page from the *wrong* version answering confidently and wrongly; (b) a page from the *right* version whose prose is conditional on another version — *"in 1.4, do X"*. A version filter catches (a) and not (b); see R1.7 |
 | **leakage** | evaluation answers present in the corpus, inflating the score |
 
 ---
 
 ## Before Sitting 2
 
-**Run both, and look at the output rather than the exit code:**
+**Run these, and look at the output rather than the exit code.** All three are read-only — none of
+them writes anything, for the reason given in the warning box in R1.3:
 
 ```bash
 uv run python -m rag.corpus --check
-uv run python -m rag.chunk
+uv run python -c "import json; s=json.load(open('corpus/CHUNK_STATS.json')); print(s['n_chunks'], s['n_chars'])"
+uv run pytest
 ```
 
-**Answer these three. If any is shaky, that part of §R1 is where to reread.**
+**Answer these four. If any is shaky, that part of §R1 is where to reread.**
 
 1. *Why does adding more documents to the corpus make the system worse, when it obviously also
    adds more answers?* — R1.5
 2. *Our system cannot answer "what arguments does `Session.execute()` take". Why can no amount of
    Phase 3 work fix that?* — R1.4
 3. *`BREAKAGES.md` would improve the answers. Why is it deliberately excluded?* — R1.6
+4. *We already have a `--version` filter. Question #7 still got the wrong answer from a correctly
+   labelled 2.0 page. Why didn't the filter save it?* — R1.7
+
+**A warning about question 4.** The tempting answer is *"the filter wasn't switched on"*. That is
+not it, and reaching for it means R1.7 has not landed. Reread the source passage and notice what
+its first two words are.
 
 **Next sitting, §R2:** what an embedding actually is — how a piece of text becomes a list of
 numbers, why similar meanings end up close together, and what "close" means when the things

@@ -1216,7 +1216,7 @@ time. `configure_mappers()` forces the wiring to happen now — which is the who
 `check.py`:
 
 ```python
-# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.check
+# illustration — this is check.py's source, not its output
 from sqlalchemy.orm import configure_mappers
 from experiments.sqlalchemy_1_4_vs_2_0 import models  # noqa: F401
 configure_mappers()
@@ -1378,7 +1378,7 @@ set what rarely changes once, then call the factory many times.
 **`add()` stages. `flush()` writes. `commit()` ends the transaction.**
 
 ```
-# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.explore
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.explore     (§1)
 before add   -> None None None
 after add    -> None None None
 after flush  -> 1 2 1
@@ -1482,7 +1482,7 @@ persistent ones — a transient object has no row to be stale against, and a det
 session to refresh from.
 
 ```
-# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states     (§1)
 constructed            transient   expired=False  cached=['status', 'title']
 issue.project = p      pending     expired=False  cached=['project', 'status', 'title']
                        issue.id is None — no INSERT has run yet
@@ -1491,9 +1491,9 @@ session.flush()        persistent  expired=False  cached=['id', 'project', 'proj
 session.commit()       persistent  expired=True   cached=[]
                        cached is empty — every loaded value was discarded
 
-session.close()        detached    expired=False  cached=['created_at', 'description', 'id', 'project_id', 'status', 'title']
-    issue.title  -> 'login button broken'   (was loaded before the close)
-    issue.labels -> DetachedInstanceError
+========================================================================
+2. Reading an expired attribute — the silent re-SELECT
+========================================================================
 ```
 
 **`cached` is the payoff column.** It's `inspect(obj).dict` — the values actually held on the
@@ -1672,7 +1672,7 @@ session.query(Issue).options(joinedload(Issue.labels))     # 1 query total
 **Counted, not claimed** — same 9 issues, same loop, a query counter on the engine:
 
 ```
-# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.states     (§5)
 issues in this database: 9
 
 Scope A — starting from an expired project object:

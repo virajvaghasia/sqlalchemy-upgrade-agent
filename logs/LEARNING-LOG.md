@@ -22,9 +22,12 @@ and Part C is most of the way; `phases/ROADMAP.md` §10 has the per-part status,
 ```
 # runnable: grep -c '^### ' deliverables/BREAKAGES.md
 23
+```
 
+```
 # runnable: uv run --no-project --with 'sqlalchemy==2.0.51' \
-#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0
+#             python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 2>&1 \
+#             | grep 'patterns FAIL'
   22 of 24 patterns FAIL on 2.0.51
 ```
 

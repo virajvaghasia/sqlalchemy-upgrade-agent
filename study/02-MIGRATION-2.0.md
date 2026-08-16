@@ -639,10 +639,9 @@ keeps it until you `commit()` or `rollback()`.
 
 ```
 # runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration     (§3)
-
-fresh session, nothing done yet   in_transaction: False
-after a single SELECT             in_transaction: True
-after commit()                    in_transaction: False
+  fresh session, nothing done yet   in_transaction: False
+  after a single SELECT             in_transaction: True
+  after commit()                    in_transaction: False
 ```
 
 Read that middle line carefully. **A plain `SELECT` opened a transaction.** Nothing was
@@ -786,8 +785,9 @@ and the dangerous one isn't among them.
 Sweep every module and the picture changes shape:
 
 ```
-# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep
-
+# runnable: uv run python -m experiments.sqlalchemy_1_4_vs_2_0.seed >/dev/null 2>&1; \
+#           uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep 2>&1 \
+#           | sed -n "/module  /,/TOTAL/p"
   module        Removed   Moved  Legacy
   -------------------------------------
   check.py            0       1       0
@@ -795,24 +795,76 @@ Sweep every module and the picture changes shape:
   states.py           1       1       0
   explore.py          7       1       0
   migration.py       19       1       2
+  seed.py             0       1       0
+  -------------------------------------
+  TOTAL              29       6       4
+```
+
+#### The number moved, and why it moved is the actual lesson
+
+**This table used to read `seed.py 1013` and `TOTAL 1042`.** It was measured honestly and it
+sat here for weeks. Then Day 6 added the `is_seeded` guard to `seed.py` — so that on a database
+which already has rows, it stops rather than re-inserting — and the 1013 vanished. Nothing
+re-ran the command, so the doc kept quoting a state that no longer existed.
+
+**Delete the database and it comes straight back:**
+
+```
+# runnable: rm -f issues.db; \
+#           uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep 2>&1 \
+#           | sed -n "/module  /,/TOTAL/p"; \
+#           uv run python -m experiments.sqlalchemy_1_4_vs_2_0.seed >/dev/null 2>&1
+  module        Removed   Moved  Legacy
+  -------------------------------------
+  check.py            0       1       0
+  app.py              0       1       0
+  states.py           1       1       0
+  explore.py          7       1       0
+  migration.py        8       1       2
   seed.py          1013       1       0
   -------------------------------------
-  TOTAL            1042       6       4
-
-  app.py alone reports 5 of the 1052 occurrences above.
+  TOTAL            1029       6       2
 ```
 
-**Now read the second number, because 1042 is not a workload.** Occurrences are not problems;
-the same fix repeated is one entry:
+**Same code. Same command. 29 or 1029, depending on whether a file exists.**
+
+That is a stronger version of the point this section was already making. The original argument
+was *"1042 occurrences are only 4 distinct problems"* — occurrences overcount the work. The
+measured truth is worse than that:
+
+> **An occurrence count is not a property of your code at all. It is a property of the run.**
+
+The cascade warning fires once per attached object, so its count tracks how many rows the script
+inserts — which depends on whether the database was empty, which depends on whether you ran
+anything else first. `app.py` swings 2 → 0 and `migration.py` 19 → 8 for the same reason: with no
+data to query, the code paths that warn never execute.
+
+**Note also that 1029 ≠ 1042.** Even reproducing the original conditions does not reproduce the
+original number, because the code moved too. A number you cannot re-derive is not evidence; it
+is a memory. That is the whole of `CLAUDE.md`'s measurement rule, and this section is where the
+repo violated it against itself.
+
+**Now read the second number, because the occurrence count is not a workload.** Occurrences are
+not problems; the same fix repeated is one entry:
 
 ```
-# runnable   →   the same sweep.py
-
-  RemovedIn20Warning  —  4 distinct, 1042 occurrences
-     1037x  "X" object is being merged into a Session along the backref cascade path for relationshi
+# runnable: uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep 2>&1 \
+#           | grep -A5 "distinct,"
+  RemovedIn20Warning  —  4 distinct, 29 occurrences
+       24x  "X" object is being merged into a Session along the backref cascade path for relationshi
         2x  The Engine.execute() method is considered legacy as of the 1.x series of SQLAlchemy and 
         2x  Passing a string to Connection.execute() is deprecated and will be removed in version 2.
         1x  Using plain strings to indicate SQL statements without using the text() construct is  de
+
+  MovedIn20Warning  —  1 distinct, 6 occurrences
+        6x  The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(
+
+  LegacyAPIWarning  —  1 distinct, 4 occurrences
+        4x  The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becom
+
+==============================================================================
+What to do with this
+==============================================================================
 ```
 
 **Four distinct breakages in the entire project.** That is the `deliverables/BREAKAGES.md` list, and you
@@ -820,8 +872,11 @@ could not have got it from any single file: `app.py` contributes rows two and th
 contributes row four, and row one — the only one that fails silently — comes from the modules
 that write data.
 
-The count of 1037 measures how much data `seed.py` builds, not how much code you must change.
-Sizing the job by occurrences would have you budget for a thousand fixes when there are four.
+**Four distinct, in both states.** Seeded, the occurrences total 29; unseeded, 1029. The
+*distinct* count does not move, because the same fix repeated is still one fix. That is why it
+is the number worth reporting: sizing the job by occurrences would have you budget for a
+thousand changes when there are four, and budget differently on Tuesday than on Monday
+depending on whether a file happened to exist.
 
 > **Sweep every module. Then collapse occurrences into distinct problems, and count *those*.**
 
@@ -1093,14 +1148,13 @@ you. Sort a batch of 1.4 patterns by *which tool notices them*:
 
 ```
 # runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration     (§9)
-
-  1.4 pattern                     WARN_20 says    future=True says
+  1.4 pattern                     WARN_20 says    future=True says        
   ------------------------------------------------------------------------
-  engine.execute('SELECT 1')      RemovedIn20     NotImplementedError
-  select([Issue.id]) list form    RemovedIn20     ok
-  joinedload('issues') by string   RemovedIn20     ok
-  engine.table_names()            — nothing —     NotImplementedError
-  Query.filter('raw string')      — nothing —     ArgumentError
+  engine.execute('SELECT 1')      RemovedIn20     NotImplementedError     
+  select([Issue.id]) list form    RemovedIn20     ok                      
+  joinedload('issues') by string  RemovedIn20     ok                      
+  engine.table_names()            — nothing —     NotImplementedError     
+  Query.filter('raw string')      — nothing —     ArgumentError           
   Row attr access, no .scalars()  — nothing —     AttributeError
 ```
 
@@ -1240,13 +1294,12 @@ other.) The real answer here:
 ```
 # runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration     (§7)
 #                (seed first: ... -m experiments.sqlalchemy_1_4_vs_2_0.seed)
+  issues in the seed              : 200
+  queries fired by issue_report() : 204
 
-issues in the seed              : 200
-queries fired by issue_report() : 204
-
-  200x  SELECT ... FROM comments
-    3x  SELECT ... FROM projects
-    1x  SELECT ... FROM issues
+     200x  SELECT ... FROM comments
+       3x  SELECT ... FROM projects
+       1x  SELECT ... FROM issues
 ```
 
 **Read the breakdown, not the total.** `issue_report()` touches two relationships per issue, so
@@ -1343,7 +1396,7 @@ next one boring.
 │  the items that only appear when you WRITE — this repo's worst         │
 │  breakage is invisible to app.py.                               (§19)  │
 │  Then collapse occurrences into DISTINCT problems and count those:     │
-│  1042 occurrences here are 4 actual fixes.                             │
+│  1029 occurrences here are 4 actual fixes — and 29 on a seeded run.    │
 └────────────────────────────────────────────────────────────────────────┘
                                     ↓
 ┌─ 2. TRIAGE ────────────────────────────────────────────────────────────┐

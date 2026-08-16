@@ -188,9 +188,9 @@ Three things that table decides:
 The same tutorial page, at the two pinned tags:
 
 ```
-# runnable: grep -n 'create_engine("sqlite' sqlalchemy-rel_*/doc/build/tutorial/engine.rst
-sqlalchemy-rel_1_4_52/doc/build/tutorial/engine.rst:37:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True, future=True)
-sqlalchemy-rel_2_0_51/doc/build/tutorial/engine.rst:36:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
+# runnable: grep -n 'create_engine("sqlite' corpus/raw/*/tutorial/engine.rst
+corpus/raw/1.4.52/tutorial/engine.rst:37:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True, future=True)
+corpus/raw/2.0.51/tutorial/engine.rst:36:    >>> engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
 ```
 
 1.4 teaches `future=True` as the forward-compatibility switch — `study/02-MIGRATION-2.0.md` §18
@@ -333,7 +333,7 @@ chunks: corpus/chunks.jsonl
     1.4.52    1541 chunks
     2.0.51    1743 chunks
   with a code block: 2461   over hard_max: 34
-  size  min=120  median=1299  p75=1601  p90=1738  p99=2451  max=5346
+  size  min=120  median=1299  p75=1601  p90=1740  p99=2451  max=5346
 ```
 
 **The size was derived, not chosen.** Measuring the corpus first:
