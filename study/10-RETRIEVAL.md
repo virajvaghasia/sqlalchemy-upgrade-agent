@@ -416,53 +416,42 @@ a number is only meaningful once you say which pile it counted. Quote the corpus
 arguing about *this system's* ceiling; quote the tree figure when arguing about *reStructuredText
 source in general*.
 
-**The consequence, and it is worse than "it will fail".** This section used to claim the system
-would fail on *"what arguments does `Session.execute()` take?"*. That was written without running
-it. Run it:
+**The consequence, with a question the corpus genuinely cannot answer.** Step 5 ran nineteen
+questions and found exactly one true ceiling case:
 
 ```
-# illustration — abridged. Run: uv run python -m rag.ask "what arguments does Session.execute() take?"
-The `Session.execute()` method in SQLAlchemy 2.0 takes the following arguments:
-
-1. A SQL expression or string that represents the statement to be executed.
-2. An optional dictionary of parameters that will be bound to the statement.
+# runnable: grep -c has_table corpus/chunks.jsonl
+0
 ```
 
-**It did not fail. It answered, confidently, citing five sources.** Now the real signature:
+**`engine.has_table()` appears in zero chunks.** It is an API-reference item, and the API
+reference is the part our corpus does not have. Ask about it and no amount of ranking helps —
+there is nothing to rank. Phase 3 cannot fix it. Phase 5 cannot fix it. **The only fix is
+changing the corpus, which is a Step 1 decision.**
 
-```
-# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' python -c "import inspect, sqlalchemy.orm as o; print(inspect.signature(o.Session.execute))"
-(self, statement: 'Executable', params: 'Optional[_CoreAnyExecuteParams]' = None, *, execution_options: 'OrmExecuteOptionsParameter' = immutabledict({}), bind_arguments: 'Optional[_BindArguments]' = None, _parent_execute_state: 'Optional[Any]' = None, _add_event: 'Optional[Any]' = None) -> 'Result[Any]'
-```
+That is what "ceiling" means: not "hard to find" but *not present*.
 
-That signature is a wall, so line it up against the answer:
-
-| parameter | public? | did the answer mention it? |
-|---|---|---|
-| `statement` | yes | ✅ *"a SQL expression or string"* |
-| `params` | yes | ✅ *"an optional dictionary of parameters"* |
-| `execution_options` | yes | ❌ **missing** |
-| `bind_arguments` | yes | ❌ **missing** |
-| `_parent_execute_state` | no — leading `_` | — not user-facing |
-| `_add_event` | no — leading `_` | — not user-facing |
-
-**Four public parameters. It named two.** (An earlier draft of this section said "six, it named
-two" by counting the two underscore-prefixed internals. That was wrong in the direction that
-flattered the point, which is the worst direction to be wrong in — half is bad enough without
-inflating it to a third.)
-
-`execution_options` and `bind_arguments` are real, documented, user-facing arguments, and they
-are simply absent — because they live in the API reference, which is the part our corpus does not
-have. The five sources it cited are narrative pages that mention `Session.execute` in passing.
-
-**A refusal would have been the good outcome.** A refusal tells you the system does not know. What
-you get instead is fluent, sourced, plausible, and **half complete**, with nothing in the output
-marking which half is missing. You would catch it only by already knowing the answer — the one
-situation in which you did not need to ask.
-
-That is what a ceiling does: **it does not announce itself.** Phase 3 cannot fix it, Phase 5
-cannot fix it, and better ranking cannot help, because the missing parameters are in no chunk to
-be ranked. The only fix is changing the corpus, which is a Step 1 decision.
+> #### A correction worth keeping, because it nearly went in as the example
+>
+> This section first used *"what arguments does `Session.execute()` take?"* as the ceiling case,
+> and claimed `execution_options` and `bind_arguments` were absent. **Checked, and they are not:**
+>
+> ```
+> # runnable: for t in execution_options bind_arguments; do printf '%-20s %3d chunks\n' "$t" "$(grep -c "$t" corpus/chunks.jsonl)"; done
+> execution_options    103 chunks
+> bind_arguments         5 chunks
+> ```
+>
+> Worse for my argument: they were **retrieved**. Chunk `c01169` was source `[3]` in the answer
+> and contains both; `[4]` and `[5]` contain `execution_options` as well. So the model was handed
+> the missing parameters in three of its five sources **and named neither**.
+>
+> That is a third failure mode, distinct from both of D45's: not the corpus lacking it, not
+> retrieval missing it, but **generation ignoring what it was given**. It is arguably the most
+> unsettling of the three, because the sources are printed right there — the check that would
+> catch it is already on screen and nobody runs it.
+>
+> The example was wrong for this section and is kept as its own finding rather than deleted.
 
 That is what "ceiling" means, and it is why the question *"why this corpus?"* is the one an
 interviewer opens with.
