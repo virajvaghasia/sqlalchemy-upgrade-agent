@@ -753,16 +753,17 @@ the numbers were, and — the part people skip — what fifteen data points do *
 
 > **Decided** — the system prompt says *"prefer answering from what the sources do say… only if
 > the sources are genuinely silent, reply 'The sources do not answer this.'"*
-> **Instead of** — the strict form (*"if the sources do not contain the answer, say exactly…"*),
-> or no refusal instruction at all.
+> **Instead of** — prompt **A**: *"If the sources do not contain the answer, say exactly:
+> 'The sources do not answer this.'"* — a canned sentence the model may emit *instead of*
+> answering — or prompt **C**: no refusal instruction at all.
 > **Because both alternatives fail, in opposite directions.** Measured against one answerable
 > question and one the corpus provably cannot answer — the API-reference hole from D07:
 >
-> | prompt | answerable | unanswerable |
-> |---|---|---|
-> | strict `"say exactly"` | **REFUSED** ✗ | refused ✓ |
-> | last resort | answered ✓ | refused ✓ |
-> | none | answered ✓ | **ANSWERED** ✗ |
+> | prompt | what it tells the model | answerable | unanswerable |
+> |---|---|---|---|
+> | **A** strict canned refusal | emit that sentence if sources "do not contain the answer" | **REFUSED** ✗ | refused ✓ |
+> | **B** last resort | prefer answering; refuse only if sources are silent | answered ✓ | refused ✓ |
+> | **C** none | always write an answer | answered ✓ | **ANSWERED** ✗ |
 >
 > Without the clause the model **invented a complete method signature** for `Session.execute`
 > from its own weights. With it phrased strictly, it refused a question whose answer was sitting

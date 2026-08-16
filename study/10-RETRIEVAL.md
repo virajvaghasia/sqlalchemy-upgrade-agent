@@ -164,6 +164,21 @@ Read in words:
 
 - **Corpus** — the body of text the system is allowed to look things up in. Ours is 270
   reStructuredText files from SQLAlchemy 1.4.52 and 2.0.51. **This is Step 1, and it is done.**
+
+  **Where those files came from, since it is not obvious.** SQLAlchemy's documentation is not a
+  website we scraped. It is written as plain text files that live in SQLAlchemy's own git
+  repository under `doc/build/` — the website is *built* from them. So we downloaded two
+  snapshots and kept the files we chose:
+
+  ```
+  # illustration
+  curl -sL https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_2_0_51.tar.gz | tar xz
+  ```
+
+  `rel_2_0_51` is a **tag** — a permanent bookmark on the exact code that became version
+  2.0.51. That is why the version is trustworthy. It is not "the docs as of today", which move;
+  it is "the docs as they were at that release", which cannot. `rag/corpus.py` does this for
+  both versions and records a SHA-256 per file so you can prove nothing changed underneath.
 - **Chunk** — one retrievable piece of the corpus. You do not retrieve whole files, because a
   whole file is mostly irrelevant to any one question. Ours are 3284 pieces with a **median of
   1299 characters and a mean of 1202**. **This is Step 2, and it is done.**
@@ -707,6 +722,50 @@ norm of every vector: min 1.000000 max 1.000000
 
 **3284 rows, one per chunk. 1024 columns, one per learned axis. 13 MB.** That is the entire
 "understanding" the retrieval half of this system has.
+
+Every one of those numbers is worth being able to explain, so:
+
+**`3284 × 1024` is a table.** Literally a spreadsheet — 3284 rows, one per chunk, and 1024
+columns, one per number the model produces:
+
+```
+# illustration
+            dim 1    dim 2    dim 3   ...   dim 1024
+chunk 1     0.0213   0.0288  -0.0193  ...    -0.0498
+chunk 2     ...
+   ...
+chunk 3284
+```
+
+A **dimension** is one slot in that list. Nothing more mysterious than a column.
+
+**3284 is a consequence, not a decision.** Nobody chose it. Feed 3946041 characters to a
+chunker aiming at 1800 and never splitting a code block, and 3284 pieces fall out —
+3946041 ÷ 3284 = **1202 characters** each on average. Aim for 900 instead and you get roughly
+twice as many. **The decision was 1800; the count is arithmetic.**
+
+**`float32` splits into two words.** *float* — a number with a decimal point, `0.0213` rather
+than `3`. *32* — how many bits each one takes, which is **4 bytes**. Which makes the file size
+multiplication rather than mystery:
+
+```
+# runnable: python3 -c "print(3284*1024*4, 'bytes')"
+13451264 bytes
+```
+
+**That is exactly the `bytes 13451264` printed above.** Nothing is hidden in the format.
+
+Why not the neighbours:
+
+| | bytes each | our file would be | |
+|---|---|---|---|
+| `float16` | 2 | 6.7 MB | half the size, fewer decimal places — precision you may want back later |
+| **`float32`** | **4** | **13 MB** | what the model outputs natively |
+| `float64` | 8 | 26 MB | double the disk for decimals the model never computed |
+
+`float64` is the instructive one. **The model produced float32.** Storing it as float64 does not
+add accuracy — it pads real numbers with zeros. You would double the file for nothing, which is
+a good way to remember that a bigger number type is not a better one.
 
 Note the last line: **every vector has length exactly 1.0.** That is not a coincidence, it is
 `normalize_embeddings=True` in `rag/embed.py` (D36). Every position has been pushed out onto the
