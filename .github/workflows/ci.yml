@@ -1,8 +1,8 @@
 # Runs on every push to main and every pull request.
 #
-# Three jobs, deliberately separate rather than one long script: a red tick
+# Four jobs, deliberately separate rather than one long script: a red tick
 # should say WHICH thing broke without opening the log. They also run in
-# parallel, so three jobs are not three times the wall clock.
+# parallel, so four jobs are not four times the wall clock.
 
 name: CI
 
@@ -40,6 +40,33 @@ jobs:
       - run: uv sync --frozen
 
       - run: uv run pytest
+
+  docs:
+    # CLAUDE.md's measurement rule says every `# runnable` block reproduces
+    # verbatim. Until 2026-08-15 that was enforced by remembering to check, and
+    # it had already failed: 02-MIGRATION-2.0.md quoted `TOTAL 1042` for weeks
+    # after a Day 6 change to seed.py made the real figure 29.
+    #
+    # This job fetches the corpus first because roughly a third of the blocks
+    # read it, and corpus/raw/ is generated rather than committed (D11). That is
+    # ~9MB from GitHub — the price of the rule being enforced rather than
+    # remembered.
+    name: docs reproduce
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --frozen
+
+      # Inputs several blocks read. Both are generated, not committed.
+      - run: uv run python -m experiments.sqlalchemy_1_4_vs_2_0.seed
+      - run: uv run python -m rag.corpus
+      - run: uv run python -m rag.chunk
+
+      - run: uv run python -m tools.check_runnable
 
   evidence:
     # deliverables/BREAKAGES.md's headline number, re-derived on a clean machine. The file
