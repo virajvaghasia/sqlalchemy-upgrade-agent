@@ -298,9 +298,29 @@ and every one of them requires a human — eyeball ten chunks, mark 19 answer ve
 questions cold. A step is not done because the script ran and the output looked plausible.
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) lists the open gates.
 
-**Notice the shape.** The build-time half runs once and is slow. The query-time half runs on
-every question and must be fast. Everything expensive was moved to the left-hand side on
-purpose — that is the entire architectural idea of a vector index.
+#### Why it is split into two halves at all
+
+**Embedding is slow. Comparing numbers is fast.** So every slow thing was pushed into the
+build-time half, which runs once, before any question exists. Measured on this machine:
+
+| | | |
+|---|---|---|
+| **once, ahead of time** | embed all 3284 chunks | **627000 ms** (10.5 minutes) |
+| **every question** | embed just the question | **~40 ms** |
+| **every question** | compare it against all 3284 | **~1 ms** |
+
+**The alternative is what makes it obvious.** Without doing the work up front, answering one
+question would mean embedding the entire corpus *first* — you cannot compare against numbers
+you have not produced yet. Every question would cost **627 seconds instead of 0.04**. That is
+roughly 15000× worse, per question, forever.
+
+So a vector index is not a clever search algorithm. **It is a cache of work you refuse to
+redo.** You pay ten minutes once, and each question afterwards costs the price of embedding one
+short string plus 3284 multiply-and-adds.
+
+It is also why re-embedding is an event rather than a tweak: change the model and all 3284
+vectors become worthless, because they describe positions in a different space
+(`09-DECISIONS.md` **D36**). The ten minutes comes back.
 
 Steps 1 and 2 have already happened, and you can see both:
 
