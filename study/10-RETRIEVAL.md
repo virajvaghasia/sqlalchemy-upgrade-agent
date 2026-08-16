@@ -10,7 +10,7 @@ Python and databases and nothing at all about retrieval or language models.
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) is the *plan* — what was decided and what is
 next. This is the *teaching*: the concepts underneath those decisions, with the gaps filled in.
 
-> **Sitting 1 is §R1.** Read it, run the commands at the end, answer the four questions.
+> **Sitting 1 is §R1; sitting 2 is §R2.** Read it, run the commands at the end, answer the four questions.
 > Then stop. §R2 is the next sitting and is not written yet — it arrives when this one has
 > landed.
 >
@@ -597,6 +597,215 @@ being compared have a thousand dimensions. That is Step 3, and it is the concept
 pipeline turns on.
 
 ---
+
+---
+
+## §R2 — What an embedding actually is
+
+> **Sitting 2.** §R1 said an embedding is "a list of numbers representing meaning" and moved on.
+> That sentence is true and useless. This section makes it concrete, using the 3284 vectors
+> already sitting in `corpus/embeddings.npy`.
+
+### R2.1 The problem it solves
+
+A computer can compare two strings for equality. It cannot compare them for **meaning**.
+
+`"close a session"` and `"terminate a connection"` share no words at all. A database `LIKE`, a
+`grep`, a hash — every exact-matching tool says these are unrelated. To a person they are nearly
+the same sentence.
+
+That is the whole problem. **You need a way to turn text into something arithmetic can compare**,
+where "arithmetic" gets the answer a person would.
+
+### R2.2 A vector is a position
+
+Take a much smaller idea first. Suppose you described every document with exactly two numbers:
+
+```
+                 formal
+                    ▲
+                    │   • the migration guide
+                    │
+                    │             • the FAQ
+    about-code ─────┼────────────────────► about-prose
+                    │
+       • a code     │
+         example    │
+                    ▼
+                 casual
+```
+
+Each document is now a **point**. Two points close together mean two documents that are alike on
+those two axes. You can now *measure* similarity — with a ruler.
+
+An embedding is that idea, with two changes:
+
+- **The axes are not named.** Nobody decided "axis 1 = formality". The model learned 1024 axes
+  during training, and no human knows what most of them mean. They are not interpretable, and
+  that is fine — you never read them, you only compare them.
+- **There are 1024 of them, not 2.** Meaning has more than two independent dimensions, and
+  cramming it into two would put unrelated things on top of each other.
+
+**What the model does** is take text in and produce a position out, having been trained so that
+text people consider similar comes out at nearby positions. That is the entire trick.
+
+### R2.3 What our vectors actually are
+
+Not a metaphor — the file on disk:
+
+```
+# runnable: uv run python -c "
+#   import numpy as np; V = np.load('corpus/embeddings.npy')
+#   print(f'shape {V.shape}  dtype {V.dtype}  bytes {V.nbytes}')
+#   print('first 6 numbers of the first vector:', np.round(V[0][:6], 4).tolist())
+#   print('norm of every vector: min %.6f max %.6f' % (
+#       np.linalg.norm(V, axis=1).min(), np.linalg.norm(V, axis=1).max()))"
+shape (3284, 1024)  dtype float32  bytes 13451264
+first 6 numbers of the first vector: [0.0213, 0.0288, -0.0193, 0.0272, -0.0565, -0.0498]
+norm of every vector: min 1.000000 max 1.000000
+```
+
+**3284 rows, one per chunk. 1024 columns, one per learned axis. 13 MB.** That is the entire
+"understanding" the retrieval half of this system has.
+
+Note the last line: **every vector has length exactly 1.0.** That is not a coincidence, it is
+`normalize_embeddings=True` in `rag/embed.py` (D36). Every position has been pushed out onto the
+surface of a sphere, all the same distance from the origin — so only the *direction* carries
+meaning, never the magnitude. The next section is why that matters.
+
+### R2.4 "Close" means the angle between them
+
+With everything on a unit sphere, similarity is the **cosine of the angle** between two
+directions:
+
+| angle | cosine | means |
+|---|---|---|
+| 0° | **1.0** | same direction — as similar as the model can say |
+| 90° | **0.0** | unrelated |
+| 180° | **-1.0** | opposite |
+
+And here is the payoff for normalising: **for unit vectors, the cosine is just the dot product**
+— multiply the pairs and add. That is one instruction on a CPU, over 1024 numbers. It is why
+searching 3284 chunks takes no perceptible time, and it is what `vectors @ query` does in
+`rag/index.py`.
+
+Measured against a real chunk — `c01464`, the 1.4 tutorial paragraph about `create_engine`:
+
+```
+# runnable: uv run python -c "
+#   import json, numpy as np
+#   r=[json.loads(l) for l in open('corpus/chunks.jsonl')]; V=np.load('corpus/embeddings.npy')
+#   q=next(i for i,c in enumerate(r) if c['id']=='c01464')
+#   s=V@V[q]; order=np.argsort(-s)
+#   for i in list(order[1:4]) + list(order[-2:]):
+#       print(f\"{s[i]:.4f}  {r[i]['sqlalchemy_version']}  {r[i]['source_path'].split('doc/build/')[-1]}\")"
+0.9691  2.0.51  tutorial/engine.rst
+0.8611  1.4.52  orm/quickstart.rst
+0.8343  1.4.52  orm/tutorial.rst
+0.3925  2.0.51  orm/queryguide/columns.rst
+0.3820  2.0.51  orm/queryguide/columns.rst
+```
+
+**The nearest thing to the 1.4 `create_engine` paragraph is the 2.0 `create_engine` paragraph,
+at 0.9691.** Nobody told the model those two pages correspond. It has never seen a version
+number. It placed them next to each other because they say nearly the same thing — which is
+exactly the behaviour §R1.5's version-skew problem depends on.
+
+And the furthest things are query-guide pages about selecting columns. Different subject,
+different neighbourhood.
+
+### R2.5 The number is not a percentage — and this one catches everyone
+
+`0.8343` looks like "83% similar". It is not. **You cannot read a cosine score without knowing
+what the baseline is for your model**, and for BGE-M3 on this corpus the baseline is high:
+
+```
+# runnable: uv run python -c "
+#   import numpy as np
+#   V=np.load('corpus/embeddings.npy')
+#   rng=np.random.default_rng(7); idx=rng.choice(len(V),4000)
+#   s=(V[idx[:2000]]*V[idx[2000:]]).sum(1)
+#   print('random pairs      mean %.3f  min %.3f  max %.3f' % (s.mean(), s.min(), s.max()))"
+random pairs      mean 0.540  min 0.329  max 1.000
+```
+
+**Two chunks picked at random score 0.540 on average.** Nothing in this corpus scores near zero;
+the floor is about 0.33. So the usable range is roughly **0.33 to 1.0**, not 0 to 1, and it is
+squashed into the top half.
+
+Consequences worth carrying:
+
+- **A score of 0.63 — the top hit for *"why can't I call engine.execute any more?"* — is not
+  "63% confident".** It is *0.09 above what two unrelated chunks score*. That is a much weaker
+  signal than the number looks.
+- **A fixed threshold like "only return hits above 0.7" is a guess** unless you have measured
+  your own baseline. Copied from a tutorial written against a different model, it will either
+  return everything or nothing.
+- **Only the ordering is trustworthy**, which is why retrieval takes top-k rather than
+  everything above a cutoff (§R1.3). Rank is robust; the absolute number is not.
+
+### R2.6 What this cannot do, and Step 5 measured it
+
+Meaning-space has a blind spot, and it is the mirror image of its strength.
+
+`Query.from_self` and `Query.filter` are, to an embedding model, almost the same thing: both are
+`Query` methods, in the same docs, in near-identical sentences. Their *meanings* genuinely are
+close. But if you asked about one and got the other, the answer is simply wrong — **an exact
+symbol name is not a fuzzy concept, and the model has no way to know that.**
+
+That is not theory. Step 5 ran it:
+
+```
+symbol            in corpus   retrieved   so the failure is
+table_names        6 chunks       ✗       retrieval — the answer was there
+keys()             7 chunks       ✗       retrieval
+cascade_backrefs  12 chunks       ✗       retrieval
+has_table          0 chunks       ✗       the ceiling — nothing to find
+```
+
+**Three questions where the answer existed and meaning-search did not find it.** The `symbol`
+category has the worst results of any in `deliverables/FAILURES.md`.
+
+**This is the argument for hybrid search**, and it is now a measured argument rather than the
+borrowed one. §R1 quoted the roadmap's example — *"what replaces `Query.get()`"* — which turned
+out **not** to fail (D39: ranked 1 of 3284). The claim was right; the illustration was wrong.
+Keyword search would nail `table_names` precisely because it is a literal string, and that is
+Phase 3.
+
+---
+
+## Vocabulary from this sitting
+
+| term | one-line meaning |
+|---|---|
+| **vector / embedding** | a position in a space with many axes, produced from text |
+| **dimension** | one axis. Ours has 1024, none of them individually meaningful |
+| **normalised / unit vector** | pushed to length exactly 1, so only direction carries meaning |
+| **cosine similarity** | the angle between two directions; for unit vectors, a dot product |
+| **baseline similarity** | what two *unrelated* items score. Ours is **0.540**, not 0 |
+| **dense retrieval** | search by these positions — what Phase 1 does |
+| **sparse retrieval / BM25** | search by literal words. Nails exact symbols; Phase 3 |
+
+## Before Sitting 3
+
+**Run these two and look at the numbers, not the exit code:**
+
+```bash
+uv run python -m rag.ask "how do I use joinedload?" --retrieval-only
+uv run python -m rag.compare_embedders
+```
+
+**Answer these three:**
+
+1. *Every vector in our file has length exactly 1.0. What does that buy, and what does it throw
+   away?* — R2.3, R2.4
+2. *A search returns a top hit at 0.61. Is that good? What do you need to know before you can
+   say?* — R2.5
+3. *`table_names` appears in 6 chunks and retrieval did not find any of them. Why is that a
+   different problem from `has_table`, which appears in 0?* — R2.6
+
+**Next sitting, §R3:** the prompt — why the model refuses answerable questions if you tell it
+too firmly that it may refuse, and what that experiment looked like.
 
 ## Where the rest of the repo lives
 
