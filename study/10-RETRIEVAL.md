@@ -4,7 +4,7 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R1 onwards** — the ret
 which is a third numbering family alongside §0–§22 (SQLAlchemy) and §1–§6 (infrastructure). The
 `R` prefix exists so `§R1` can never be misread as `§1`; see [`README.md`](README.md).
 
-This file explains **what Phase 1 is actually doing and why**, from zero. It assumes you know
+This file exp33lains **what Phase 1 is actually doing and why**, from zero. It assumes you know
 Python and databases and nothing at all about retrieval or language models.
 
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) is the *plan* — what was decided and what is
@@ -160,6 +160,75 @@ QUERY TIME — done for every question
                                           model (Ollama) ──► answer + sources
 ```
 
+**Every number in that diagram, before anything else.** They are shown above and it is fair to
+ask what they mean:
+
+| in the diagram | what it is |
+|---|---|
+| `270 .rst` | 270 files. `.rst` is the plain-text format SQLAlchemy writes its docs in — see the Corpus bullet below for where they came from |
+| `3284 pieces` | how many chunks the corpus was cut into. **Not a target** — it is what falls out of aiming at ~1800 characters. 3946041 characters ÷ 3284 = 1202 each on average |
+| `3284 x 1024` | a table: **3284 rows**, one per chunk, and **1024 columns**, one number each. Every row is one chunk's position in meaning-space |
+| `1024` | how many numbers describe one chunk. Each is called a **dimension** — nothing more mysterious than a column |
+| `float32` | the type of each of those numbers. *float* = has a decimal point (`0.0213`, not `3`); *32* = 32 bits = **4 bytes** each |
+
+**And the size of the whole thing is just counting boxes.** Two steps, nothing hidden:
+
+```
+3284 chunks  ×  1024 numbers each   =  3362816 numbers in total
+3362816 numbers  ×  4 bytes each    =  13451264 bytes    (about 13 MB)
+```
+
+How many numbers there are, times how big one number is. **That is the entire "understanding"
+the retrieval half of this system has.**
+
+**Why bother computing it.** 13 MB sounds like it might *mean* something — like a bigger file
+held more meaning, or came from a smarter model. It does not. The size is fixed the moment you
+pick **how many chunks** and **how many dimensions**, and nothing about the quality of the
+retrieval is in it. Swap in a 384-dimension model and the file is 3284 × 384 × 4 = **5 MB** —
+smaller, and (measured, `09-DECISIONS.md` **D32**) it retrieves just as well.
+
+#### Why the chunks are not all exactly 1800
+
+Because **the chunker never cuts a paragraph or a code block in half.** It adds whole blocks
+until the next one will not fit, then stops — wherever that lands.
+
+Packing a box that holds 1800 grams, with books. At 1500g the next book weighs 500g. Adding it
+overflows, so you close the box at **1500**. You cannot tear the book in half.
+
+```
+# runnable: uv run python -c "
+# import json, collections
+# n=[json.loads(l)['n_chars'] for l in open('corpus/chunks.jsonl')]
+# b=collections.Counter(min(x//300*300, 2400) for x in n)
+# for k in sorted(b): print(f'{k:>5}-{k+299:<5} {b[k]:>5}  {chr(35)*(b[k]//25)}')
+# print('exactly 1800:', sum(1 for x in n if x==1800))"
+    0-299     170  ######
+  300-599     357  ##############
+  600-899     453  ##################
+  900-1199    463  ##################
+ 1200-1499    720  ############################
+ 1500-1799   1015  ########################################
+ 1800-2099     48  #
+ 2100-2399     24
+ 2400-2699     34  #
+exactly 1800: 1
+```
+
+**One chunk out of 3284 is exactly 1800.** Two things pull the rest below it:
+
+- **The next block did not fit** — that is the bulge at 1500–1799, the fullest boxes.
+- **The section simply ended.** A section only 400 characters long *is* a 400-character chunk.
+  There is nothing left to add; packing resumes in the next section, under a different heading.
+
+**1800 is a ceiling, not a quota** — and that is the right shape. Forcing every chunk to exactly
+1800 would mean cutting mid-sentence and mid-code-block, which is the one thing Step 2 exists to
+prevent. The handful *above* 1800 are single code blocks larger than the entire budget, emitted
+whole rather than cut: an honest oversized chunk beats a silently truncated example.
+
+**§R2 takes all of this apart properly** — what a dimension really is, why 1024 rather than 2,
+and why `float32` rather than the half-size `float16` that is genuinely tempting. For now the
+table above is enough to read the diagram without anything dangling.
+
 Read in words:
 
 - **Corpus** — the body of text the system is allowed to look things up in. Ours is 270
@@ -229,9 +298,29 @@ and every one of them requires a human — eyeball ten chunks, mark 19 answer ve
 questions cold. A step is not done because the script ran and the output looked plausible.
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) lists the open gates.
 
-**Notice the shape.** The build-time half runs once and is slow. The query-time half runs on
-every question and must be fast. Everything expensive was moved to the left-hand side on
-purpose — that is the entire architectural idea of a vector index.
+#### Why it is split into two halves at all
+
+**Embedding is slow. Comparing numbers is fast.** So every slow thing was pushed into the
+build-time half, which runs once, before any question exists. Measured on this machine:
+
+| | | |
+|---|---|---|
+| **once, ahead of time** | embed all 3284 chunks | **627000 ms** (10.5 minutes) |
+| **every question** | embed just the question | **~40 ms** |
+| **every question** | compare it against all 3284 | **~1 ms** |
+
+**The alternative is what makes it obvious.** Without doing the work up front, answering one
+question would mean embedding the entire corpus *first* — you cannot compare against numbers
+you have not produced yet. Every question would cost **627 seconds instead of 0.04**. That is
+roughly 15000× worse, per question, forever.
+
+So a vector index is not a clever search algorithm. **It is a cache of work you refuse to
+redo.** You pay ten minutes once, and each question afterwards costs the price of embedding one
+short string plus 3284 multiply-and-adds.
+
+It is also why re-embedding is an event rather than a tweak: change the model and all 3284
+vectors become worthless, because they describe positions in a different space
+(`09-DECISIONS.md` **D36**). The ten minutes comes back.
 
 Steps 1 and 2 have already happened, and you can see both:
 
@@ -241,29 +330,29 @@ all 270 files match the manifest
 ```
 
 ```
-# runnable: uv run python -m rag.chunk | sed -n '3p'
-  3284 chunks   3946041 chars
+# runnable: uv run python -c "import json; s=json.load(open('corpus/CHUNK_STATS.json')); print(s['n_chunks'], s['n_chars'])"
+3284 3946041
 ```
 
-> ⚠️ **That second command is not read-only, and the trap is worth more than the number.**
-> `rag/chunk.py` writes `corpus/chunks.jsonl` and `corpus/CHUNK_STATS.json` **every time it runs**
-> — including with `--sample`, which writes *before* it prints the samples. It is safe here only
-> because the chunker is deterministic, so re-running reproduces the file byte-for-byte.
+> **Why that reads the stats file instead of just running the chunker.**
+> The obvious command is `uv run python -m rag.chunk`, and it would print the same numbers — but
+> **a full run rewrites `corpus/chunks.jsonl` and `corpus/CHUNK_STATS.json`.** It is a build
+> command, not a check.
 >
-> It is **not** safe while anything downstream is mid-run. `embeddings.npy` is row-aligned to
-> `chunks.jsonl` by position: row *i* is chunk *i*. Rewrite the chunks under a running embed and
-> you get an index whose vectors point at the wrong text — **and nothing errors.** Search keeps
-> returning results; they are just attached to the wrong sources.
+> It looks harmless, because the chunker is deterministic and the rewrite reproduces both files
+> byte-for-byte. It is not harmless while anything downstream is running: `embeddings.npy` is
+> row-aligned to `chunks.jsonl` **by position** — row *i* is chunk *i*. Rewrite the chunks under
+> a running embed and you get an index whose vectors point at the wrong text. **Nothing errors.**
+> Search keeps returning results; they are simply attached to the wrong sources.
 >
-> To read the same numbers without writing anything:
+> Reading `CHUNK_STATS.json` opens a file and writes nothing, which is what a check should do.
 >
-> ```
-> # runnable: uv run python -c "import json; s=json.load(open('corpus/CHUNK_STATS.json')); print(s['n_chunks'], s['n_chars'])"
-> 3284 3946041
-> ```
+> **`--sample` used to have the same problem and no longer does** — it printed ten chunks *and*
+> rewrote both files. It now builds in memory and touches nothing, because a flag whose purpose
+> is "show me some examples" should not have side effects. Pinned by a test.
 >
-> The general habit: **before running a "verification" command, check whether it mutates the thing
-> it verifies.** A surprising number of them do.
+> **The habit, which outlives this example:** before running a command to *verify* something,
+> check whether it *mutates* the thing it verifies. A surprising number do.
 
 ### R1.4 The corpus is a ceiling
 
@@ -327,10 +416,42 @@ a number is only meaningful once you say which pile it counted. Quote the corpus
 arguing about *this system's* ceiling; quote the tree figure when arguing about *reStructuredText
 source in general*.
 
-**The consequence, stated plainly:** ask this system *"what arguments does `Session.execute()`
-take?"* and it will fail. Not because retrieval is weak — because the answer is **not in the
-pile**. Phase 3 cannot fix it. Phase 5 cannot fix it. The only fix is changing the corpus, which
-is a Step 1 decision.
+**The consequence, with a question the corpus genuinely cannot answer.** Step 5 ran nineteen
+questions and found exactly one true ceiling case:
+
+```
+# runnable: grep -c has_table corpus/chunks.jsonl
+0
+```
+
+**`engine.has_table()` appears in zero chunks.** It is an API-reference item, and the API
+reference is the part our corpus does not have. Ask about it and no amount of ranking helps —
+there is nothing to rank. Phase 3 cannot fix it. Phase 5 cannot fix it. **The only fix is
+changing the corpus, which is a Step 1 decision.**
+
+That is what "ceiling" means: not "hard to find" but *not present*.
+
+> #### A correction worth keeping, because it nearly went in as the example
+>
+> This section first used *"what arguments does `Session.execute()` take?"* as the ceiling case,
+> and claimed `execution_options` and `bind_arguments` were absent. **Checked, and they are not:**
+>
+> ```
+> # runnable: for t in execution_options bind_arguments; do printf '%-20s %3d chunks\n' "$t" "$(grep -c "$t" corpus/chunks.jsonl)"; done
+> execution_options    103 chunks
+> bind_arguments         5 chunks
+> ```
+>
+> Worse for my argument: they were **retrieved**. Chunk `c01169` was source `[3]` in the answer
+> and contains both; `[4]` and `[5]` contain `execution_options` as well. So the model was handed
+> the missing parameters in three of its five sources **and named neither**.
+>
+> That is a third failure mode, distinct from both of D45's: not the corpus lacking it, not
+> retrieval missing it, but **generation ignoring what it was given**. It is arguably the most
+> unsettling of the three, because the sources are printed right there — the check that would
+> catch it is already on screen and nobody runs it.
+>
+> The example was wrong for this section and is kept as its own finding rather than deleted.
 
 That is what "ceiling" means, and it is why the question *"why this corpus?"* is the one an
 interviewer opens with.
@@ -744,6 +865,29 @@ chunker aiming at 1800 and never splitting a code block, and 3284 pieces fall ou
 3946041 ÷ 3284 = **1202 characters** each on average. Aim for 900 instead and you get roughly
 twice as many. **The decision was 1800; the count is arithmetic.**
 
+**"On average" is doing work in that sentence, so pin it down.** There are two ways to say
+"typical" and they disagree:
+
+- **Mean** — add every value, divide by how many. *The average.* One enormous value drags it up.
+- **Median** — sort them all, take the middle one. *The one in the middle.* An enormous value
+  cannot drag it anywhere; it is still just one item at the end of the queue.
+
+Ours differ, and the difference decided a parameter:
+
+```
+# runnable: uv run python -c "
+# import json, statistics
+# n=[json.loads(l)['n_chars'] for l in open('corpus/chunks.jsonl')]
+# print(f'mean {statistics.mean(n):.0f}  median {statistics.median(n):.0f}  max {max(n)}')"
+mean 1202  median 1299  max 5346
+```
+
+The largest chunk is **5346** — four times the middle one — and before `glossary.rst` was split
+per term there was a single 69236-byte block in there. **The chunker was sized on the median,
+not the mean**, because a handful of giants distort an average and would have pushed the target
+above what most sections need. That is `TARGET = 1800` in `rag/chunk.py`, and it is why the same
+table in `phases/PHASE-1.md` Step 2 quotes a median.
+
 **`float32` splits into two words.** *float* — a number with a decimal point, `0.0213` rather
 than `3`. *32* — how many bits each one takes, which is **4 bytes**. Which makes the file size
 multiplication rather than mystery:
@@ -755,17 +899,43 @@ multiplication rather than mystery:
 
 **That is exactly the `bytes 13451264` printed above.** Nothing is hidden in the format.
 
-Why not the neighbours:
+**What the 32 bits actually buy.** They hold roughly **7 significant decimal digits**. Our
+numbers look like `0.0213` and every one sits between -1 and 1, so float32 can tell apart values
+about `0.0000001` apart.
+
+**Why that is far more than enough here.** The only thing this system does with these numbers is
+add up 1024 products and compare the totals — and it only needs the **ordering** to come out
+right (§R2.5). The gaps that decide an ordering are large: the top hit for *"why can't I call
+engine.execute any more?"* scored 0.633 against a 0.540 baseline, a gap of **0.09**. float32
+resolves about 0.0000001. **That is a million times finer than the difference being judged.**
+Precision is not the binding constraint, and it is worth knowing which constraint is.
+
+Now the neighbours:
 
 | | bytes each | our file would be | |
 |---|---|---|---|
-| `float16` | 2 | 6.7 MB | half the size, fewer decimal places — precision you may want back later |
-| **`float32`** | **4** | **13 MB** | what the model outputs natively |
-| `float64` | 8 | 26 MB | double the disk for decimals the model never computed |
+| `float16` | 2 | **6.7 MB** | half the size, ~3 decimal digits |
+| **`float32`** | **4** | **13 MB** | what the model computes in |
+| `float64` | 8 | 26 MB | double the disk for digits that were never computed |
 
-`float64` is the instructive one. **The model produced float32.** Storing it as float64 does not
-add accuracy — it pads real numbers with zeros. You would double the file for nothing, which is
-a good way to remember that a bigger number type is not a better one.
+**`float64` is the easy one to reject.** The model *produced* float32. Storing it wider cannot
+add accuracy — there is no eighth digit to store, so you are padding real numbers with zeros.
+Double the file for nothing. **A bigger number type is not a more accurate one; it is only a
+bigger container.**
+
+**`float16` is the interesting one, because it is genuinely tempting.** It halves the file and
+~3 decimal digits still clears a 0.09 gap comfortably. So why not?
+
+**Because at 13 MB there is nothing to buy.** Saving 6.7 MB solves no problem — the file loads
+instantly, fits in memory ten times over, and copies in a second. You would take on a real risk
+(precision that is fine *now*, and might not be after Phase 3 adds reranking, where scores get
+compared much more finely) in exchange for a saving nobody can feel.
+
+**That answer is scale-dependent, and saying so is the point.** At 10 million chunks the same
+array would be 40 GB in float32 and 20 GB in float16, and then it is a genuine decision with
+real money attached. **Here it is not a decision at all** — which is why the honest reason for
+float32 is *"the model emits it and nothing forces us off it"*, not a performance argument we
+never made.
 
 Note the last line: **every vector has length exactly 1.0.** That is not a coincidence, it is
 `normalize_embeddings=True` in `rag/embed.py` (D36). Every position has been pushed out onto the
