@@ -518,9 +518,15 @@ def stats(chunks: list[dict]) -> dict:
     }
 
 
-def report(s: dict) -> None:
+def report(s: dict, wrote: bool = True) -> None:
     p = s["parameters"]
-    print(f"chunks: {CHUNKS_PATH.relative_to(corpus.REPO_ROOT)}")
+    # Name the output file only when there IS one. Printing
+    # "chunks: corpus/chunks.jsonl" after saying "not written" reads as a
+    # contradiction, and the reader is right to trust the line that looks
+    # like a file path over the one in parentheses.
+    print(f"chunks: {CHUNKS_PATH.relative_to(corpus.REPO_ROOT)}" if wrote
+          else "read-only: nothing written. These are the numbers the current "
+               "corpus WOULD produce.")
     print(f"  target={p['target']}  hard_max={p['hard_max']}  overlap_max={p['overlap_max']}")
     print(f"  {s['n_chunks']} chunks   {s['n_chars']} chars")
     for version, n in s["by_version"].items():
@@ -549,13 +555,10 @@ def main() -> None:
     # POSITION — row i is chunk i — so rewriting the chunks under a running
     # embed yields an index whose vectors point at the wrong text. Nothing
     # errors. Search keeps returning results, attached to the wrong sources.
-    if sample:
-        print("(--sample is read-only: chunks.jsonl and CHUNK_STATS.json not written)",
-              file=sys.stderr)
-    else:
+    if not sample:
         CHUNKS_PATH.write_text("".join(json.dumps(c) + "\n" for c in chunks))
         STATS_PATH.write_text(json.dumps(s, indent=2) + "\n")
-    report(s)
+    report(s, wrote=not sample)
 
     if sample:
         # Fixed seed: "ten at random" has to mean the same ten every time, or a
