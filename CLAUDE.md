@@ -134,7 +134,17 @@ difference is the rule:
 - **Short declarative lines beat qualified ones.** *"Same question. Bigger prompt. The extra
   bytes are the lookup results."* Three sentences, no hedging, and the idea has landed.
 
-Apply this to every `study/` file, not only the new ones.
+- **Every number in a block needs a sentence.** He read §R2 and asked: *where did the .rst come
+  from, why only 3284 chunks, what is 1024, why float32, what is a median.* The doc printed all
+  of those and explained none. **A measured number with no "why" beside it is still an
+  unexplained number** — the measurement rule makes it true, not useful.
+  Where it can be *derived*, show the arithmetic: `3284 × 1024 × 4 bytes = 13451264`, which is
+  exactly the file size printed two lines above. A reader who can recompute it stops having to
+  trust it.
+
+Apply this to every `study/` file, not only the new ones. **When he asks a question about a doc,
+the answer belongs in that doc** — the question is evidence the file was incomplete, not just a
+request for information.
 
 ### AI / LLM material — Claude is hands-on.
 

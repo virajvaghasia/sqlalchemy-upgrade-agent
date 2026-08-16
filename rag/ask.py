@@ -76,18 +76,25 @@ TEMPERATURE = 0.0
 
 # The refusal clause is phrased as a LAST RESORT, and the wording is measured
 # rather than chosen. Three candidates were run against one answerable question
-# and one the corpus provably cannot answer (the API-reference hole, D07):
+# and one the corpus provably cannot answer (the API-reference hole, D07).
+#
+# A is this instruction, not a slogan:
+#   If the sources do not contain the answer, say exactly:
+#   "The sources do not answer this."
+# "Say exactly" hands the model a canned sentence it may emit INSTEAD of
+# answering. "Do not contain the answer" is a high bar — pages that explain
+# engine.execute without quoting a FAQ still look like a miss, so A refused
+# a question whose answer was sitting in the prompt (verified by feeding it
+# ONLY those chunks; it still refused).
 #
 #   prompt                          answerable      unanswerable
-#   A "say exactly: ..."            REFUSED  ✗      refused  ✓
+#   A canned refusal as the exit    REFUSED  ✗      refused  ✓
 #   B refusal as last resort        answered ✓      refused  ✓     <- this one
 #   C no refusal clause             answered ✓      ANSWERED ✗
 #
-# Both failure modes are real and they pull opposite ways. A refused a question
-# whose answer was sitting in the prompt — verified by feeding it ONLY the
-# on-topic chunks, which it also refused. C invented a full method signature for
-# Session.execute out of the model's own weights, which is precisely the
-# hallucination the clause exists to prevent.
+# Both failure modes are real and they pull opposite ways. C invented a full
+# method signature for Session.execute out of the model's own weights, which
+# is precisely the hallucination the clause exists to prevent.
 #
 # So the clause is NECESSARY (C proves it) and the strict wording OVER-FIRES
 # (A proves it). "Prefer answering from what the sources do say... only if

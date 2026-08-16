@@ -348,6 +348,17 @@ already "one idea with a heading on it", the unit the author chose, so a target 
 leaves most of them whole. The **99th-percentile code block is 1723** — a budget below that
 guarantees splitting examples. `TARGET = 1800` clears both.
 
+**Why median and not mean, since they both claim to say "typical".** Add everything up and
+divide and you get the **mean**; sort them and take the middle one and you get the **median**.
+They disagree whenever a few values are enormous — and here they are: the median chunk is 1299
+characters and the largest is **5346**, with a 69236-byte glossary before it was split per term.
+A single monster drags a mean upward; it cannot drag a median anywhere, because it is still just
+one item at the end of the queue. **Sizing the chunker on the mean would have picked a target too
+big for most sections in order to accommodate a handful of giants.**
+
+`p99` in the table is the same idea pushed to the end: sort every code block by size and look at
+the one 99% of the way along. A budget that clears p99 splits at most 1 in 100.
+
 #### What the "eyeball ten at random" gate actually caught
 
 The gate is not ceremony. Four defects survived a passing script and were only visible in the
@@ -704,11 +715,27 @@ metadata' removed"* and contained the string `engine.execute`.
 Same sources, three prompts, plus a question the corpus provably cannot answer — the API
 reference hole from **D07**, *"what is the exact signature of `Session.execute`?"*:
 
-| prompt | answerable question | unanswerable question |
-|---|---|---|
-| **A** `"say exactly: The sources do not answer this"` | **REFUSED** ✗ | refused ✓ |
-| **B** refusal as a last resort | answered ✓ | refused ✓ |
-| **C** no refusal clause at all | answered ✓ | **ANSWERED** ✗ |
+**A is not a slogan.** It is this instruction, given to the model as a system prompt:
+
+> If the sources do not contain the answer, say exactly: "The sources do not answer this."
+
+*"Say exactly"* is the part that bites. It hands the model a **canned sentence it is allowed
+to emit instead of answering.** "Do not contain the answer" is a high bar: the `engine.execute`
+pages explained the removal without being a one-line FAQ, so the model treated them as a miss
+and printed the canned line. That is over-firing — refusing a question whose answer was in
+the prompt.
+
+**B** is what shipped: *prefer answering from what the sources do say, even indirectly; only
+if they are genuinely silent, then refuse.* Same canned sentence, but as a last resort, not
+the default exit.
+
+**C** has no refusal instruction at all. The model must always write an answer.
+
+| prompt | what the model is told | answerable (`engine.execute`) | unanswerable (`Session.execute` signature) |
+|---|---|---|---|
+| **A** | if sources do not contain the answer, emit that canned sentence | **REFUSED** ✗ | refused ✓ |
+| **B** | prefer answering; refuse only if the sources are silent | answered ✓ | refused ✓ |
+| **C** | no "you may say you don't know" | answered ✓ | **ANSWERED** ✗ |
 
 **Both failure modes are real and they pull opposite ways.** C invented a complete method
 signature for `Session.execute` out of the model's own weights — exactly the hallucination the
