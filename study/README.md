@@ -18,7 +18,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`07-TESTS.md`](07-TESTS.md) | the test suite, and how to tell whether tests cover anything | §6 |
 | [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama. Includes the 2026-08-13 sitting diary in Ubuntu words | — |
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **every design decision, what was rejected, and why** — written for interview revision. Cite entries by ID (`D19`) | — |
-| [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — what a language model cannot do, what retrieval changes, and why the corpus is a ceiling. Written one sitting at a time | §R1– |
+| [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — why retrieval exists and the corpus is a ceiling (§R1); what an embedding actually is, measured off our own vectors (§R2). Written one sitting at a time | §R1–§R2 |
 
 ## Three numbering families, and why
 
