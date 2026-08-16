@@ -537,9 +537,24 @@ def main() -> None:
         sample = int(sys.argv[sys.argv.index("--sample") + 1])
 
     chunks = build()
-    CHUNKS_PATH.write_text("".join(json.dumps(c) + "\n" for c in chunks))
     s = stats(chunks)
-    STATS_PATH.write_text(json.dumps(s, indent=2) + "\n")
+
+    # --sample is READ-ONLY. It used to rewrite chunks.jsonl and
+    # CHUNK_STATS.json before printing, which is a trap: a flag whose whole
+    # purpose is "show me some examples" should not have side effects.
+    #
+    # It looked harmless because the chunker is deterministic, so the rewrite
+    # reproduced the file byte-for-byte. It is not harmless while anything
+    # downstream is running. embeddings.npy is row-aligned to chunks.jsonl BY
+    # POSITION — row i is chunk i — so rewriting the chunks under a running
+    # embed yields an index whose vectors point at the wrong text. Nothing
+    # errors. Search keeps returning results, attached to the wrong sources.
+    if sample:
+        print("(--sample is read-only: chunks.jsonl and CHUNK_STATS.json not written)",
+              file=sys.stderr)
+    else:
+        CHUNKS_PATH.write_text("".join(json.dumps(c) + "\n" for c in chunks))
+        STATS_PATH.write_text(json.dumps(s, indent=2) + "\n")
     report(s)
 
     if sample:

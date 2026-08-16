@@ -227,6 +227,26 @@ def test_every_chunk_in_the_corpus_has_a_sane_range():
         assert c["char_start"] < c["char_end"], c["id"]
 
 
+def test_sample_does_not_write_anything(tmp_path, monkeypatch):
+    """`--sample` is read-only.
+
+    It used to rewrite chunks.jsonl and CHUNK_STATS.json before printing. That
+    looked harmless because the chunker is deterministic — the rewrite
+    reproduced the file byte-for-byte. It is not harmless while anything
+    downstream is running: embeddings.npy is row-aligned to chunks.jsonl BY
+    POSITION, so rewriting the chunks under a running embed produces an index
+    whose vectors point at the wrong text, with no error anywhere.
+    """
+    import sys
+    if not chunk.CHUNKS_PATH.exists():
+        pytest.skip("no chunks.jsonl — run rag.chunk")
+    before = (chunk.CHUNKS_PATH.stat().st_mtime_ns, chunk.STATS_PATH.stat().st_mtime_ns)
+    monkeypatch.setattr(sys, "argv", ["rag.chunk", "--sample", "1"])
+    chunk.main()
+    after = (chunk.CHUNKS_PATH.stat().st_mtime_ns, chunk.STATS_PATH.stat().st_mtime_ns)
+    assert before == after, "--sample wrote to disk"
+
+
 # --- the corpus that actually got chunked ----------------------------------
 
 def test_stats_parameters_match_the_module():
