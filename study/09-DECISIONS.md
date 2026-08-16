@@ -474,9 +474,14 @@ form.
 
 ## §H — Not yet justified ⚠️
 
-**These are chosen but unearned.** They appear in `ROADMAP.md`'s tools table and glossary and
-are named as "yours", but no comparison, benchmark or trade-off was ever recorded. Treat this
-section as the honest edge of the project.
+**Chosen but unearned.** They appear in `ROADMAP.md`'s tools table and glossary and are named as
+"yours", but no comparison, benchmark or trade-off was ever recorded. Treat this section as the
+honest edge of the project.
+
+**D32 left this section on 2026-08-15**, measured against a model 25× smaller. It is kept below
+in its settled form so the shape of the answer is visible: what it was compared against, what
+the numbers were, and — the part people skip — what fifteen data points do **not** license.
+**D31 has not been measured and still says so.**
 
 ### D31 — Qdrant as the vector database ⚠️
 
@@ -491,16 +496,48 @@ section as the honest edge of the project.
 > stronger than a recited feature list, because it names the alternative you would test.
 > **Settle this in Step 3** and replace this entry.
 
-### D32 — BGE-M3 as the embedding model ⚠️
+### D32 — BGE-M3, measured 2026-08-15 — and the 25× smaller model matched it
 
-> **Decided** — BGE-M3.
-> **Never compared against** — `all-MiniLM-L6-v2` (far smaller and faster, weaker),
-> `bge-large-en`, `e5-large`, `nomic-embed-text`, or anything on the MTEB leaderboard.
-> **What matters and is not yet measured:** the VRAM it needs alongside Ollama. There are
-> **7115 MiB** free with `qwen2.5-coder:7b` loaded (D27), and whether BGE-M3 fits inside that
-> is a fact, not a preference. If it does not, either the embedder or the generator has to be
-> unloaded between phases — a real architectural consequence.
-> **Settle this in Step 3**, with the VRAM number measured on the lab PC.
+> **Decided** — BGE-M3 stays for Phase 1. **No longer unjustified, and the justification is not
+> the one expected.**
+> **Compared against** — `all-MiniLM-L6-v2`, chosen as a deliberately distant point on the
+> size curve rather than a near-neighbour: 23M parameters against 568M, 384 dimensions
+> against 1024.
+> **The metric needs no human verdicts.** Answer quality is reserved for a person (D06), but
+> retrieval is mechanical: *for each probe question with a known symbol, at what rank does the
+> first chunk containing that symbol appear?* `rag/probe.py` already pairs each question with
+> the exact string, and the corpus says which chunks hold it.
+>
+> ```
+> # runnable: uv run python -m rag.compare_embedders
+> model                                        dim  params  chunks/s    R@5   R@10    MRR  median  worst
+> BAAI/bge-m3                                 1024    568M       7.7  0.733  0.867  0.675       1     23
+> sentence-transformers/all-MiniLM-L6-v2       384     23M     222.9  0.733  0.867  0.668       1     79
+> ```
+>
+> **Identical recall@5 and recall@10. MRR within 0.007.** The 25× smaller model retrieves the
+> right chunk exactly as often, 29× faster.
+>
+> **What this does not license.** `n = 15` questions. That is a diagnosis, not a benchmark, and
+> switching a load-bearing component on fifteen data points would be the same unmeasured
+> confidence D32 was flagged for in the first place. It also measures *retrieval*, not answers —
+> Phase 2 tests whether better chunks become better answers.
+>
+> **The one real difference, which the headline numbers hide.** BGE-M3's worst rank is **23**;
+> MiniLM's is **79**. They agree on the easy questions and diverge on the hard tail. That is
+> exactly where a reranker operates, so the two models may not stay tied once Phase 3 exists.
+>
+> **What it changes now:** nothing, and that is deliberate. What it changes about the *answer*:
+> "BGE-M3, because the roadmap said so" becomes "BGE-M3, and I measured it against a model 25×
+> smaller which matched it on recall — it holds a real edge only on the worst cases, and I would
+> revisit it after Phase 3."
+>
+> **It also answers D32's other open question.** MiniLM at 23M parameters would leave far more
+> of the 3060's 7115 free MiB for the generator. If the VRAM measurement (HANDOFF ASK 5.3) shows
+> BGE-M3 and `qwen2.5-coder:7b` cannot coexist, there is now a measured alternative rather than
+> a guess.
+> **Asked as** — *"Why that embedding model?"* — and the strong answer names the cheaper thing
+> you tested it against, not the leaderboard you read.
 
 ### D33 — Chunk size 1800 characters, overlap by whole block — **settled 2026-08-14**
 
