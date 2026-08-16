@@ -416,10 +416,38 @@ a number is only meaningful once you say which pile it counted. Quote the corpus
 arguing about *this system's* ceiling; quote the tree figure when arguing about *reStructuredText
 source in general*.
 
-**The consequence, stated plainly:** ask this system *"what arguments does `Session.execute()`
-take?"* and it will fail. Not because retrieval is weak — because the answer is **not in the
-pile**. Phase 3 cannot fix it. Phase 5 cannot fix it. The only fix is changing the corpus, which
-is a Step 1 decision.
+**The consequence, and it is worse than "it will fail".** This section used to claim the system
+would fail on *"what arguments does `Session.execute()` take?"*. That was written without running
+it. Run it:
+
+```
+# illustration — abridged. Run: uv run python -m rag.ask "what arguments does Session.execute() take?"
+The `Session.execute()` method in SQLAlchemy 2.0 takes the following arguments:
+
+1. A SQL expression or string that represents the statement to be executed.
+2. An optional dictionary of parameters that will be bound to the statement.
+```
+
+**It did not fail. It answered, confidently, citing five sources.** Now the real signature:
+
+```
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' python -c "import inspect, sqlalchemy.orm as o; print(inspect.signature(o.Session.execute))"
+(self, statement: 'Executable', params: 'Optional[_CoreAnyExecuteParams]' = None, *, execution_options: 'OrmExecuteOptionsParameter' = immutabledict({}), bind_arguments: 'Optional[_BindArguments]' = None, _parent_execute_state: 'Optional[Any]' = None, _add_event: 'Optional[Any]' = None) -> 'Result[Any]'
+```
+
+**Six parameters. It named two.** `execution_options` and `bind_arguments` are real, documented,
+user-facing arguments, and they are simply absent — because they live in the API reference, which
+is the part our corpus does not have. The five sources it cited are narrative pages that mention
+`Session.execute` in passing.
+
+**A refusal would have been the good outcome.** A refusal tells you the system does not know. What
+you get instead is fluent, sourced, plausible, and **one third complete**, with nothing in the
+output marking which two thirds are missing. You would catch it only by already knowing the
+answer — the one situation in which you did not need to ask.
+
+That is what a ceiling does: **it does not announce itself.** Phase 3 cannot fix it, Phase 5
+cannot fix it, and better ranking cannot help, because the missing parameters are in no chunk to
+be ranked. The only fix is changing the corpus, which is a Step 1 decision.
 
 That is what "ceiling" means, and it is why the question *"why this corpus?"* is the one an
 interviewer opens with.
