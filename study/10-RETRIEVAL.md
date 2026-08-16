@@ -75,9 +75,49 @@ Concretely, when a question arrives:
    documentation. Answer the question using only these."*
 3. **The model reads and summarises**, instead of recalling.
 
-That is **RAG** — **R**etrieval **A**ugmented **G**eneration. Three words, one per stage:
-*retrieval* is the lookup, *augmented* means the prompt has been enlarged with what was found,
-*generation* is the model writing the answer.
+That is **RAG** — **R**etrieval **A**ugmented **G**eneration. Three words, one per stage. The
+middle one is the one worth seeing rather than defining.
+
+**Without retrieval, the prompt is only your question:**
+
+```
+# illustration
+what replaces Query.get()?
+```
+
+That is small. The model answers from memory.
+
+**With retrieval, a search runs first and the passages it found are pasted in.** *Augmented*
+means exactly this — the same question, in a bigger prompt:
+
+```
+# illustration
+Here are excerpts from the SQLAlchemy documentation:
+
+  [1] SQLAlchemy 2.0 — changelog/migration_20.rst
+      Session.get() is the 2.0 replacement for Query.get()...
+
+  [2] SQLAlchemy 1.4 — orm/queryguide/query.rst
+      ...
+
+what replaces Query.get()?
+
+Answer using only the excerpts above, and cite the number.
+```
+
+**Same question. Bigger prompt. The extra bytes are the lookup results.**
+
+Nothing magical happens here, and it is worth being clear about what did *not* happen:
+
+- **You did not train the model.** Its weights are identical before and after. It learned nothing.
+- **You did not enlarge its knowledge.** Nothing was added to the model at all.
+- **You enlarged one request**, by stuffing the found pages into it.
+
+Then *generation* is just the model writing an answer from that stuffed prompt — the ordinary
+thing it always does, on text you chose.
+
+`rag/ask.py` builds exactly that second prompt, and `--show-prompt` prints it if you want to see
+the real one rather than this sketch.
 
 **Why this is a genuine improvement and not a trick**, three reasons:
 

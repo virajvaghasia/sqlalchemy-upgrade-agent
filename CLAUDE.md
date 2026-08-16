@@ -117,6 +117,25 @@ Two things the original rule was protecting, which still apply:
 - **The drills still matter.** `study/04-DOCKER.md` keeps its question list, and the Phase 0
   hard gate is unchanged — the gate is whether he can explain it, not who typed it.
 
+### How to explain things. **Added 2026-08-15, from his own worked example.**
+
+He rewrote §R1.2's explanation of "augmented" and his version was better than mine. The
+difference is the rule:
+
+- **Show the artifact, do not define the word.** Mine said *"augmented means the prompt has been
+  enlarged with what was found."* His showed the small prompt, then the big prompt, and let the
+  reader see what changed. **A definition asks for trust; a before/after does not.**
+- **Say plainly what did NOT happen.** *"You did not train the model. You did not enlarge the
+  corpus. You enlarged one request."* Naming the wrong mental model is often more useful than
+  describing the right one, because the wrong one is what the reader arrived with.
+- **"Nothing magical" is a sentence worth writing.** These systems are surrounded by language
+  that implies the model learned something. Saying flatly that it did not is a correction, not
+  filler.
+- **Short declarative lines beat qualified ones.** *"Same question. Bigger prompt. The extra
+  bytes are the lookup results."* Three sentences, no hedging, and the idea has landed.
+
+Apply this to every `study/` file, not only the new ones.
+
 ### AI / LLM material — Claude is hands-on.
 
 Embeddings, retrieval, chunking, reranking, evaluation, agents, MCP.
@@ -228,6 +247,35 @@ wondering which of two images you just ran.
 **Where a different name is required, it says what it is.** The Postgres role is `app`, not the
 project name: it is a database identifier in a separate namespace, and hyphens in a Postgres
 role force quoting in every statement. It matches the Compose service it belongs to.
+
+---
+
+## START HERE — the resume point
+
+**Keep this block current. It is the first thing a new session should read after the rules.**
+
+**State (2026-08-15):** Phase 1 is **BUILT, not COMPLETE**. All five steps run; a question typed
+at a terminal returns an answer with its sources. `main` is clean, no open PRs, 114 tests,
+43/43 `# runnable` blocks reproduce.
+
+**Three gates are open and every one is a human's — Claude cannot close them:**
+
+| gate | how | where it is recorded |
+|---|---|---|
+| eyeball ten chunks, confirm each is self-contained | `uv run python -m rag.chunk --sample 10` | `phases/PHASE-1.md` Step 2 |
+| 19 `UNVERIFIED` answer verdicts | read each against its sources | `deliverables/FAILURES.md` |
+| the five cold verification questions | from memory, no notes | `phases/PHASE-1.md` Verification |
+
+**Next work for Claude, in order:**
+
+1. **`D31` — Qdrant was never compared against pgvector.** The last entry in `09-DECISIONS.md`
+   §H. Postgres is already in Compose, which makes pgvector the obvious rival. `D32` was settled
+   the same way on 2026-08-15 and that entry is the template.
+2. **`study/10-RETRIEVAL.md` §R3** — the prompt: why the model refuses answerable questions when
+   told too firmly that it may refuse. The experiment is already in `D43`.
+3. **`logs/HANDOFF.md` Round 5** is parked until the 3060 is free (~2026-08-16).
+
+**Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 
 ---
 
