@@ -378,12 +378,26 @@ form.
 
 ### D26 — The CI gate was proved with a deliberately failing PR
 
-> **Decided** — three required checks (tests / 2.0 evidence / image builds), branch protection
-> with `enforce_admins` on, demonstrated by opening a PR that fails and confirming GitHub
-> refuses to merge it.
+> **Decided** — required checks on `main`, branch protection with `enforce_admins` on,
+> demonstrated by opening a PR that fails and confirming GitHub refuses to merge it.
 > **Instead of** — configuring branch protection and assuming it works.
 > **Because** "I set up CI" and "I proved CI blocks a bad merge" are different claims, and only
 > the second survives *"how do you know?"*
+>
+> ⚠️ **Corrected 2026-08-16: it was three checks, not four, and the missing one was the
+> important one.** This entry said *tests / 2.0 evidence / image builds*. `docs reproduce` — the
+> job that runs `tools/check_runnable` and enforces the measurement rule — **existed in
+> `ci.yml` but was never added to the required contexts**, so a red run could not block a merge.
+> The rule this repo cares most about was enforced by a job nobody was required to pass.
+> Added to the required list on 2026-08-16; there are now four.
+> **It caught something on its first enforced run.** PR #18 went red with
+> `ModuleNotFoundError: No module named 'numpy'` while passing locally at 52/52 — a doc block
+> using NumPy, which reaches this project only through the `embed` extra that the docs job
+> deliberately does not install. **The machine that runs the docs is not the machine that wrote
+> them**, and nothing but a required check surfaces that.
+> **Asked as** — *"How do you know your CI actually gates anything?"* — and the honest answer
+> now includes that one job was configured but not required for two days, which is a more
+> useful story than a clean one.
 
 ---
 
