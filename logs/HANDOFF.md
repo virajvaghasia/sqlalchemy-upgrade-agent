@@ -641,3 +641,62 @@ consequence rather than a tuning detail.
   currently describes the Mac's run; a second run would overwrite it. Paste the numbers into the
   REPLY blocks and they get recorded from here, so both machines' results survive instead of one
   silently replacing the other.
+
+---
+
+# Round 6 — settle D43's A cell, which the Mac cannot
+
+**Independent of Round 5.** Round 5 embeds; this generates. It needs Ollama and a populated
+Qdrant, both of which Round 5's steps leave behind, so run it after — but nothing here touches
+the embedding pipeline.
+
+**Why the Mac cannot do it.** `study/09-DECISIONS.md` **D43** recorded that a strictly worded
+refusal clause (prompt **A**) made the model refuse a question whose answer was in its own
+prompt. Re-run twice on the Mac on 2026-08-16 it **answered both times**, so that claim now
+stands at **1 observation in 3** — too few to call a mechanism, too few to call noise. Each run
+of `rag/compare_prompts.py` is six generations. The Mac does **18.4 tok/s**; this box measured
+**62.23 tok/s**, so ten runs here is one sitting rather than an evening.
+
+**What is not in question.** Prompt **B** — the shipped one — has been correct in every cell of
+every run so far, and nothing this round can find would make **A** or **C** preferable. This
+settles how confidently `D43` may be *quoted*, not what the system ships.
+
+## ASK 6.1 — ten runs, and the tally
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+ls rag/compare_prompts.py          # landed in PR #18; if this fails, `git pull` on main first
+
+for i in $(seq 1 10); do
+  echo "--- run $i ---"
+  uv run python -m rag.compare_prompts 2>/dev/null | grep -E '^[ABC] '
+done | tee /tmp/d43-ten-runs.txt
+
+echo
+echo "A cell, answerable column:"
+grep '^A ' /tmp/d43-ten-runs.txt | awk '{print $2}' | sort | uniq -c
+```
+
+**How to read the tally, so the paste is not just numbers.** The field after `A` is the
+**answerable** column. `answered` there is correct; `refused` is the over-fire being counted.
+Ten runs plus the existing three gives thirteen observations.
+
+- **`refused` zero or once in ten** — `D43`'s original was probably noise. §R3.3 stops saying
+  "1 of 3" and says so outright.
+- **`refused` several times in ten** — a real intermittent mechanism, and the interesting
+  question becomes what makes it fire.
+
+**Do not stop early because the first few look boring.** That is the same `n=1` mistake in a new
+costume, and this round exists to correct exactly that.
+
+### REPLY 6.1
+
+```
+(paste here)
+```
+
+## What Claude does with it
+
+Rewrites §R3.3's asymmetry table in `study/11-GENERATION.md` and the ⚠️ block in `D43`.
+Thirteen observations is still not a benchmark and the write-up will keep saying so — but it is
+the difference between "did not reproduce twice" and a proportion.
