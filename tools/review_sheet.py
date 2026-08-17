@@ -34,6 +34,7 @@ answer key grading its own homework.
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 
@@ -41,6 +42,7 @@ from rag import corpus, probe
 
 ROOT = corpus.REPO_ROOT
 OUT = ROOT / "deliverables" / "VERDICTS.md"
+DRAFTS = ROOT / "deliverables" / "verdict-drafts.json"
 
 # Stated in probe.py's own comments — not inferred.
 EXPLICIT = {
@@ -95,6 +97,10 @@ def fix_of(n: int, entries) -> dict:
 
 def build() -> str:
     """The whole sheet, as markdown."""
+    drafts = {}
+    if DRAFTS.exists():
+        drafts = {k: v for k, v in json.loads(DRAFTS.read_text()).items()
+                  if not k.startswith("_")}
     known = breakages()
     keys = {}
     for question, _cat, sym in probe.QUESTIONS:
@@ -158,6 +164,10 @@ def build() -> str:
         else:
             out.append("**No single answer key** — this question does not map to one "
                        "BREAKAGES entry; the answer is a judgement rather than a lookup.")
+        d = drafts.get(str(num))
+        if d:
+            out += ["", f"> **DRAFT — `{d[0]}`.** {d[1]}",
+                    ">", "> _Claude's reading, not a verdict. Confirm, change, or reject it._"]
         out += ["", "**Verdict:** `________` — ", "", "---", ""]
 
     return "\n".join(out)

@@ -10,6 +10,7 @@ that makes a failure actionable (D45).
 """
 
 import json
+import re
 import types
 
 import pytest
@@ -114,10 +115,40 @@ needs_report = pytest.mark.skipif(REPORT is None, reason="no FAILURES.md — run
 
 
 @needs_report
-def test_every_question_has_an_unverified_verdict_line():
-    """Until a human reads them. If this count ever drops to zero because the
-    script filled them in, D46 has been violated."""
-    assert REPORT.count("**Verdict:** `UNVERIFIED`") == len(probe.QUESTIONS)
+def test_every_question_has_a_verdict_line():
+    """
+    One verdict line per question, and every value legal.
+
+    This used to assert every line said `UNVERIFIED`, which was the right
+    invariant while none had been judged and became false the moment they were
+    (2026-08-17). What it was really protecting is that no verdict goes
+    *missing* — a question silently losing its line would shrink the golden
+    dataset without anything failing.
+    """
+    lines = re.findall(r"^\*\*Verdict:\*\* `(\w+)`", REPORT, flags=re.M)
+    assert len(lines) == len(probe.QUESTIONS)
+    assert set(lines) <= {"CORRECT", "WRONG", "PARTIAL", "UNVERIFIED"}
+
+
+@needs_report
+def test_the_report_matches_the_verdict_record():
+    """
+    `FAILURES.md` renders verdicts from `deliverables/verdicts.json`, so the two
+    can drift: edit the markdown by hand and the next regeneration silently
+    reverts it. This pins them together, and `tools.apply_verdicts --check` is
+    the same assertion as a command.
+    """
+    if not probe.VERDICTS:
+        pytest.skip("no verdict record yet")
+    for num, (verdict, why) in probe.VERDICTS.items():
+        assert f"**Verdict:** `{verdict}` — {why}" in REPORT, f"entry {num} out of sync"
+
+
+@needs_report
+def test_no_verdict_is_left_empty():
+    """A verdict with no reasoning is not a judgement, it is a label."""
+    for verdict, why in probe.VERDICTS.values():
+        assert verdict == "UNVERIFIED" or len(why.split()) >= 8, why
 
 
 @needs_report
@@ -130,5 +161,14 @@ def test_the_report_shows_what_was_retrieved():
 
 @needs_report
 def test_the_report_states_that_signals_are_not_verdicts():
-    assert "UNVERIFIED" in REPORT
+    """
+    The signal/verdict boundary must be stated in the file itself, not only in
+    the code that writes it.
+
+    The `UNVERIFIED` half of this dropped on 2026-08-17 when the verdicts were
+    filled in — its absence is now correct rather than alarming. What still has
+    to hold is that a reader is told the signals locate rather than decide, and
+    that the verdicts came from a person.
+    """
     assert "not verdicts" in REPORT or "they are not verdicts" in REPORT.lower()
+    assert "verdicts are a human's" in REPORT
