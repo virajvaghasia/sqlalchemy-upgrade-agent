@@ -1,0 +1,88 @@
+{
+ "_README": [
+  "THE VERDICT RECORD for deliverables/FAILURES.md. This file is the source of truth;",
+  "FAILURES.md renders from it, so a regeneration cannot destroy the judgements.",
+  "PROVENANCE, which matters for Phase 2: each verdict was DRAFTED by Claude on",
+  "2026-08-17 by comparing the answer against its BREAKAGES.md key and, where the answer",
+  "proposed code, running both on real SQLAlchemy 2.0.51. Viraj reviewed and accepted",
+  "them the same day. D06 is satisfied by the acceptance, not by the drafting - and a",
+  "golden set should say how it was arrived at rather than present verdicts as immaculate.",
+  "To change one: edit here and run `uv run python -m tools.apply_verdicts`."
+ ],
+ "1": [
+  "PARTIAL",
+  "Names `aliased` and cites the right migration section, but omits its second argument: `aliased(Issue)` renames the table where `aliased(Issue, subq)` wraps a subquery \u2014 measured, the same query returns ['a','e'] instead of ['a']."
+ ],
+ "2": [
+  "CORRECT",
+  "The `of_type()` example emits SQL byte-identical to BREAKAGES #13's fix; the only flaw is `uncited`, so a reader cannot check it without running it."
+ ],
+ "3": [
+  "WRONG",
+  "Refused a question the corpus can answer \u2014 `table_names` is in 6 chunks and the fix is `inspect(engine).get_table_names()`. A retrieval failure, which is what Phase 3 targets."
+ ],
+ "4": [
+  "CORRECT",
+  "Refused, and `has_table` appears in 0 chunks, so nothing was available to answer with; the refusal is the honest output and the failure belongs to the Step 1 corpus decision, not to generation. ARGUABLE \u2014 see the note in the review sheet."
+ ],
+ "5": [
+  "WRONG",
+  "Refused although `keys()` is in 7 chunks; the fix is `row._mapping.keys()`. Retrieval failure."
+ ],
+ "6": [
+  "WRONG",
+  "Refused; the replacement is `relationship()`, which the corpus documents in 768 chunks. Also exposed an instrument bug \u2014 the recorded symbol `relation` matches every `relationship`, so `symbol_missing` could never fire here."
+ ],
+ "7": [
+  "WRONG",
+  "Says yes, pass `future=True`, which is wrong for 2.0 where the flag does nothing. Its single source is a 2.0 page whose sentence opens 'In 1.4' \u2014 the case \u00a7R1.7 dissects."
+ ],
+ "8": [
+  "CORRECT",
+  "'Not supported, use autobegin' matches the key's `Session(bind=engine)` plus an explicit commit."
+ ],
+ "9": [
+  "PARTIAL",
+  "Right that subtransactions were removed, but it never names the replacement: the key is `session.begin_nested()`, a real SAVEPOINT, and the answer offers only 'use one begin/commit pair'."
+ ],
+ "10": [
+  "CORRECT",
+  "'MetaData no longer accepts bind' matches the key; the engine is passed to `create_all` instead."
+ ],
+ "11": [
+  "CORRECT",
+  "Positional columns is the right migration and it shipped a before/after example matching the key's `select(Issue.id)`."
+ ],
+ "12": [
+  "PARTIAL",
+  "The ordered steps match the migration guide, but the answer cites nothing, so none of the ordering can be checked against a source \u2014 and ordering is the whole content of this question."
+ ],
+ "13": [
+  "CORRECT",
+  "`.scalars()` on the result object is exactly BREAKAGES #16's fix, and the answer explains what it returns \u2014 a ScalarResult yielding elements rather than Row tuples \u2014 so a reader can act on it without further lookup."
+ ],
+ "14": [
+  "CORRECT",
+  "Explains that joinedload multiplies rows and that `.unique()` is required, matching the key."
+ ],
+ "15": [
+  "CORRECT",
+  "An `absent` question, and it refused \u2014 which is the correct output when the corpus has nothing."
+ ],
+ "16": [
+  "WRONG",
+  "An `absent` question that did NOT refuse. It listed the parameters accepting strings or lambdas \u2014 a narrower question than the one asked \u2014 from real text, and cited nothing."
+ ],
+ "17": [
+  "CORRECT",
+  "An `absent` question, and it refused. The corpus is pinned to 1.4.52 and 2.0.51, so 2.1 is outside it by construction."
+ ],
+ "18": [
+  "WRONG",
+  "Refused although `cascade_backrefs` is in 12 chunks. Retrieval failure, and the breakage it misses is the silent one \u2014 no exception, the INSERT simply never runs."
+ ],
+ "19": [
+  "WRONG",
+  "Refused although `cascade_backrefs` is in 12 chunks \u2014 the same retrieval failure as 18, on the phrasing a developer would actually use when the symptom is 'my object was never inserted'."
+ ]
+}
