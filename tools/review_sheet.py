@@ -127,7 +127,9 @@ def build() -> str:
         meta = re.search(r"^`(\w+)` · (.+?)$", body, flags=re.M)
         cat = meta.group(1) if meta else "?"
         sigm = re.search(r"\*\*Signals:\*\* (.+?)$", body, flags=re.M)
-        ansm = re.search(r"### Answer\n\n```\n(.*?)\n```", body, flags=re.S)
+        # Anchor on the NEXT section, not the next closing fence: answers often
+        # contain their own ```python block, and a non-greedy match stops inside it.
+        ansm = re.search(r"### Answer\n\n```\n(.*?)\n```\s*\n+### ", body, flags=re.S)
         ans = ansm.group(1).strip() if ansm else "(no answer captured)"
         srcs = re.findall(
             r"\*\*\[(\d+)\]\*\* `([\d.]+)` · SQLAlchemy \*\*([\d.]+)\*\* · `(.+?)`\s*\n(.*?)\n",

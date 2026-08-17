@@ -12,6 +12,75 @@ same family of model that produced the answers measures self-consistency, not tr
 `CORRECT`, `WRONG`, or `PARTIAL`, adding one sentence saying why. The signals tell you
 where to look; they are not verdicts.
 
+## How to decide correct, and how to decide complete
+
+These are two different questions and only the first is obvious. **Do not judge by
+reading** — 14 of these questions have a fix in `BREAKAGES.md` that was *run* against
+real 2.0.51, so the answer can be executed rather than assessed.
+
+**The test, for any answer that proposes code or names a replacement:**
+
+1. **Write the code the answer describes, literally** — only what it says, not what you
+   know it meant.
+2. **Run it** on the pinned version:
+   `uv run --no-project --with 'sqlalchemy==2.0.51' python -c "..."`
+3. **Compare against the verified fix** — not just "did it error", but *what SQL did it
+   emit* and *did it do the same thing*.
+
+| outcome | verdict | why |
+|---|---|---|
+| names the wrong construct, or the code will not run | `WRONG` | it fails immediately |
+| runs, and behaves like the verified fix | `CORRECT` | a developer following it lands right |
+| **runs, but behaves differently** | **`PARTIAL`** | **the dangerous one — see below** |
+
+**`PARTIAL` is a measured outcome, not a hedge.** It is what you record when the answer
+is true, correctly sourced, and still leaves a developer with a silent bug — working
+code that does the wrong thing, with no error to notice.
+
+*Worked example, question 1.* The answer names `aliased` as the replacement for
+`Query.from_self()`, which is right, and cites the exact migration section, which is
+also right. **What it leaves out is that `aliased()` takes a second argument, and the
+second argument is the whole point.**
+
+```python
+# what the answer says
+inner = aliased(Issue)              # ONE argument -> aliases the TABLE
+
+# the verified fix
+subq  = select(Issue).subquery()    # build an inner SELECT
+inner = aliased(Issue, subq)        # TWO arguments -> aliases the SUBQUERY
+```
+
+`aliased(Issue)` says *"call the issues table something else"*. `aliased(Issue, subq)`
+says *"treat the rows coming out of this subquery as Issue objects"*. Only the second is
+what `from_self()` did, and the answer carries it only inside the borrowed phrase *"in
+terms of any arbitrary selectable"*.
+
+**It is not cosmetic — the results differ**, measured on 2.0.51. Take the first three
+issues, then keep only those titled `a` or `e`:
+
+```
+aliased(Issue, subq)  ->  ['a']         # limit 3 (a,b,c), THEN filter
+aliased(Issue)        ->  ['a', 'e']    # filter, then limit 3
+```
+
+`e` was never in the first three. Without the subquery the outer filter moves inside,
+so the query stops meaning what it meant. **Nothing raises. The row count just differs**
+— which is why this is `PARTIAL` rather than `WRONG`, and why `PARTIAL` is the verdict
+worth being precise about.
+
+**Two kinds of answer this test does not reach**, and they are judged differently:
+
+- **`absent` questions** — there is no code to run. The answer is `CORRECT` when the
+  model **declined**, and `WRONG` when it produced something confident instead.
+- **Answers proposing no code** ("what are the steps to migrate") — judge whether every
+  claim is supported by a cited source, and whether a reader following it would be
+  misled. `single_source` is worth weighing here.
+
+**`tools/review_sheet.py` renders all of this per entry** — the answer, the sources, and
+the verified fix side by side — so most verdicts become a comparison rather than a
+recall test.
+
 ## What the signals mean
 
 | signal | means | is it a failure? |
