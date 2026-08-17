@@ -133,10 +133,13 @@ form.
 > - **It is reproducible.** One script rebuilds it identically; a scraped site changes under
 >   you.
 > **What this costs, and it is real:** the API reference is **not** in the `.rst` source. Those
-> pages are generated at Sphinx build time from Python docstrings — 660 `.. autoclass::`-family
-> directives in the 1.4 tree, 743 in 2.0. So per-method reference pages are absent from the
-> corpus, and a question like *"what arguments does `Session.execute` take?"* has nothing to
-> retrieve.
+> pages are generated at Sphinx build time from Python docstrings — **660 / 743
+> `.. autoclass::`-family *lines*** in the full 1.4 / 2.0 trees (not 660 unused files; one
+> kept file can hold many stubs). Inside the 270 files we actually index the same count is
+> **514 / 569** ([`10-RETRIEVAL.md`](10-RETRIEVAL.md) R1.4). So per-method reference pages are
+> absent, and a question like *"what is `engine.has_table()`?"* has nothing to retrieve
+> (`grep -c has_table corpus/chunks.jsonl` is `0`). *"`Session.execute` arguments"* was the
+> first example and was wrong: those names are in the chunks.
 > **Asked as** — *"What is in your corpus?"* and, if they are good, *"what is missing from
 > it?"* Volunteer the API reference gap; being the one to name your own blind spot is worth
 > more than being caught not knowing it.
@@ -824,6 +827,30 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > both versions, most of them harmlessly. **They say where to look.**
 > **Asked as** — *"How did you evaluate it?"* — and being able to say what you deliberately did
 > **not** automate is a stronger answer than a dashboard.
+
+### D47 — §R3 stayed §R3 when it moved files; the `R` means RAG, not Retrieval
+
+> **Decided** — generation went into `study/11-GENERATION.md` as **§R3**, continuing the run
+> `10-RETRIEVAL.md` starts at §R1.
+> **Instead of** — restarting the numbering as **§G1** in the new file, which is the tidier-looking
+> option and reads as more descriptive.
+> **Because the splitting rule already answers it.** `study/README.md` requires that "the
+> numbering always continues across the split so existing references keep resolving", and every
+> earlier split obeyed it — `01`→`02` carried §0–§15 into §16–§22, `04`→`07` carried §1–§6 across
+> four files. §G1 would have made this the first split to break the rule it was following.
+> **Three concrete costs of renumbering**, none of them hypothetical: 14 existing `§R3`
+> references would have gone stale, including the next-work list in `CLAUDE.md`; the reader would
+> gain a **fourth** numbering family to keep straight, when the prefix exists precisely to remove
+> that ambiguity; and a reference in an old commit or an interview note would silently point at
+> nothing.
+> **What actually had to change was one definition, not fourteen references.**
+> `10-RETRIEVAL.md` described `§R1–` as "the retrieval sequence", which is what made §R3-in-a-
+> generation-file look wrong. It is the **RAG** sequence; retrieval and generation are both RAG.
+> **The general rule, which is the part worth carrying:** where a prefix has to mean something,
+> make it mean *the system the files describe*, not the topic of the first file that happened to
+> use it. Subject-labelled prefixes do not survive a split; system-labelled ones do.
+> **Asked as** — *"How do you keep documentation navigable as it grows?"* — and the answer is
+> that the naming was chosen so that growth does not invalidate existing references.
 
 ---
 

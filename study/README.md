@@ -19,6 +19,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama. Includes the 2026-08-13 sitting diary in Ubuntu words | — |
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **every design decision, what was rejected, and why** — written for interview revision. Cite entries by ID (`D19`) | — |
 | [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — why retrieval exists and the corpus is a ceiling (§R1); what an embedding actually is, measured off our own vectors (§R2). Written one sitting at a time | §R1–§R2 |
+| [`11-GENERATION.md`](11-GENERATION.md) | what happens *after* search: the prompt as a component, and the refusal clause that was both necessary and harmful (§R3) | §R3– |
 
 ## Three numbering families, and why
 
@@ -30,9 +31,16 @@ things and they do not line up — deliberately.
   to "§18" is unambiguous across the pair.
 - **`04`–`07` share a second run, `§1`–`§6`**, for the same reason: `05` continues `04`,
   `06` continues `05`. One container, then several, then the database in one, then the tests.
-- **`10` uses a third run, `§R1`–, for retrieval.** The `R` prefix is not decoration: without
-  it, `§1` would mean Docker in one family and RAG in another. A letter makes a collision
-  impossible rather than merely unlikely.
+- **`10`–`11` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
+  without it, `§1` would mean Docker in one family and RAG in another. A letter makes a collision
+  impossible rather than merely unlikely. `11` continues `10` — §R1–§R2 are retrieval, §R3 onwards
+  is generation.
+
+  **The `R` is for RAG, not for Retrieval**, and the distinction only became visible when §R3
+  moved into `11`. A subject-labelled prefix would have forced `§G1` there and a fourth family on
+  the reader; a system-labelled one lets the run continue, which is what the splitting rule above
+  requires. Where a prefix has to mean something, make it mean the *thing the files are about*
+  rather than the topic of the first file that happened to use it.
 - **`03`, `08` and `09` have no sections.** They are not chapters. `03` is the practice-app
   runbook; `08` is the lab PC sitting (Phase 0 Day 3 → Day 10); `09` is a **register** whose
   entries carry stable IDs (`D01`…) so they stay citable when the file is reordered.
@@ -43,6 +51,24 @@ What you cannot do is assume `§5` belongs to the file numbered `05` — check t
 
 Splitting only happens when a file has grown to cover two genuinely different subjects, and the
 numbering always continues across the split so existing references keep resolving.
+
+**Worked example — why `§R2` did not get its own file.** It is the obvious candidate, and the
+answer is no. §R1 and §R2 are one subject at two depths, not two subjects: §R1.3 defers to
+*"§R2 takes all of this apart properly"*, §R1.5 introduces cosine similarity and says to ask §R2
+for the mechanism, and §R2.6 reaches back to correct a claim §R1 made. Splitting turns each of
+those into a file-hop. Size is not the trigger either — at the time of asking, `10` was shorter
+than **both** halves of the pair that *was* split.
+
+**Where the seam was — and this one has now happened.** §R1 and §R2 are both *retrieval* — corpus,
+chunks, vectors, search. §R3 is the prompt: what the model does with what it was handed. That is
+*generation*, a different subject, so it went into `11-GENERATION.md` with the numbering
+continuing unchanged. Both tests agreed by then: a genuinely different subject, and `10` had grown
+past `02-MIGRATION-2.0.md` while §R3 was still unwritten.
+
+Note what the split does **not** do. `11` starts small — far shorter than `10` — and that is
+fine, because a file is a container for a subject rather than a quota to fill. The alternative was
+appending a second subject to a file that already covered one, which is the thing the rule
+forbids.
 
 ## Where the rest of the repo lives
 

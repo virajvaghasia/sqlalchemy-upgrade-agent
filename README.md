@@ -130,7 +130,8 @@ to "§18" is unambiguous in either file.
 | [`study/07-TESTS.md`](study/07-TESTS.md) | **§6, the test suite** — what the tests pin, mutation-checking, fixtures, and what is deliberately not covered |
 | [`study/08-LAB.md`](study/08-LAB.md) | lab PC from scratch — SSH / Tailscale / clone / Docker Engine / GPU-in-container / Ollama. A runbook, like `03`, plus the sitting diary in Ubuntu words |
 | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) | **§R1–§R2 — RAG explained from zero** — what a language model cannot do, what retrieval changes, why the corpus is a ceiling, and why a bigger one is worse. Built one sitting at a time |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 46 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/11-GENERATION.md`](study/11-GENERATION.md) | **§R3 — what happens after search.** The prompt as a component: a refusal clause that is both necessary and harmful, how the cause was found after two wrong hypotheses, and why fixing it did not violate "build the naive version first". The `R` run continues here — it stands for RAG, not retrieval (**D47**) |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 47 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
