@@ -212,11 +212,21 @@ networking.
   system RAM" figure was a guess and is wrong. **VRAM is the tight budget, not RAM.**
   Shared box (`kj` + `shaili`); may be reimaged. **Push to GitHub constantly.**
   - **As of 2026-08-13 the lab machine is reachable via AnyDesk** on user `shaili`.
-    Clone lives at `~/Documents/Workspace/SqlUpgradeAgent`. Tailscale / Mac→PC SSH
-    still deferred. Cursor login as Viraj may stay. Do not touch `~/.claude`.
-  - Part A is done. Remaining on this box: Docker Engine (needs sudo password),
-    GPU-in-container, Ollama, tunneling reboot test. CI YAML already exists;
-    the gate is still a failing PR + branch protection.
+    Clone lives at `~/Documents/Workspace/SqlUpgradeAgent`. Cursor login as Viraj
+    may stay. Do not touch `~/.claude`.
+  - **That clone is on `phase-0/repo-structure` and is many commits behind.** Any
+    round that runs new code has to `git fetch origin && git checkout main && git pull`
+    first — `logs/HANDOFF.md` ASK 4.0 does this and **stops the round** if the file it
+    needs is missing, rather than running half a sitting against stale code.
+  - **Done on this box (2026-08-13):** Docker Engine 29.7.2 + Compose v5.4.0,
+    NVIDIA Container Toolkit 1.20.0 with in-container `nvidia-smi`, Ollama 0.32.9 with
+    `qwen2.5-coder:7b` on GPU at **62.23 tok/s**, and the Days 8–9 CI gate proved with
+    a deliberately failing PR. Do not re-plan these as outstanding.
+  - **Still open on this box:** the Day 3 tunnel — blocked on Shaili sharing the
+    Tailscale node, which is one person and nothing routes around it (`logs/HANDOFF.md`
+    Round 3). And the reboot test, deferred.
+  - **`logs/HANDOFF.md` lives on branch `lab/handoff`, not `main`.** Checking it out on
+    `main` finds nothing. Round 4 is the current one.
 - **Langfuse stays Phase 6 and on-demand.** Not because RAM is tight — 31 GiB
   would fit the ~5-container stack. Because there is nothing to observe yet, and
   a second Postgres+ClickHouse+Redis+MinIO+web pile is ops noise during Phase 0–5.
@@ -264,30 +274,51 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-15):** Phase 1 is **BUILT, not COMPLETE**. All five steps run; a question typed
-at a terminal returns an answer with its sources. `main` is clean, no open PRs, 114 tests,
-43/43 `# runnable` blocks reproduce.
+**State (2026-08-17):** Phase 1 is **BUILT, not COMPLETE**. All five steps run; a question typed
+at a terminal returns an answer with its sources. `main` is clean at PR #18, no open PRs,
+**121 tests**, **52/52** `# runnable` blocks reproduce, **47** decision entries.
+
+**The teaching files now split across two:** `study/10-RETRIEVAL.md` is §R1–§R2 (retrieval),
+`study/11-GENERATION.md` is §R3– (generation). The `R` run continues across the pair — **it
+stands for RAG, not Retrieval (`D47`)**. §R1–§R3 all carry worked answers to their own questions.
 
 **Three gates are open and every one is a human's — Claude cannot close them:**
 
 | gate | how | where it is recorded |
 |---|---|---|
-| eyeball ten chunks, confirm each is self-contained | `uv run python -m rag.chunk --sample 10` | `phases/PHASE-1.md` Step 2 |
+| eyeball ten chunks, confirm each is self-contained | `uv run python -m rag.chunk --sample 10` (read-only) | `phases/PHASE-1.md` Step 2 |
 | 19 `UNVERIFIED` answer verdicts | read each against its sources | `deliverables/FAILURES.md` |
 | the five cold verification questions | from memory, no notes | `phases/PHASE-1.md` Verification |
 
-**Next work for Claude, in order:**
+**The verdicts gate now blocks more than Phase 1.** §R4 is evaluation (Phase 2), and it cannot
+be written until those 19 verdicts exist — they are the golden dataset's first rows, and `D06`
+reserves them for a person. Do not draft §R4 around a dataset that does not exist yet; that is
+the example rule's failure mode, not a head start.
 
-1. **`D31` — Qdrant was never compared against pgvector.** The last entry in `09-DECISIONS.md`
-   §H. Postgres is already in Compose, which makes pgvector the obvious rival. `D32` was settled
-   the same way on 2026-08-15 and that entry is the template.
-2. ~~**`study/10-RETRIEVAL.md` §R3**~~ — **done 2026-08-16**, and it is in
-   **`study/11-GENERATION.md`**, not `10`. Retrieval and generation are two subjects, so `10`
-   split at §R3 per `study/README.md`'s rule. The numbering continued rather than restarting at
-   §G1 — **the `R` is for RAG, not Retrieval (`D47`)**.
-3. **`logs/HANDOFF.md` Round 5** is parked until the 3060 is free (~2026-08-16).
+**Next work, in order:**
+
+1. **`logs/HANDOFF.md` Round 4 — the lab PC, unblocked as of 2026-08-17.** Written and pushed
+   on branch **`lab/handoff`** (not `main`). Two GPU-bound numbers the Mac cannot close: the
+   `D43` A-cell tally (ten runs, turning "1 of 3" into a proportion) and the first timing of
+   **embedding on the 3060** against the Mac's 627000 ms / 7.2 chunks/s, which is the half of
+   `D27` that has never been measured. **Claude cannot reach that machine** — read `REPLY 4.x`
+   blocks, never expect to run the commands.
+2. **`D31` — Qdrant was never compared against pgvector.** The only remaining entry in
+   `09-DECISIONS.md` §H. Postgres is already in Compose, which makes pgvector the obvious rival.
+   `D32` was settled the same way on 2026-08-15 and that entry is the template.
+3. **§R4 — evaluation**, blocked on the verdicts above. When it comes it is a third subject, so
+   by `D47`'s logic it is `study/12-EVALUATION.md` carrying §R4 onward, numbering continuing.
+
+**Open question a re-run created, worth knowing before reading `D43`.** `D43`'s claim that the
+strict refusal wording over-fires stands at **1 observation in 3** — the original, plus two
+Mac re-runs that disagreed. `rag/compare_prompts.py` exists so anyone can check rather than
+trust the table. The shipped prompt is unaffected: **B is correct 6 for 6.** Round 4 settles it.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
+**And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
+around them. Every false claim found by reading on 2026-08-15 and 2026-08-16 lived in a
+sentence, not a block — including a typo that survived a green CI run. **If you write a
+sentence about what a command does, run the command.**
 
 ---
 
