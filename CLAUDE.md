@@ -216,8 +216,7 @@ networking.
     may stay. Do not touch `~/.claude`.
   - **That clone is on `phase-0/repo-structure` and is many commits behind.** Any
     round that runs new code has to `git fetch origin && git checkout main && git pull`
-    first — `logs/HANDOFF.md` ASK 4.0 does this and **stops the round** if the file it
-    needs is missing, rather than running half a sitting against stale code.
+    first — `logs/HANDOFF.md` ASK 5.1 already says so.
   - **Done on this box (2026-08-13):** Docker Engine 29.7.2 + Compose v5.4.0,
     NVIDIA Container Toolkit 1.20.0 with in-container `nvidia-smi`, Ollama 0.32.9 with
     `qwen2.5-coder:7b` on GPU at **62.23 tok/s**, and the Days 8–9 CI gate proved with
@@ -225,8 +224,10 @@ networking.
   - **Still open on this box:** the Day 3 tunnel — blocked on Shaili sharing the
     Tailscale node, which is one person and nothing routes around it (`logs/HANDOFF.md`
     Round 3). And the reboot test, deferred.
-  - **`logs/HANDOFF.md` lives on branch `lab/handoff`, not `main`.** Checking it out on
-    `main` finds nothing. Round 4 is the current one.
+  - **`logs/HANDOFF.md` is on `main`** and has been since 2026-08-14; its Round 5 header
+    says so. The old `lab/handoff` branch predates the whole `rag/` package and was deleted
+    on 2026-08-17 — **do not go looking for handoff content on a side branch.** Pulling
+    `main` gets the code and the instructions together, which is the point.
 - **Langfuse stays Phase 6 and on-demand.** Not because RAM is tight — 31 GiB
   would fit the ~5-container stack. Because there is nothing to observe yet, and
   a second Postgres+ClickHouse+Redis+MinIO+web pile is ops noise during Phase 0–5.
