@@ -1242,17 +1242,27 @@ with random values instead of meanings:
 
 ```
 # runnable: uv run python -c "
-# import numpy as np
-# rng=np.random.default_rng(0); R=rng.normal(size=(3284,1024)).astype(np.float32)
-# n=np.linalg.norm(R,axis=1)
-# print('un-normalised   min %.4f  max %.4f  spread %.4f' % (n.min(), n.max(), n.max()-n.min()))
-# m=np.linalg.norm(R/n[:,None],axis=1)
-# print('after dividing  min %.6f  max %.6f' % (m.min(), m.max()))"
-un-normalised   min 29.5299  max 35.0566  spread 5.5267
+# import random, math
+# rng = random.Random(0)
+# rows = [[rng.gauss(0, 1) for _ in range(1024)] for _ in range(3284)]
+# norms = [math.sqrt(sum(x*x for x in r)) for r in rows]
+# print('un-normalised   min %.4f  max %.4f  spread %.4f' % (min(norms), max(norms), max(norms)-min(norms)))
+# after = [math.sqrt(sum((x/n)**2 for x in r)) for r, n in zip(rows, norms)]
+# print('after dividing  min %.6f  max %.6f' % (min(after), max(after)))"
+un-normalised   min 29.3964  max 34.4316  spread 5.0352
 after dividing  min 1.000000  max 1.000000
 ```
 
-A spread of **5.5267** collapsing to nothing. That is what the flag did to our file.
+A spread of **5.0352** collapsing to nothing. That is what the flag did to our file.
+
+> **Why this block uses no NumPy, when every other vector block here does.** The others read
+> `corpus/embeddings.npy`, which cannot exist without the embedding model, so they are marked
+> `ENV` and never run in CI. This one demonstrates *arithmetic* and should run anywhere — but
+> NumPy arrives in this project through the `embed` extra, which pulls ~2GB of torch and which CI
+> deliberately does not install (`pyproject.toml` says why). Written with NumPy it passed locally
+> and **failed in CI**, which is the check earning its keep: the machine that runs the docs is not
+> the machine that wrote them. Standard library only, so the claim is checkable by anyone with
+> Python.
 
 **"Exactly 1.0" is exact only to float32's limit**, and the arithmetic shows where it stops:
 
