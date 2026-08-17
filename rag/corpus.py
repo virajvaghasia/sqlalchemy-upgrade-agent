@@ -36,8 +36,10 @@ The tags below carry documentation as reStructuredText. Three consequences:
   - Headings and code blocks are explicit markup, not HTML that has to be
     converted back into text. The Step 2 chunker needs both intact.
   - The API reference is NOT here. Those pages are generated at Sphinx build
-    time from Python docstrings (660 `.. autoclass::`-family directives in the
-    1.4 tree, 743 in the 2.0 tree). Docs source and API reference are two
+    time from Python docstrings. The counts 660 (1.4 tree) and 743 (2.0 tree)
+    are **stub lines** (`.. autoclass::` and friends), not unused files — one
+    `.rst` we keep can contain many. Inside this fetch the same count is 514 /
+    569. See study/10-RETRIEVAL.md R1.4. Docs source and API reference are two
     different corpora; this is the first one.
 
 NOTHING HERE IS COMMITTED EXCEPT THE MANIFEST
