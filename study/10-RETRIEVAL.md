@@ -1,8 +1,10 @@
 # Retrieval — study notes
 
-Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R1 onwards** — the retrieval sequence,
-which is a third numbering family alongside §0–§22 (SQLAlchemy) and §1–§6 (infrastructure). The
-`R` prefix exists so `§R1` can never be misread as `§1`; see [`README.md`](README.md).
+Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R1 onwards** — a third numbering family
+alongside §0–§22 (SQLAlchemy) and §1–§6 (infrastructure). **The `R` is for RAG, not for
+retrieval**, which matters once the run continues past this file: §R1–§R2 here are retrieval,
+§R3 onwards in [`11-GENERATION.md`](11-GENERATION.md) is generation, and both are RAG. The prefix
+exists so `§R1` can never be misread as `§1`; see [`README.md`](README.md).
 
 This file explains **what Phase 1 is actually doing and why**, from zero. It assumes you know
 Python and databases and nothing at all about retrieval or language models.
@@ -10,9 +12,14 @@ Python and databases and nothing at all about retrieval or language models.
 [`../phases/PHASE-1.md`](../phases/PHASE-1.md) is the *plan* — what was decided and what is
 next. This is the *teaching*: the concepts underneath those decisions, with the gaps filled in.
 
-> **Sitting 1 is §R1; sitting 2 is §R2.** Read it, run the commands at the end, answer the four questions.
-> Then stop. §R2 is the next sitting and is not written yet — it arrives when this one has
-> landed.
+> **Sitting 1 is §R1; sitting 2 is §R2.** Read §R1, run the three commands at the end, and answer
+> the four questions. Worked answers follow them — cover those on a first pass, because a question
+> you have already read the answer to tests nothing. Then stop.
+>
+> **§R2 is written** and starts at *"What an embedding actually is"*. It is a separate sitting, so
+> do not roll straight on. **§R3 is written too, and lives in
+> [`11-GENERATION.md`](11-GENERATION.md)** — the numbering continues across the pair, so this file
+> is retrieval (§R1–§R2) and that one is generation (§R3–).
 >
 > **R1.1–R1.6 are concepts; R1.7 is what happened when the concepts met the running system.**
 > R1.7 exists because one of R1.5's predictions turned out to be half wrong, and the correction
@@ -361,29 +368,53 @@ important thing in this file.
 
 > **If a fact is not in the corpus, no amount of engineering will ever retrieve it.**
 
-Everything that comes later — hybrid search in Phase 3, reranking, the agent in Phase 5 — is
-about **finding the right chunk faster, or more reliably, or ranking it higher**. Not one of
-them can find a chunk that does not exist. So whatever you leave out of the corpus is a
-permanent hole in what the system can ever do, and every number this project reports for the
-next three months is capped by it.
+Hybrid search, reranking, the agent — those find a chunk **faster or higher**. None of them can
+find a chunk that **does not exist**. Whatever you left out of the 270 files is a permanent hole.
+Every later score is capped by it. That cap is the **ceiling**: not "hard to find", **not present**.
 
-**This is not hypothetical here. We have a hole, and we put it there knowingly.**
+**Read this table first.** Every number in R1.4 is here. **None of 514 / 569 / 660 / 743 is a
+file count.** Those four are counts of **stub lines** — one `.. autoclass::` (or similar) per
+count — sitting *inside* files we already kept. One file can contribute many stubs. `270` is
+the only file count in this section.
 
-The corpus is built from SQLAlchemy's documentation *source* — the `.rst` files in the git
-repository. Those files do not contain the API reference. The per-method pages you land on from
-a search engine are **generated at build time** from Python docstrings, by directives that look
-like this:
+| number | unit | where | signifies |
+|---|---|---|---|
+| **270** | **files** | `corpus/raw/` | the docs we **do** use |
+| **3284** | chunks | `corpus/chunks.jsonl` | those files, cut into searchable pieces |
+| **514** | stub **lines** | inside the 1.4 half of those 270 | empty API placeholders in files we kept |
+| **569** | stub **lines** | inside the 2.0 half of those 270 | same, 2.0 |
+| **1083** | stub **lines** | 514 + 569 | HTML would show a signature here; we stored config instead |
+| **660** | stub **lines** | *all* 1.4.52 docs on GitHub, not only our 270 | same kind of line, bigger pile |
+| **743** | stub **lines** | *all* 2.0.51 docs on GitHub | same |
+| **0** | chunks | grep `has_table` in `chunks.jsonl` | that name is in **no** piece — a real ceiling |
+| **103** / **5** | chunks | grep `execution_options` / `bind_arguments` | those names **are** present — not a ceiling |
+
+`# runnable` under a command means: paste it, the lines below are the printout. You do not
+need to re-run them to read the table.
+
+This is not hypothetical. We have a hole, and we put it there by choosing `.rst` source instead
+of the rendered website.
+
+#### The hole in one file
+
+SQLAlchemy's git repo holds documentation *source*, not the website. Per-method pages you hit
+from Google are **generated later** from Python docstrings. In the `.rst` the generator is a
+directive that looks like this:
 
 ```
 .. autoclass:: Session
     :members:
 ```
 
-That is not documentation. It is an *instruction* that says *"when Sphinx builds the HTML, go
-read the `Session` class's docstring and paste it here."* In the source, it is an empty promise.
+That is not a method signature. It is an instruction: *"when Sphinx builds HTML, go read
+`Session`'s docstring and paste it here."* On disk, in `corpus/raw/`, it is two lines of config.
+Search indexes those two lines. It never sees the signature.
 
-**How many promises?** The number that matters is the one inside the pile we actually indexed,
-and it is reproducible from `corpus/raw/` with nothing downloaded:
+#### Measurement 1 — stub *lines* inside *our* 270 files
+
+Not “514 unused files.” Walk `corpus/raw/` (already on disk) and count every
+`.. autoclass::` / `.. autofunction::` / `.. automodule::` / `.. automethod::` /
+`.. autoattribute::` **line**. Each hit is one placeholder, not one file:
 
 ```
 # runnable: for v in 1.4.52 2.0.51; do printf '%-8s %4d\n' "$v" \
@@ -392,13 +423,18 @@ and it is reproducible from `corpus/raw/` with nothing downloaded:
 2.0.51    569
 ```
 
-**1083 directives in our corpus that resolve to nothing.** Each one is a place where a reader of
-the rendered website would find a method signature and a parameter list, and where our retriever
-finds two lines of Sphinx configuration.
+| printed | unit | what it signifies |
+|---|---|---|
+| `1.4.52    514` | **lines**, not files | 514 `.. auto*::` placeholders in the 1.4 files we **use** |
+| `2.0.51    569` | **lines**, not files | same for 2.0 files we use |
+| **1083** | lines | 514 + 569. Website would fill these in; search sees the empty instruction |
 
-The same count over the *full* documentation tree — every `.rst` in the tag, including everything
-Step 1 excluded — is **660 and 743**. That is the figure quoted in
-[`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 1, and it needs a download to reproduce:
+Quote **this** pair when arguing about *this system's* ceiling.
+
+#### Measurement 2 — same stubs in SQLAlchemy's *whole* docs tree
+
+Same `grep`, but on every `.rst` in the git tag — including files Step 1 **did not** keep.
+Needs a download of the two tags:
 
 ```
 # runnable: for t in rel_1_4_52 rel_2_0_51; do curl -sL \
@@ -410,31 +446,44 @@ rel_1_4_52   660
 rel_2_0_51   743
 ```
 
-**Two numbers, and the difference between them is the point of Step 1.** 660 is what SQLAlchemy
-ships; 514 is what survived our selection. Neither is wrong — they answer different questions, and
-a number is only meaningful once you say which pile it counted. Quote the corpus figure when
-arguing about *this system's* ceiling; quote the tree figure when arguing about *reStructuredText
-source in general*.
+| printed | unit | what it signifies |
+|---|---|---|
+| `rel_1_4_52   660` | **lines**, not files | same stub kind, counted on SQLAlchemy’s **entire** 1.4 tree (including files we dropped) |
+| `rel_2_0_51   743` | **lines**, not files | same for the entire 2.0 tree |
 
-**The consequence, with a question the corpus genuinely cannot answer.** Step 5 ran nineteen
-questions and found exactly one true ceiling case:
+**660 − 514 = 146** stub lines that live only in files Step 1 excluded. That difference is
+about **which files we kept**, still not a file count.
+
+That pair is what [`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 1 quotes. Quote **this**
+pair when arguing about reStructuredText source *in general*.
+
+**514 vs 660 is the point of Step 1**, not a typo. 660 is what the library ships. 514 is what
+survived our file list. A number is only meaningful once you say which pile it counted.
+
+You do not need to re-run the `curl` to understand the section. The two result lines are the
+measurement. Re-run it only if you are checking they still hold.
+
+#### Measurement 3 — a question the ceiling actually blocks
+
+Step 5 ran nineteen questions. One of them is a true ceiling: `engine.has_table()`. Count how
+many of the 3284 searchable pieces even mention the name:
 
 ```
 # runnable: grep -c has_table corpus/chunks.jsonl
 0
 ```
 
-**`engine.has_table()` appears in zero chunks.** It is an API-reference item, and the API
-reference is the part our corpus does not have. Ask about it and no amount of ranking helps —
-there is nothing to rank. Phase 3 cannot fix it. Phase 5 cannot fix it. **The only fix is
-changing the corpus, which is a Step 1 decision.**
+**`0`** means the string is in **no chunk**. Ranking cannot rank an empty list. Phase 3 cannot
+fix it. Phase 5 cannot fix it. The only fix is changing the corpus — a Step 1 decision.
 
-That is what "ceiling" means: not "hard to find" but *not present*.
+That is why this section exists: so *"why this corpus?"* has a measured hole, not a vibe.
+Interviewer: *"Can't you just add reranking?"* Answer: *"Not for `has_table`. Zero chunks."*
 
 > #### A correction worth keeping, because it nearly went in as the example
 >
 > This section first used *"what arguments does `Session.execute()` take?"* as the ceiling case,
-> and claimed `execution_options` and `bind_arguments` were absent. **Checked, and they are not:**
+> and claimed `execution_options` and `bind_arguments` were absent. **Checked, and they are not.**
+> Same `# runnable` contract: the command counts matching lines in `chunks.jsonl`.
 >
 > ```
 > # runnable: for t in execution_options bind_arguments; do printf '%-20s %3d chunks\n' "$t" "$(grep -c "$t" corpus/chunks.jsonl)"; done
@@ -442,19 +491,15 @@ That is what "ceiling" means: not "hard to find" but *not present*.
 > bind_arguments         5 chunks
 > ```
 >
-> Worse for my argument: they were **retrieved**. Chunk `c01169` was source `[3]` in the answer
-> and contains both; `[4]` and `[5]` contain `execution_options` as well. So the model was handed
-> the missing parameters in three of its five sources **and named neither**.
+> **103** and **5** mean those strings *are* in the index. They were also **retrieved**: chunk
+> `c01169` was source `[3]` and contains both; `[4]` and `[5]` contain `execution_options`. The
+> model was handed the parameters in three of five sources **and named neither**.
 >
-> That is a third failure mode, distinct from both of D45's: not the corpus lacking it, not
-> retrieval missing it, but **generation ignoring what it was given**. It is arguably the most
-> unsettling of the three, because the sources are printed right there — the check that would
-> catch it is already on screen and nobody runs it.
->
-> The example was wrong for this section and is kept as its own finding rather than deleted.
+> That is not a ceiling. It is a third failure: **generation ignored what it was given.** The
+> sources print is already on screen; the check that would catch it is reading them. Wrong
+> example for this section; kept as its own finding rather than deleted.
 
-That is what "ceiling" means, and it is why the question *"why this corpus?"* is the one an
-interviewer opens with.
+That is why *"why this corpus?"* is the question an interviewer opens with.
 
 ### R1.5 Why a bigger corpus is also worse
 
@@ -466,6 +511,49 @@ read about one.
 are all the model will ever see. Every irrelevant chunk in the index is a competitor for those
 five slots. It does not sit harmlessly in the corner; it is in the race, every time, for every
 question.
+
+#### But who decides "irrelevant"? Nothing does
+
+That sentence needs pinning down, because it implies a judgement the system never makes. **There
+is no relevance test anywhere in this pipeline** — no classifier, no threshold, no list of good
+chunks, no flag on a chunk saying it is worth returning. The entire selection policy is this:
+
+```
+from rag/index.py — retrieve()
+
+return client().query_points(
+    collection_name=collection_name(stats),
+    query=query_vector(query),   # the question, turned into 1024 numbers
+    limit=limit,                 # 5 — and that is the whole policy
+    query_filter=flt,
+    with_payload=True,
+).points
+```
+
+Qdrant returns the five stored vectors whose direction is closest to the question's, ordered by
+cosine similarity. That is everything that happens. **"Relevant" is a word *you* apply from the
+outside, looking at what came back.** The machine has exactly one quantity: *how close is this
+direction to that one*.
+
+Those two things agree often enough for the system to be useful, and disagree often enough to
+need Phase 2. **Every entry in `FAILURES.md` lives in the gap between them.**
+
+Three consequences follow, and they are worth carrying separately:
+
+- **Nothing is ever ruled out.** Every chunk in the index is scored against every question. A
+  chunk cannot sit a round out; it can only *lose* one. So "it competes for a slot" is literal,
+  not a figure of speech — there is no state in which a chunk is not competing.
+- **The band the decision happens in is narrow.** Two chunks picked at random score **0.540**
+  (R2.5). The top hit for *"why can't I call `engine.execute()` any more?"* scored **0.633**. So
+  the entire distance between *the best of 3284 chunks* and *two unrelated paragraphs* is
+  **0.09**. Winning a slot is not a landslide.
+- **Closeness is not usefulness, and the gap is measured, not feared.** A 1.4 page and its 2.0
+  twin sit at a median **0.9920** — as near identical as this system can report. They give
+  opposite advice. **If the score knew what "relevant" meant, that could not happen.**
+
+So read the paragraph above strictly. An *irrelevant* chunk is not one the system sets aside. It
+is one **you** would call useless, which is still being scored on every question you ask, and
+which can still outrank the page you actually needed.
 
 So adding text has two effects at once:
 
@@ -619,13 +707,20 @@ This is the sentence to take away, and it is stronger than anything the prose ab
 > page land essentially on top of each other. When a question lands near a twin pair, which twin
 > wins a top-k slot is decided in the fourth decimal place, which is to say: by noise.
 
+**Now vs later — do not mix these up.**
+
+| | |
+|---|---|
+| **Now (Phase 1)** | Search **is** meaning-search. Both twins can sit in the top 5. We **do not** filter on version. That is deliberate (D10): the failure has to show up so Phase 3 has a before number. |
+| **Later (Phase 3)** | We still do **not** “wait for embeddings to notice `future=True`.” A better meaning model sees the same near-identical paragraph. The split uses the **version label** already on each chunk (`1.4.52` / `2.0.51`) as a **filter or route** — metadata, not smarter vectors. Hybrid search is for a *different* hole (exact symbols like `table_names`). |
+| **Still not a full fix** | A **2.0 file** can still say *“in 1.4, pass `future=True`.”* Filtering to 2.0 keeps that page. R1.7 measured that. |
+
 **And this tells you what the fix has to be.** A better *meaning* search cannot separate two
 passages that mean the same thing — that is not a flaw in the search, it is the search working.
-Reranking does not help either, because a reranker reads the same near-identical text. The only
-things that can separate them are the things that are **not** in the text: the version label we
-recorded on every file in Step 1, used as a **filter** or a routing rule. That is why **D10**
-(record skew, do not prevent it) had to keep the label even though Phase 1 never uses it — Phase 3
-cannot invent it later.
+Reranking the same near-identical text does not split them either. The only things that can
+separate **twin pages** are the things that are **not** in the text: the version label from
+Step 1. That is why **D10** (record skew, do not prevent it) kept the label even though Phase 1
+never uses it — Phase 3 cannot invent it later.
 
 **We chose not to prevent it.** We could filter to 2.0 only. We did not, because the failure is
 the *evidence* Phase 3 is built on, and a filter deletes it before it can be measured. What we
@@ -663,18 +758,24 @@ corpus and evaluation set until someone asks.
 
 ### R1.7 What happened when we actually ran it
 
-Everything above R1.6 was written while Steps 3–5 were still plans. They are now built, and the
-system has been asked the very question R1.5 walks through. **The prediction was half right, and
-the half that was wrong is more interesting than the half that was right.**
+R1.5 was a **prediction**: ask *"should I pass `future=True`?"* and meaning-search will grab the
+**1.4 tutorial** and answer yes.
 
-[`../deliverables/FAILURES.md`](../deliverables/FAILURES.md) question **#7** is literally
-*"should I pass future=True to create_engine?"*. What came back:
+This section is the **run**. Steps 3–5 exist now. Question **#7** in
+[`../deliverables/FAILURES.md`](../deliverables/FAILURES.md) is that exact question. The answer
+was still **wrong** — but **not in the way R1.5 guessed.** Same poison, different bottle. That
+mismatch is the whole of R1.7.
+
+**What came back:**
 
 > *"Yes, you should pass `future=True` to `create_engine`. This is necessary for enabling the new
 > 2.0 API in SQLAlchemy and ensuring compatibility with the upcoming version [1]."*
 
-**Wrong, in the way R1.5 predicted — and sourced from a document R1.5 did not predict.** R1.5 says
-the search will find *the 1.4 tutorial*. It did not. It found this:
+Wrong for someone on 2.0. "Upcoming version" is already a tell: 2.0 is the version being asked
+about, not a future release.
+
+**What R1.5 expected as `[1]`:** 1.4 `tutorial/engine.rst` (the twin in the diff above).  
+**What actually ranked `[1]`:** a **2.0** file.
 
 ```
 # summary of: deliverables/FAILURES.md entry 7  (RST role markup stripped for reading;
@@ -687,36 +788,37 @@ the search will find *the 1.4 tutorial*. It did not. It found this:
      create_engine function.
 ```
 
-Read that source carefully, because three separate things are going on and they are all worth
-learning:
+Three facts, and they are not the same fact:
 
-**One — the retrieved page is a 2.0 page.** So the obvious fix, *"just filter the corpus to 2.0
-and the skew problem goes away"*, **would not have caught this.** If you take one thing from R1.7,
-take that. A version filter is a real improvement and it is not sufficient.
+**1. A version filter would not have saved you.**  
+This page's label is `2.0.51`. Drop every 1.4 chunk and it **stays**. "Just search 2.0" helps the
+*twin tutorial* case (R1.5). It does **not** fix this case. If you take one sentence from R1.7,
+take that: Phase 3's version filter is necessary and **not enough**.
 
-**Two — the passage is version-*conditional*, and the condition is the whole answer.** It says
-*"**In 1.4**, this new API is available by passing the flag `future=True`."* A human reads the
-opening two words and knows this does not apply to them. The model dropped them and reported the
-recommendation as current. The give-away is in its own wording: it wrote *"compatibility with the
-**upcoming** version"* — but 2.0 is not upcoming, it is the version being asked about. That phrase
-leaked out of 1.4-era framing inside a 2.0 file.
+**2. The page is 2.0 talking about 1.4.**  
+The prose says *"**In 1.4**, this new API is available by passing `future=True`."* A human reads
+those two words and treats it as history. The model dropped them and reported the advice as
+current. "Upcoming version" in the answer leaked out of that 1.4-era framing inside a 2.0 file.
 
-So version skew is not only *"a page from the wrong version"*. It is also **a page from the right
-version that describes the wrong version**, and no metadata on the file can catch that, because
-the file's metadata is correct.
+So skew is two shapes:
 
-**Three — the system retrieved its own correction and did not use it.** Result `[2]` was
-`core/future.rst` at 2.0, which says the `future` parameter *"continues to remain available for
-backwards-compatibility support, however if specified must be left at the value of `True`"* — in
-other words, in 2.0 it does nothing. **The right nuance was in the top-k and the answer cited only
-`[1]`.** That is the `single_source` signal recorded on the entry, and it is a *generation*
-failure sitting on top of a retrieval failure. Note what made it visible: the sources were
-printed. This is R1.2's *"it becomes checkable"* paying out, exactly once, in a real case.
+| | example | does a version **filter** catch it? |
+|---|---|---|
+| **Wrong file version** | 1.4 tutorial wins a 2.0 question (R1.5 twins) | yes — drop 1.4 |
+| **Right file, wrong era in the prose** | 2.0 migration guide describing 1.4 (this run) | **no** — metadata is already 2.0 |
 
-**The verdict on #7 is `UNVERIFIED`, and that is not an oversight.** All 19 entries in
-`FAILURES.md` are unverified, and marking them is a human gate — the golden dataset is
-hand-verified, never auto-generated ([`09-DECISIONS.md`](09-DECISIONS.md) **D09**'s sibling
-principle). A system that grades its own homework reports whatever number you wanted.
+**3. The right chunk was in the prompt and unused.**  
+`[2]` was 2.0 `core/future.rst`: in 2.0 the flag does nothing useful if you pass it. Retrieval
+got a correction into the top-k. The answer cited only `[1]`. That is **generation** ignoring
+what it was given, on top of a retrieval miss. Visible only because sources are printed (R1.2).
+The `single_source` signal on the entry is that fact as a flag, not a verdict.
+
+**`UNVERIFIED` on #7 is not an oversight.** All 19 `FAILURES.md` rows are unmarked until a human
+writes CORRECT / WRONG / PARTIAL. The golden set is hand-verified (D09's sibling). A script
+grading its own answers reports whatever number you wanted.
+
+**One line.** R1.5 said the *1.4 tutorial* would poison the answer. The poison was a *2.0
+migration page that still describes 1.4.*
 
 ---
 
@@ -757,7 +859,7 @@ uv run pytest
 
 1. *Why does adding more documents to the corpus make the system worse, when it obviously also
    adds more answers?* — R1.5
-2. *Our system cannot answer "what arguments does `Session.execute()` take". Why can no amount of
+2. *Our system cannot answer "what is `engine.has_table()`". Why can no amount of
    Phase 3 work fix that?* — R1.4
 3. *`BREAKAGES.md` would improve the answers. Why is it deliberately excluded?* — R1.6
 4. *We already have a `--version` filter. Question #7 still got the wrong answer from a correctly
@@ -766,6 +868,79 @@ uv run pytest
 **A warning about question 4.** The tempting answer is *"the filter wasn't switched on"*. That is
 not it, and reaching for it means R1.7 has not landed. Reread the source passage and notice what
 its first two words are.
+
+#### Answers
+
+**Cover these on a first pass** — the questions are only worth anything attempted cold. They are
+written down so a reread months later does not have to reconstruct them. Each is shaped *short
+answer → why → what it is NOT → evidence*.
+
+**1. Why does adding documents make it worse?**
+
+**Because top-k is fixed, so new text cannot add capacity — it can only take slots from whatever
+was winning before.** `DEFAULT_K = 5` in `rag/ask.py` is a hard budget of five.
+
+*Why:* nothing is ever ruled out of the race (R1.5, *"But who decides irrelevant"*). Every chunk
+is scored against every question, so added text competes on queries it has nothing to do with.
+Recall goes up, precision goes down, and precision is what fills the five slots.
+
+*What it is NOT:* it does not cost more tokens, and compute is not the argument. The prompt
+carries five chunks whether the index holds 3284 or three million. Comparing against all 3284
+takes **~1 ms** against the **~40 ms** of embedding the question — search is 2.4% of query time,
+and `D40` declines to claim speed as a reason for Qdrant at all. Reaching for a cost argument is
+the common wrong answer and does not survive *"top-k is fixed — why would the prompt grow?"*
+
+*Evidence:* `changelog/` is ~60% of SQLAlchemy's docs by bytes and almost entirely one-line
+release entries. Including it would roughly triple the index and spend slots on *"Fixed issue in
+ORM where…"* fragments, on every question.
+
+**2. Why can no amount of Phase 3 work answer `engine.has_table()`?**
+
+**Because the text is not in the corpus at all.** Phase 3 changes how chunks are *ranked*;
+ranking cannot surface a chunk that does not exist.
+
+*Why:* the corpus is documentation *source*, and the API reference is not in the source — it is
+generated at build time from docstrings by `.. autoclass::`-family directives. In our 270 files
+those directives number 514 (1.4) and 569 (2.0), and every one resolves to nothing here.
+
+*Evidence:* `grep -c has_table corpus/chunks.jsonl` → **0**.
+
+*The distinction that matters (`D45`):* `table_names` appears in **6** chunks and still was not
+retrieved. That is a *retrieval* failure and Phase 3's hybrid search is exactly the fix.
+`has_table` at **0** chunks is the *ceiling*, and the only fix is a Step 1 decision. "Hard to
+find" and "not present" are different problems with different owners.
+
+**3. Why is `BREAKAGES.md` excluded when it would improve answers?**
+
+**Because it is the answer key.** It seeds the Phase 2 golden dataset.
+
+*Why:* a corpus containing the evaluation answers makes Phase 2 measure whether the system can
+retrieve its own answer key. The score goes up and means less — the classic leakage between
+corpus and evaluation set.
+
+*The honest cost:* this gives up real quality now to keep a number honest later. It is `D09`, and
+it is the decision most worth being able to explain, because most people have never considered
+corpus/eval leakage until asked.
+
+**4. Why didn't the `--version` filter save question #7?**
+
+**Because the page it retrieved was already a 2.0 page.** The filter was never positioned to
+catch it.
+
+*Why:* version skew has **two shapes**, and a filter only catches one. (a) A page from the
+*wrong* version — a filter catches this. (b) A page from the *right* version whose prose is
+*conditional on another version* — no metadata can catch this, because the file's metadata is
+correct.
+
+*Evidence:* #7's source `[1]` was `changelog/migration_20.rst` at **2.0.51**, reading *"**In
+1.4**, this new API is available by passing the flag `future=True`."* Those first two words are
+the whole answer, and the model dropped them. Its own wording gave it away — it wrote
+*"compatibility with the **upcoming** version"*, but 2.0 is not upcoming.
+
+*And a second failure underneath:* result `[2]` was `core/future.rst` at 2.0, which says the flag
+now does nothing. **The correction was already in the top-k and the answer cited only `[1]`.**
+That is a generation failure sitting on a retrieval failure — visible only because the sources
+were printed.
 
 **Next sitting, §R2:** what an embedding actually is — how a piece of text becomes a list of
 numbers, why similar meanings end up close together, and what "close" means when the things
@@ -888,9 +1063,89 @@ not the mean**, because a handful of giants distort an average and would have pu
 above what most sections need. That is `TARGET = 1800` in `rag/chunk.py`, and it is why the same
 table in `phases/PHASE-1.md` Step 2 quotes a median.
 
-**`float32` splits into two words.** *float* — a number with a decimal point, `0.0213` rather
-than `3`. *32* — how many bits each one takes, which is **4 bytes**. Which makes the file size
-multiplication rather than mystery:
+#### If the target is 1800, how is anything 5346?
+
+Because **1800 is a packing limit, not a truncation limit.** It decides when to stop *adding*
+blocks. It never cuts one. There are two limits and neither can split a block:
+
+```
+TARGET   = 1800   before adding the next block: if it would breach 1800, close this chunk first
+HARD_MAX = 2400   after adding: if the chunk is past 2400, close it immediately
+```
+
+The whole behaviour comes down to one guard in `pack()`:
+
+```
+from rag/chunk.py — pack()
+
+if current and size + n + 2 > target:   # "if current" — only fires if something is already in
+    emit()
+    ...
+current.append(block)                   # unconditional: the block always goes in whole
+size += n + 2
+if size >= hard_max:
+    emit()
+```
+
+**When the chunk is empty, no emit can fire, however large the incoming block is.** So an
+oversized block lands whole in an empty chunk, and the `hard_max` check immediately kicks it out
+alone. Both numbers only ever choose *where a boundary between blocks falls* — never where a
+boundary falls *inside* one.
+
+**And the 5346 is a single indivisible thing:**
+
+```
+# runnable: uv run python -c "
+# import json
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]
+# b=max(r, key=lambda c: c['n_chars'])
+# print(b['id'], b['n_chars'], 'chars')
+# print(b['source_path'].split('doc/build/')[-1])
+# print(' -> '.join(b['heading_path']))"
+c00519 5346 chars
+faq/performance.rst
+Performance -> I'm inserting 400,000 rows with the ORM and it's really slow!
+```
+
+One Python benchmark script, printed whole in that FAQ answer. There is no legal cut point
+inside it.
+
+**How many get past each limit, and what it costs:**
+
+```
+# runnable: uv run python -c "
+# import json
+# n=[json.loads(l)['n_chars'] for l in open('corpus/chunks.jsonl')]
+# for lo in (1800, 2400):
+#     print(f'over {lo}: {sum(1 for x in n if x>lo):4d}  ({100*sum(1 for x in n if x>lo)/len(n):.1f}%)')
+# print('stats oversized:', json.load(open('corpus/CHUNK_STATS.json'))['oversized'])"
+over 1800:  105  (3.2%)
+over 2400:   34  (1.0%)
+stats oversized: 34
+```
+
+The `oversized` figure in `CHUNK_STATS.json` counts exactly the chunks that beat `HARD_MAX`, so
+the number of times the rule bent is recorded rather than hidden.
+
+**Why this is right rather than a leak.** Cut that script at 1800 and you get three fragments,
+each of which *looks* like a complete example and none of which runs. A retrieval hit on fragment
+two hands the model the middle of a benchmark with no imports and no `Base` — and the model will
+summarise it confidently, because nothing in the text says it is a fragment. **An honest
+oversized chunk beats a silently truncated example**, and the cost is bounded at 34 chunks, 1%
+of the index.
+
+**`float32` is a name with two facts packed into it.** Nothing is split at runtime — it is the
+*identifier* that comes apart, and each half tells you something different:
+
+```
+# illustration
+float32
+│    └── 32   how many bits each number occupies:  32 ÷ 8 = 4 bytes
+└─────── float  it has a decimal point — 0.0213, not 3
+```
+
+Read together: *"decimal numbers, four bytes each."* Which makes the file size a multiplication
+rather than a mystery:
 
 ```
 # runnable: python3 -c "print(3284*1024*4, 'bytes')"
@@ -941,6 +1196,142 @@ Note the last line: **every vector has length exactly 1.0.** That is not a coinc
 `normalize_embeddings=True` in `rag/embed.py` (D36). Every position has been pushed out onto the
 surface of a sphere, all the same distance from the origin — so only the *direction* carries
 meaning, never the magnitude. The next section is why that matters.
+
+#### Why min and max are the same number
+
+**A norm is the length of the arrow** from the origin out to that point: square every component,
+add them up, take the square root. Nothing more exotic than Pythagoras with 1024 sides.
+
+**And printing `min` and `max` is a check, not a statistic.** A *mean* of 1.0 would prove nothing
+— vectors of length 0.5 and 1.5 average to 1.0 as well. `min == max == 1.000000` is the only
+output shape that says **every single one, no exceptions, across all 3284.** Two identical
+numbers are the finding, not a redundancy.
+
+**What that line looks like when nothing has normalised it** — the same shape and dtype, filled
+with random values instead of meanings:
+
+```
+# runnable: uv run python -c "
+# import numpy as np
+# rng=np.random.default_rng(0); R=rng.normal(size=(3284,1024)).astype(np.float32)
+# n=np.linalg.norm(R,axis=1)
+# print('un-normalised   min %.4f  max %.4f  spread %.4f' % (n.min(), n.max(), n.max()-n.min()))
+# m=np.linalg.norm(R/n[:,None],axis=1)
+# print('after dividing  min %.6f  max %.6f' % (m.min(), m.max()))"
+un-normalised   min 29.5299  max 35.0566  spread 5.5267
+after dividing  min 1.000000  max 1.000000
+```
+
+A spread of **5.5267** collapsing to nothing. That is what the flag did to our file.
+
+**"Exactly 1.0" is exact only to float32's limit**, and the arithmetic shows where it stops:
+
+```
+# runnable: uv run python -c "
+# import numpy as np; v=np.load('corpus/embeddings.npy')[0].astype(np.float64)
+# print('sum of squares', (v**2).sum()); print('square root   ', np.sqrt((v**2).sum()))"
+sum of squares 1.0000000980377284
+square root    1.000000049018863
+```
+
+It misses 1 in the **eighth** significant digit — precisely where this section already said
+float32 runs out, at about seven. `%.6f` rounds that away. The same precision fact from two
+paragraphs above, wearing a different disguise.
+
+**Why do it at all.** The short answer is that it buys the right to use the *cheap* operation.
+That takes two steps to see.
+
+**Step one — magnitude can beat relevance.** Use the 1.4 engine tutorial as the query. Its
+correct match is the 2.0 twin at 0.9691, and the least related chunk in all 3284 is a query-guide
+page at 0.3820. Now suppose that unrelated chunk were three times longer, so its vector were three
+times as long:
+
+```
+# runnable: uv run python -c "
+# import json, numpy as np
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]; V=np.load('corpus/embeddings.npy')
+# q=next(i for i,c in enumerate(r) if c['id']=='c01464')
+# s=V@V[q]; o=np.argsort(-s); good, bad = o[1], o[-1]
+# fake=V[bad]*3
+# cos=lambda a,b: float(a@b/(np.linalg.norm(a)*np.linalg.norm(b)))
+# print('                       raw dot   cosine')
+# print('correct  (c03211)      %.4f    %.4f' % (float(V[q]@V[good]), cos(V[q],V[good])))
+# print('unrelated x3 (c02771)  %.4f    %.4f' % (float(V[q]@fake),    cos(V[q],fake)))"
+                       raw dot   cosine
+correct  (c03211)      0.9691    0.9691
+unrelated x3 (c02771)  1.1461    0.3820
+```
+
+**Under raw dot product the unrelated chunk wins — 1.1461 against 0.9691.** It did not become
+more relevant. It became bigger. A retrieval system built on raw dot products returns long
+documents.
+
+**Step two — cosine already fixes that, by dividing the length back out:**
+
+```
+cosine(a, b) = (a · b) / (|a| × |b|)
+             = 1.1461 / (1 × 3)
+             = 0.3820        ← back to last place, where it belongs
+```
+
+Look at the `cosine` column above: the fake chunk scores 0.3820 no matter how much it is scaled.
+**So cosine is not what normalising buys — cosine was always available.** What it costs is that
+division: two vector lengths computed on every comparison, 3284 times per question.
+
+**What normalising buys is this identity:**
+
+```
+# runnable: uv run python -c "
+# import json, numpy as np
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]; V=np.load('corpus/embeddings.npy')
+# q=next(i for i,c in enumerate(r) if c['id']=='c01464')
+# cos=lambda a,b: float(a@b/(np.linalg.norm(a)*np.linalg.norm(b)))
+# print('unit vectors: dot == cosine ?', np.allclose(V@V[q], [cos(V[i],V[q]) for i in range(len(V))]))"
+unit vectors: dot == cosine ? True
+```
+
+**Here is that in full, because "the denominator is 1" is doing all the work and is easy to
+skim past.** There are two different formulas, and ordinarily they disagree:
+
+```
+# illustration
+correct :  cosine(a, b) = (a · b) / (|a| × |b|)    a dot product, two lengths, one division
+cheap   :                  a · b                    a dot product, and nothing else
+```
+
+They disagreed in the table above — `1.1461` against `0.3820` — because one of those vectors had
+length 3. But **when every vector has length 1**, substitute and the division disappears:
+
+```
+# illustration
+cosine(a, b) = (a · b) / (|a| × |b|)
+             = (a · b) / (  1 ×  1 )      ← both are unit vectors
+             = (a · b) /      1
+             = (a · b)                    ← the cheap formula, unchanged
+```
+
+**That is what "exactly" means here.** The cheap formula is not an approximation of the correct
+one that happens to be close enough. It **is** the correct one, on this data, because the step
+that was skipped was a division by 1 — and dividing by 1 changes nothing. There is no tolerance
+to check and no error to bound.
+
+So you get cosine's immunity to length at the dot product's price: one multiply-and-add across
+1024 numbers, no division anywhere. That is what earns `rag/index.py` the right to write
+`vectors @ query` — and it is only true because of the flag. Turn normalisation off and that same
+line silently starts returning long documents.
+
+**Said plainly: normalising does not make the search smarter. It makes the cheap operation and
+the correct operation the same operation.** The division is paid once, at build time, instead of
+3284 times per question forever — which is §R1.3's build-time/query-time trade applied one level
+further down.
+
+**And what it costs is in the same two lines.** Before normalising, the lengths ranged from
+`29.5299` to `35.0566`; afterwards `min` and `max` are both `1.000000`. **That spread was
+information — roughly how much text a chunk held — and it has been overwritten, not
+de-weighted.** Nothing downstream can recover it: not Qdrant, not Phase 3's reranker, not the
+Phase 5 agent. Recovering it means re-embedding all 3284. Mostly that is exactly what you want,
+since the demonstration above shows length winning fights it should lose — but it is a trade, and
+the cost half is the half worth being able to state.
 
 ### R2.4 "Close" means the angle between them
 
@@ -1041,6 +1432,81 @@ out **not** to fail (D39: ranked 1 of 3284). The claim was right; the illustrati
 Keyword search would nail `table_names` precisely because it is a literal string, and that is
 Phase 3.
 
+#### Why the embedding is structurally unable to see a symbol
+
+The failure above is not the model being weak. It is a consequence of how a chunk becomes one
+vector, and the arithmetic says so:
+
+```
+# runnable: uv run python -c "
+# import json
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]
+# h=[x for x in r if 'table_names' in x['text']]
+# for x in h: print(f\"  {x['id']}  {x['sqlalchemy_version']}  {x['n_chars']:5d} chars  x{x['text'].count('table_names')}\")
+# tot=sum(x['n_chars'] for x in h); occ=sum(x['text'].count('table_names') for x in h)
+# print(f'  {occ*11} of {tot} characters = {100*occ*11/tot:.2f}% of the text')"
+  c00290  1.4.52    382 chars  x1
+  c00449  1.4.52   1022 chars  x1
+  c00807  1.4.52    992 chars  x1
+  c01934  2.0.51    382 chars  x1
+  c02021  2.0.51   1022 chars  x1
+  c02502  2.0.51    992 chars  x1
+  66 of 4792 characters = 1.38% of the text
+```
+
+**`table_names` is 1.38% of the text it lives in.** It appears once per chunk; the other 98.6% is
+prose about reflection, errors and asyncio. One vector has to describe all of it, so the vector
+describes *"a passage about database introspection"* — which is correct, and useless when the
+literal string **is** the question. Nothing is malfunctioning. A summary of a paragraph is not a
+record of which identifiers the paragraph contained.
+
+**Then look at the rarity, which is where the fix comes from:**
+
+```
+# runnable: uv run python -c "
+# import json
+# r=[json.loads(l) for l in open('corpus/chunks.jsonl')]; n=len(r)
+# for t in ('table_names','has_table','cascade_backrefs','keys()','session','select'):
+#     c=sum(1 for x in r if t in x['text'])
+#     print(f'{t:20s} {c:5d} chunks  ({100*c/n:5.2f}% of corpus)')"
+table_names              6 chunks  ( 0.18% of corpus)
+has_table                0 chunks  ( 0.00% of corpus)
+cascade_backrefs        12 chunks  ( 0.37% of corpus)
+keys()                   7 chunks  ( 0.21% of corpus)
+session                781 chunks  (23.78% of corpus)
+select                 819 chunks  (24.94% of corpus)
+```
+
+**To a dense embedder rarity is invisible** — one token among a few hundred is averaged away.
+**To keyword search rarity is the strongest signal available**: that is exactly what BM25's IDF
+term computes, and a word appearing in 6 of 3284 documents is enormously discriminative where one
+in 819 is nearly worthless. *The very property that erases `table_names` from the vector is the
+property that makes BM25 lock onto it.* The two methods fail in opposite directions, which is
+what makes combining them worth doing rather than merely more work.
+
+**One detail the "6 chunks" figure hides.** Read the version column: the six are **three pages,
+each present twice** — `core/reflection.rst`, `errors.rst` and `orm/extensions/asyncio.rst`, at
+1.4 and again at 2.0, byte-identical in length. So the real coverage is **three distinct
+passages**, and each has a twin competing for the same top-k slot. §R1.5's version skew and
+`D38`'s duplicated index are not separate topics from this one; they are the same corpus seen
+from a different angle.
+
+**So: does Phase 3 fix it?** For three of the four, yes — and for the fourth, never:
+
+| symbol | in corpus | can Phase 3 fix it? |
+|---|---|---|
+| `table_names` | 6 chunks (3 pages × 2 versions) | **yes** — the text is there, the ranking is wrong |
+| `keys()` | 7 chunks | **yes** |
+| `cascade_backrefs` | 12 chunks | **yes** |
+| `has_table` | **0 chunks** | **no, and no later phase can** |
+
+`has_table` is not a ranking problem. Hybrid search, reranking, a larger model and the Phase 5
+agent all reorder what exists; none can return text that was never indexed. The only fix is
+changing the corpus, which is a Step 1 decision. **This is `D45`, and it is worth being able to
+state cold, because the two failures look identical from outside — both simply return a wrong
+answer.** Only counting chunks separates them, which is why `D45` requires the split be computed
+mechanically rather than judged by eye.
+
 ---
 
 ## Vocabulary from this sitting
@@ -1064,6 +1530,119 @@ uv run python -m rag.ask "how do I use joinedload?" --retrieval-only
 uv run python -m rag.compare_embedders
 ```
 
+**The first needs Qdrant up** (`docker compose ps` should show it `healthy`) and returns in a
+second or two. **The second takes upwards of ten minutes** — it loads BGE-M3 *and* MiniLM and
+re-embeds with both — and it prints nothing at all until it is finished, because Python buffers
+its output when it is not writing to a terminal. Run it in your own shell, where you will at
+least see it stream. Its conclusion is `D32` and is already recorded.
+
+#### What the first command returns, and the three things to notice
+
+```
+# summary of: uv run python -m rag.ask "how do I use joinedload?" --retrieval-only
+#   (score, version, file and heading are verbatim; the text preview under each
+#    hit is trimmed to its first line so the five fit side by side)
+[1] 0.715  1.4.52  orm/loading_relationships.rst    Zen of Joined Eager Loading
+[2] 0.714  1.4.52  orm/loading_relationships.rst    Zen of Joined Eager Loading
+[3] 0.712  1.4.52  orm/tutorial.rst                 Eager Loading > Joined Load
+[4] 0.706  2.0.51  orm/queryguide/relationships.rst Zen of Joined Eager Loading
+[5] 0.700  1.4.52  orm/loading_relationships.rst    Zen of Joined Eager Loading
+```
+
+This one result demonstrates three separate things §R1 and §R2 argued for, so it is worth
+reading slowly:
+
+- **The entire top-5 spans 0.015** — from 0.715 to 0.700. §R1.5 predicted that when a question
+  lands near a cluster, which chunk takes a slot is "decided in the fourth decimal place, which
+  is to say: by noise." This is that sentence as output. And per R2.5 the numbers are not
+  percentages: against a random-pair baseline of **0.540**, a 0.715 top hit is **0.175 above
+  noise**, not "72% confident".
+- **`[2]` and `[4]` are the same passage at two releases.** Both open *"Above, we can see that
+  the two JOINs have very different roles"* — one from 1.4, one from 2.0, **0.008 apart**. Two of
+  five slots spent saying the same thing twice. That is `D38`'s duplicated index costing 20% of
+  the budget on a single ordinary question.
+- **Four of the five hits are 1.4** on a question that named no version at all. A 2.0 user asking
+  this gets a prompt that is 80% old-release text, and nothing in the pipeline noticed — which is
+  §R1.5's version skew, arriving without anyone provoking it.
+
+#### What the second command returns, and what its columns mean
+
+```
+# summary of: uv run python -m rag.compare_embedders   (~10 minutes)
+#   HuggingFace progress bars and a rate-limit warning are stripped; the two
+#   result rows and the exclusion line are verbatim.
+3284 chunks, 16 questions with a known symbol
+
+scoring BAAI/bge-m3 ...
+scoring sentence-transformers/all-MiniLM-L6-v2 ...
+
+model                                     dim  params  chunks/s    R@5   R@10    MRR  median  worst
+BAAI/bge-m3                              1024    568M       7.2  0.733  0.867  0.675       1     23
+sentence-transformers/all-MiniLM-L6-v2    384     23M     259.7  0.733  0.867  0.668       1     79
+
+1 question(s) excluded: no chunk in the corpus contains the symbol at all —
+the ceiling (D45), which no model can move.
+```
+
+**Start with `rank`, because every other column is made from it.** For one question, the rank is
+the position of the first chunk that contains the answer, within the ordering of all 3284. Rank 1
+means the search put it first. The script computes it at `compare_embedders.py:98` and then
+summarises 15 of them.
+
+**`R@5` — recall at 5. Of the questions, what fraction put a containing chunk in the top five?**
+
+```
+0.733 × 15 = 11 questions
+```
+
+**11 of 15.** This is the column that matters most, because `DEFAULT_K = 5` is exactly what
+reaches the model. For the other four the answer was in the corpus and never entered the prompt.
+
+**`R@10` — the same thing at ten.**
+
+```
+0.867 × 15 = 13 questions
+```
+
+**13 of 15 — and the gap is the useful part.** `13 − 11 = 2` questions had their answer at rank
+**6–10**: retrieved, ordered, and missed the budget by a few places. **Those two are what
+reranking in Phase 3 exists to rescue** — no corpus change required, only reordering.
+
+**`MRR` — mean reciprocal rank.** For each question take `1 ÷ rank`, then average:
+
+```
+rank  1  ->  1.000
+rank  2  ->  0.500
+rank  4  ->  0.250
+rank 10  ->  0.100
+```
+
+**It exists because `R@5` is blind to position.** Rank 1 and rank 5 both score as "in the top
+five" and are indistinguishable to recall. MRR separates them. That is exactly what happens here:
+the two models are **identical** on R@5 and R@10, and MRR still splits them, 0.675 against 0.668.
+A tie at the head hiding a small ordering difference.
+
+**`median` and `worst` are raw ranks**, not fractions: the middle question came back at rank 1 for
+both models, and the single worst-placed answer sat at 23 for BGE-M3 and 79 for MiniLM.
+
+**Read the row as a sentence:** *"11 of 15 answers reached the prompt, 13 reached the top ten, the
+typical one was ranked first, and the worst was buried at 23."*
+
+**Why 15 and not 16.** Line 101 keeps only ranks that exist — `scored = [r for r in ranks if r is
+not None]`. A question whose symbol appears in no chunk is dropped rather than counted as a
+failure, because scoring a model on a question the corpus cannot answer measures the corpus, not
+the model. That is `D45` built into the measurement instead of applied afterwards, and it is why
+every column divides by 15.
+
+**What it settles.** `568 ÷ 23 = 24.7×` the parameters and `259.7 ÷ 7.2 = 36×` the speed, for an
+identical R@5. That is `D32`. It also explains the ten-minute wait: `3284 ÷ 7.2 = 456 seconds`
+for the BGE-M3 pass against `3284 ÷ 259.7 = 12.6 seconds` for MiniLM.
+
+**What it does not settle.** Fifteen questions is a small sample, and *"identical to three
+decimals"* across fifteen items is not *"these models are equivalent."* The `worst` column is the
+one hint that they are not: both find the answer at median rank 1, but when MiniLM misses it
+misses far worse — rank 79 against 23 — and nothing downstream recovers a chunk buried that deep.
+
 **Answer these three:**
 
 1. *Every vector in our file has length exactly 1.0. What does that buy, and what does it throw
@@ -1073,8 +1652,81 @@ uv run python -m rag.compare_embedders
 3. *`table_names` appears in 6 chunks and retrieval did not find any of them. Why is that a
    different problem from `has_table`, which appears in 0?* — R2.6
 
-**Next sitting, §R3:** the prompt — why the model refuses answerable questions if you tell it
-too firmly that it may refuse, and what that experiment looked like.
+#### Answers
+
+**Cover these on a first pass**, as in §R1. Each is shaped *short answer → why → what it is NOT →
+evidence*. All three were attempted cold first, and the corrections that came out of that are
+kept, because the wrong answers are the more instructive half.
+
+**1. Length exactly 1.0 — what does it buy, and what does it throw away?**
+
+**It buys the right to use the cheap formula.** Cosine is `(a · b) / (|a| × |b|)`. When both
+lengths are 1 the denominator is 1, and dividing by 1 changes nothing — so cosine *is* the dot
+product. `vectors @ query` in `rag/index.py` is exactly correct rather than approximately
+correct, with no tolerance to check.
+
+*What it is NOT: a speed argument.* Measured on this file, skipping the division saves **0.92 ms**
+against the **~40 ms** spent embedding the question — about 2% of query time. Answer "speed" and
+the follow-up *"how much faster?"* retracts the claim. The defensible version is a correctness
+claim, and correctness gets no "how much?".
+
+*What it throws away: magnitude — overwritten, not de-weighted.* Before normalising, vector
+lengths ran `29.5299` to `35.0566`; after, `min` and `max` are both `1.000000`. That spread was
+information about how much text a chunk held, and nothing downstream can recover it — not Qdrant,
+not Phase 3's reranker, not the Phase 5 agent. Recovering it means re-embedding all 3284.
+
+*Evidence:* scale an unrelated chunk's vector by 3 and raw dot product ranks it **1.1461** against
+the correct answer's **0.9691** — it wins for being long. Cosine scores the same chunk **0.3820**
+and puts it back last.
+
+**2. A top hit at 0.61 — is that good?**
+
+**Unanswerable until you know what unrelated text scores for this model on this corpus.**
+
+*For ours:* 2000 random pairs average **0.540**, with a floor around **0.329**. So 0.61 is
+**0.070 above noise**, and the usable range is roughly 0.33 → 1.0 rather than 0 → 1. It is not
+"61% confident"; the number is not a percentage and there is no percentage hiding in it.
+
+*A second thing to ask, which the single number cannot tell you: the gap to the next hit.* The
+`joinedload` query above returns 0.715, 0.714, 0.712, 0.706, 0.700 — a top hit 0.175 clear of
+noise whose runner-up is **0.001** behind. Strong against random, indistinguishable from its
+neighbours. Those are different questions.
+
+*The consequence:* **only the ordering is trustworthy**, which is why retrieval takes top-k rather
+than everything above a cutoff. A threshold like "return hits above 0.7" copied from a tutorial
+written against another model will return everything or nothing.
+
+**3. Why is `table_names` a different problem from `has_table`?**
+
+**Because they have different owners.** `table_names` is a *ranking* failure — the text is in the
+corpus and search put it too low, so Phase 3's keyword half fixes it. `has_table` is the
+*ceiling* — no chunk contains it, so there is nothing to rank and no later phase can touch it.
+Only Step 1, the corpus decision, can.
+
+*What it is NOT: a model-quality problem.* `compare_embedders` scores BGE-M3 (568M parameters) and
+MiniLM (23M) at an identical **R@5 of 0.733**. A 25× larger model does not find it either, so
+"use a better embedder" is the wrong conclusion.
+
+*Why dense retrieval cannot see it:* `table_names` is **66 of 4792 characters — 1.38%** of the
+text it lives in. One vector describes the whole chunk, so it encodes *"a passage about
+introspection"*. That is correct and useless when the literal string is the question. The rarity
+that erases it from the vector (6 chunks, 0.18% of the corpus) is the same rarity that makes
+BM25's IDF term lock onto it — the two methods fail in opposite directions, which is the argument
+for combining them.
+
+*Why this needs its own decision entry:* **from outside, the two failures are identical** — both
+simply return a wrong answer. Nothing in the output distinguishes them; only counting chunks
+does. That is `D45`, and it is why `compare_embedders` excludes the zero-chunk question instead
+of scoring it as a miss.
+
+**Next sitting, §R3 — and it is in a different file:**
+[`11-GENERATION.md`](11-GENERATION.md). The prompt: why the model refuses answerable questions
+when told too firmly that it may refuse, how the cause was found after two wrong hypotheses, and
+why fixing it did not violate the build-the-naive-version-first rule.
+
+**Why the file changes here.** Everything in §R1 and §R2 happens *before* the five chunks are
+chosen. Everything in §R3 happens *after*. That is a different subject, so it gets its own file —
+with the `R` numbering carried across, so a reference to §R3 still means exactly one thing.
 
 ## Where the rest of the repo lives
 

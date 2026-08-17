@@ -177,10 +177,12 @@ Three things that table decides:
   (`orm/ core/ tutorial/ faq/`) are 1910065 bytes of 2.0's total; `changelog/migration_20.rst`
   — the 2.0 migration guide itself — is 93197 bytes.
 - **The `.rst` source does not contain the API reference.** `.. autoclass::` / `.. automethod::`
-  and friends appear 660 times in the 1.4 tree and 743 times in the 2.0 tree: instructions that
-  say *at build time, read this class's Python docstring and paste it here*. The per-method
-  reference pages a search engine lands you on exist only in the rendered HTML. "Docs source"
-  and "the API reference" are two different corpora, not one.
+  and friends appear **660 times in the 1.4 tree and 743 times in the 2.0 tree** — that is
+  **stub lines, not files**. One `.rst` we *do* keep can contain many of them. Each line is an
+  instruction: *at build time, read this class's Python docstring and paste it here*. The
+  per-method pages a search engine lands you on exist only in the rendered HTML. Inside our
+  270-file subset the same count is **514 / 569** (R1.4). "Docs source" and "the API reference"
+  are two different corpora, not one. `270` is the file count; `660` is not.
 - **Version skew is visible in the last column**, and it is the trap named below.
 
 #### The version-skew trap, on one line of one file
