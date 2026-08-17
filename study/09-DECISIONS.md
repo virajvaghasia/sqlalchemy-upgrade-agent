@@ -780,6 +780,31 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How did you tune your prompt?"* — the answer is that one instruction was
 > found to be simultaneously load-bearing and harmful, and the wording that threads it was
 > chosen by testing both failure directions rather than by taste.
+>
+> ⚠️ **Re-run twice on 2026-08-16: the A/answerable cell did not reproduce either time.** All
+> three prompts were run again against one answerable and one unanswerable question, now through
+> the committed `rag/compare_prompts.py` rather than by hand.
+> **C's invention reproduced both times** — a full `Session.execute` signature with four
+> arguments, from five sources containing none of it — **and it is stable rather than random**:
+> not byte-identical (1905 vs 1997 characters) but the same four arguments in the same order, down
+> to the same illustrative `sqlite:///example.db`. A fabrication that varies looks unreliable; one
+> that repeats looks retrieved.
+> **A answered the answerable question both times**, citing sources, where this entry records
+> `REFUSED`.
+> **One caveat this entry raised can now be retired.** The index had been rebuilt, so the sources
+> might have differed — they did not: both runs returned top-5 scores `0.646, 0.642, 0.639, 0.616,
+> 0.615` in that order. **Retrieval is deterministic**, so all variation is in generation. What
+> remains uncontrolled is that prompt A was reconstructed from the wording quoted above rather
+> than from a saved artifact; `compare_prompts.py` now pins it so this cannot recur.
+> **What this changes.** The decision stands — **B is correct 6 for 6, the only variant never once
+> wrong** — but its legs do not carry equal weight: *"the clause is necessary"* is **3 of 3**,
+> while *"the strict wording over-fires"* is **1 of 3** and must be quoted that way rather than as
+> a property of prompt A.
+> **Kept rather than edited out**, because a register that silently drops a result which later
+> failed to reproduce is worse than no register. The write-up is `11-GENERATION.md` §R3.3, and
+> `rag/compare_prompts.py` exists so the next person does not have to take either table on trust.
+> **Asked as** — *"Has anything in your decision log turned out to be wrong?"* — which is a better
+> question than the one above, and this is the entry to answer it with.
 
 ### D44 — A wrong prompt is a bug, not "naive baseline"
 

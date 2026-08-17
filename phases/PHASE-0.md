@@ -289,7 +289,7 @@ Dockerfile                          yes
 .dockerignore                       yes
 entrypoint.sh                       yes
 docker-compose.yml                  yes
-tests/                              10 files
+tests/                              11 files
 .github/workflows/                  1 workflows
 ```
 

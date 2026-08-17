@@ -27,7 +27,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 115 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 121 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -547,3 +547,11 @@ Append a dated entry each session; keep each entry to a few bullets.
   fix) or "in no chunk at all" (the ceiling). 4 and 1. Computed mechanically, not read off by
   eye (D45).
 - Still human-only: the 19 verdicts, and the ten Step 2 sample chunks.
+
+### 2026-08-17 — rewrite of §R1–§R3 for the same reader who found the Q&A weird
+- `study/10-RETRIEVAL.md` and `study/11-GENERATION.md`: claim-first openers, named examples,
+  sitting tables ("after this you can say…"), Q&As restated in plain language. Measured
+  `# runnable` blocks and numbers untouched.
+- The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
+  NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
+  plain language**, then **Short:** answers.
