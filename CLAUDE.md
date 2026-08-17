@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D46`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D47`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 115 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 121 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -281,8 +281,10 @@ at a terminal returns an answer with its sources. `main` is clean, no open PRs, 
 1. **`D31` — Qdrant was never compared against pgvector.** The last entry in `09-DECISIONS.md`
    §H. Postgres is already in Compose, which makes pgvector the obvious rival. `D32` was settled
    the same way on 2026-08-15 and that entry is the template.
-2. **`study/10-RETRIEVAL.md` §R3** — the prompt: why the model refuses answerable questions when
-   told too firmly that it may refuse. The experiment is already in `D43`.
+2. ~~**`study/10-RETRIEVAL.md` §R3**~~ — **done 2026-08-16**, and it is in
+   **`study/11-GENERATION.md`**, not `10`. Retrieval and generation are two subjects, so `10`
+   split at §R3 per `study/README.md`'s rule. The numbering continued rather than restarting at
+   §G1 — **the `R` is for RAG, not Retrieval (`D47`)**.
 3. **`logs/HANDOFF.md` Round 5** is parked until the 3060 is free (~2026-08-16).
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
@@ -545,3 +547,11 @@ Append a dated entry each session; keep each entry to a few bullets.
   fix) or "in no chunk at all" (the ceiling). 4 and 1. Computed mechanically, not read off by
   eye (D45).
 - Still human-only: the 19 verdicts, and the ten Step 2 sample chunks.
+
+### 2026-08-17 — rewrite of §R1–§R3 for the same reader who found the Q&A weird
+- `study/10-RETRIEVAL.md` and `study/11-GENERATION.md`: claim-first openers, named examples,
+  sitting tables ("after this you can say…"), Q&As restated in plain language. Measured
+  `# runnable` blocks and numbers untouched.
+- The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
+  NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
+  plain language**, then **Short:** answers.

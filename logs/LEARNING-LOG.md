@@ -380,9 +380,11 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
   the 1.4 docs and 3 of the 2.0 docs. Ask *"should I pass `future=True`?"* and dense retrieval
   returns a genuinely excellent 1.4 passage — **confident, correctly sourced, wrong.**
   Recorded on every chunk, deliberately **not** filtered: that failure is Phase 3's argument.
-- **The API reference is not in the docs source.** 660 `.. autoclass::`-family directives in
-  the 1.4 tree, 743 in 2.0 — instructions to read a Python docstring at Sphinx build time.
-  "Docs source" and "the API reference" are two corpora, and only the first was fetched.
+- **The API reference is not in the docs source.** 660 `.. autoclass::`-family **lines** in
+  the 1.4 tree, 743 in 2.0 — not 660 unused files; stubs sit *inside* files we keep
+  (514 / 569 in the 270-file subset; R1.4). Instructions to read a Python docstring at
+  Sphinx build time. "Docs source" and "the API reference" are two corpora, and only the
+  first was fetched.
 - **`changelog/` is ~60% of the bytes and almost none of the answers.** One file taken out of
   it (`migration_20.rst`, 93197 bytes); the other ~33 left behind.
 - **`BREAKAGES.md` stayed out of the corpus** because it seeds the Phase 2 golden dataset.

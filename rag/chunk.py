@@ -109,9 +109,11 @@ MIN_CHARS = 120
 
 # Directives that instruct Sphinx rather than say anything. `autoclass` and
 # friends are the API-reference generators (D07): at build time they read a
-# Python docstring, so in SOURCE they are an empty promise. Deliberately NOT
-# listed: note, warning, versionadded, deprecated, seealso, code-block — those
-# are content, and often the most quotable content in the file.
+# Python docstring, so in SOURCE they are an empty promise — one *line* per
+# class/function, not one unused file (R1.4: 514/569 such lines in our 270
+# files). Deliberately NOT listed: note, warning, versionadded, deprecated,
+# seealso, code-block — those are content, and often the most quotable content
+# in the file.
 NON_CONTENT_DIRECTIVES = frozenset({
     "toctree", "currentmodule", "module", "index", "contents", "include",
     "autoclass", "autofunction", "automethod", "autoattribute", "automodule",
