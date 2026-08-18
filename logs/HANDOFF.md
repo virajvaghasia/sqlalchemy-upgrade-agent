@@ -942,7 +942,77 @@ this is the round that needs the GPU.
 ### REPLY 7.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17 evening. On main @ fc438f5.
+# grep -c 'limit=k' rag/probe.py → 1
+# Qdrant healthy, collection sqlalchemy-upgrade-agent-bge-m3-5617a9f6, 3284 points.
+# ollama: qwen2.5-coder:7b  4.7 GB
+
+===== k=5 =====
+wrote deliverables/FAILURES.md
+{
+  "refused": 8,
+  "uncited": 4,
+  "version_mixed": 13,
+  "symbol_missing": 6,
+  "single_source": 6,
+  "retrieval_failure": 5,
+  "ceiling": 1,
+  "any_duplicate_slot": 2,
+  "total_duplicate_slots": 2,
+  "questions": 19
+}
+
+===== k=6 =====
+k=6 (default 5) — report NOT written
+{
+  "refused": 8,
+  "uncited": 2,
+  "version_mixed": 17,
+  "symbol_missing": 5,
+  "single_source": 7,
+  "retrieval_failure": 4,
+  "ceiling": 1,
+  "any_duplicate_slot": 2,
+  "total_duplicate_slots": 2,
+  "questions": 19
+}
+
+===== k=10 =====
+k=10 (default 5) — report NOT written
+{
+  "refused": 8,
+  "uncited": 5,
+  "version_mixed": 19,
+  "symbol_missing": 4,
+  "single_source": 2,
+  "retrieval_failure": 3,
+  "ceiling": 1,
+  "any_duplicate_slot": 7,
+  "total_duplicate_slots": 8,
+  "questions": 19
+}
+
+# refused is 8 at k=5, 8 at k=6, 8 at k=10. Unchanged.
+# retrieval_failure 5 → 4 → 3 and symbol_missing 6 → 5 → 4 did move.
+# ceiling stayed 1.
+
+# Guard: --k 5 IS the default, so it wrote FAILURES.md. --k 6 and --k 10 did not.
+# File was restored from a pre-sweep copy; sha256 matches HEAD. verdicts.json untouched.
+
+===== caveat: backref question, --k 10 --retrieval-only =====
+# substring 'backref' in hit text/heading, measured, not read off the 180-char snippet:
+#   k=5:  NONE of 5
+#   k=6:  rank 6
+#   k=10: ranks 6, 7, 8
+# Rank 6 is glossary.rst "many to one" (2.0.51). Rank 8 is 1.4 One To Many.
+
+===== same question, full generate --k 10 =====
+The sources do not answer this.
+[qwen2.5-coder:7b  8 tokens  62.7 tok/s  0.4s wall  prompt 3918 tokens]
+
+# The chunk is in the prompt at k=10 and the model still refused.
+# Raising k did not fix this refusal. Hybrid search would not have either,
+# for this question — the sources reached the model and it declined anyway.
 ```
 
 ## What to look at in the output, so the paste is not just JSON
@@ -979,3 +1049,66 @@ prompt, not retrieval** — and Phase 3's hybrid search would not have fixed it 
 
 **Do not commit from that machine** and do not let a `--k` run near `FAILURES.md` — the guard
 should prevent it, and if it does not, that is a bug worth reporting in the reply.
+
+---
+
+# Round 8 — is the refusal clause the reason, or the model?
+
+**Round 7 answered its own question and asked a better one.** Raising `k` moved retrieval
+(`symbol_missing` 6→4, `retrieval_failure` 5→3) and left **`refused` at 8 for every value of k**.
+The `--retrieval-only` check confirmed the `backref` answer was in the prompt at k=10 and the
+model refused anyway. **The sources arrive and generation declines** (`09-DECISIONS.md` **D51**).
+
+**So the suspect is the prompt, and there is a specific reason to think so.** `D43` chose the
+shipped wording — prompt **B** — by testing three variants against **two** questions. Prompt
+**C**, the same model with the refusal clause deleted, answered everything. So the model *can*
+answer these; it is being told when not to.
+
+**B has never been measured at this size.** It is now known to refuse 8 of 19 with at least one
+answer demonstrably present. This round runs all three wordings over the whole probe set and
+counts refusals — the experiment `D43` should have been, at the size that would have caught it.
+
+**Why this before Phase 3 and before any model change.** Hybrid search would surface a chunk that
+is already being surfaced. A bigger model invalidates `D43`, `D48`, `D49` and every generation
+number in the repo. **This is the cheapest live hypothesis and the only one with evidence behind
+it.**
+
+## ASK 8.1 — all three wordings, all 19 questions
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout main && git pull
+grep -c 'def sweep_all' rag/compare_prompts.py      # must be 1
+
+docker compose up -d qdrant && ollama list | head -3
+
+uv run python -m rag.compare_prompts --all 2>&1 | tail -30
+```
+
+**57 generations.** Counts only — no answers printed, because 57 answers is not readable and the
+question is a rate. `--all` never writes `FAILURES.md`.
+
+### REPLY 8.1
+
+```
+(paste here)
+```
+
+## How to read it, and the floor that matters
+
+**Three of the 19 are `absent` questions where refusing is CORRECT.** So the floor is 3: a
+variant refusing 3 is not under-refusing, it is exactly right. Anything above 3 is a candidate
+over-fire.
+
+| result | what it means | what to do |
+|---|---|---|
+| **B ≈ 8, C ≈ 0–3** | the clause is the whole story — B over-fires at scale, and `D43`'s "not reproducible" was an artefact of testing two questions | rewrite the wording; the model is fine |
+| **B ≈ 8, C ≈ 8** | the refusals are **not** the clause — something else declines | then the model becomes a live question for the first time |
+| **B ≈ 3, A ≫ 3** | B is already right and Round 7's 8 came from something else in `probe.py`'s path | look at `probe.py`, not the prompt |
+
+**The second row is the only one that puts the model in scope**, and it is worth saying plainly
+that it is the least likely: prompt C already answered everything in `D43`, thirteen times.
+
+**If C refuses far fewer than B, do not conclude "ship C".** C is the variant that invented a
+full `Session.execute` signature 13 times out of 13. **The goal is a wording that refuses the 3
+`absent` questions and nothing else** — this round measures the gap, it does not pick the winner.
