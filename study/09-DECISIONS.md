@@ -924,6 +924,14 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > next person does not have to take either table on trust.
 > **Asked as** — *"Has anything in your decision log turned out to be wrong?"* — and this is the
 > entry to answer it with.
+>
+> ⚠️ **Superseded in part by `D52`, 2026-08-17.** Round 8 ran all three wordings over all 19
+> probe questions. **A and B refused the same 8 questions, identically.** This entry chose B over
+> A on a single differing outcome that never reproduced — so it chose between two options that
+> behave the same. *"The clause is necessary"* holds and is now confirmed across 19 questions
+> (C refused 0, answering even the three the corpus provably cannot answer). *"B threads it"*
+> does not: B is wrong on 5 of 19. **Read this entry as the record of how the prompt was picked,
+> not as evidence that it is right.**
 
 ### D44 — A wrong prompt is a bug, not "naive baseline"
 
@@ -1086,6 +1094,53 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How did you decide what to build next?"* — where the answer is that the thing
 > queued for three months was aimed at a failure mode that measurement reassigned to a different
 > component, and the measurement cost one sitting.
+
+
+### D52 — A and B are indistinguishable, so D43 chose between two identical things
+
+> **Measured 2026-08-17, Round 8** — all three wordings against all 19 probe questions, 57
+> generations on the lab PC.
+>
+> ```
+> prompt    refused  answered   of 19
+> A               8        11    strict canned refusal
+> B               8        11    refusal as last resort (SHIPPED)
+> C               0        19    no refusal clause
+> ```
+>
+> **A and B refused the same 8 questions — identical, question by question.** `D43` chose B over
+> A because A refused one answerable question and B did not. Over 19 questions there is **no
+> behavioural difference between them at all.** The wording change B introduced does not change
+> what the model does; it changed one outcome once, and that did not reproduce (`D43`'s 1-in-13).
+> **So the shipped prompt was chosen between two options that are the same option.** B is not
+> wrong — it is simply not better, and the entry that picked it claimed a distinction the
+> evidence does not support.
+>
+> **Scored against this repo's own 19 verdicts, B's 8 refusals split 4 and 4:**
+>
+> | | questions | |
+> |---|---|---|
+> | **correct refusals** | Q4 `has_table`, Q6 `relation`, Q15, Q17 | corpus genuinely has nothing |
+> | **over-fires** | Q3 `table_names`, Q5 `keys()`, Q18, Q19 | the answer is in the corpus |
+> | **under-fire** | Q16 | an `absent` question it answered instead |
+>
+> **So the real floor is 5, not 3.** Round 8's ASK said three — the `absent` category — but Q4
+> and Q6 are ceilings too, established independently in `D51` and the verdicts. **A correct
+> prompt refuses 5 of these 19. B refuses 8 and misses one, so it is wrong in 5 places.**
+>
+> **C is not the answer**, and Round 8 makes that concrete rather than theoretical: C refused
+> **0**, which means it answered all three `absent` questions — the ones where the corpus provably
+> has nothing. That is `D43`'s fabrication, now confirmed across 19 questions instead of one.
+>
+> **What this leaves.** The refusal clause is necessary (C), the two wordings tried are
+> equivalent (A = B), and the shipped one is wrong on 5 of 19. **No wording tested so far is
+> good**, and the search space was two points that turned out to be one. That is the finding —
+> not "B needs tuning", but "B was never compared against anything different".
+> **What it does not license:** changing the model. C proves this model answers all 19 when
+> permitted to. The failure is entirely in the instruction.
+> **Asked as** — *"How do you know your prompt is right?"* — where the honest answer is that it
+> is not, that the experiment which chose it compared two identical things, and that it took
+> running the full question set to see it.
 
 
 ---

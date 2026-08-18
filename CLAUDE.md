@@ -22,7 +22,7 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D51`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D52`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -323,14 +323,21 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    after retrieval and generation, numbering continued per `D47`. Its §R4.3 is the one to reread:
    the rank of the first containing chunk split what was filed as one Phase 3 fix into **four**
    different problems, one of which is a constant being wrong.
-3. **The next experiment is a PROMPT experiment, not a retrieval one — `D51`.** Round 7 came back
+3. **Write a fourth prompt — `D52`.** Round 8 settled it: A and B refuse the **same 8 questions,
+   identically**, so `D43` chose between two options that are the same option. C refuses 0 and
+   fabricates. **The correct floor is 5** (3 `absent` + `has_table` + `relation`, both ceilings);
+   B refuses 8 and misses one, so it is wrong in **5 of 19**. No wording tested is good, and the
+   search space so far was two points that turned out to be one. **Not tuning — a genuinely
+   different fourth wording**, then `compare_prompts --all` again. Do not change the model: C
+   proves it answers all 19 when permitted to.
+4. ~~The next experiment is a PROMPT experiment — `D51`~~ — **done, that was Round 8.** Round 7 came back
    2026-08-17: sweeping `k` moved retrieval and left `refused` at **8 at every value**, and a
    `--retrieval-only` run proved the answer was in the prompt at k=10 while the model still
    declined. **The eight refusals are not the argument for hybrid search.** `D43` measured
    over-firing at 1-in-13 — but on prompt A, on one question; this is prompt **B**, the shipped
    one, refusing 8 of 19 with the answer present. `rag/compare_prompts.py` already exists, so
    testing wordings against the full probe set is cheap.
-4. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
+5. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
    rose, so retrieval is genuinely imperfect), but **its stated justification needs rewriting
    first**. Do not build it on the eight refusals.
 
