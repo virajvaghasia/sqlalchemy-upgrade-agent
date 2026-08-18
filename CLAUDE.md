@@ -282,13 +282,38 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-17, evening):** Phase 1 is **BUILT, and one gate from COMPLETE**. `main` is
-clean, **125 tests**, **52/52** `# runnable` blocks reproduce, **49** decision entries.
+**State (2026-08-17, end of day):** Phase 1 is **BUILT, two gates from COMPLETE**.
+**Work is on branch `phase-1/completion`, not `main`** — `main` is deliberately stale and gets
+one PR when the phase closes. **129 tests**, **52/52** `# runnable` blocks, **54** decision
+entries, **§H empty**, 19 verdicts in sync (`tools.apply_verdicts --check`).
 
-**Closed today:** the 19 answer verdicts (`CORRECT 10 · PARTIAL 3 · WRONG 6`), recorded in
-`deliverables/verdicts.json` — the source of truth, which `FAILURES.md` renders from so a
-regeneration cannot destroy them. `tools/review_sheet.py` builds a readable sheet
-(`--full` for everything: 95 sources with complete passages, plus whole `BREAKAGES` entries).
+**The teaching files are three:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
+(generation), `12-EVALUATION.md` §R4 (evaluation). One `R` run across all three — it stands for
+RAG, not Retrieval (`D47`).
+
+**What today settled, in the order it matters:**
+
+| | |
+|---|---|
+| **19 verdicts closed** | `CORRECT 10 · PARTIAL 3 · WRONG 6`, in `deliverables/verdicts.json` so a regeneration cannot destroy them |
+| **Prompt D shipped** (`D54`) | confirmed at `n=5`, zero non-unanimous cells; beats B on Q16, 5/5 vs 0/5 |
+| **`DEFAULT_K` stays 5** | k=10 was measured and is worse — two over-fires and one fabrication |
+| **`D31` settled** | pgvector beat Qdrant on every number; Qdrant stays because migrating buys 2 ms |
+| **`D48`/`D49`** | 3060 embeds 2.8x faster at **batch 8**; bigger batches are slower on CUDA too |
+| **`D50`** | fixes verified twice — they run, and the docs recommend them (12 of 13) |
+
+**Two findings to read before doing anything else:**
+
+- **Refusal behaviour is deterministic** (`D54`, Round 11): every cell 0 or 5 across 5 runs. So
+  Rounds 8-10's `n=1` runs were *right* — and still the wrong method, because nothing before
+  Round 11 said so and `D43` had measured the opposite. **Re-check determinism whenever the
+  model, temperature or sources change.**
+- **`D51` is corrected in place by `D54`.** At `k=5` the failures ARE retrieval failures — four
+  of five have answers outside the top-5. `D51` generalised from the one case where the chunk was
+  present. **Phase 3 is justified**, by a cleaner argument than it started with.
+
+**The open defect no wording fixes:** Q18 and Q19. At k=10 their chunks are in the prompt — Q19
+has **three**, at positions 6, 7, 8 — and all four wordings refuse. Two questions, real, unsolved.
 
 **Two gates remain and both are a human's:**
 
@@ -649,3 +674,25 @@ Append a dated entry each session; keep each entry to a few bullets.
 - The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
   plain language**, then **Short:** answers.
+
+### 2026-08-17 — verdicts closed, prompt D shipped, §H emptied
+
+- **Phase 1's second gate closed.** 19 verdicts (`10/3/6`) drafted from `BREAKAGES.md` keys and
+  executed against real 2.0.51, accepted by Viraj. `verdicts.json` is the record; `probe.py`
+  renders from it, because it used to hardcode `UNVERIFIED` and a regeneration would have
+  destroyed all 19 silently.
+- **Eleven lab rounds in one day**, 5 through 11. The arc is worth knowing because each round
+  corrected the last: raising `k` doesn't reduce refusals (`D51`) → but Rounds 8–9 ran at k=5
+  where the answers weren't retrieved, so `D51` was wrong and `D54` corrects it in place →
+  prompt D ships → and Round 11 confirms it at `n=5` with **zero** non-unanimous cells.
+- **Two bugs of mine, both found by measuring rather than reading.** The review sheet truncated
+  3 of 19 answers at a nested code fence (Q13 showed 295 of 965 chars). `probe.py` matched
+  symbols by substring, so `relation` counted inside every `relationship` — 798 recorded, 21
+  true, 0 documenting `orm.relation()` — which flipped Q6's verdict and had silenced
+  `symbol_missing` on exactly the question it existed for.
+- **Workflow changed twice at Viraj's instruction**, both recorded as memory: branch before
+  working (never commit to local `main`), and **one long-lived branch per phase** rather than a
+  PR per change. `phase-1/completion` is that branch.
+- **What I got wrong and he caught:** shipping prompt D when he was asking whether we *should*,
+  and holding Rounds 8–10 to an `n=1` standard I had spent the day insisting `D43` should have
+  met. Both are recorded in the entries rather than smoothed over.
