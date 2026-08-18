@@ -196,9 +196,16 @@ def test_recorded_symbol_counts_match_the_matcher():
     FAILURES.md quotes a chunk count per symbol. If the matcher changes and the
     report is not regenerated, those numbers silently describe an older rule —
     which is exactly what happened to `relation` (798 recorded, 21 true).
+
+    Needs the corpus, which only the `docs reproduce` CI job builds — the
+    `tests` job runs without it, so this skips there rather than failing on a
+    missing file.
     """
     if REPORT is None:
         pytest.skip("no FAILURES.md")
+    from rag import embed as _embed
+    if not _embed.CHUNKS_PATH.exists():
+        pytest.skip("no corpus/chunks.jsonl — run rag.chunk")
     for _q, _c, sym in probe.QUESTIONS:
         if not sym:
             continue
