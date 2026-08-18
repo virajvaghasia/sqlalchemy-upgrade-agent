@@ -1243,15 +1243,28 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"Why is your top-k 5 and not 10?"* — where the answer is that 10 was measured
 > and made it worse, with the failure mode named.
 >
-> ⚠️ **PROVISIONAL on the D-vs-B margin, flagged 2026-08-17.** Rounds 8, 9 and 10 each ran
-> **one pass per configuration**. D's advantage over B is **one question (Q16), observed once** —
-> which is the same `n=1` standard `D43` shipped on and `D52` had to correct. Holding this round
-> to a lower bar than `D43` was an inconsistency, and it is recorded rather than quietly carried.
-> **What is not provisional:** the k=5 vs k=10 comparison (four wordings moved together, and the
-> Q5 fabrication and Q18/Q19 over-fires are structural, not marginal), and that D makes no error
-> B does not. **What is:** that D is actually *better*. `rag/compare_prompts.py --repeat N` now
-> aggregates per-question refusals across runs, so one lab sitting settles it. Until then D
-> ships because nothing measured says it is worse — not because the margin is established.
+> ✅ **CONFIRMED 2026-08-17, Round 11 — `n=5`, and the result is unusually clean.** 380
+> generations, four wordings × 19 questions × 5 runs at k=5.
+>
+> ```
+> A 8.0    B 8.0    C 0.0    D 9.0     zero non-unanimous cells
+> ```
+>
+> **Every cell was 0 or 5.** Not one question flipped between identical runs, for any wording.
+> D's advantage is Q16 and it is **5/5 against B's 0/5** — the margin reproduces exactly.
+> `D54` is no longer provisional: **ship D, keep k=5.**
+>
+> **And the zero-stars result is worth more than the margin it confirmed.** Refusal behaviour
+> here is **deterministic** — same question, same sources, same wording, same decision, every
+> time. Which means the `n=1` runs in Rounds 8–10 produced *correct* answers.
+> **They were still the wrong method.** Nothing known before this round said the process was
+> deterministic; `D43` had measured generation as nondeterministic in its own text, and the two
+> Mac re-runs there differed from the original. Being right by luck and being right by evidence
+> read identically until someone checked. **That is the finding to carry: the repeat run did not
+> change a conclusion, it changed how much weight the conclusions can bear.**
+> **Practical consequence:** prompt comparisons on this question set can be run once, provided
+> the determinism is re-checked whenever the model, temperature or sources change — any of which
+> could reintroduce variance without warning.
 
 
 ---

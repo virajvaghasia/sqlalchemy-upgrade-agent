@@ -323,11 +323,12 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    after retrieval and generation, numbering continued per `D47`. Its §R4.3 is the one to reread:
    the rank of the first containing chunk split what was filed as one Phase 3 fix into **four**
    different problems, one of which is a constant being wrong.
-3. **Round 11 settles whether D actually beats B — `D54` is PROVISIONAL until it runs.** Rounds
-   8–10 ran one pass per configuration, and D's whole advantage is **one question observed once**
-   — the `n=1` standard `D43` shipped on. `--repeat 5` aggregates per-question and stars any
-   non-unanimous cell. **If Q16 is starred, revert to B.** D ships meanwhile because nothing
-   measured says it is worse, not because the margin is established.
+3. ✅ **Settled 2026-08-17 — Round 11, `n=5`, zero non-unanimous cells.** D's margin over B is
+   Q16 at **5/5 vs 0/5**; `D54` is confirmed and no longer provisional. **Ship D, keep k=5.**
+   The bigger finding: refusal behaviour is **deterministic** here — every cell 0 or 5 — so
+   Rounds 8–10's `n=1` runs were *right*, and still the wrong method, because nothing before
+   this round said the process was deterministic and `D43` had measured the opposite. Re-check
+   determinism whenever model, temperature or sources change.
 4. **Ship prompt D, keep `DEFAULT_K = 5` — `D54`.** Round 10 (152
    generations, both k values) found that **at k=5 every one of D's nine refusals is correct**:
    four have answers outside the top-5, five are ceilings or `absent`. **D at k=5 is the only
