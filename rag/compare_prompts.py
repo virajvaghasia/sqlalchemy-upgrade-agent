@@ -3,6 +3,7 @@ Re-run D43 — is the refusal clause necessary, and does the strict wording over
 
     uv run python -m rag.compare_prompts              # all three prompts, both questions
     uv run python -m rag.compare_prompts --prompt C   # just one variant
+    uv run python -m rag.compare_prompts --all        # all 19 probe questions, counts only
 
 `study/09-DECISIONS.md` **D43** recorded a three-by-two table on 2026-08-15 and
 shipped prompt B off it. It existed only as a table: the experiment was run by
@@ -48,7 +49,7 @@ import sys
 import urllib.error
 import urllib.request
 
-from rag import ask, index
+from rag import ask, index, probe
 
 # Shared by all three variants, so the only difference is the refusal sentence.
 _HEAD = (
@@ -125,12 +126,52 @@ def refused(answer: str) -> bool:
     return answer.lower().startswith("the sources do not answer this")
 
 
+def sweep_all(variants: list[str]) -> None:
+    """
+    Every probe question against each wording, counting refusals.
+
+    D43 chose prompt B on two questions. Round 7 then found B refusing 8 of 19
+    with the answer demonstrably in the prompt (D51), which the original
+    experiment could not have seen. This is the same test at the size that
+    would have caught it: refusals per variant, over the whole set.
+
+    Counts only — no answers printed, because 57 answers is not readable and
+    the question here is a rate, not a reading.
+    """
+    tally = {v: {"refused": 0, "answered": 0} for v in variants}
+    per_q: list[tuple[str, str, dict[str, str]]] = []
+    for question, category, _sym in probe.QUESTIONS:
+        hits = index.retrieve(question, limit=ask.DEFAULT_K)
+        prompt = ask.build_prompt(question, hits)
+        row = {}
+        for v in variants:
+            answer = generate(system_prompt(v), prompt)
+            r = refused(answer)
+            tally[v]["refused" if r else "answered"] += 1
+            row[v] = "refused" if r else "answered"
+        per_q.append((question, category, row))
+        print(f"  {category:9} {' '.join(f'{v}={row[v][:3]}' for v in variants)}  {question[:46]}")
+
+    print()
+    print(f"{'prompt':<8} {'refused':>8} {'answered':>9}   of {len(probe.QUESTIONS)}")
+    for v in variants:
+        t = tally[v]
+        print(f"{v:<8} {t['refused']:>8} {t['answered']:>9}   {LABELS[v]}")
+    print()
+    print("A refusal is CORRECT for the 3 `absent` questions and a failure elsewhere,")
+    print("so the floor is 3 — a variant refusing 3 is not under-refusing, it is right.")
+
+
 def main() -> None:
     argv = sys.argv[1:]
     only = argv[argv.index("--prompt") + 1].upper() if "--prompt" in argv else None
     if only and only not in REFUSAL_CLAUSES:
         sys.exit(f"unknown prompt {only!r}; choose from {', '.join(REFUSAL_CLAUSES)}")
     variants = [only] if only else list(REFUSAL_CLAUSES)
+
+    if "--all" in argv:
+        sweep_all(variants)
+        return
 
     grid: dict[tuple[str, str], bool] = {}
 
