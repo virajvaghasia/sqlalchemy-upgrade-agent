@@ -889,3 +889,76 @@ A cell, answerable column:
 Rewrites §R3.3's asymmetry table in `study/11-GENERATION.md` and the ⚠️ block in `D43`.
 Thirteen observations is still not a benchmark and the write-up will keep saying so — but it is
 the difference between "did not reproduce twice" and a proportion.
+
+
+---
+
+# Round 7 — does raising k fix failures Phase 3 was going to fix?
+
+**Rounds 5 and 6 are closed.** Their replies are on `main` and folded into `D43` (settled at 1
+refusal in 13), `D48` (embed 2.8x, and the batch prediction was wrong), `D49` (both models fit on
+one card). **The `lab/handoff` branch is deleted** — it predated the whole `rag/` package and
+everything is on `main` now. Work from `main`.
+
+**Why this round exists.** Closing the 19 verdicts produced a number nobody was looking for. For
+each question the rank of the first chunk actually containing the answer, measured on the Mac:
+
+```
+# summary of: rank of the first containing chunk, out of 3284, for the questions that failed
+symbol             in corpus   rank   what that means
+backref                   80      6   MISSED THE CUT BY ONE PLACE
+cascade_backrefs          12      8   just outside
+keys()                     7     12   squarely a reranking case
+table_names                6     23   and its top-5 scored +0.001 over noise
+has_table                  0   none   the ceiling — no k helps
+```
+
+**`DEFAULT_K = 5`. One answer sat at rank 6.** Before Phase 3 buys hybrid search and reranking to
+fix these, it is worth knowing how many of them a single integer fixes. That is a cheap question
+with an embarrassing possible answer, which is exactly the kind worth asking first.
+
+`rag/probe.py` now takes `--k`. **A non-default k prints and does not write `FAILURES.md`** —
+overwriting it would replace 19 human verdicts with answers nobody judged.
+
+## ASK 7.1 — sweep k, and count what changes
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout main && git pull
+ls rag/compare_prompts.py && grep -c 'limit=k' rag/probe.py     # both must be present
+
+docker compose up -d qdrant && docker compose ps
+ollama list | head -3
+
+for k in 5 6 10; do
+  echo "===== k=$k ====="
+  uv run python -m rag.probe --k $k 2>&1 | tail -25
+done
+```
+
+**19 generations per value, three values.** At 62.23 tok/s that is a sitting, not an evening —
+this is the round that needs the GPU.
+
+### REPLY 7.1
+
+```
+(paste here)
+```
+
+## What to look at in the output, so the paste is not just JSON
+
+The summary counts `refused`, `symbol_missing`, `retrieval_failure` and `ceiling`. Compare across
+the three runs:
+
+- **`refused` drops from k=5 to k=6** — then one answer was being refused purely because the cut
+  fell one place too high, and `DEFAULT_K` is a one-line fix for it.
+- **`refused` unchanged at k=6 but lower at k=10** — the cut matters, just not by one; and the
+  cost is a prompt twice the size, which is a real trade rather than a free win.
+- **`refused` unchanged at k=10** — then these are genuine retrieval failures, Phase 3's hybrid
+  search is the answer, and this round has strengthened that argument rather than undermined it.
+
+**All three outcomes are worth having.** The third is the one that makes Phase 3 defensible
+instead of assumed, and it is the reason to run this before building anything.
+
+**Do not commit from that machine** and do not let a `--k` run near `FAILURES.md` — the guard
+should prevent it, and if it does not, that is a bug worth reporting in the reply.

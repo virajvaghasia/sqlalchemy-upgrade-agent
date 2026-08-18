@@ -27,7 +27,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 125 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 126 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -222,7 +222,12 @@ networking.
     `qwen2.5-coder:7b` on GPU at **62.23 tok/s**, and the Days 8–9 CI gate proved with
     a deliberately failing PR. Do not re-plan these as outstanding.
   - **Rounds 5–6 came back 2026-08-17** — CUDA embed, batch sweep, VRAM coexistence and the
-    `D43` ten-run tally. Folded into `D43`, `D48`, `D49`. Nothing is queued for that box.
+    `D43` ten-run tally. Folded into `D43`, `D48`, `D49`.
+  - **`logs/HANDOFF.md` is on `main`. The `lab/handoff` branch was deleted 2026-08-17** (it was
+    `c19f87f`) — it predated the whole `rag/` package. **Work from `main`.**
+  - **Round 7 is queued**: sweep `--k 5 / 6 / 10` over the probe set. One failing answer ranked
+    **6** with `DEFAULT_K = 5`, so a single integer may fix what Phase 3 was going to. 19
+    generations per value — the GPU makes it a sitting rather than an evening.
   - **Still open on this box:** the Day 3 tunnel — blocked on Shaili sharing the
     Tailscale node, which is one person and nothing routes around it (`logs/HANDOFF.md`
     Round 3). And the reboot test, deferred.
