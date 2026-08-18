@@ -19,7 +19,7 @@
  ],
  "3": [
   "WRONG",
-  "Refused a question the corpus can answer \u2014 `table_names` is in 6 chunks and the fix is `inspect(engine).get_table_names()`. A retrieval failure, which is what Phase 3 targets."
+  "Refused although `table_names` is in 6 chunks, the first at rank 23 of 3284. Note what the five it did return scored: 0.575, 0.573, 0.560, 0.541, 0.540 against a 0.540 noise floor \u2014 the last two are +0.001 and +0.000, so search did not rank the answer low, it found nothing and filled the slots. Keyword search reaches this; reranking a top-5 of noise cannot."
  ],
  "4": [
   "CORRECT",
@@ -27,11 +27,11 @@
  ],
  "5": [
   "WRONG",
-  "Refused although `keys()` is in 7 chunks; the fix is `row._mapping.keys()`. Retrieval failure."
+  "Refused although `keys()` is in 7 chunks, the first at rank 12 of 3284 \u2014 outside k=5 but comfortably inside the candidate set a reranker would see. The fix is `row._mapping.keys()`. This is the cleanest reranking case in the set."
  ],
  "6": [
-  "WRONG",
-  "Refused; the replacement is `relationship()`, which the corpus documents in 768 chunks. Also exposed an instrument bug \u2014 the recorded symbol `relation` matches every `relationship`, so `symbol_missing` could never fire here."
+  "CORRECT",
+  "Refused, and the corpus genuinely cannot answer: `orm.relation()` appears in 0 chunks. The 21 chunks matching the bare token `relation` are prose \u2014 'in relation to', 'correlation' \u2014 and none names it as the old alias for `relationship()`. A ceiling, not a retrieval failure, so the refusal is the honest output. This entry previously read WRONG on the strength of a 798-chunk count that was a substring bug, now fixed in probe.py."
  ],
  "7": [
   "WRONG",
@@ -79,10 +79,10 @@
  ],
  "18": [
   "WRONG",
-  "Refused although `cascade_backrefs` is in 12 chunks. Retrieval failure, and the breakage it misses is the silent one \u2014 no exception, the INSERT simply never runs."
+  "Refused although `cascade_backrefs` is in 12 chunks, the first at rank 8 of 3284. The five returned scored 0.547 to 0.537 against a 0.540 floor \u2014 at or below noise. A reranker over a wider candidate set would reach rank 8; the breakage it misses is the silent one, where no exception is raised and the INSERT simply never runs."
  ],
  "19": [
   "WRONG",
-  "Refused although `cascade_backrefs` is in 12 chunks \u2014 the same retrieval failure as 18, on the phrasing a developer would actually use when the symptom is 'my object was never inserted'."
+  "Refused although `backref` is in 80 chunks and the first containing chunk ranked **6** \u2014 it missed the top-k cut by a single place. DEFAULT_K = 6 would have surfaced it with no other change. The sharpest argument in the set for tuning k before reaching for architecture."
  ]
 }
