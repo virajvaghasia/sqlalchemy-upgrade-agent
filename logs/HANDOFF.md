@@ -1101,7 +1101,43 @@ question is a rate. `--all` never writes `FAILURES.md`.
 ### REPLY 8.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17. phase-1/completion @ 915cf0d
+# grep -c 'def sweep_all' rag/compare_prompts.py → 1
+# Qdrant healthy. qwen2.5-coder:7b. --all does not write FAILURES.md (confirmed).
+
+uv run python -m rag.compare_prompts --all
+  symbol    A=ans B=ans C=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans  engine.has_table() no longer exists, what is t
+  symbol    A=ref B=ref C=ans  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans  what is the exact signature and full argument
+  absent    A=ans B=ans C=ans  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+
+A refusal is CORRECT for the 3 `absent` questions and a failure elsewhere,
+so the floor is 3 — a variant refusing 3 is not under-refusing, it is right.
+
+# A and B identical: 8 refused. C refused 0.
+# First-row outcome in the ASK table: the clause is the story, the model can answer.
+# C also answered all 3 absent questions (0 refusals, below the floor of 3).
+# Do not ship C — that is the ASK's own warning, not a finding from this box.
 ```
 
 ## How to read it, and the floor that matters
