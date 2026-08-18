@@ -11,6 +11,7 @@ that makes a failure actionable (D45).
 
 import json
 import re
+import sys
 import types
 
 import pytest
@@ -211,3 +212,27 @@ def test_recorded_symbol_counts_match_the_matcher():
             continue
         n = probe.corpus_chunk_count(sym)
         assert f"symbol `{sym}` appears in **{n}** corpus chunks" in REPORT, sym
+
+
+def test_a_non_default_k_does_not_overwrite_the_report(monkeypatch, tmp_path, capsys):
+    """
+    `--k` is an experiment, not a new deliverable.
+
+    FAILURES.md holds 19 human verdicts. A sweep at k=6 or k=10 produces answers
+    nobody has judged, and writing them would silently replace the golden
+    dataset with unverified output — destroying the gate that took a day to
+    close. So a non-default k prints and stops.
+    """
+    written = []
+    monkeypatch.setattr(probe, "write_report", lambda rows: written.append(rows))
+    monkeypatch.setattr(probe, "run", lambda only=None, k=5: [])
+    monkeypatch.setattr(probe, "summarise", lambda rows: {"questions": 0})
+
+    monkeypatch.setattr(sys, "argv", ["probe", "--k", "6"])
+    probe.main()
+    assert not written, "a non-default k must not write FAILURES.md"
+    assert "NOT written" in capsys.readouterr().out
+
+    monkeypatch.setattr(sys, "argv", ["probe"])
+    probe.main()
+    assert written, "the default k must still write the report"

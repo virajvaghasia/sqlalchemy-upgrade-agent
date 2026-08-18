@@ -4,6 +4,7 @@ Phase 1, Step 5 — run questions with known answers and record where it fails.
     uv run python -m rag.probe                  # run everything, write the report
     uv run python -m rag.probe --only skew      # one category
     uv run python -m rag.probe --list           # the question set, no model calls
+    uv run python -m rag.probe --k 6            # a different top-k, to test the cut
 
 Writes `deliverables/FAILURES.md`. That file is the Phase 1 deliverable and the
 argument for everything in Phase 3.
@@ -190,12 +191,12 @@ def signals(question: str, symbol: str | None, hits, answer: str) -> dict:
     }
 
 
-def run(only: str | None = None) -> list[dict]:
+def run(only: str | None = None, k: int = ask.DEFAULT_K) -> list[dict]:
     rows = []
     questions = [q for q in QUESTIONS if only is None or q[1] == only]
     for n, (question, category, symbol) in enumerate(questions, 1):
         print(f"[{n}/{len(questions)}] {category:9} {question[:62]}", file=sys.stderr)
-        hits = index.retrieve(question, limit=ask.DEFAULT_K)
+        hits = index.retrieve(question, limit=k)
         started = time.perf_counter()
         answer, timings = ask.generate(ask.build_prompt(question, hits))
         rows.append({
@@ -419,13 +420,23 @@ def main() -> None:
         return
 
     only = argv[argv.index("--only") + 1] if "--only" in argv else None
-    rows = run(only)
-    write_report(rows)
+    k = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K
+    rows = run(only, k=k)
 
+    # A non-default k is an experiment, not a new deliverable. Overwriting
+    # FAILURES.md with it would replace 19 human verdicts with answers nobody
+    # judged, so it prints and stops.
+    if k != ask.DEFAULT_K:
+        s = summarise(rows)
+        print(f"\nk={k} (default {ask.DEFAULT_K}) — report NOT written")
+        print(json.dumps(s, indent=2))
+        return
+
+    write_report(rows)
     s = summarise(rows)
     print(f"\nwrote {REPORT_PATH.relative_to(corpus.REPO_ROOT)}")
     print(json.dumps(s, indent=2))
-    print("\nEvery answer is marked UNVERIFIED. Read them and set the verdicts.")
+    print("\nVerdicts render from deliverables/verdicts.json (tools.apply_verdicts).")
 
 
 if __name__ == "__main__":
