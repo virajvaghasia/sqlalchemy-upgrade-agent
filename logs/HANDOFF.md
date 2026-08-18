@@ -942,7 +942,77 @@ this is the round that needs the GPU.
 ### REPLY 7.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17 evening. On main @ fc438f5.
+# grep -c 'limit=k' rag/probe.py → 1
+# Qdrant healthy, collection sqlalchemy-upgrade-agent-bge-m3-5617a9f6, 3284 points.
+# ollama: qwen2.5-coder:7b  4.7 GB
+
+===== k=5 =====
+wrote deliverables/FAILURES.md
+{
+  "refused": 8,
+  "uncited": 4,
+  "version_mixed": 13,
+  "symbol_missing": 6,
+  "single_source": 6,
+  "retrieval_failure": 5,
+  "ceiling": 1,
+  "any_duplicate_slot": 2,
+  "total_duplicate_slots": 2,
+  "questions": 19
+}
+
+===== k=6 =====
+k=6 (default 5) — report NOT written
+{
+  "refused": 8,
+  "uncited": 2,
+  "version_mixed": 17,
+  "symbol_missing": 5,
+  "single_source": 7,
+  "retrieval_failure": 4,
+  "ceiling": 1,
+  "any_duplicate_slot": 2,
+  "total_duplicate_slots": 2,
+  "questions": 19
+}
+
+===== k=10 =====
+k=10 (default 5) — report NOT written
+{
+  "refused": 8,
+  "uncited": 5,
+  "version_mixed": 19,
+  "symbol_missing": 4,
+  "single_source": 2,
+  "retrieval_failure": 3,
+  "ceiling": 1,
+  "any_duplicate_slot": 7,
+  "total_duplicate_slots": 8,
+  "questions": 19
+}
+
+# refused is 8 at k=5, 8 at k=6, 8 at k=10. Unchanged.
+# retrieval_failure 5 → 4 → 3 and symbol_missing 6 → 5 → 4 did move.
+# ceiling stayed 1.
+
+# Guard: --k 5 IS the default, so it wrote FAILURES.md. --k 6 and --k 10 did not.
+# File was restored from a pre-sweep copy; sha256 matches HEAD. verdicts.json untouched.
+
+===== caveat: backref question, --k 10 --retrieval-only =====
+# substring 'backref' in hit text/heading, measured, not read off the 180-char snippet:
+#   k=5:  NONE of 5
+#   k=6:  rank 6
+#   k=10: ranks 6, 7, 8
+# Rank 6 is glossary.rst "many to one" (2.0.51). Rank 8 is 1.4 One To Many.
+
+===== same question, full generate --k 10 =====
+The sources do not answer this.
+[qwen2.5-coder:7b  8 tokens  62.7 tok/s  0.4s wall  prompt 3918 tokens]
+
+# The chunk is in the prompt at k=10 and the model still refused.
+# Raising k did not fix this refusal. Hybrid search would not have either,
+# for this question — the sources reached the model and it declined anyway.
 ```
 
 ## What to look at in the output, so the paste is not just JSON

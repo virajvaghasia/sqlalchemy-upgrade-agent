@@ -82,6 +82,19 @@ fix it with hybrid search."* They are **four different problems**:
 **That is the shape of a real evaluation finding**: it did not say the system is 74% good, it said
 the plan was aimed at the wrong thing for at least one of five failures.
 
+> **And Round 7 went further than that — see `09-DECISIONS.md` D51.** Sweeping `k` over the whole
+> probe set moved retrieval (`symbol_missing` 6→4, `retrieval_failure` 5→3) and **left refusals
+> at 8, unchanged, at every value of k.** A `--retrieval-only` run confirmed the `backref` answer
+> was in the prompt at k=10 and the model refused anyway.
+>
+> **So the answer is not "one of five was misfiled". It is that these failures are largely not
+> retrieval failures at all** — the sources arrive and generation declines. The fix queued for
+> them, hybrid search, would have surfaced a chunk that was already being surfaced.
+>
+> **This is the strongest argument in the repo for measuring before building**, and it is also a
+> caution about R4.3 itself: the rank told you *how far off* a miss was, and still could not tell
+> you *which component* missed. Only running the thing did that.
+
 ### R4.4 The verdicts, and what the distribution says
 
 ```

@@ -1045,6 +1045,49 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > named rather than quietly folded in with the others.
 
 
+### D51 — Raising k did not reduce refusals, so Phase 3's premise is wrong for these failures
+
+> **Measured 2026-08-17 on the lab PC.** Round 7 swept `k` over the 19 probe questions to find
+> out how many failures a single integer fixes, because one answer had ranked **6** against
+> `DEFAULT_K = 5`.
+>
+> ```
+>              k=5   k=6   k=10
+> refused        8     8      8      <- unchanged
+> symbol_missing 6     5      4
+> retrieval_failure 5  4      3
+> ceiling        1     1      1
+> ```
+>
+> **Retrieval improved and refusals did not move.** More containing chunks reached the prompt at
+> every step — `symbol_missing` 6→4, `retrieval_failure` 5→3 — and the model refused exactly as
+> often. That is not a null result; it is a result pointing at a different component.
+>
+> **The disambiguating run settles it.** `--retrieval-only --k 10` on the `backref` question
+> confirmed a chunk containing the symbol was in the prompt, and the full run still refused.
+> **The sources reached the model and it declined anyway.**
+>
+> **What this costs Phase 3.** Those five failures were the evidence for hybrid search and
+> reranking. At least some of them are **not retrieval failures at all** — the answer was
+> present and generation refused. Hybrid search would have surfaced the chunk that was already
+> being surfaced. **`D04` said build the naive version and watch it fail before buying the fix;
+> this is what watching it fail actually bought** — the fix was aimed at the wrong half.
+> **What it does not license:** cancelling Phase 3. `symbol_missing` and `retrieval_failure` both
+> fell as `k` rose, so retrieval genuinely is imperfect and hybrid search would help *something*.
+> What is no longer true is that these eight refusals are the argument for it.
+>
+> **Where the argument moves instead: `D43`'s clause.** That entry measured over-firing at **1 in
+> 13** — but on prompt **A**, the strict wording, on one question. This is prompt **B**, the
+> shipped one, refusing **8 of 19** with the answer demonstrably in the prompt. `D43` concluded
+> "the clause is necessary and the over-fire is not reproducible". The first half stands; the
+> second was measured on the wrong prompt and the wrong question set.
+> **The next experiment is therefore a prompt experiment, not a retrieval one** — and it is
+> cheap, because `rag/compare_prompts.py` already exists.
+> **Asked as** — *"How did you decide what to build next?"* — where the answer is that the thing
+> queued for three months was aimed at a failure mode that measurement reassigned to a different
+> component, and the measurement cost one sitting.
+
+
 ---
 
 ## Using this in an interview
