@@ -1094,6 +1094,13 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How did you decide what to build next?"* — where the answer is that the thing
 > queued for three months was aimed at a failure mode that measurement reassigned to a different
 > component, and the measurement cost one sitting.
+>
+> ⚠️ **Largely WRONG, corrected by `D54` on 2026-08-17.** This entry concluded the refusals were
+> not retrieval failures. **At k=5 — what ships — they are.** Four of the five have answers
+> outside the top-5, so the model refused questions whose answers were never in front of it.
+> This entry generalised from the single case where the chunk *was* present (`backref` at k=10)
+> to the whole set. **Phase 3 is justified after all.** What survives: Q18 and Q19 do over-fire
+> once the answer is present, and no wording fixes them — two questions, not eight.
 
 
 ### D52 — A and B are indistinguishable, so D43 chose between two identical things
@@ -1187,6 +1194,54 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How do you know the prompt is the problem and not retrieval?"* — where the
 > honest answer today is that at k=5 it is retrieval, at k=10 it is partly the prompt, and the
 > experiment that separates them has not been run yet.
+
+
+### D54 — At k=5 every refusal is honest; raising k buys two over-fires and a fabrication
+
+> **Measured 2026-08-17, Round 10** — four wordings × 19 questions × two values of k, 152
+> generations, plus a check of what Qdrant actually returns.
+>
+> **First, the controls held, and one of them changed the reading.** Brute-force ranks are not
+> what the system sees — Qdrant is approximate (`D31`). Asked directly:
+>
+> ```
+> Q 5 keys()             in Qdrant top-10 at: NONE
+> Q18 cascade_backrefs   in Qdrant top-10 at: [8]
+> Q19 backref            in Qdrant top-10 at: [6, 7, 8]
+> Q 3 table_names        in Qdrant top-10 at: NONE
+> ```
+>
+> **The finding: at k=5, every one of D's nine refusals is correct.** Q4, Q6, Q15, Q16, Q17 are
+> ceilings or `absent`. Q3, Q5, Q18, Q19 have their answers **outside the top-5**, so the model
+> refused questions whose answers were not in front of it. **That is honest behaviour, not
+> over-firing. D at k=5 makes zero prompt errors.**
+>
+> **Raising k to 10 makes things worse in two distinct ways:**
+>
+> - **Q18 and Q19 become genuine over-fires.** Their chunks are now in the prompt — Q19 has
+>   **three** of them, at positions 6, 7 and 8 — and A, B and D all refuse anyway. **Three
+>   genuinely different wordings, answer demonstrably present, identical refusal.** For these two
+>   the instruction is not the lever.
+> - **Q5 becomes a fabrication.** `keys()` is in **no** chunk of the top-10, and A, B and D all
+>   answered it at k=10 having correctly refused at k=5. **Raising k did not surface an answer; it
+>   supplied five more near-miss chunks and the model talked itself into one.**
+>
+> **So `D51` was wrong and this entry corrects it.** `D51` concluded from Round 7 that "these
+> failures are largely not retrieval failures at all — the sources arrive and generation
+> declines". At k=5, which is what ships, **the sources do not arrive**: four of the five have
+> answers outside the top-5. `D51` generalised from the one case where the chunk *was* present
+> (`backref` at k=10) to the whole set. **Phase 3 is justified after all**, and by a cleaner
+> argument than it started with.
+>
+> **What survives from `D51` and `D52`:** Q18 and Q19 really do over-fire once the answer is
+> present, and no wording fixes them. That is a real generation defect — it is just two questions
+> rather than eight.
+>
+> **The operational conclusion is narrow and firm: ship D, keep k=5.** D at k=5 is the only
+> configuration measured with no prompt errors. Raising k trades four honest refusals for two
+> over-fires and one fabrication, which is a strictly worse system.
+> **Asked as** — *"Why is your top-k 5 and not 10?"* — where the answer is that 10 was measured
+> and made it worse, with the failure mode named.
 
 
 ---
