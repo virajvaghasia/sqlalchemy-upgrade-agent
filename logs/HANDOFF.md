@@ -1305,7 +1305,72 @@ the only one that can answer the question.
 ### REPLY 10.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17. phase-1/completion @ 64480e4
+# 152 generations. FAILURES.md not written.
+
+########## k=5 ##########
+top-k = 5
+  symbol    A=ans B=ans C=ans D=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans D=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans D=ref  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans D=ref  engine.has_table() no longer exists, what is t
+  symbol    A=ref B=ref C=ans D=ref  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans D=ref  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans D=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans D=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans D=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans D=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans D=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans D=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans D=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans D=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans D=ref  what is the exact signature and full argument
+  absent    A=ans B=ans C=ans D=ref  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans D=ref  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans D=ref  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans D=ref  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+D               9        10   answer partially, refuse only on subject
+
+########## k=10 ##########
+top-k = 10
+  symbol    A=ans B=ans C=ans D=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans D=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans D=ref  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans D=ref  engine.has_table() no longer exists, what is t
+  symbol    A=ans B=ans C=ans D=ans  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans D=ref  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans D=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans D=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans D=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans D=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans D=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans D=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans D=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans D=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans D=ref  what is the exact signature and full argument
+  absent    A=ref B=ref C=ans D=ref  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans D=ref  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans D=ref  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans D=ref  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+D               8        11   answer partially, refuse only on subject
+
+# Totals: A 8→8, B 8→8, C 0→0, D 9→8.
+# Q18 and Q19 (the ones that enter the prompt at k=10): A, B, D refused at BOTH k.
+#   No prompt answered them at k=10 having refused at k=5.
+# Q3 table_names (control, rank 23): A/B/D refused at both k. Held.
+# Q5 keys() (control, rank 12, should stay refused at k=10): A/B/D refused at k=5
+#   and ANSWERED at k=10. C answered both. Per the ASK, that is fabricating.
+# Q16: A/B answered at k=5, refused at k=10. D refused both.
 ```
 
 ## How to read it — compare each prompt against ITSELF across the two k values
