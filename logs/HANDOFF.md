@@ -1077,7 +1077,8 @@ it.**
 
 ```bash
 cd ~/Documents/Workspace/SqlUpgradeAgent
-git fetch origin && git checkout main && git pull
+git fetch origin
+git checkout phase-1/completion && git pull    # NOT main — see the note below
 grep -c 'def sweep_all' rag/compare_prompts.py      # must be 1
 
 docker compose up -d qdrant && ollama list | head -3
@@ -1085,13 +1086,58 @@ docker compose up -d qdrant && ollama list | head -3
 uv run python -m rag.compare_prompts --all 2>&1 | tail -30
 ```
 
+> **Which branch, and why it changed.** Everything for the rest of Phase 1 lands on
+> **`phase-1/completion`**, not `main`. It is pushed and pulled directly, and merges to `main`
+> **once**, when Phase 1 is complete. A PR per change was costing more ceremony than the changes
+> were worth.
+> **So `main` will go stale during Phase 1, deliberately.** Check out `phase-1/completion` on
+> this box and stay on it. This is not the `lab/handoff` mistake repeating: that branch was
+> *abandoned* and predated the `rag/` package, whereas this one is the only place work is
+> happening and is current by definition.
+
 **57 generations.** Counts only — no answers printed, because 57 answers is not readable and the
 question is a rate. `--all` never writes `FAILURES.md`.
 
 ### REPLY 8.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17. phase-1/completion @ 915cf0d
+# grep -c 'def sweep_all' rag/compare_prompts.py → 1
+# Qdrant healthy. qwen2.5-coder:7b. --all does not write FAILURES.md (confirmed).
+
+uv run python -m rag.compare_prompts --all
+  symbol    A=ans B=ans C=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans  engine.has_table() no longer exists, what is t
+  symbol    A=ref B=ref C=ans  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans  what is the exact signature and full argument
+  absent    A=ans B=ans C=ans  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+
+A refusal is CORRECT for the 3 `absent` questions and a failure elsewhere,
+so the floor is 3 — a variant refusing 3 is not under-refusing, it is right.
+
+# A and B identical: 8 refused. C refused 0.
+# First-row outcome in the ASK table: the clause is the story, the model can answer.
+# C also answered all 3 absent questions (0 refusals, below the floor of 3).
+# Do not ship C — that is the ASK's own warning, not a finding from this box.
 ```
 
 ## How to read it, and the floor that matters
@@ -1112,3 +1158,325 @@ that it is the least likely: prompt C already answered everything in `D43`, thir
 **If C refuses far fewer than B, do not conclude "ship C".** C is the variant that invented a
 full `Session.execute` signature 13 times out of 13. **The goal is a wording that refuses the 3
 `absent` questions and nothing else** — this round measures the gap, it does not pick the winner.
+
+---
+
+# Round 9 — a fourth wording, and the first one that is a different mechanism
+
+**Round 8 settled that the search space was one point, not two.** A and B refused the **same 8
+questions, identically** (`09-DECISIONS.md` **D52**). `D43` chose between two options that behave
+the same. C refuses 0 and fabricates on all three `absent` questions.
+
+**Scored against this repo's own 19 verdicts, B is wrong in 5 places:**
+
+```
+correct refusals  Q4 has_table, Q6 relation, Q15, Q17   corpus genuinely has nothing
+over-fires        Q3 table_names, Q5 keys(), Q18, Q19   the answer is present
+under-fire        Q16                                    an `absent` question it answered
+```
+
+**So the floor is 5, not the 3 Round 8 assumed** — Q4 and Q6 are ceilings too. A correct prompt
+refuses 5 of these 19.
+
+**Why D is not a tuned B.** A and B both ask the model to judge **sufficiency** — *"do these
+sources contain the answer?"* — a binary gate it applies strictly the moment a question names a
+specific symbol. Softening the adverbs would produce a third point on the same line. **D removes
+the judgement instead:**
+
+- **Partial answers become the expected output** — *"answer with whatever the sources do support,
+  even partially, and state plainly which part they do not cover."*
+- **Refusal narrows to subject, not sufficiency** — only when *no source is about the subject at
+  all*.
+- **A refusal must name what was looked for and not found.** Naming forces a check rather than a
+  pattern match, and it makes a wrong refusal visible in the output instead of silent.
+
+Everything else is byte-identical across all four, so the comparison stays controlled — a test
+pins that.
+
+## ASK 9.1 — all four wordings, all 19 questions
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-1/completion && git pull
+uv run python -c "from rag import compare_prompts as c; print(sorted(c.REFUSAL_CLAUSES))"   # A B C D
+
+docker compose up -d qdrant && ollama list | head -3
+uv run python -m rag.compare_prompts --all 2>&1 | tail -32
+```
+
+**76 generations** — four wordings now, not three.
+
+### REPLY 9.1
+
+```
+# lab PC, 2026-08-17. phase-1/completion @ e9d3e88
+# sorted(REFUSAL_CLAUSES) → ['A', 'B', 'C', 'D']
+# Qdrant healthy. qwen2.5-coder:7b. FAILURES.md not written.
+
+uv run python -m rag.compare_prompts --all
+  symbol    A=ans B=ans C=ans D=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans D=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans D=ref  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans D=ref  engine.has_table() no longer exists, what is t
+  symbol    A=ref B=ref C=ans D=ref  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans D=ref  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans D=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans D=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans D=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans D=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans D=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans D=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans D=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans D=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans D=ref  what is the exact signature and full argument
+  absent    A=ans B=ans C=ans D=ref  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans D=ref  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans D=ref  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans D=ref  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+D               9        10   answer partially, refuse only on subject
+
+# D refused 9. Target is Q4, Q6, Q15, Q16, Q17 (five).
+# D's nine: Q3 table_names, Q4 has_table, Q5 keys(), Q6 relation,
+#           Q15 Session.execute, Q16 relationship(), Q17 2.1,
+#           Q18 cascade_backrefs, Q19 backref.
+# Right five: all present. Extra four: Q3, Q5, Q18, Q19 — the same over-fires as B.
+# D also refused Q16, which A and B answered (B's under-fire).
+# Not row 1 (count is 9 not 5). Not row 3 (D is not identical to A/B). Not C.
+```
+
+## How to read it
+
+**Target: 5 refusals, and the RIGHT five** — Q4, Q6, Q15, Q16, Q17. The count alone is not
+enough; a prompt refusing five of the wrong five is no better than B.
+
+| result | means |
+|---|---|
+| **D refuses ~5 and they are the right ones** | the mechanism was the problem — ship D, update `D43`/`D52` |
+| **D refuses ~5 but the wrong ones** | the count is a coincidence; look at *which* before believing it |
+| **D ≈ 8 like A and B** | three wordings now behave identically, and the instruction is not the lever — **then the model is finally in scope** |
+| **D ≈ 0 like C** | D collapsed into C; the narrowed refusal was too narrow |
+
+**The third row is the one that would change the project's direction**, and it is why this is
+worth running before anything else. Three genuinely different wordings all landing on 8 would
+mean the refusals are not coming from the instruction at all.
+
+**Paste the per-question lines, not just the totals.** Which five is the whole question.
+
+---
+
+# Round 10 — the run that separates the prompt from retrieval
+
+**Round 9's result, and the confound in it.** D refused the **right five** plus the same four A
+and B refuse. It is wrong in **4** where B is wrong in **5** — it fixed the under-fire, Q16, the
+only `absent` question that had been getting a confident answer.
+
+**But Rounds 8 and 9 both ran at `DEFAULT_K = 5`, and the four D did not fix have their answers at
+ranks 23, 12, 8 and 6 — all outside the top-5.** In those runs the model was refusing questions
+whose answers **were not in its prompt**. That is correct behaviour, not an over-fire, and no
+wording could have fixed it.
+
+**Round 7 already showed the other half**: at k=10, the `backref` chunk *is* in the prompt and the
+model refuses anyway. So Q18 and Q19 are genuine over-fires at k=10 and correct refusals at k=5,
+and no round so far has tested a wording under the condition that makes the difference visible
+(`09-DECISIONS.md` **D53**).
+
+**This round is that test.** `--all` now takes `--k`.
+
+## ASK 10.1 — all four wordings at k=5 and k=10
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-1/completion && git pull
+
+for k in 5 10; do
+  echo "########## k=$k ##########"
+  uv run python -m rag.compare_prompts --all --k $k 2>&1 | tail -30
+done
+```
+
+**152 generations** — four wordings, 19 questions, two values of k. The longest round yet, and
+the only one that can answer the question.
+
+### REPLY 10.1
+
+```
+# lab PC, 2026-08-17. phase-1/completion @ 64480e4
+# 152 generations. FAILURES.md not written.
+
+########## k=5 ##########
+top-k = 5
+  symbol    A=ans B=ans C=ans D=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans D=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans D=ref  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans D=ref  engine.has_table() no longer exists, what is t
+  symbol    A=ref B=ref C=ans D=ref  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans D=ref  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans D=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans D=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans D=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans D=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans D=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans D=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans D=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans D=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans D=ref  what is the exact signature and full argument
+  absent    A=ans B=ans C=ans D=ref  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans D=ref  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans D=ref  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans D=ref  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+D               9        10   answer partially, refuse only on subject
+
+########## k=10 ##########
+top-k = 10
+  symbol    A=ans B=ans C=ans D=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans D=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans D=ref  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans D=ref  engine.has_table() no longer exists, what is t
+  symbol    A=ans B=ans C=ans D=ans  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans D=ref  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans D=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans D=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans D=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans D=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans D=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans D=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans D=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans D=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans D=ref  what is the exact signature and full argument
+  absent    A=ref B=ref C=ans D=ref  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans D=ref  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans D=ref  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans D=ref  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+D               8        11   answer partially, refuse only on subject
+
+# Totals: A 8→8, B 8→8, C 0→0, D 9→8.
+# Q18 and Q19 (the ones that enter the prompt at k=10): A, B, D refused at BOTH k.
+#   No prompt answered them at k=10 having refused at k=5.
+# Q3 table_names (control, rank 23): A/B/D refused at both k. Held.
+# Q5 keys() (control, rank 12, should stay refused at k=10): A/B/D refused at k=5
+#   and ANSWERED at k=10. C answered both. Per the ASK, that is fabricating.
+# Q16: A/B answered at k=5, refused at k=10. D refused both.
+```
+
+## How to read it — compare each prompt against ITSELF across the two k values
+
+The comparison that matters is **not** between prompts. It is each prompt at k=5 versus k=10.
+
+| what happens to a prompt's refusals as k goes 5 → 10 | means |
+|---|---|
+| **drops toward 5** | the refusals were honest — the answer had not been retrieved. **Retrieval is the problem, Phase 3 is the fix, and the prompt is fine.** |
+| **stays flat** | the answer arrived and it refused anyway. **The instruction is the problem for that prompt.** |
+| **D drops and B stays flat** | D is the fix and it is measurable — ship D, and `D43`/`D52`/`D53` all resolve |
+
+**Q18 and Q19 are the two to watch**, because ranks 8 and 6 mean they enter the prompt at k=10
+and not at k=5. **If any prompt answers them at k=10 having refused at k=5, that prompt is
+working and the earlier rounds were measuring retrieval all along.**
+
+Q3 (rank 23) and Q5 (rank 12) stay outside the prompt even at k=10 — **they should still be
+refused, by every wording, and a prompt that answers them is fabricating.** They are the control.
+
+**Paste both blocks in full.** The per-question lines are the finding; the totals hide it.
+
+
+---
+
+# Round 11 — run it to a conclusion, not to another round
+
+**Why this one is different.** Rounds 8–10 each ran **one pass per configuration**, and D's whole
+advantage over B is **one question, observed once**. That is the `n=1` standard `D43` shipped on
+and `D52` had to correct — so `D54` is marked **provisional** until this round.
+
+**`--repeat N` aggregates internally**, so this settles the question in one sitting instead of
+five exchanges through this file. It prints per-question refusal counts and stars any cell that
+was **not unanimous** across runs — an unstable cell is the finding, because a prompt whose
+behaviour flips between identical runs is not a prompt you can reason about.
+
+## ASK 11.1
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-1/completion && git pull
+
+uv run python -m rag.compare_prompts --all --repeat 5 2>&1 | tail -35
+```
+
+**380 generations** (4 wordings × 19 questions × 5 runs) at `k=5`. Long, and it ends the argument
+rather than extending it. **Do not stop early** — a partial run is another `n=1`.
+
+### REPLY 11.1
+
+```
+# lab PC, 2026-08-17. phase-1/completion @ 0cd03ab
+# 380 generations, did not stop early. k=5, repeat=5. FAILURES.md not written.
+
+top-k = 5
+repeat = 5
+  run 1/5 done
+  run 2/5 done
+  run 3/5 done
+  run 4/5 done
+  run 5/5 done
+
+per-question refusals out of 5 runs (A B C D — * = not unanimous)
+   1 symbol    A=0 B=0 C=0 D=0   what replaces Query.from_self() in SQLAlch
+   2 symbol    A=0 B=0 C=0 D=0   Query.join with aliased=True stopped worki
+   3 symbol    A=5 B=5 C=0 D=5   engine.table_names() is gone — what replac
+   4 symbol    A=5 B=5 C=0 D=5   engine.has_table() no longer exists, what
+   5 symbol    A=5 B=5 C=0 D=5   row.keys() raises in 2.0, how do I get the
+   6 symbol    A=5 B=5 C=0 D=5   orm.relation() is not available any more,
+   7 skew      A=0 B=0 C=0 D=0   should I pass future=True to create_engine
+   8 skew      A=0 B=0 C=0 D=0   is Session.autocommit still supported?
+   9 skew      A=0 B=0 C=0 D=0   can I still use session.begin() with subtr
+  10 skew      A=0 B=0 C=0 D=0   does MetaData still accept a bind argument
+  11 spanning  A=0 B=0 C=0 D=0   how do I migrate select([col1, col2]) to t
+  12 spanning  A=0 B=0 C=0 D=0   what is the full set of steps to migrate a
+  13 spanning  A=0 B=0 C=0 D=0   how do I get scalar values instead of Row
+  14 spanning  A=0 B=0 C=0 D=0   why do I need .unique() when using joinedl
+  15 absent    A=5 B=5 C=0 D=5   what is the exact signature and full argum
+  16 absent    A=0 B=0 C=0 D=5   list every keyword argument accepted by re
+  17 absent    A=5 B=5 C=0 D=5   what does the SQLAlchemy 2.1 release chang
+  18 silent    A=5 B=5 C=0 D=5   if I write comment.issue = issue instead o
+  19 silent    A=5 B=5 C=0 D=5   why would an object assigned to a many-to-
+
+prompt    refused  answered   of 19
+A             8.0      11.0   strict canned refusal
+B             8.0      11.0   refusal as last resort (was shipped to 2026-08-17)
+C             0.0      19.0   no refusal clause
+D             9.0      10.0   answer partially, refuse only on subject (SHIPPED)
+
+# Zero starred rows. Every cell is 0/5 or 5/5.
+# Q16 is D=5 B=0 on all five runs — not a coin-flip.
+# A and B identical at 8.0. D is 9.0, the extra one is Q16 only.
+```
+
+## How to read it
+
+**Look at the starred rows first.** Any question where a prompt refused on some runs and not
+others is non-deterministic, and no conclusion drawn from a single pass on that question was ever
+valid — including conclusions in `D52`, `D53` and `D54`.
+
+| result | means |
+|---|---|
+| **no stars, D=5 and B=8** | the margin is real and reproducible — `D54` drops "provisional" |
+| **no stars, D and B identical** | D bought nothing; A, B and D are all one option, and `D52` extends to three |
+| **Q16 starred** | the single question D's advantage rests on is a coin-flip — **revert to B**, since D would then be churn |
+| **many stars** | prompt comparison at this scale is noise-dominated, and every prompt conclusion today needs re-deriving with `--repeat` |
+
+**The last row is the one to hope against and the most useful if true.** It would mean the method
+was wrong, not just the answer — and it would be better to learn that now than after Phase 3 is
+built on it.

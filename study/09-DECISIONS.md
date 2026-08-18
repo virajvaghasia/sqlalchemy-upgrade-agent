@@ -924,6 +924,14 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > next person does not have to take either table on trust.
 > **Asked as** — *"Has anything in your decision log turned out to be wrong?"* — and this is the
 > entry to answer it with.
+>
+> ⚠️ **Superseded in part by `D52`, 2026-08-17.** Round 8 ran all three wordings over all 19
+> probe questions. **A and B refused the same 8 questions, identically.** This entry chose B over
+> A on a single differing outcome that never reproduced — so it chose between two options that
+> behave the same. *"The clause is necessary"* holds and is now confirmed across 19 questions
+> (C refused 0, answering even the three the corpus provably cannot answer). *"B threads it"*
+> does not: B is wrong on 5 of 19. **Read this entry as the record of how the prompt was picked,
+> not as evidence that it is right.**
 
 ### D44 — A wrong prompt is a bug, not "naive baseline"
 
@@ -1086,6 +1094,177 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How did you decide what to build next?"* — where the answer is that the thing
 > queued for three months was aimed at a failure mode that measurement reassigned to a different
 > component, and the measurement cost one sitting.
+>
+> ⚠️ **Largely WRONG, corrected by `D54` on 2026-08-17.** This entry concluded the refusals were
+> not retrieval failures. **At k=5 — what ships — they are.** Four of the five have answers
+> outside the top-5, so the model refused questions whose answers were never in front of it.
+> This entry generalised from the single case where the chunk *was* present (`backref` at k=10)
+> to the whole set. **Phase 3 is justified after all.** What survives: Q18 and Q19 do over-fire
+> once the answer is present, and no wording fixes them — two questions, not eight.
+
+
+### D52 — A and B are indistinguishable, so D43 chose between two identical things
+
+> **Measured 2026-08-17, Round 8** — all three wordings against all 19 probe questions, 57
+> generations on the lab PC.
+>
+> ```
+> prompt    refused  answered   of 19
+> A               8        11    strict canned refusal
+> B               8        11    refusal as last resort (SHIPPED)
+> C               0        19    no refusal clause
+> ```
+>
+> **A and B refused the same 8 questions — identical, question by question.** `D43` chose B over
+> A because A refused one answerable question and B did not. Over 19 questions there is **no
+> behavioural difference between them at all.** The wording change B introduced does not change
+> what the model does; it changed one outcome once, and that did not reproduce (`D43`'s 1-in-13).
+> **So the shipped prompt was chosen between two options that are the same option.** B is not
+> wrong — it is simply not better, and the entry that picked it claimed a distinction the
+> evidence does not support.
+>
+> **Scored against this repo's own 19 verdicts, B's 8 refusals split 4 and 4:**
+>
+> | | questions | |
+> |---|---|---|
+> | **correct refusals** | Q4 `has_table`, Q6 `relation`, Q15, Q17 | corpus genuinely has nothing |
+> | **over-fires** | Q3 `table_names`, Q5 `keys()`, Q18, Q19 | the answer is in the corpus |
+> | **under-fire** | Q16 | an `absent` question it answered instead |
+>
+> **So the real floor is 5, not 3.** Round 8's ASK said three — the `absent` category — but Q4
+> and Q6 are ceilings too, established independently in `D51` and the verdicts. **A correct
+> prompt refuses 5 of these 19. B refuses 8 and misses one, so it is wrong in 5 places.**
+>
+> **C is not the answer**, and Round 8 makes that concrete rather than theoretical: C refused
+> **0**, which means it answered all three `absent` questions — the ones where the corpus provably
+> has nothing. That is `D43`'s fabrication, now confirmed across 19 questions instead of one.
+>
+> **What this leaves.** The refusal clause is necessary (C), the two wordings tried are
+> equivalent (A = B), and the shipped one is wrong on 5 of 19. **No wording tested so far is
+> good**, and the search space was two points that turned out to be one. That is the finding —
+> not "B needs tuning", but "B was never compared against anything different".
+> **What it does not license:** changing the model. C proves this model answers all 19 when
+> permitted to. The failure is entirely in the instruction.
+> **Asked as** — *"How do you know your prompt is right?"* — where the honest answer is that it
+> is not, that the experiment which chose it compared two identical things, and that it took
+> running the full question set to see it.
+
+
+### D53 — D beats B by exactly one question, and the rest was never the prompt's fault
+
+> **Measured 2026-08-17, Round 9** — four wordings, 19 questions, 76 generations.
+>
+> ```
+> prompt    refused  answered   of 19
+> A               8        11
+> B               8        11    <- shipped
+> C               0        19
+> D               9        10    <- answer partially, refuse only on subject
+> ```
+>
+> **D refused the right five and nothing new.** Its nine are the target five — Q4, Q6, Q15, Q16,
+> Q17 — plus the same four A and B refuse. Scored against this repo's verdicts:
+>
+> | | wrong in |
+> |---|---|
+> | B | **5** — 4 over-fires and 1 under-fire (Q16, an `absent` question it answered) |
+> | D | **4** — the same 4, and it **fixed the under-fire** |
+>
+> **So the mechanism change bought exactly one question**, and the one it bought is real: Q16 is
+> the only `absent` question that had been getting a confident answer. Requiring a refusal to
+> *name what was looked for* is what caught it.
+>
+> **The four it did not fix are invariant across every wording tried** — A, B and D all refuse
+> Q3, Q5, Q18, Q19. Three different instructions, identical behaviour on those four.
+>
+> **And there is a confound in Rounds 8 and 9 that has to be stated before anyone concludes from
+> that.** Both ran at `DEFAULT_K = 5`. The answers to those four sit at ranks **23, 12, 8 and 6**
+> — **all outside the top-5.** So in these runs the model was refusing questions whose answers
+> were **not in its prompt**, which is the correct behaviour, not an over-fire. On this evidence
+> alone the prompt is doing the right thing and retrieval is the problem.
+>
+> **That contradicts `D51`, and the contradiction is only apparent.** Round 7 ran at k=10, where
+> Q18 and Q19's chunks *are* present, and confirmed by `--retrieval-only` that the `backref`
+> chunk was in the prompt while the model refused anyway. **So those two are genuine over-fires
+> at k=10 and correct refusals at k=5**, and Rounds 8–9 could not have distinguished them.
+> **What this means practically:** no wording has yet been tested under the condition that makes
+> the over-fire visible. The decisive run is **D at k=10**, not another wording.
+> **Ship D regardless.** It is strictly better than B — same behaviour everywhere except Q16,
+> where it is right and B is wrong — and nothing measured argues for keeping B.
+> **Asked as** — *"How do you know the prompt is the problem and not retrieval?"* — where the
+> honest answer today is that at k=5 it is retrieval, at k=10 it is partly the prompt, and the
+> experiment that separates them has not been run yet.
+
+
+### D54 — At k=5 every refusal is honest; raising k buys two over-fires and a fabrication
+
+> **Measured 2026-08-17, Round 10** — four wordings × 19 questions × two values of k, 152
+> generations, plus a check of what Qdrant actually returns.
+>
+> **First, the controls held, and one of them changed the reading.** Brute-force ranks are not
+> what the system sees — Qdrant is approximate (`D31`). Asked directly:
+>
+> ```
+> Q 5 keys()             in Qdrant top-10 at: NONE
+> Q18 cascade_backrefs   in Qdrant top-10 at: [8]
+> Q19 backref            in Qdrant top-10 at: [6, 7, 8]
+> Q 3 table_names        in Qdrant top-10 at: NONE
+> ```
+>
+> **The finding: at k=5, every one of D's nine refusals is correct.** Q4, Q6, Q15, Q16, Q17 are
+> ceilings or `absent`. Q3, Q5, Q18, Q19 have their answers **outside the top-5**, so the model
+> refused questions whose answers were not in front of it. **That is honest behaviour, not
+> over-firing. D at k=5 makes zero prompt errors.**
+>
+> **Raising k to 10 makes things worse in two distinct ways:**
+>
+> - **Q18 and Q19 become genuine over-fires.** Their chunks are now in the prompt — Q19 has
+>   **three** of them, at positions 6, 7 and 8 — and A, B and D all refuse anyway. **Three
+>   genuinely different wordings, answer demonstrably present, identical refusal.** For these two
+>   the instruction is not the lever.
+> - **Q5 becomes a fabrication.** `keys()` is in **no** chunk of the top-10, and A, B and D all
+>   answered it at k=10 having correctly refused at k=5. **Raising k did not surface an answer; it
+>   supplied five more near-miss chunks and the model talked itself into one.**
+>
+> **So `D51` was wrong and this entry corrects it.** `D51` concluded from Round 7 that "these
+> failures are largely not retrieval failures at all — the sources arrive and generation
+> declines". At k=5, which is what ships, **the sources do not arrive**: four of the five have
+> answers outside the top-5. `D51` generalised from the one case where the chunk *was* present
+> (`backref` at k=10) to the whole set. **Phase 3 is justified after all**, and by a cleaner
+> argument than it started with.
+>
+> **What survives from `D51` and `D52`:** Q18 and Q19 really do over-fire once the answer is
+> present, and no wording fixes them. That is a real generation defect — it is just two questions
+> rather than eight.
+>
+> **The operational conclusion is narrow and firm: ship D, keep k=5.** D at k=5 is the only
+> configuration measured with no prompt errors. Raising k trades four honest refusals for two
+> over-fires and one fabrication, which is a strictly worse system.
+> **Asked as** — *"Why is your top-k 5 and not 10?"* — where the answer is that 10 was measured
+> and made it worse, with the failure mode named.
+>
+> ✅ **CONFIRMED 2026-08-17, Round 11 — `n=5`, and the result is unusually clean.** 380
+> generations, four wordings × 19 questions × 5 runs at k=5.
+>
+> ```
+> A 8.0    B 8.0    C 0.0    D 9.0     zero non-unanimous cells
+> ```
+>
+> **Every cell was 0 or 5.** Not one question flipped between identical runs, for any wording.
+> D's advantage is Q16 and it is **5/5 against B's 0/5** — the margin reproduces exactly.
+> `D54` is no longer provisional: **ship D, keep k=5.**
+>
+> **And the zero-stars result is worth more than the margin it confirmed.** Refusal behaviour
+> here is **deterministic** — same question, same sources, same wording, same decision, every
+> time. Which means the `n=1` runs in Rounds 8–10 produced *correct* answers.
+> **They were still the wrong method.** Nothing known before this round said the process was
+> deterministic; `D43` had measured generation as nondeterministic in its own text, and the two
+> Mac re-runs there differed from the original. Being right by luck and being right by evidence
+> read identically until someone checked. **That is the finding to carry: the repeat run did not
+> change a conclusion, it changed how much weight the conclusions can bear.**
+> **Practical consequence:** prompt comparisons on this question set can be run once, provided
+> the determinism is re-checked whenever the model, temperature or sources change — any of which
+> could reintroduce variance without warning.
 
 
 ---

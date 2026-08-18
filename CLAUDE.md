@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D51`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D54`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 127 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 129 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -282,13 +282,38 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-17, evening):** Phase 1 is **BUILT, and one gate from COMPLETE**. `main` is
-clean, **125 tests**, **52/52** `# runnable` blocks reproduce, **49** decision entries.
+**State (2026-08-17, end of day):** Phase 1 is **BUILT, two gates from COMPLETE**.
+**Work is on branch `phase-1/completion`, not `main`** — `main` is deliberately stale and gets
+one PR when the phase closes. **129 tests**, **52/52** `# runnable` blocks, **54** decision
+entries, **§H empty**, 19 verdicts in sync (`tools.apply_verdicts --check`).
 
-**Closed today:** the 19 answer verdicts (`CORRECT 10 · PARTIAL 3 · WRONG 6`), recorded in
-`deliverables/verdicts.json` — the source of truth, which `FAILURES.md` renders from so a
-regeneration cannot destroy them. `tools/review_sheet.py` builds a readable sheet
-(`--full` for everything: 95 sources with complete passages, plus whole `BREAKAGES` entries).
+**The teaching files are three:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
+(generation), `12-EVALUATION.md` §R4 (evaluation). One `R` run across all three — it stands for
+RAG, not Retrieval (`D47`).
+
+**What today settled, in the order it matters:**
+
+| | |
+|---|---|
+| **19 verdicts closed** | `CORRECT 10 · PARTIAL 3 · WRONG 6`, in `deliverables/verdicts.json` so a regeneration cannot destroy them |
+| **Prompt D shipped** (`D54`) | confirmed at `n=5`, zero non-unanimous cells; beats B on Q16, 5/5 vs 0/5 |
+| **`DEFAULT_K` stays 5** | k=10 was measured and is worse — two over-fires and one fabrication |
+| **`D31` settled** | pgvector beat Qdrant on every number; Qdrant stays because migrating buys 2 ms |
+| **`D48`/`D49`** | 3060 embeds 2.8x faster at **batch 8**; bigger batches are slower on CUDA too |
+| **`D50`** | fixes verified twice — they run, and the docs recommend them (12 of 13) |
+
+**Two findings to read before doing anything else:**
+
+- **Refusal behaviour is deterministic** (`D54`, Round 11): every cell 0 or 5 across 5 runs. So
+  Rounds 8-10's `n=1` runs were *right* — and still the wrong method, because nothing before
+  Round 11 said so and `D43` had measured the opposite. **Re-check determinism whenever the
+  model, temperature or sources change.**
+- **`D51` is corrected in place by `D54`.** At `k=5` the failures ARE retrieval failures — four
+  of five have answers outside the top-5. `D51` generalised from the one case where the chunk was
+  present. **Phase 3 is justified**, by a cleaner argument than it started with.
+
+**The open defect no wording fixes:** Q18 and Q19. At k=10 their chunks are in the prompt — Q19
+has **three**, at positions 6, 7, 8 — and all four wordings refuse. Two questions, real, unsolved.
 
 **Two gates remain and both are a human's:**
 
@@ -323,16 +348,59 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    after retrieval and generation, numbering continued per `D47`. Its §R4.3 is the one to reread:
    the rank of the first containing chunk split what was filed as one Phase 3 fix into **four**
    different problems, one of which is a constant being wrong.
-3. **The next experiment is a PROMPT experiment, not a retrieval one — `D51`.** Round 7 came back
+3. ✅ **Settled 2026-08-17 — Round 11, `n=5`, zero non-unanimous cells.** D's margin over B is
+   Q16 at **5/5 vs 0/5**; `D54` is confirmed and no longer provisional. **Ship D, keep k=5.**
+   The bigger finding: refusal behaviour is **deterministic** here — every cell 0 or 5 — so
+   Rounds 8–10's `n=1` runs were *right*, and still the wrong method, because nothing before
+   this round said the process was deterministic and `D43` had measured the opposite. Re-check
+   determinism whenever model, temperature or sources change.
+4. **Ship prompt D, keep `DEFAULT_K = 5` — `D54`.** Round 10 (152
+   generations, both k values) found that **at k=5 every one of D's nine refusals is correct**:
+   four have answers outside the top-5, five are ceilings or `absent`. **D at k=5 is the only
+   configuration measured with zero prompt errors.** Raising k to 10 trades four honest refusals
+   for **two over-fires** (Q18/Q19 — chunks present, Q19 has three, all wordings refuse) and
+   **one fabrication** (Q5 — `keys()` in no top-10 chunk, and A/B/D all answered it).
+5. **Phase 3 is justified after all**, and `D51` is corrected in place: at k=5 the sources
+   genuinely do not arrive. The residue is Q18/Q19 — a real generation defect no wording fixes,
+   but **two questions rather than eight**.
+6. ~~Round 10~~ — **done 2026-08-17.** All four wordings
+   at **k=5 and k=10**, 152 generations. Rounds 8–9 both ran at k=5, where the four unfixed
+   refusals have answers at ranks 23/12/8/6 — **outside the prompt**, so refusing them was
+   correct, not an over-fire. Round 7 showed the opposite at k=10 for `backref`. **Compare each
+   prompt against itself across the two k values:** refusals dropping means retrieval was the
+   problem; staying flat means the instruction is. Q18/Q19 are the watch, Q3/Q5 the control.
+7. ~~Ship prompt D regardless of Round 10~~ — it is strictly better than B, wrong in 4 places
+   against B's 5, and the one it fixed (Q16) is the only `absent` question that had been getting
+   a confident answer.
+8. ~~Round 9: prompt D~~ — **done 2026-08-17.** A and B both
+   ask the model to judge *sufficiency*; D makes partial answers the expected output, narrows
+   refusal to *subject* rather than sufficiency, and requires a refusal to name what was looked
+   for. **Target: 5 refusals, and the right five** (Q4, Q6, Q15, Q16, Q17) — the count alone
+   proves nothing. **If D also lands on 8, the instruction is not the lever and the model finally
+   enters scope.**
+9. ~~Write a fourth prompt — `D52`~~ — **written 2026-08-17**, pinned by a test that it differs
+   from B in kind rather than degree. Round 8 settled it: A and B refuse the **same 8 questions,
+   identically**, so `D43` chose between two options that are the same option. C refuses 0 and
+   fabricates. **The correct floor is 5** (3 `absent` + `has_table` + `relation`, both ceilings);
+   B refuses 8 and misses one, so it is wrong in **5 of 19**. No wording tested is good, and the
+   search space so far was two points that turned out to be one. **Not tuning — a genuinely
+   different fourth wording**, then `compare_prompts --all` again. Do not change the model: C
+   proves it answers all 19 when permitted to.
+10. ~~The next experiment is a PROMPT experiment — `D51`~~ — **done, that was Round 8.** Round 7 came back
    2026-08-17: sweeping `k` moved retrieval and left `refused` at **8 at every value**, and a
    `--retrieval-only` run proved the answer was in the prompt at k=10 while the model still
    declined. **The eight refusals are not the argument for hybrid search.** `D43` measured
    over-firing at 1-in-13 — but on prompt A, on one question; this is prompt **B**, the shipped
    one, refusing 8 of 19 with the answer present. `rag/compare_prompts.py` already exists, so
    testing wordings against the full probe set is cheap.
-4. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
+11. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
    rose, so retrieval is genuinely imperfect), but **its stated justification needs rewriting
    first**. Do not build it on the eight refusals.
+
+**Working branch: `phase-1/completion`.** Everything for the rest of Phase 1 lands there and it
+merges to `main` **once**, when the phase is done — not a PR per change. Push and pull on it
+directly. `main` goes stale during the phase, deliberately. **The lab PC checks out this branch
+too**, so any ASK block in `logs/HANDOFF.md` must name it rather than `main`.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
@@ -606,3 +674,25 @@ Append a dated entry each session; keep each entry to a few bullets.
 - The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
   plain language**, then **Short:** answers.
+
+### 2026-08-17 — verdicts closed, prompt D shipped, §H emptied
+
+- **Phase 1's second gate closed.** 19 verdicts (`10/3/6`) drafted from `BREAKAGES.md` keys and
+  executed against real 2.0.51, accepted by Viraj. `verdicts.json` is the record; `probe.py`
+  renders from it, because it used to hardcode `UNVERIFIED` and a regeneration would have
+  destroyed all 19 silently.
+- **Eleven lab rounds in one day**, 5 through 11. The arc is worth knowing because each round
+  corrected the last: raising `k` doesn't reduce refusals (`D51`) → but Rounds 8–9 ran at k=5
+  where the answers weren't retrieved, so `D51` was wrong and `D54` corrects it in place →
+  prompt D ships → and Round 11 confirms it at `n=5` with **zero** non-unanimous cells.
+- **Two bugs of mine, both found by measuring rather than reading.** The review sheet truncated
+  3 of 19 answers at a nested code fence (Q13 showed 295 of 965 chars). `probe.py` matched
+  symbols by substring, so `relation` counted inside every `relationship` — 798 recorded, 21
+  true, 0 documenting `orm.relation()` — which flipped Q6's verdict and had silenced
+  `symbol_missing` on exactly the question it existed for.
+- **Workflow changed twice at Viraj's instruction**, both recorded as memory: branch before
+  working (never commit to local `main`), and **one long-lived branch per phase** rather than a
+  PR per change. `phase-1/completion` is that branch.
+- **What I got wrong and he caught:** shipping prompt D when he was asking whether we *should*,
+  and holding Rounds 8–10 to an `n=1` standard I had spent the day insisting `D43` should have
+  met. Both are recorded in the entries rather than smoothed over.

@@ -98,7 +98,8 @@ ANSWER:
 
 ### R3.2 The standing rule that is also the bug
 
-Here is `SYSTEM` as it ships — read live out of the file (this wording is **B**, not A):
+Here is `SYSTEM` as it ships — read live out of the file. **This is wording D, shipped
+2026-08-17 (`09-DECISIONS.md` D54); it replaced B, which the rest of this section is about:**
 
 ```
 # runnable: uv run python -c "
@@ -110,11 +111,13 @@ Here is `SYSTEM` as it ships — read live out of the file (this wording is **B*
 You answer questions about migrating Python code from SQLAlchemy 1.4 to 2.0.
 You are given numbered sources from the SQLAlchemy documentation. Base your
 answer on those sources and cite the source number in brackets, like [2].
-Prefer answering from what the sources do say, even if they address the
-question indirectly. Only if the sources are genuinely silent on the topic,
-reply: "The sources do not answer this." Each source is labelled with the
-SQLAlchemy version it documents — if versions disagree, say so rather than
-picking one silently.
+Answer with whatever the sources do support, even partially: if they cover
+part of the question, give that part and state plainly which part they do
+not cover. Reply "The sources do not answer this." only when none of the
+sources is about the subject of the question at all, and when you do, name
+the specific thing you looked for and did not find. Each source is labelled
+with the SQLAlchemy version it documents — if versions disagree, say so
+rather than picking one silently.
 ```
 
 Four jobs in that paragraph:
@@ -123,11 +126,20 @@ Four jobs in that paragraph:
 |---|---|---|
 | 1 | Use only these sources | otherwise the model answers from SQLAlchemy-in-its-weights, which blurs 1.4 and 2.0 (§R1.1) |
 | 2 | Cite `[2]` | a claim you can check against source 2 in seconds |
-| 3 | **You may refuse** — but only if the sources are genuinely silent | §R1.4: some questions have **zero** chunks (`has_table`). A model has **no** built-in "I don't know" (§R1.1). If you want a refusal, you must ask for one |
+| 3 | **You may refuse** — but only if no source is about the subject, and you must name what you looked for | §R1.4: some questions have **zero** chunks (`has_table`). A model has **no** built-in "I don't know" (§R1.1). If you want a refusal, you must ask for one |
 | 4 | If versions disagree, say so | the version label is in the prompt; Phase 1 still does not *filter* on it |
 
-**Job 3 is this section.** It is **necessary** (without it the model invents APIs) and the
-*strict* wording of it can **over-fire** (refuse even when the docs are in the prompt). The
+**Job 3 is this section**, and job 3 is the only one that has ever changed. It is **necessary**
+(without it the model invents APIs) and its wording can **over-fire** (refuse even when the docs
+are in the prompt).
+
+> **What the rest of this section describes is B, the wording that shipped until 2026-08-17.**
+> Read it as the history, because the reasoning is the point and the replacement came out of it.
+> D's own measurements are at the end, in R3.6. The short version: A and B refused the **same 8**
+> of 19 questions, so `D43` chose between two identical options; D fixed one of those and, at
+> `DEFAULT_K = 5`, makes **zero** prompt errors.
+
+The
 shipped sentence was found by trying three wordings, not by writing carefully once.
 
 **Refuse** here means the model prints exactly: `The sources do not answer this.`  
