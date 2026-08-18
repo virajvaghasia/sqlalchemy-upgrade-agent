@@ -4,6 +4,8 @@ Re-run D43 — is the refusal clause necessary, and does the strict wording over
     uv run python -m rag.compare_prompts              # all three prompts, both questions
     uv run python -m rag.compare_prompts --prompt C   # just one variant
     uv run python -m rag.compare_prompts --all        # all 19 probe questions, counts only
+    uv run python -m rag.compare_prompts --all --k 10 # the same at a different top-k
+    uv run python -m rag.compare_prompts --all --repeat 5  # n=5 per cell, not n=1
 
 `study/09-DECISIONS.md` **D43** recorded a three-by-two table on 2026-08-15 and
 shipped prompt B off it. It existed only as a table: the experiment was run by
@@ -67,14 +69,27 @@ _TAIL = (
 REFUSAL_CLAUSES = {
     "A": "If the sources do not contain the answer, say exactly: "
          "\"The sources do not answer this.\" ",
-    "B": None,  # sentinel: use ask.SYSTEM unchanged
+    # B was shipped until 2026-08-17; kept literal so the comparison survives
+    # D becoming the default (D54). The sentinel moved to D.
+    "B": "Prefer answering from what the sources do say, even if they address the question "
+         "indirectly. Only if the sources are genuinely silent on the topic, reply: "
+         "\"The sources do not answer this.\" ",
     "C": "",
+    # D is not a tuning of B. A and B both ask the model to judge SUFFICIENCY —
+    # "do these sources contain the answer?" — a binary gate it applies strictly
+    # the moment a question names a specific symbol (D52: both refused the same
+    # 8, including 4 where the answer was present). D removes that judgement:
+    # partial answers become the expected output, and refusal is narrowed to
+    # "no source is about the subject at all" plus an obligation to name what
+    # was looked for. Naming it forces a check rather than a pattern match.
+    "D": None,  # sentinel: use ask.SYSTEM — D is what ships as of 2026-08-17 (D54)
 }
 
 LABELS = {
     "A": "strict canned refusal",
-    "B": "refusal as last resort (SHIPPED)",
+    "B": "refusal as last resort (was shipped to 2026-08-17)",
     "C": "no refusal clause",
+    "D": "answer partially, refuse only on subject (SHIPPED)",
 }
 
 # (kind, question). The unanswerable one is probe.py's `absent` category.
@@ -85,7 +100,7 @@ QUESTIONS = [
 
 
 def system_prompt(variant: str) -> str:
-    """B is the shipped string itself; A and C rebuild it around a different clause."""
+    """The shipped variant IS ask.SYSTEM; the others rebuild it around a different clause."""
     clause = REFUSAL_CLAUSES[variant]
     return ask.SYSTEM if clause is None else _HEAD + clause + _TAIL
 
@@ -126,7 +141,7 @@ def refused(answer: str) -> bool:
     return answer.lower().startswith("the sources do not answer this")
 
 
-def sweep_all(variants: list[str]) -> None:
+def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> None:
     """
     Every probe question against each wording, counting refusals.
 
@@ -138,25 +153,38 @@ def sweep_all(variants: list[str]) -> None:
     Counts only — no answers printed, because 57 answers is not readable and
     the question here is a rate, not a reading.
     """
-    tally = {v: {"refused": 0, "answered": 0} for v in variants}
-    per_q: list[tuple[str, str, dict[str, str]]] = []
-    for question, category, _sym in probe.QUESTIONS:
-        hits = index.retrieve(question, limit=ask.DEFAULT_K)
-        prompt = ask.build_prompt(question, hits)
-        row = {}
-        for v in variants:
-            answer = generate(system_prompt(v), prompt)
-            r = refused(answer)
-            tally[v]["refused" if r else "answered"] += 1
-            row[v] = "refused" if r else "answered"
-        per_q.append((question, category, row))
-        print(f"  {category:9} {' '.join(f'{v}={row[v][:3]}' for v in variants)}  {question[:46]}")
+    # counts[variant][question_index] = how many of `repeat` runs refused.
+    # n=1 per cell is what D43 shipped on and D52 had to correct; --repeat is
+    # the fix, and aggregating here means one sitting settles it rather than
+    # five round-trips through this file.
+    counts = {v: [0] * len(probe.QUESTIONS) for v in variants}
+    for r in range(repeat):
+        for qi, (question, _cat, _sym) in enumerate(probe.QUESTIONS):
+            hits = index.retrieve(question, limit=k)
+            prompt = ask.build_prompt(question, hits)
+            for v in variants:
+                if refused(generate(system_prompt(v), prompt)):
+                    counts[v][qi] += 1
+        print(f"  run {r + 1}/{repeat} done", flush=True)
 
+    print()
+    if repeat > 1:
+        print(f"per-question refusals out of {repeat} runs "
+              f"({' '.join(variants)} — * = not unanimous)")
+        for qi, (question, category, _s) in enumerate(probe.QUESTIONS):
+            cells = " ".join(f"{v}={counts[v][qi]}" for v in variants)
+            unstable = any(0 < counts[v][qi] < repeat for v in variants)
+            print(f"  {qi+1:2d} {category:9} {cells} {'*' if unstable else ' '} {question[:42]}")
+        print()
+
+    tally = {v: {"refused": sum(counts[v]) / repeat,
+                 "answered": len(probe.QUESTIONS) - sum(counts[v]) / repeat} for v in variants}
+    per_q = []
     print()
     print(f"{'prompt':<8} {'refused':>8} {'answered':>9}   of {len(probe.QUESTIONS)}")
     for v in variants:
         t = tally[v]
-        print(f"{v:<8} {t['refused']:>8} {t['answered']:>9}   {LABELS[v]}")
+        print(f"{v:<8} {t['refused']:>8.1f} {t['answered']:>9.1f}   {LABELS[v]}")
     print()
     print("A refusal is CORRECT for the 3 `absent` questions and a failure elsewhere,")
     print("so the floor is 3 — a variant refusing 3 is not under-refusing, it is right.")
@@ -170,13 +198,17 @@ def main() -> None:
     variants = [only] if only else list(REFUSAL_CLAUSES)
 
     if "--all" in argv:
-        sweep_all(variants)
+        kk = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K
+        print(f"top-k = {kk}\n")
+        rp = int(argv[argv.index("--repeat") + 1]) if "--repeat" in argv else 1
+        print(f"repeat = {rp}")
+        sweep_all(variants, k=kk, repeat=rp)
         return
 
     grid: dict[tuple[str, str], bool] = {}
 
     for kind, question in QUESTIONS:
-        hits = index.retrieve(question, limit=ask.DEFAULT_K)
+        hits = index.retrieve(question, limit=k)
         prompt = ask.build_prompt(question, hits)
         print("=" * 78)
         print(f"{kind.strip()}: {question}")

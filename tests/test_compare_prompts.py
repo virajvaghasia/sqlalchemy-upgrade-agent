@@ -11,7 +11,7 @@ comparison quietly measures something else.
 from rag import ask, compare_prompts as cp
 
 
-def test_b_is_the_shipped_prompt_not_a_copy():
+def test_the_shipped_variant_is_ask_system_not_a_copy():
     """
     B must BE ask.SYSTEM — the object identity check — AND ask.SYSTEM must still
     carry the last-resort wording D43 settled on.
@@ -22,10 +22,11 @@ def test_b_is_the_shipped_prompt_not_a_copy():
     is what actually pins production, so editing the shipped clause without
     revisiting D43 breaks a test.
     """
-    assert cp.system_prompt("B") is ask.SYSTEM
-    assert "Prefer answering from what the sources do say" in ask.SYSTEM
-    assert "only if the sources are genuinely silent" in ask.SYSTEM.lower()
-    assert "say exactly" not in ask.SYSTEM, "that is prompt A's wording, not the shipped one"
+    assert cp.system_prompt("D") is ask.SYSTEM, "the sentinel moved to D when D shipped (D54)"
+    assert "even partially" in ask.SYSTEM
+    assert "name the specific thing you looked for" in ask.SYSTEM
+    assert "say exactly" not in ask.SYSTEM, "that is prompt A's wording"
+    assert "genuinely silent" not in ask.SYSTEM, "that is prompt B's, replaced 2026-08-17"
 
 
 def test_variants_differ_only_in_the_refusal_clause():
@@ -95,3 +96,31 @@ def test_sweep_all_covers_every_probe_question():
     assert "probe.QUESTIONS" in src, "the sweep must iterate the full question set"
     assert "[:5]" not in src and "sample" not in src, "no subsetting"
     assert len(probe.QUESTIONS) == 19
+
+
+def test_prompt_d_is_a_different_mechanism_not_a_tuned_b():
+    """
+    D must differ from B in kind, not degree.
+
+    D52: A and B refused the same 8 questions, identically — the search space
+    was two points that turned out to be one. A fourth wording that merely
+    softens B's adverbs would repeat that. So D is pinned on the two things
+    that make it a different mechanism: partial answers are expected output,
+    and a refusal must name what was looked for.
+    """
+    d, b = cp.system_prompt("D"), cp.system_prompt("B")
+    assert d != b
+    assert "even partially" in d, "partial answers must be the expected output"
+    assert "name the specific thing you looked for" in d, "refusal must require naming"
+    assert "genuinely silent" not in d, "that is B's sufficiency test — D must not inherit it"
+    # the shared scaffolding is unchanged, so the comparison stays controlled
+    for shared in ("cite the source number in brackets", "if versions", "1.4 to 2.0"):
+        assert shared in d and shared in b, shared
+
+
+def test_every_variant_shares_the_same_scaffolding():
+    """Only the refusal sentence may vary, or the comparison measures something else."""
+    for v in cp.REFUSAL_CLAUSES:
+        s = cp.system_prompt(v)
+        assert s.startswith("You answer questions about migrating Python code")
+        assert s.endswith("picking one silently.")
