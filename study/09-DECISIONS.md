@@ -996,6 +996,55 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How do you keep documentation navigable as it grows?"* — and the answer is
 > that the naming was chosen so that growth does not invalidate existing references.
 
+### D50 — Every fix is verified twice: that it runs, and that the docs recommend it
+
+> **Checked 2026-08-17.** `deliverables/BREAKAGES.md` marks each fix `fix OK`, which means
+> `verify_2_0.py` **executed it** against real 2.0.51. That answers *"does this work?"* and not
+> *"is this what SQLAlchemy tells you to do?"* — a fix can run perfectly and still be nobody's
+> recommendation.
+> **So the second check:** does the construct each fix reaches for actually appear in SQLAlchemy
+> 2.0.51's own documentation source? Run over `corpus/raw/2.0.51`, the 13 fixes that name a
+> distinctive construct:
+>
+> ```
+> 12 of 13 found            has_table  NOT FOUND (0 files)
+> get_table_names  3        relationship 62      _mapping    26
+> create_all      22        aliased      11      unique()     2
+> select(         50        scalars      28      autobegin    6
+> begin_nested     4        session.add  23
+> ```
+>
+> **The one miss is the one to expect, and it confirms something from a different direction.**
+> `has_table` appears in **zero** `.rst` files at `rel_2_0_51`. The fix is not wrong —
+> `inspect(engine).has_table()` runs, and we ran it. It is documented only in the **generated API
+> reference**, which is not in the `.rst` source (`D07`). That is the same hole that makes
+> `FAILURES.md` question 4 a *ceiling* case rather than a retrieval failure, arrived at here
+> without going near the retrieval system.
+>
+> **What this establishes, and what it does not.** Three claims are easy to run together and only
+> two are checked:
+>
+> | claim | how | status |
+> |---|---|---|
+> | the fix **runs** on 2.0.51 | `verify_2_0.py` executes it | all 23, `fix OK` |
+> | the fix is what the docs **recommend** | construct present in the pinned `.rst` source | 12 of 13 |
+> | the fix is the **best** way | — | **not verified, and not verifiable this way** |
+>
+> The third is a judgement. *"The docs mention this construct"* is not *"this is the idiomatic
+> replacement"*, and no grep closes that gap.
+>
+> **Why the offline copy beats opening a browser**, which is the obvious alternative and the
+> weaker one: `corpus/raw/2.0.51` came from `rel_2_0_51`, an immutable git tag, with a SHA-256
+> per file in `MANIFEST.json`. A browser shows whatever `docs.sqlalchemy.org` serves today, which
+> may have been edited since the release. **Checking against the tag is checking what 2.0.51
+> actually shipped**; checking against the website is checking what the project currently says
+> about it. For a migration tool pinned to exact versions, only the first one answers the
+> question.
+> **Asked as** — *"How do you know your fixes are right?"* — where the strong answer is that
+> "right" was split into two checkable claims and one uncheckable one, and the uncheckable one is
+> named rather than quietly folded in with the others.
+
+
 ---
 
 ## Using this in an interview
