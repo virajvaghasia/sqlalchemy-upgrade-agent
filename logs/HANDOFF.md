@@ -960,5 +960,22 @@ the three runs:
 **All three outcomes are worth having.** The third is the one that makes Phase 3 defensible
 instead of assumed, and it is the reason to run this before building anything.
 
+**One caveat that decides whether a null result means anything.** `k` controls what reaches the
+**prompt**; these failures are **refusals**, which is a *generation* behaviour. So raising `k`
+only helps if handing the model the right chunk stops it refusing. That is plausible — §R3 is
+about exactly that clause — but it is not guaranteed.
+
+**So if `refused` does not drop even at k=10, the result is ambiguous**: either retrieval
+genuinely failed, or retrieval succeeded and the model refused anyway. Those need opposite fixes.
+To tell them apart, add one run that prints the sources rather than the counts:
+
+```bash
+uv run python -m rag.ask "why would an object assigned to a many-to-one relationship never be inserted?" --k 10 --retrieval-only
+```
+
+**That is the `backref` question, whose answer ranked 6.** At `--k 10` a chunk containing
+`backref` must appear in the list. **If it does and the full run still refuses, the problem is the
+prompt, not retrieval** — and Phase 3's hybrid search would not have fixed it either.
+
 **Do not commit from that machine** and do not let a `--k` run near `FAILURES.md` — the guard
 should prevent it, and if it does not, that is a bug worth reporting in the reply.
