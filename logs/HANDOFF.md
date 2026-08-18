@@ -1209,7 +1209,44 @@ uv run python -m rag.compare_prompts --all 2>&1 | tail -32
 ### REPLY 9.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17. phase-1/completion @ e9d3e88
+# sorted(REFUSAL_CLAUSES) → ['A', 'B', 'C', 'D']
+# Qdrant healthy. qwen2.5-coder:7b. FAILURES.md not written.
+
+uv run python -m rag.compare_prompts --all
+  symbol    A=ans B=ans C=ans D=ans  what replaces Query.from_self() in SQLAlchemy
+  symbol    A=ans B=ans C=ans D=ans  Query.join with aliased=True stopped working,
+  symbol    A=ref B=ref C=ans D=ref  engine.table_names() is gone — what replaces i
+  symbol    A=ref B=ref C=ans D=ref  engine.has_table() no longer exists, what is t
+  symbol    A=ref B=ref C=ans D=ref  row.keys() raises in 2.0, how do I get the col
+  symbol    A=ref B=ref C=ans D=ref  orm.relation() is not available any more, what
+  skew      A=ans B=ans C=ans D=ans  should I pass future=True to create_engine?
+  skew      A=ans B=ans C=ans D=ans  is Session.autocommit still supported?
+  skew      A=ans B=ans C=ans D=ans  can I still use session.begin() with subtransa
+  skew      A=ans B=ans C=ans D=ans  does MetaData still accept a bind argument?
+  spanning  A=ans B=ans C=ans D=ans  how do I migrate select([col1, col2]) to the 2
+  spanning  A=ans B=ans C=ans D=ans  what is the full set of steps to migrate a 1.4
+  spanning  A=ans B=ans C=ans D=ans  how do I get scalar values instead of Row obje
+  spanning  A=ans B=ans C=ans D=ans  why do I need .unique() when using joinedload
+  absent    A=ref B=ref C=ans D=ref  what is the exact signature and full argument
+  absent    A=ans B=ans C=ans D=ref  list every keyword argument accepted by relati
+  absent    A=ref B=ref C=ans D=ref  what does the SQLAlchemy 2.1 release change?
+  silent    A=ref B=ref C=ans D=ref  if I write comment.issue = issue instead of is
+  silent    A=ref B=ref C=ans D=ref  why would an object assigned to a many-to-one
+
+prompt    refused  answered   of 19
+A               8        11   strict canned refusal
+B               8        11   refusal as last resort (SHIPPED)
+C               0        19   no refusal clause
+D               9        10   answer partially, refuse only on subject
+
+# D refused 9. Target is Q4, Q6, Q15, Q16, Q17 (five).
+# D's nine: Q3 table_names, Q4 has_table, Q5 keys(), Q6 relation,
+#           Q15 Session.execute, Q16 relationship(), Q17 2.1,
+#           Q18 cascade_backrefs, Q19 backref.
+# Right five: all present. Extra four: Q3, Q5, Q18, Q19 — the same over-fires as B.
+# D also refused Q16, which A and B answered (B's under-fire).
+# Not row 1 (count is 9 not 5). Not row 3 (D is not identical to A/B). Not C.
 ```
 
 ## How to read it
