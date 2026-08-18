@@ -79,3 +79,19 @@ def test_refusal_detector_is_not_a_verdict():
     assert cp.refused("The sources do not answer this.")
     assert cp.refused("the sources do not answer this")
     assert not cp.refused("You can no longer call engine.execute() because [1]...")
+
+
+def test_sweep_all_covers_every_probe_question():
+    """
+    --all must run the whole probe set, not a subset.
+
+    D43 chose a prompt on two questions and Round 7 found it refusing 8 of 19
+    (D51) — a rate the original experiment was too small to see. A sweep that
+    quietly sampled would reproduce exactly that mistake.
+    """
+    from rag import probe
+    import inspect as _inspect
+    src = _inspect.getsource(cp.sweep_all)
+    assert "probe.QUESTIONS" in src, "the sweep must iterate the full question set"
+    assert "[:5]" not in src and "sample" not in src, "no subsetting"
+    assert len(probe.QUESTIONS) == 19

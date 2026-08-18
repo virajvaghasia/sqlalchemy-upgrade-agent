@@ -1049,3 +1049,66 @@ prompt, not retrieval** — and Phase 3's hybrid search would not have fixed it 
 
 **Do not commit from that machine** and do not let a `--k` run near `FAILURES.md` — the guard
 should prevent it, and if it does not, that is a bug worth reporting in the reply.
+
+---
+
+# Round 8 — is the refusal clause the reason, or the model?
+
+**Round 7 answered its own question and asked a better one.** Raising `k` moved retrieval
+(`symbol_missing` 6→4, `retrieval_failure` 5→3) and left **`refused` at 8 for every value of k**.
+The `--retrieval-only` check confirmed the `backref` answer was in the prompt at k=10 and the
+model refused anyway. **The sources arrive and generation declines** (`09-DECISIONS.md` **D51**).
+
+**So the suspect is the prompt, and there is a specific reason to think so.** `D43` chose the
+shipped wording — prompt **B** — by testing three variants against **two** questions. Prompt
+**C**, the same model with the refusal clause deleted, answered everything. So the model *can*
+answer these; it is being told when not to.
+
+**B has never been measured at this size.** It is now known to refuse 8 of 19 with at least one
+answer demonstrably present. This round runs all three wordings over the whole probe set and
+counts refusals — the experiment `D43` should have been, at the size that would have caught it.
+
+**Why this before Phase 3 and before any model change.** Hybrid search would surface a chunk that
+is already being surfaced. A bigger model invalidates `D43`, `D48`, `D49` and every generation
+number in the repo. **This is the cheapest live hypothesis and the only one with evidence behind
+it.**
+
+## ASK 8.1 — all three wordings, all 19 questions
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout main && git pull
+grep -c 'def sweep_all' rag/compare_prompts.py      # must be 1
+
+docker compose up -d qdrant && ollama list | head -3
+
+uv run python -m rag.compare_prompts --all 2>&1 | tail -30
+```
+
+**57 generations.** Counts only — no answers printed, because 57 answers is not readable and the
+question is a rate. `--all` never writes `FAILURES.md`.
+
+### REPLY 8.1
+
+```
+(paste here)
+```
+
+## How to read it, and the floor that matters
+
+**Three of the 19 are `absent` questions where refusing is CORRECT.** So the floor is 3: a
+variant refusing 3 is not under-refusing, it is exactly right. Anything above 3 is a candidate
+over-fire.
+
+| result | what it means | what to do |
+|---|---|---|
+| **B ≈ 8, C ≈ 0–3** | the clause is the whole story — B over-fires at scale, and `D43`'s "not reproducible" was an artefact of testing two questions | rewrite the wording; the model is fine |
+| **B ≈ 8, C ≈ 8** | the refusals are **not** the clause — something else declines | then the model becomes a live question for the first time |
+| **B ≈ 3, A ≫ 3** | B is already right and Round 7's 8 came from something else in `probe.py`'s path | look at `probe.py`, not the prompt |
+
+**The second row is the only one that puts the model in scope**, and it is worth saying plainly
+that it is the least likely: prompt C already answered everything in `D43`, thirteen times.
+
+**If C refuses far fewer than B, do not conclude "ship C".** C is the variant that invented a
+full `Session.execute` signature 13 times out of 13. **The goal is a wording that refuses the 3
+`absent` questions and nothing else** — this round measures the gap, it does not pick the winner.
