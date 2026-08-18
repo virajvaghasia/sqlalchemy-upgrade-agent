@@ -1077,13 +1077,23 @@ it.**
 
 ```bash
 cd ~/Documents/Workspace/SqlUpgradeAgent
-git fetch origin && git checkout main && git pull
+git fetch origin
+git checkout phase-1/completion && git pull    # NOT main — see the note below
 grep -c 'def sweep_all' rag/compare_prompts.py      # must be 1
 
 docker compose up -d qdrant && ollama list | head -3
 
 uv run python -m rag.compare_prompts --all 2>&1 | tail -30
 ```
+
+> **Which branch, and why it changed.** Everything for the rest of Phase 1 lands on
+> **`phase-1/completion`**, not `main`. It is pushed and pulled directly, and merges to `main`
+> **once**, when Phase 1 is complete. A PR per change was costing more ceremony than the changes
+> were worth.
+> **So `main` will go stale during Phase 1, deliberately.** Check out `phase-1/completion` on
+> this box and stay on it. This is not the `lab/handoff` mistake repeating: that branch was
+> *abandoned* and predated the `rag/` package, whereas this one is the only place work is
+> happening and is current by definition.
 
 **57 generations.** Counts only — no answers printed, because 57 answers is not readable and the
 question is a rate. `--all` never writes `FAILURES.md`.

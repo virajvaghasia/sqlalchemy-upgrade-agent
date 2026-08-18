@@ -334,6 +334,11 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    rose, so retrieval is genuinely imperfect), but **its stated justification needs rewriting
    first**. Do not build it on the eight refusals.
 
+**Working branch: `phase-1/completion`.** Everything for the rest of Phase 1 lands there and it
+merges to `main` **once**, when the phase is done — not a PR per change. Push and pull on it
+directly. `main` goes stale during the phase, deliberately. **The lab PC checks out this branch
+too**, so any ASK block in `logs/HANDOFF.md` must name it rather than `main`.
+
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
 around them. Every false claim found by reading on 2026-08-15 and 2026-08-16 lived in a
