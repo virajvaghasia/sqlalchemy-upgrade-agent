@@ -308,9 +308,12 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
 
 **Next work, in order:**
 
-1. **`D31` — Qdrant was never compared against pgvector.** The last entry in `09-DECISIONS.md`
-   §H and the only one left there. Postgres is already in Compose. `D32` and `D48` are the
-   template: measure it, and record what the numbers do **not** license.
+1. ~~**`D31`**~~ — **settled 2026-08-17, and pgvector won on every number**: 0.45 ms against
+   2.65 ms, zero extra containers, 40 MB. Qdrant stays because migrating a working Step 3b buys
+   2 ms, which is a legitimate reason and not the one originally given. **§H is now empty.**
+   The finding worth carrying: the two stores returned **identical top-5 on only 15 of 19**
+   probe questions, so the vector store is not a neutral component — swap it and Phase 2's
+   numbers move without retrieval improving.
 2. **§R4 — evaluation**, now genuinely unblocked: the verdicts exist and carry retrieval ranks,
    which is the first real Phase 2 data. Third subject after retrieval and generation, so by
    `D47` it is `study/12-EVALUATION.md` carrying §R4 onward.

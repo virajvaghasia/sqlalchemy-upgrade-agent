@@ -564,20 +564,55 @@ honest edge of the project.
 **D32 left this section on 2026-08-15**, measured against a model 25× smaller. It is kept below
 in its settled form so the shape of the answer is visible: what it was compared against, what
 the numbers were, and — the part people skip — what fifteen data points do **not** license.
-**D31 has not been measured and still says so.**
+**D31 left this section on 2026-08-17**, measured against pgvector — which won on every number, and the entry says so rather than reporting a tie. **§H is now empty, and that is a claim to be suspicious of**: it means every choice has a recorded comparison, not that every choice is right.
 
-### D31 — Qdrant as the vector database ⚠️
+### D31 — Qdrant, measured against pgvector 2026-08-17 — and pgvector won on every number
 
-> **Decided** — Qdrant.
-> **Never compared against** — FAISS (a library, not a server, no persistence layer of its
-> own), Chroma (simpler, weaker filtering), pgvector (would reuse the Postgres already running
-> in Compose), Weaviate, Milvus.
-> **What is actually true today:** Qdrant is named in `ROADMAP.md` and nothing more.
-> **The honest interview answer:** *"I picked it for metadata filtering and because it runs as
-> a container next to everything else. I have not benchmarked it against pgvector, and pgvector
-> is the one I would compare first, since Postgres is already in the stack."* That answer is
-> stronger than a recited feature list, because it names the alternative you would test.
-> **Settle this in Step 3** and replace this entry.
+> **Decided** — Qdrant stays for Phase 1, and **not because it is better**. This entry sat in §H
+> for weeks saying "chosen, never benchmarked". It has now been benchmarked, and the honest
+> result is uncomfortable enough to be worth stating first: **pgvector beat it on speed, on
+> service count, and on setup, and the reason to stay is switching cost rather than merit.**
+> **Compared against** — `pgvector/pgvector:pg16` (extension 0.8.6), HNSW with
+> `vector_cosine_ops`, loaded with this repo's own 3284 × 1024 vectors.
+>
+> | | pgvector | Qdrant |
+> |---|---|---|
+> | search, median of 5 queries × 10 runs | **0.45 ms** | 2.65 ms |
+> | load 3284 vectors | 4.1 s | — (already indexed) |
+> | HNSW build | 0.7 s | — |
+> | table + index on disk | 40 MB | — |
+> | extra containers | **0** — Postgres is already in Compose | 1 |
+>
+> **The speed column is real and does not matter**, which is the same shape as `D40`. Both are
+> noise against the ~40 ms it takes to embed the question (`10-RETRIEVAL.md` R1.3): 0.45 ms and
+> 2.65 ms are 1% and 6% of a query. **A 5.9× win on 2 ms is not a reason to migrate anything.**
+>
+> **The finding that does matter is that they disagree.** Over the 19 probe questions, the two
+> returned **identical top-5 for 15 of 19** — so on **4 questions the model would have been
+> handed different sources** depending on which store was running. Neither is wrong: both are
+> HNSW, both approximate, and on the one question checked against a brute-force NumPy scan both
+> matched exactly. **But it means the vector store is not a neutral component.** Swap it and
+> Phase 2's numbers move without retrieval having improved, which is a trap worth knowing about
+> before there are numbers to protect.
+>
+> **What the original justification claimed, and how it holds up.** `D40` chose Qdrant for
+> metadata filtering, payload travelling with the vector, and "it stops being a script".
+> pgvector does all three — filtering is a `WHERE`, payload is a column, and Postgres is not a
+> script by anyone's definition. **None of those three distinguishes them.** What does
+> distinguish them is that pgvector needs **no second service**, and this project already runs
+> Postgres.
+>
+> **So why keep Qdrant.** Phase 1 is built on it, `D41` bakes the model and revision into the
+> collection name, `rag/index.py` speaks its client, and Step 3b is done. Migrating costs a
+> re-index and a rewrite to save 2 ms and one container. **That is a legitimate reason and it is
+> not the reason originally given** — the entry now says which is which.
+> **What this does not license:** claiming Qdrant was chosen on the merits, or that it is the
+> right default for a project that does not already have it. At this scale, with Postgres
+> already present, pgvector is the choice this repo would make starting over.
+> **Asked as** — *"Why a dedicated vector database?"* — where the answer is now *"at 3284
+> vectors, you don't need one; I measured it, pgvector is faster and one fewer service, and I
+> kept Qdrant because migrating a working Step 3b buys 2 ms."* That survives the follow-up in a
+> way a feature list does not.
 
 ### D32 — BGE-M3, measured 2026-08-15 — and the 25× smaller model matched it
 
