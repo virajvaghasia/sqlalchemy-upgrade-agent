@@ -1421,7 +1421,47 @@ rather than extending it. **Do not stop early** — a partial run is another `n=
 ### REPLY 11.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17. phase-1/completion @ 0cd03ab
+# 380 generations, did not stop early. k=5, repeat=5. FAILURES.md not written.
+
+top-k = 5
+repeat = 5
+  run 1/5 done
+  run 2/5 done
+  run 3/5 done
+  run 4/5 done
+  run 5/5 done
+
+per-question refusals out of 5 runs (A B C D — * = not unanimous)
+   1 symbol    A=0 B=0 C=0 D=0   what replaces Query.from_self() in SQLAlch
+   2 symbol    A=0 B=0 C=0 D=0   Query.join with aliased=True stopped worki
+   3 symbol    A=5 B=5 C=0 D=5   engine.table_names() is gone — what replac
+   4 symbol    A=5 B=5 C=0 D=5   engine.has_table() no longer exists, what
+   5 symbol    A=5 B=5 C=0 D=5   row.keys() raises in 2.0, how do I get the
+   6 symbol    A=5 B=5 C=0 D=5   orm.relation() is not available any more,
+   7 skew      A=0 B=0 C=0 D=0   should I pass future=True to create_engine
+   8 skew      A=0 B=0 C=0 D=0   is Session.autocommit still supported?
+   9 skew      A=0 B=0 C=0 D=0   can I still use session.begin() with subtr
+  10 skew      A=0 B=0 C=0 D=0   does MetaData still accept a bind argument
+  11 spanning  A=0 B=0 C=0 D=0   how do I migrate select([col1, col2]) to t
+  12 spanning  A=0 B=0 C=0 D=0   what is the full set of steps to migrate a
+  13 spanning  A=0 B=0 C=0 D=0   how do I get scalar values instead of Row
+  14 spanning  A=0 B=0 C=0 D=0   why do I need .unique() when using joinedl
+  15 absent    A=5 B=5 C=0 D=5   what is the exact signature and full argum
+  16 absent    A=0 B=0 C=0 D=5   list every keyword argument accepted by re
+  17 absent    A=5 B=5 C=0 D=5   what does the SQLAlchemy 2.1 release chang
+  18 silent    A=5 B=5 C=0 D=5   if I write comment.issue = issue instead o
+  19 silent    A=5 B=5 C=0 D=5   why would an object assigned to a many-to-
+
+prompt    refused  answered   of 19
+A             8.0      11.0   strict canned refusal
+B             8.0      11.0   refusal as last resort (was shipped to 2026-08-17)
+C             0.0      19.0   no refusal clause
+D             9.0      10.0   answer partially, refuse only on subject (SHIPPED)
+
+# Zero starred rows. Every cell is 0/5 or 5/5.
+# Q16 is D=5 B=0 on all five runs — not a coin-flip.
+# A and B identical at 8.0. D is 9.0, the extra one is Q16 only.
 ```
 
 ## How to read it
