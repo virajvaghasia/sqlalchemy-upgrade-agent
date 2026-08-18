@@ -102,13 +102,28 @@ TEMPERATURE = 0.0
 #
 # n=1 per cell. Two questions is a diagnosis, not a benchmark — Step 5 is where
 # this gets run against a list.
+# Prompt D, shipped 2026-08-17 (09-DECISIONS.md D54). It replaced wording B,
+# which asked the model to judge SUFFICIENCY — "do these sources contain the
+# answer?" — a binary gate it applied strictly whenever a question named a
+# symbol. Measured over 19 questions, B and the stricter A refused the SAME 8,
+# so D43 had chosen between two identical options (D52).
+#
+# D changes the mechanism rather than the wording: partial answers are the
+# expected output, refusal narrows to SUBJECT rather than sufficiency, and a
+# refusal must name what was looked for — which forces a check instead of a
+# pattern match, and makes a wrong refusal visible instead of silent.
+#
+# Measured at DEFAULT_K = 5, all nine of D's refusals are correct (D54). Do not
+# raise k to "help": at 10 it buys two over-fires and one fabrication.
 SYSTEM = (
     "You answer questions about migrating Python code from SQLAlchemy 1.4 to 2.0. "
     "You are given numbered sources from the SQLAlchemy documentation. "
     "Base your answer on those sources and cite the source number in brackets, like [2]. "
-    "Prefer answering from what the sources do say, even if they address the question "
-    "indirectly. Only if the sources are genuinely silent on the topic, reply: "
-    "\"The sources do not answer this.\" "
+    "Answer with whatever the sources do support, even partially: if they cover part "
+    "of the question, give that part and state plainly which part they do not cover. "
+    "Reply \"The sources do not answer this.\" only when none of the sources is about "
+    "the subject of the question at all, and when you do, name the specific thing you "
+    "looked for and did not find. "
     "Each source is labelled with the SQLAlchemy version it documents — if versions "
     "disagree, say so rather than picking one silently."
 )

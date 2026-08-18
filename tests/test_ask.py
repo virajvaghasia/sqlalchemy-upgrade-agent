@@ -112,9 +112,19 @@ def test_system_prompt_keeps_its_three_jobs(instruction):
     assert instruction.lower() in ask.SYSTEM.lower()
 
 
-def test_refusal_is_a_last_resort_not_the_default():
-    """The failing version said "say exactly". This one has to prefer answering."""
+def test_refusal_is_narrowed_to_subject_and_must_name_what_was_sought():
+    """
+    Prompt D, shipped 2026-08-17 (D54).
+
+    This used to assert the B wording — "prefer answering", "only if". B and the
+    stricter A were then measured over 19 questions and refused the SAME 8, so
+    D43 had chosen between two identical options (D52). D changes the mechanism:
+    partial answers are the expected output, refusal narrows to SUBJECT rather
+    than sufficiency, and a refusal must name what was looked for.
+    """
     lowered = ask.SYSTEM.lower()
-    assert "prefer answering" in lowered
-    assert "only if" in lowered
-    assert "say exactly" not in lowered, "the strict wording over-refused; see D43"
+    assert "even partially" in lowered, "partial answers must be the expected output"
+    assert "name the specific thing you looked for" in lowered, "refusal must require naming"
+    assert "about the subject of the question at all" in lowered, "refusal is scoped to subject"
+    assert "say exactly" not in lowered, "the A wording over-refused; see D43"
+    assert "genuinely silent" not in lowered, "that is B's sufficiency test; see D52"

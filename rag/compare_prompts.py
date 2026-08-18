@@ -68,7 +68,11 @@ _TAIL = (
 REFUSAL_CLAUSES = {
     "A": "If the sources do not contain the answer, say exactly: "
          "\"The sources do not answer this.\" ",
-    "B": None,  # sentinel: use ask.SYSTEM unchanged
+    # B was shipped until 2026-08-17; kept literal so the comparison survives
+    # D becoming the default (D54). The sentinel moved to D.
+    "B": "Prefer answering from what the sources do say, even if they address the question "
+         "indirectly. Only if the sources are genuinely silent on the topic, reply: "
+         "\"The sources do not answer this.\" ",
     "C": "",
     # D is not a tuning of B. A and B both ask the model to judge SUFFICIENCY —
     # "do these sources contain the answer?" — a binary gate it applies strictly
@@ -77,18 +81,14 @@ REFUSAL_CLAUSES = {
     # partial answers become the expected output, and refusal is narrowed to
     # "no source is about the subject at all" plus an obligation to name what
     # was looked for. Naming it forces a check rather than a pattern match.
-    "D": "Answer with whatever the sources do support, even partially: if they cover part "
-         "of the question, give that part and state plainly which part they do not cover. "
-         "Reply \"The sources do not answer this.\" only when none of the sources is about "
-         "the subject of the question at all, and when you do, name the specific thing you "
-         "looked for and did not find. ",
+    "D": None,  # sentinel: use ask.SYSTEM — D is what ships as of 2026-08-17 (D54)
 }
 
 LABELS = {
     "A": "strict canned refusal",
-    "B": "refusal as last resort (SHIPPED)",
+    "B": "refusal as last resort (was shipped to 2026-08-17)",
     "C": "no refusal clause",
-    "D": "answer partially, refuse only on subject",
+    "D": "answer partially, refuse only on subject (SHIPPED)",
 }
 
 # (kind, question). The unanswerable one is probe.py's `absent` category.
@@ -99,7 +99,7 @@ QUESTIONS = [
 
 
 def system_prompt(variant: str) -> str:
-    """B is the shipped string itself; A and C rebuild it around a different clause."""
+    """The shipped variant IS ask.SYSTEM; the others rebuild it around a different clause."""
     clause = REFUSAL_CLAUSES[variant]
     return ask.SYSTEM if clause is None else _HEAD + clause + _TAIL
 

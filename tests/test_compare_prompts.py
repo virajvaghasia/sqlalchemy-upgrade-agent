@@ -11,7 +11,7 @@ comparison quietly measures something else.
 from rag import ask, compare_prompts as cp
 
 
-def test_b_is_the_shipped_prompt_not_a_copy():
+def test_the_shipped_variant_is_ask_system_not_a_copy():
     """
     B must BE ask.SYSTEM — the object identity check — AND ask.SYSTEM must still
     carry the last-resort wording D43 settled on.
@@ -22,10 +22,11 @@ def test_b_is_the_shipped_prompt_not_a_copy():
     is what actually pins production, so editing the shipped clause without
     revisiting D43 breaks a test.
     """
-    assert cp.system_prompt("B") is ask.SYSTEM
-    assert "Prefer answering from what the sources do say" in ask.SYSTEM
-    assert "only if the sources are genuinely silent" in ask.SYSTEM.lower()
-    assert "say exactly" not in ask.SYSTEM, "that is prompt A's wording, not the shipped one"
+    assert cp.system_prompt("D") is ask.SYSTEM, "the sentinel moved to D when D shipped (D54)"
+    assert "even partially" in ask.SYSTEM
+    assert "name the specific thing you looked for" in ask.SYSTEM
+    assert "say exactly" not in ask.SYSTEM, "that is prompt A's wording"
+    assert "genuinely silent" not in ask.SYSTEM, "that is prompt B's, replaced 2026-08-17"
 
 
 def test_variants_differ_only_in_the_refusal_clause():
