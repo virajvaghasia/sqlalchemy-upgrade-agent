@@ -20,6 +20,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **every design decision, what was rejected, and why** — written for interview revision. Cite entries by ID (`D19`) | — |
 | [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — why we look things up instead of asking from memory (§R1); what the 1024 numbers on disk actually are (§R2). Two sittings; stop after the first | §R1–§R2 |
 | [`11-GENERATION.md`](11-GENERATION.md) | what happens *after* search: the prompt as a component. Three wordings of one sentence; C fabricates, A over-refused once, B ships (§R3) | §R3– |
+| [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4– |
 
 ## Three numbering families, and why
 
@@ -31,10 +32,10 @@ things and they do not line up — deliberately.
   to "§18" is unambiguous across the pair.
 - **`04`–`07` share a second run, `§1`–`§6`**, for the same reason: `05` continues `04`,
   `06` continues `05`. One container, then several, then the database in one, then the tests.
-- **`10`–`11` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
+- **`10`–`12` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
   without it, `§1` would mean Docker in one family and RAG in another. A letter makes a collision
-  impossible rather than merely unlikely. `11` continues `10` — §R1–§R2 are retrieval, §R3 onwards
-  is generation.
+  impossible rather than merely unlikely. `11` continues `10` and `12` continues `11` — §R1–§R2 are retrieval, §R3 is
+  generation, §R4 is evaluation.
 
   **The `R` is for RAG, not for Retrieval**, and the distinction only became visible when §R3
   moved into `11`. A subject-labelled prefix would have forced `§G1` there and a fourth family on

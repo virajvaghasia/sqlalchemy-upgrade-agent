@@ -319,9 +319,12 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    The finding worth carrying: the two stores returned **identical top-5 on only 15 of 19**
    probe questions, so the vector store is not a neutral component — swap it and Phase 2's
    numbers move without retrieval improving.
-2. **§R4 — evaluation**, now genuinely unblocked: the verdicts exist and carry retrieval ranks,
-   which is the first real Phase 2 data. Third subject after retrieval and generation, so by
-   `D47` it is `study/12-EVALUATION.md` carrying §R4 onward.
+2. ~~**§R4 — evaluation**~~ — **written 2026-08-17** as `study/12-EVALUATION.md`, third subject
+   after retrieval and generation, numbering continued per `D47`. Its §R4.3 is the one to reread:
+   the rank of the first containing chunk split what was filed as one Phase 3 fix into **four**
+   different problems, one of which is a constant being wrong.
+3. **Phase 3** — but not before Round 7. If raising `k` fixes failures currently used to justify
+   hybrid search, that argument needs restating before anything is built on it.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
