@@ -172,3 +172,42 @@ def test_the_report_states_that_signals_are_not_verdicts():
     """
     assert "not verdicts" in REPORT or "they are not verdicts" in REPORT.lower()
     assert "verdicts are a human's" in REPORT
+
+
+def test_symbol_matching_is_whole_symbol_not_substring():
+    """
+    `relation` must not match inside `relationship`.
+
+    The naive check counted 798 chunks for `relation` when 0 document
+    `orm.relation()` — turning a ceiling case into an apparent retrieval
+    failure, and silencing `symbol_missing`, the signal whose whole job is
+    telling those apart. Mutation-checked: reverting to `in` fails this.
+    """
+    assert not probe._contains("use relationship() instead", "relation")
+    assert probe._contains("orm.relation() is gone", "relation")
+    assert not probe._contains("bindparam is unrelated", "bind")
+    # symbols ending in punctuation are self-delimiting
+    assert probe._contains("row.keys() raises", "keys()")
+    assert probe._contains("select(Issue.id)", "select(")
+
+
+def test_recorded_symbol_counts_match_the_matcher():
+    """
+    FAILURES.md quotes a chunk count per symbol. If the matcher changes and the
+    report is not regenerated, those numbers silently describe an older rule —
+    which is exactly what happened to `relation` (798 recorded, 21 true).
+
+    Needs the corpus, which only the `docs reproduce` CI job builds — the
+    `tests` job runs without it, so this skips there rather than failing on a
+    missing file.
+    """
+    if REPORT is None:
+        pytest.skip("no FAILURES.md")
+    from rag import embed as _embed
+    if not _embed.CHUNKS_PATH.exists():
+        pytest.skip("no corpus/chunks.jsonl — run rag.chunk")
+    for _q, _c, sym in probe.QUESTIONS:
+        if not sym:
+            continue
+        n = probe.corpus_chunk_count(sym)
+        assert f"symbol `{sym}` appears in **{n}** corpus chunks" in REPORT, sym

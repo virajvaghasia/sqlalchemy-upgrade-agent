@@ -361,6 +361,12 @@ half:
 Without the cache, answering one question would mean embedding the whole corpus first. Every
 question would cost **627 seconds instead of 0.04** — roughly 15000× worse, forever.
 
+> **That 627 s is this Mac.** The same corpus embeds in about **165 s** on the lab PC's RTX 3060
+> — 19.9 chunks/s against 7.2 (`09-DECISIONS.md` **D48**). The ratio the argument rests on does
+> not change, because both halves move together: faster hardware shortens the one-off build and
+> the per-question embed alike. **A build-time cost you pay once is worth optimising for
+> convenience; it is not what makes the design right.**
+
 A vector index is not a clever algorithm. **It is a cache of work you refuse to redo.** Pay ten
 minutes once; each question afterwards is "embed one short string + 3284 multiply-and-adds."
 

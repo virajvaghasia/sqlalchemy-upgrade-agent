@@ -116,6 +116,28 @@ QUESTIONS = [
 ]
 
 
+def _contains(text: str, symbol: str) -> bool:
+    """
+    Whole-symbol match, not substring.
+
+    Naive `symbol in text` counted `relation` inside every `relationship`: 798
+    chunks against the 0 that actually document `orm.relation()`. That made a
+    ceiling case look like a retrieval failure and, worse, silenced the very
+    signal meant to tell them apart — `symbol_missing` can never fire for a
+    symbol that is a prefix of a common word. `bind` had the same shape.
+
+    So a symbol ending in an identifier character must not be followed by one.
+    Symbols ending in punctuation — `keys()`, `select(` — are already
+    self-delimiting and match literally.
+    """
+    import re as _re
+
+    pattern = _re.escape(symbol)
+    if symbol[-1].isalnum() or symbol[-1] == "_":
+        pattern += r"(?![A-Za-z0-9_])"
+    return _re.search(pattern, text, _re.I) is not None
+
+
 _CORPUS_CHUNKS: list[dict] | None = None
 
 
@@ -140,7 +162,7 @@ def corpus_chunk_count(symbol: str) -> int:
         _CORPUS_CHUNKS = [
             json.loads(line) for line in embed.CHUNKS_PATH.read_text().splitlines()
         ]
-    return sum(1 for c in _CORPUS_CHUNKS if symbol.lower() in c["text"].lower())
+    return sum(1 for c in _CORPUS_CHUNKS if _contains(c["text"], symbol))
 
 
 def signals(question: str, symbol: str | None, hits, answer: str) -> dict:
@@ -148,7 +170,7 @@ def signals(question: str, symbol: str | None, hits, answer: str) -> dict:
     texts = [h.payload["text"] for h in hits]
     versions = {h.payload["sqlalchemy_version"] for h in hits}
     citations = {n for n in range(1, len(hits) + 1) if f"[{n}]" in answer}
-    missing = bool(symbol) and not any(symbol.lower() in t.lower() for t in texts)
+    missing = bool(symbol) and not any(_contains(t, symbol) for t in texts)
     in_corpus = corpus_chunk_count(symbol) if symbol else None
 
     return {

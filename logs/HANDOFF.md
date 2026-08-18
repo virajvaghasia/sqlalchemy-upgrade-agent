@@ -566,7 +566,39 @@ believing they agree. Paste whatever it actually prints.
 ### REPLY 5.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17, already on main @ 79db576 (pulled this sitting)
+
+# uv sync --extra embed  (torch 2.13.0 + CUDA 13, sentence-transformers 5.7.0, qdrant-client 1.19.0)
+
+===== CORPUS =====
+corpus on disk does not match the manifest — refetching
+fetching rel_1_4_52 ...
+fetching rel_2_0_51 ...
+corpus manifest: corpus/MANIFEST.json
+  rel_1_4_52   126 files   1903934 bytes   https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_1_4_52.tar.gz
+  rel_2_0_51   144 files   2154490 bytes   https://github.com/sqlalchemy/sqlalchemy/archive/refs/tags/rel_2_0_51.tar.gz
+  TOTAL        270 files   4058424 bytes
+  by top-level directory:
+    orm           157 files   2109455 bytes
+    core           66 files    884110 bytes
+    tutorial       24 files    446017 bytes
+    (root)          4 files    282520 bytes
+    faq            18 files    243125 bytes
+    changelog       1 files     93197 bytes
+
+===== CORPUS CHECK =====
+all 270 files match the manifest
+
+===== CHUNK =====
+chunks: corpus/chunks.jsonl
+  target=1800  hard_max=2400  overlap_max=400
+  3284 chunks   3946041 chars
+    1.4.52    1541 chunks
+    2.0.51    1743 chunks
+  with a code block: 2461   over hard_max: 34
+  size  min=120  median=1299  p75=1601  p90=1740  p99=2451  max=5346
+
+# Linux matches the Mac: 270 files / 4058424 bytes, 3284 chunks / 3946041 chars.
 ```
 
 ## ASK 5.2 — embed, and sweep the batch size
@@ -600,7 +632,68 @@ rather than a result (`study/09-DECISIONS.md` D37).
 ### REPLY 5.2
 
 ```
-(paste here)
+# lab PC, 2026-08-17, RTX 3060 / CUDA. Revision matched the pin — did not stop.
+
+===== SMOKE  --limit 256 --device cuda --batch-size 8 =====
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=8   max_seq_length=2048
+chunks   256   307151 chars
+loaded in 82.2s
+tokens   max=1121  mean=339  truncated=0
+
+--limit run: EMBED_STATS.json left alone
+
+vectors  256 x 1024  float32  -> corpus/embeddings.npy
+encode   12.9s   19.9 chunks/s
+memory   torch_peak_mib = 2571.1
+memory   process_peak_rss_mib = 4342.6
+
+===== BATCH SWEEP  --limit 256 =====
+--- batch 8 ---
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=8   max_seq_length=2048
+encode   13.2s   19.4 chunks/s
+memory   torch_peak_mib = 2571.1
+memory   process_peak_rss_mib = 3405.6
+--- batch 32 ---
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=32   max_seq_length=2048
+encode   16.2s   15.8 chunks/s
+memory   torch_peak_mib = 3754.3
+memory   process_peak_rss_mib = 3402.5
+--- batch 64 ---
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=64   max_seq_length=2048
+encode   20.7s   12.4 chunks/s
+memory   torch_peak_mib = 5336.6
+memory   process_peak_rss_mib = 3403.8
+--- batch 128 ---
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=128   max_seq_length=2048
+encode   35.3s   7.3 chunks/s
+memory   torch_peak_mib = 8496.4
+memory   process_peak_rss_mib = 3402.5
+
+# Winner is batch 8 (19.4 chunks/s). Larger batches were slower on CUDA too,
+# same direction as Metal, not the "CUDA larger-wins" expectation. Full run
+# used --batch-size 8.
+
+===== FULL  --device cuda --batch-size 8 =====
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=8   max_seq_length=2048
+chunks   3284   4229821 chars
+loaded in 4.5s
+tokens   max=1586  mean=363  truncated=0
+vectors  3284 x 1024  float32  -> corpus/embeddings.npy
+encode   165.7s   19.8 chunks/s
+memory   torch_peak_mib = 2739.5
+memory   process_peak_rss_mib = 3415.4
+
+# Mac was 627.1s / 5.2 chunks/s on mps. This box is ~3.8× that encode rate.
+# corpus/EMBED_STATS.json was NOT committed; Mac file restored in the tree.
+# PC stats (not in git):
+#   device cuda, batch_size 8, load 4.5s, encode 165.7s, 19.8 chunks/s,
+#   torch_peak_mib 2739.5, process_peak_rss_mib 3415.4, complete true
 ```
 
 ## ASK 5.3 — VRAM with both models loaded
@@ -630,7 +723,48 @@ consequence rather than a tuning detail.
 ### REPLY 5.3
 
 ```
-(paste here)
+# lab PC, 2026-08-17. Both fit. Retrieval and generation can coexist.
+
+===== cold (nothing loaded) =====
+memory.total [MiB], memory.used [MiB], memory.free [MiB]
+12288 MiB, 597 MiB, 11307 MiB
+
+===== after ollama run qwen2.5-coder:7b "say hi" =====
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+
+memory.total [MiB], memory.used [MiB], memory.free [MiB]
+12288 MiB, 5246 MiB, 6658 MiB
+
+===== embed --limit 256 --device cuda --batch-size 32  WHILE generator resident =====
+model    BAAI/bge-m3  revision=5617a9f61b028005a4858fdac845db406aefb181
+device   cuda   batch_size=32   max_seq_length=2048
+chunks   256   307151 chars
+loaded in 4.0s
+tokens   max=1121  mean=339  truncated=0
+
+--limit run: EMBED_STATS.json left alone
+
+vectors  256 x 1024  float32  -> corpus/embeddings.npy
+encode   15.9s   16.1 chunks/s
+memory   torch_peak_mib = 3754.3
+memory   process_peak_rss_mib = 3403.4
+
+===== after both (embed process has exited; generator still resident) =====
+memory.total [MiB], memory.used [MiB], memory.free [MiB]
+12288 MiB, 5234 MiB, 6670 MiB
+
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+
+# No OOM. Generator ~5246 MiB resident; embedder torch peak 3754 MiB at batch 32.
+# Together that is ~9 GiB of 12 GiB — they fit. After the embed process exits,
+# nvidia-smi returns to generator-only, so the two do not stay stacked unless
+# both processes are alive.
+
+# Operational: --limit overwrites corpus/embeddings.npy. After this test the
+# file was (256, 1024). Full embed was re-run at batch 8 to restore (3284, 1024)
+# before rag.index. Mac EMBED_STATS.json restored; not committed from this PC.
 ```
 
 ## What is still NOT being asked
@@ -692,7 +826,62 @@ costume, and this round exists to correct exactly that.
 ### REPLY 6.1
 
 ```
-(paste here)
+# lab PC, 2026-08-17. Qdrant v1.19.0 healthy; indexed first:
+
+created collection sqlalchemy-upgrade-agent-bge-m3-5617a9f6  dim=1024  distance=COSINE
+points in Qdrant: 3284   vectors on disk: 3284
+counts match
+
+# ollama: qwen2.5-coder:7b still resident from ASK 5.3. Ten runs, did not stop early.
+
+rag/compare_prompts.py
+--- run 1 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 2 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 3 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 4 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 5 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 6 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 7 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 8 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 9 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+--- run 10 ---
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+
+A cell, answerable column:
+     10 answered
+
+# Prompt A refused the answerable question 0/10 on this box.
+# B was correct in every cell of every run. C always answered the unanswerable
+# question (10/10 `answered  X`), which is the known C failure mode, not D43.
 ```
 
 ## What Claude does with it
