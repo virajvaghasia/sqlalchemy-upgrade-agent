@@ -170,68 +170,41 @@ C  no refusal clause            answered ok     ANSWERED x
 A failed left (gave up though the docs were in the prompt). C failed right (invented a
 signature). B passed both.
 
-#### What two re-runs produced on 2026-08-16 — not the same table
+#### What thirteen runs produced — not the same table
 
-**One cell did not reproduce — twice.** Recording that is the point of this subsection.
-
-```
-# summary of: three system prompts x two questions, run twice on 2026-08-16
-#   against qwen2.5-coder:7b through Ollama, via `uv run python -m rag.compare_prompts`.
-#   Both runs produced this table.
-prompt                          answerable      unanswerable
-A  canned refusal as the exit   answered ok     refused  ok     <- D43 recorded REFUSED
-B  refusal as last resort       answered ok     refused  ok
-C  no refusal clause            answered ok     ANSWERED x
-```
-
-**A / answerable is now 1 refusal in 3 attempts** — D43's original, then two runs that
-answered.
-
-**A caveat from D43 can be dropped.** It warned the index might have changed, so the chunks
-might differ. They did not: both runs' top-5 scores were `0.646, 0.642, 0.639, 0.616, 0.615`
-in that order. **Retrieval is deterministic** here. Every difference between runs is
-**generation**. A caveat you can retire is worth more than one you keep repeating.
-
-**C's failure reproduced exactly.** Worth seeing, because it does not look like nonsense:
+`D43` was `n=1` per cell. It has been run **twelve more times**: twice on the Mac on 2026-08-16,
+then ten times on the lab PC's RTX 3060 on 2026-08-17, where 62.23 tok/s makes ten runs a
+sitting rather than an evening.
 
 ```
-# summary of: prompt C's answer to "what is the exact signature and full argument
-#   list of Session.execute?" — the invented signature, argument prose trimmed
-def execute(
-    statement,
-    parameters=None,
-    bind_arguments=None,
-    execution_options=None,
-):
+# summary of: rag/compare_prompts.py, 13 runs across two machines.
+#   The "answerable" column is the cell D43 recorded as REFUSED.
+prompt                          answerable        unanswerable
+A  canned refusal as the exit   refused  1 / 13   refused  13 / 13
+B  refusal as last resort       answered 13 / 13  refused  13 / 13    <- shipped
+C  no refusal clause            answered 13 / 13  ANSWERED 13 / 13  x
 ```
 
-Five sources, **none** of which is the API reference. It still emitted a full signature, four
-arguments, usage examples.
+**A's over-fire happened once and never again.** `D43`'s original run is the only observation of
+it in thirteen.
 
-**The sharp part: that signature is largely correct.** `bind_arguments` and
-`execution_options` are real — 5 and 103 chunks mention those *names*, which is not the same
-as containing this method's signature (§R1.4's withdrawn example). C is not emitting garbage
-you can spot. It is answering from **weights**, and the output does not say "I made this up."
-That is §R1.1 inside a system built to stop it. **C proves the refusal clause is necessary,
-three times.**
+**C's fabrication is 13 for 13, and it is stable rather than random.** The two Mac runs were not
+byte-identical — 1905 characters against 1997 — but every substantive element recurred: the same
+four arguments in the same order, down to the same illustrative `sqlite:///example.db`. A model
+that invents something different each time looks unreliable; this one repeats itself, which is
+what a retrieved fact looks like. **Stability is the property people mistake for correctness.**
 
-**The fabrication is stable, which is worse than random.** Two runs: 1905 vs 1997 characters,
-but the same four arguments, same order, even the same `sqlite:///example.db`. A model that
-invented something *different* each time would look unreliable. This one returns the same
-confident answer every time — which is what a retrieved fact looks like. **Stability is what
-people mistake for correctness.**
-
-**A's over-fire did not reproduce** in either 08-16 run. D43's story (*"do not contain the
-answer" is too high a bar*) still *can* happen — it happened once — but it is not a switch
-that always flips.
+**A caveat from `D43` retires here.** It warned the rebuilt index might have changed what was
+retrieved. It had not: both Mac runs returned top-5 scores `0.646, 0.642, 0.639, 0.616, 0.615`
+in that order. **Retrieval is deterministic** — every difference between runs was generation.
 
 **Honest position, asymmetric:**
 
 | claim | evidence |
 |---|---|
-| the refusal clause is **necessary** | C fails **3 for 3**, same kind of fabrication |
-| the strict wording **over-fires** | **1 of 3** — original observation, not reproduced twice |
-| **B is the one to ship** | **6 for 6** — every cell, every run |
+| the refusal clause is **necessary** | C fabricates **13 for 13**, the same fabrication each time |
+| the strict wording **over-fires** | **1 of 13** — the original observation, never reproduced |
+| **B is the one to ship** | **26 of 26 cells** — every run, both machines |
 
 B is the only variant that has **never** been wrong in these runs. That sentence only became
 sayable by re-running a decision that was already "done."
@@ -306,7 +279,7 @@ it could answer once. The standing rules were a bug wearing a limit's clothes.
 | **user prompt** | this question's five pages + the question itself |
 | **refusal** | it prints exactly `The sources do not answer this.` instead of explaining |
 | **refusal clause** | the sentence that *allows* that. Delete it (prompt C) and it invents APIs |
-| **over-firing** | that sentence fires when it should not — A refused `engine.execute` even though those pages were in the message (1 of 3 runs) |
+| **over-firing** | that sentence fires when it should not — A refused `engine.execute` even though those pages were in the message (1 of 13 runs) |
 | **n=1** | one try per table cell. Enough to see a mechanism. Not enough to say "A always fails" |
 | **unattributable failure** | you cannot tell *why* a later test failed, because a broken instruction sat in front of search |
 

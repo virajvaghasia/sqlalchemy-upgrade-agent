@@ -452,6 +452,72 @@ form.
 > not an assumption baked into the plan. That is now the design target, and it came from an
 > outage rather than from foresight.
 
+### D48 — The 3060 embeds 2.8x faster, and bigger batches are slower on CUDA too
+
+> **Measured 2026-08-17 on the lab PC** (RTX 3060, 12288 MiB), closing the half of `D27` that
+> had never been tested. `D27` called this box the build machine on the strength of a
+> *generation* benchmark alone — 62.23 tok/s against the Mac's 18.4. Embedding had no
+> counterpart until now.
+>
+> | | chunks/s | full corpus, 3284 chunks |
+> |---|---|---|
+> | Mac (M4, Metal) | **7.2** | 456 s by that rate; the production run took **627 s** |
+> | RTX 3060 (CUDA, batch 8) | **19.9** | ~165 s |
+>
+> **2.8x on the rate**, which is real and smaller than the 3.4x generation gap. Worth stating
+> plainly: this machine is the build machine, and the margin is a factor of three, not an order
+> of magnitude.
+>
+> **The batch sweep is the surprising half, and it contradicts what was predicted.**
+> `logs/HANDOFF.md` Round 5 said the Mac's result — bigger batches *slower* on Metal — was "a
+> Metal result and there is no reason to expect it on CUDA, where larger batches usually win."
+> CUDA behaves the same way:
+>
+> ```
+> batch    8   19.4 chunks/s   torch peak 2571 MiB
+> batch   32   15.8            3754
+> batch   64   12.4            5337
+> batch  128    7.3            8496
+> ```
+>
+> **Slower and eight times the VRAM.** Batch 8 is both the fastest and the cheapest, and the
+> sweep went to 128 specifically because the prediction said it should win there.
+> **Why, and it is the transferable part:** these chunks vary in length — median 1299
+> characters, max 5346 — and a batch pads every sequence to the longest one in it. A bigger
+> batch catches more outliers, so a larger share of the compute is spent on padding. The usual
+> "larger batches win" intuition assumes uniform inputs. Documentation chunks are not uniform.
+> **Rejected as a result:** copying a batch size across hardware, and the belief that a CUDA
+> answer can be reasoned to from a Metal one. The sweep is cheap (`--limit 256`) and the
+> prediction was wrong on both counts.
+> **Asked as** — *"How did you pick your batch size?"* — where the answer is that it was
+> measured on each machine, and the number that looked obviously right was 2.7x slower.
+
+### D49 — Retrieval and generation fit on one 12 GiB card, together
+
+> **Measured 2026-08-17.** Whether this box can serve both halves at once decides whether Phase
+> 5's agent needs two machines.
+>
+> ```
+> cold                                    597 MiB used
+> qwen2.5-coder:7b resident              5246 MiB used   (100% GPU, 4.7 GB model)
+> + embedder at batch 32, torch peak     3754 MiB
+> ```
+>
+> **~9 GiB of 12 GiB, no OOM.** They coexist. And after the embed process exits, `nvidia-smi`
+> returns to generator-only — the two do not stay stacked unless both processes are alive.
+> **The margin is thinner than it looks**, because batch 32 was used for the coexistence test
+> and `D48` says batch 8 is faster anyway at 2571 MiB. At batch 128 the embedder alone peaks at
+> 8496 MiB and the pair would not fit.
+> **So the operational rule is:** batch 8 is the right default for two reasons, speed and
+> headroom, and only one of them was the reason anyone expected.
+
+>
+> ⚠️ **The embedding half was closed on 2026-08-17 — see `D48`.** This entry rested on a
+> generation benchmark alone (62.23 tok/s against 18.4). Embedding is **19.9 chunks/s against
+> 7.2**, a factor of 2.8 rather than the 3.4 generation shows. The claim survives; the margin is
+> a factor of three, not an order of magnitude, and `D48` also records that the batch size which
+> "should" have won was 2.7x slower.
+
 ### D28 — Langfuse stays in Phase 6
 
 > **Decided** — no observability stack until Phase 6.
@@ -795,30 +861,34 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > found to be simultaneously load-bearing and harmful, and the wording that threads it was
 > chosen by testing both failure directions rather than by taste.
 >
-> ⚠️ **Re-run twice on 2026-08-16: the A/answerable cell did not reproduce either time.** All
-> three prompts were run again against one answerable and one unanswerable question, now through
-> the committed `rag/compare_prompts.py` rather than by hand.
-> **C's invention reproduced both times** — a full `Session.execute` signature with four
-> arguments, from five sources containing none of it — **and it is stable rather than random**:
-> not byte-identical (1905 vs 1997 characters) but the same four arguments in the same order, down
-> to the same illustrative `sqlite:///example.db`. A fabrication that varies looks unreliable; one
-> that repeats looks retrieved.
-> **A answered the answerable question both times**, citing sources, where this entry records
-> `REFUSED`.
-> **One caveat this entry raised can now be retired.** The index had been rebuilt, so the sources
-> might have differed — they did not: both runs returned top-5 scores `0.646, 0.642, 0.639, 0.616,
-> 0.615` in that order. **Retrieval is deterministic**, so all variation is in generation. What
-> remains uncontrolled is that prompt A was reconstructed from the wording quoted above rather
-> than from a saved artifact; `compare_prompts.py` now pins it so this cannot recur.
-> **What this changes.** The decision stands — **B is correct 6 for 6, the only variant never once
-> wrong** — but its legs do not carry equal weight: *"the clause is necessary"* is **3 of 3**,
-> while *"the strict wording over-fires"* is **1 of 3** and must be quoted that way rather than as
-> a property of prompt A.
-> **Kept rather than edited out**, because a register that silently drops a result which later
-> failed to reproduce is worse than no register. The write-up is `11-GENERATION.md` §R3.3, and
-> `rag/compare_prompts.py` exists so the next person does not have to take either table on trust.
-> **Asked as** — *"Has anything in your decision log turned out to be wrong?"* — which is a better
-> question than the one above, and this is the entry to answer it with.
+> ⚠️ **Settled 2026-08-17 on the lab PC: the A/answerable cell was one observation in
+> thirteen, and it never reproduced.** `rag/compare_prompts.py` was run ten times on the RTX
+> 3060 (62.23 tok/s makes ten runs a sitting rather than an evening), after two Mac re-runs on
+> 2026-08-16.
+>
+> | prompt | answerable | unanswerable | across all 13 runs |
+> |---|---|---|---|
+> | **A** strict canned refusal | refused **1 / 13** | refused 13 / 13 | the over-fire is not reproducible |
+> | **B** last resort — **shipped** | answered 13 / 13 | refused 13 / 13 | **correct in 26 of 26 cells** |
+> | **C** no refusal clause | answered 13 / 13 | **answered 13 / 13** ✗ | fabricates every single time |
+>
+> **What this settles, and what it does not.** *"The clause is necessary"* is now as solid as
+> thirteen observations get: without it the model invented a `Session.execute` signature every
+> time, and the fabrication is stable rather than random — same four arguments, same example
+> database path. *"The strict wording over-fires"* is **1 in 13**, which is a coin-flip's
+> distance from noise. It is no longer a mechanism this entry may assert.
+> **B is unaffected and is the only variant never once wrong.** The decision stands; what
+> changed is that half its stated justification does not survive measurement, and the entry says
+> so rather than keeping the tidy version.
+> **One caveat retired.** The index rebuild did not change what was retrieved — both Mac runs
+> returned top-5 scores `0.646, 0.642, 0.639, 0.616, 0.615` in that order. Retrieval is
+> deterministic; all variation was generation.
+> **The lesson is about the register, not the prompt.** This entry shipped a decision off `n=1`
+> per cell and read as settled for two days. Nothing was wrong with the decision. What was wrong
+> was the confidence, and only re-running it found that — `rag/compare_prompts.py` exists so the
+> next person does not have to take either table on trust.
+> **Asked as** — *"Has anything in your decision log turned out to be wrong?"* — and this is the
+> entry to answer it with.
 
 ### D44 — A wrong prompt is a bug, not "naive baseline"
 

@@ -22,7 +22,7 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D47`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D49`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -221,6 +221,8 @@ networking.
     NVIDIA Container Toolkit 1.20.0 with in-container `nvidia-smi`, Ollama 0.32.9 with
     `qwen2.5-coder:7b` on GPU at **62.23 tok/s**, and the Days 8–9 CI gate proved with
     a deliberately failing PR. Do not re-plan these as outstanding.
+  - **Rounds 5–6 came back 2026-08-17** — CUDA embed, batch sweep, VRAM coexistence and the
+    `D43` ten-run tally. Folded into `D43`, `D48`, `D49`. Nothing is queued for that box.
   - **Still open on this box:** the Day 3 tunnel — blocked on Shaili sharing the
     Tailscale node, which is one person and nothing routes around it (`logs/HANDOFF.md`
     Round 3). And the reboot test, deferred.
@@ -275,45 +277,43 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-17):** Phase 1 is **BUILT, not COMPLETE**. All five steps run; a question typed
-at a terminal returns an answer with its sources. `main` is clean at PR #18, no open PRs,
-**121 tests**, **52/52** `# runnable` blocks reproduce, **47** decision entries.
+**State (2026-08-17, evening):** Phase 1 is **BUILT, and one gate from COMPLETE**. `main` is
+clean, **125 tests**, **52/52** `# runnable` blocks reproduce, **49** decision entries.
 
-**The teaching files now split across two:** `study/10-RETRIEVAL.md` is §R1–§R2 (retrieval),
-`study/11-GENERATION.md` is §R3– (generation). The `R` run continues across the pair — **it
-stands for RAG, not Retrieval (`D47`)**. §R1–§R3 all carry worked answers to their own questions.
+**Closed today:** the 19 answer verdicts (`CORRECT 10 · PARTIAL 3 · WRONG 6`), recorded in
+`deliverables/verdicts.json` — the source of truth, which `FAILURES.md` renders from so a
+regeneration cannot destroy them. `tools/review_sheet.py` builds a readable sheet
+(`--full` for everything: 95 sources with complete passages, plus whole `BREAKAGES` entries).
 
-**Three gates are open and every one is a human's — Claude cannot close them:**
+**Two gates remain and both are a human's:**
 
-| gate | how | where it is recorded |
+| gate | how | where |
 |---|---|---|
 | eyeball ten chunks, confirm each is self-contained | `uv run python -m rag.chunk --sample 10` (read-only) | `phases/PHASE-1.md` Step 2 |
-| 19 `UNVERIFIED` answer verdicts | read each against its sources | `deliverables/FAILURES.md` |
 | the five cold verification questions | from memory, no notes | `phases/PHASE-1.md` Verification |
 
-**The verdicts gate now blocks more than Phase 1.** §R4 is evaluation (Phase 2), and it cannot
-be written until those 19 verdicts exist — they are the golden dataset's first rows, and `D06`
-reserves them for a person. Do not draft §R4 around a dataset that does not exist yet; that is
-the example rule's failure mode, not a head start.
+**What the verdicts actually showed, which is not what the phase predicted.** Five of the six
+`WRONG` are **refusals** — the system declining questions it could answer — not hallucinations.
+And the ranks say those five are three different problems: `backref` ranked **6** and missed the
+top-k cut by one place; `keys()` ranked **12**, squarely a reranking case; `table_names` ranked
+**23** while the five returned scored `+0.001` and `+0.000` over noise, meaning search found
+nothing at all. **Tune `k` before reaching for architecture** is now an evidenced claim.
+
+**Settled by the lab PC, 2026-08-17** (replies are in `logs/HANDOFF.md`, Rounds 5–6):
+- **`D43` is 1 refusal in 13** — the over-fire never reproduced. `D48`/`D49` are new.
+- **The 3060 embeds 2.8x faster** (19.9 vs 7.2 chunks/s), closing `D27`'s untested half.
+- **Bigger batches are *slower* on CUDA too** — batch 8 beats 128 by 2.7x at an eighth of the
+  VRAM. Round 5 predicted the opposite. Variable-length chunks make batching pad, not amortise.
+- **Retrieval and generation coexist on one 12 GiB card** (~9 GiB together).
 
 **Next work, in order:**
 
-1. **`logs/HANDOFF.md` Round 4 — the lab PC, unblocked as of 2026-08-17.** Written and pushed
-   on branch **`lab/handoff`** (not `main`). Two GPU-bound numbers the Mac cannot close: the
-   `D43` A-cell tally (ten runs, turning "1 of 3" into a proportion) and the first timing of
-   **embedding on the 3060** against the Mac's 627000 ms / 7.2 chunks/s, which is the half of
-   `D27` that has never been measured. **Claude cannot reach that machine** — read `REPLY 4.x`
-   blocks, never expect to run the commands.
-2. **`D31` — Qdrant was never compared against pgvector.** The only remaining entry in
-   `09-DECISIONS.md` §H. Postgres is already in Compose, which makes pgvector the obvious rival.
-   `D32` was settled the same way on 2026-08-15 and that entry is the template.
-3. **§R4 — evaluation**, blocked on the verdicts above. When it comes it is a third subject, so
-   by `D47`'s logic it is `study/12-EVALUATION.md` carrying §R4 onward, numbering continuing.
-
-**Open question a re-run created, worth knowing before reading `D43`.** `D43`'s claim that the
-strict refusal wording over-fires stands at **1 observation in 3** — the original, plus two
-Mac re-runs that disagreed. `rag/compare_prompts.py` exists so anyone can check rather than
-trust the table. The shipped prompt is unaffected: **B is correct 6 for 6.** Round 4 settles it.
+1. **`D31` — Qdrant was never compared against pgvector.** The last entry in `09-DECISIONS.md`
+   §H and the only one left there. Postgres is already in Compose. `D32` and `D48` are the
+   template: measure it, and record what the numbers do **not** license.
+2. **§R4 — evaluation**, now genuinely unblocked: the verdicts exist and carry retrieval ranks,
+   which is the first real Phase 2 data. Third subject after retrieval and generation, so by
+   `D47` it is `study/12-EVALUATION.md` carrying §R4 onward.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
