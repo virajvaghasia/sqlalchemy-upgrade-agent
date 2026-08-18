@@ -69,12 +69,25 @@ REFUSAL_CLAUSES = {
          "\"The sources do not answer this.\" ",
     "B": None,  # sentinel: use ask.SYSTEM unchanged
     "C": "",
+    # D is not a tuning of B. A and B both ask the model to judge SUFFICIENCY —
+    # "do these sources contain the answer?" — a binary gate it applies strictly
+    # the moment a question names a specific symbol (D52: both refused the same
+    # 8, including 4 where the answer was present). D removes that judgement:
+    # partial answers become the expected output, and refusal is narrowed to
+    # "no source is about the subject at all" plus an obligation to name what
+    # was looked for. Naming it forces a check rather than a pattern match.
+    "D": "Answer with whatever the sources do support, even partially: if they cover part "
+         "of the question, give that part and state plainly which part they do not cover. "
+         "Reply \"The sources do not answer this.\" only when none of the sources is about "
+         "the subject of the question at all, and when you do, name the specific thing you "
+         "looked for and did not find. ",
 }
 
 LABELS = {
     "A": "strict canned refusal",
     "B": "refusal as last resort (SHIPPED)",
     "C": "no refusal clause",
+    "D": "answer partially, refuse only on subject",
 }
 
 # (kind, question). The unanswerable one is probe.py's `absent` category.

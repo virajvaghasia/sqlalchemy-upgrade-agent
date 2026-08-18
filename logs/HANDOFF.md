@@ -1158,3 +1158,74 @@ that it is the least likely: prompt C already answered everything in `D43`, thir
 **If C refuses far fewer than B, do not conclude "ship C".** C is the variant that invented a
 full `Session.execute` signature 13 times out of 13. **The goal is a wording that refuses the 3
 `absent` questions and nothing else** — this round measures the gap, it does not pick the winner.
+
+---
+
+# Round 9 — a fourth wording, and the first one that is a different mechanism
+
+**Round 8 settled that the search space was one point, not two.** A and B refused the **same 8
+questions, identically** (`09-DECISIONS.md` **D52**). `D43` chose between two options that behave
+the same. C refuses 0 and fabricates on all three `absent` questions.
+
+**Scored against this repo's own 19 verdicts, B is wrong in 5 places:**
+
+```
+correct refusals  Q4 has_table, Q6 relation, Q15, Q17   corpus genuinely has nothing
+over-fires        Q3 table_names, Q5 keys(), Q18, Q19   the answer is present
+under-fire        Q16                                    an `absent` question it answered
+```
+
+**So the floor is 5, not the 3 Round 8 assumed** — Q4 and Q6 are ceilings too. A correct prompt
+refuses 5 of these 19.
+
+**Why D is not a tuned B.** A and B both ask the model to judge **sufficiency** — *"do these
+sources contain the answer?"* — a binary gate it applies strictly the moment a question names a
+specific symbol. Softening the adverbs would produce a third point on the same line. **D removes
+the judgement instead:**
+
+- **Partial answers become the expected output** — *"answer with whatever the sources do support,
+  even partially, and state plainly which part they do not cover."*
+- **Refusal narrows to subject, not sufficiency** — only when *no source is about the subject at
+  all*.
+- **A refusal must name what was looked for and not found.** Naming forces a check rather than a
+  pattern match, and it makes a wrong refusal visible in the output instead of silent.
+
+Everything else is byte-identical across all four, so the comparison stays controlled — a test
+pins that.
+
+## ASK 9.1 — all four wordings, all 19 questions
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-1/completion && git pull
+uv run python -c "from rag import compare_prompts as c; print(sorted(c.REFUSAL_CLAUSES))"   # A B C D
+
+docker compose up -d qdrant && ollama list | head -3
+uv run python -m rag.compare_prompts --all 2>&1 | tail -32
+```
+
+**76 generations** — four wordings now, not three.
+
+### REPLY 9.1
+
+```
+(paste here)
+```
+
+## How to read it
+
+**Target: 5 refusals, and the RIGHT five** — Q4, Q6, Q15, Q16, Q17. The count alone is not
+enough; a prompt refusing five of the wrong five is no better than B.
+
+| result | means |
+|---|---|
+| **D refuses ~5 and they are the right ones** | the mechanism was the problem — ship D, update `D43`/`D52` |
+| **D refuses ~5 but the wrong ones** | the count is a coincidence; look at *which* before believing it |
+| **D ≈ 8 like A and B** | three wordings now behave identically, and the instruction is not the lever — **then the model is finally in scope** |
+| **D ≈ 0 like C** | D collapsed into C; the narrowed refusal was too narrow |
+
+**The third row is the one that would change the project's direction**, and it is why this is
+worth running before anything else. Three genuinely different wordings all landing on 8 would
+mean the refusals are not coming from the instruction at all.
+
+**Paste the per-question lines, not just the totals.** Which five is the whole question.
