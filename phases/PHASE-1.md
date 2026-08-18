@@ -11,21 +11,25 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 | [2. chunk it](#2-chunk-it) | **built** 2026-08-14 · char range added 08-15 | Mac | `rag/chunk.py`, 3284 chunks. **Gate open:** eyeball ten |
 | [3. embed and store](#3-embed-and-store) | **done** 2026-08-14 | Mac (M4/Metal) | `rag/embed.py` + `rag/index.py`, 3284 × 1024 vectors in Qdrant |
 | [4. retrieve and answer](#4-retrieve-and-answer) | **done** 2026-08-15 | Mac — 18.4 tok/s | `rag/ask.py` — **the hard gate is met** |
-| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **built** 2026-08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`. **Gate open:** 19 verdicts |
+| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **done** 2026-08-17 · built 08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`, 19 verdicts in `verdicts.json` |
 
 **Picking this up cold?** Read each step's write-up in order — they carry the measurements and
 the corrections.
 
 > ### Phase 1 is BUILT, not COMPLETE — and the difference is not a formality
 >
-> All five steps run and the pipeline gate is met. **Three of this file's own stated criteria
-> are still open, and every one of them is a human's:**
+> All five steps run and the pipeline gate is met. **Two of this file's own stated criteria
+> are still open, and both of them are a human's:**
 >
 > | open gate | where | who |
 > |---|---|---|
 > | eyeball ten chunks at random and find each self-contained | Step 2 *Done when* | **Viraj** |
-> | 19 `UNVERIFIED` verdicts — is each answer right? | Step 5 *Done when* | **Viraj** |
 > | the five cold verification questions | [Verification](#verification) | **Viraj** |
+>
+> **The third closed on 2026-08-17.** Step 5's 19 verdicts were written against real 2.0.51 and
+> came back `CORRECT 10 · PARTIAL 3 · WRONG 6`. They live in `deliverables/verdicts.json` rather
+> than in `FAILURES.md`, because `probe.py` generates that file — and before the split, a
+> regeneration overwrote all 19 with `UNVERIFIED` and said nothing.
 >
 > **One criterion was silently unmet until 2026-08-15 and is now fixed.** Step 2 asks for chunks
 > carrying *"source file, heading path and character range"*. They carried a length (`n_chars`)
@@ -780,7 +784,9 @@ rather than a lookup of the answer key.
 
 ##### The script does not grade answers, and that is deliberate
 
-Every answer is written out marked **`UNVERIFIED`** with a blank verdict line. D06 says the
+No answer is graded by the script. Each is written out with its verdict read back from
+`deliverables/verdicts.json`, and marked **`UNVERIFIED`** where no human has recorded one yet.
+D06 says the
 golden dataset is hand-verified, never auto-generated — and a script that decided which of its
 own answers were correct would be scoring against a key written by the same model family that
 produced them. That measures self-consistency, not truth.
@@ -825,12 +831,13 @@ worst results of any — **4 of 6 refused, 3 of 6 retrieval failures** — it ju
 That is a better outcome than either being right or being wrong. The illustration was replaced
 by evidence.
 
-##### What is still a human's job
+##### What was a human's job, and what it produced
 
-Every verdict. The file has 19 `UNVERIFIED` lines waiting for `CORRECT` / `WRONG` / `PARTIAL`
-and one sentence each. **The signals say where to look; they do not say what is true.** In
-particular the 13 `version_mixed` questions need reading — most are harmless, and the point of
-D10 was to find the ones that are not.
+Every verdict — and they were written on 2026-08-17, closing this step's gate. All 19 carry a
+judgement and one sentence of reasoning: `CORRECT 10 · PARTIAL 3 · WRONG 6`. **The signals said
+where to look; they did not say what was true** — which the 13 `version_mixed` questions bear
+out, since most were harmless and reading them is the only thing that separated those from the
+ones that were not. That separation is what D10 exists for.
 
 ---
 
