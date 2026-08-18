@@ -1242,6 +1242,16 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > over-fires and one fabrication, which is a strictly worse system.
 > **Asked as** — *"Why is your top-k 5 and not 10?"* — where the answer is that 10 was measured
 > and made it worse, with the failure mode named.
+>
+> ⚠️ **PROVISIONAL on the D-vs-B margin, flagged 2026-08-17.** Rounds 8, 9 and 10 each ran
+> **one pass per configuration**. D's advantage over B is **one question (Q16), observed once** —
+> which is the same `n=1` standard `D43` shipped on and `D52` had to correct. Holding this round
+> to a lower bar than `D43` was an inconsistency, and it is recorded rather than quietly carried.
+> **What is not provisional:** the k=5 vs k=10 comparison (four wordings moved together, and the
+> Q5 fabrication and Q18/Q19 over-fires are structural, not marginal), and that D makes no error
+> B does not. **What is:** that D is actually *better*. `rag/compare_prompts.py --repeat N` now
+> aggregates per-question refusals across runs, so one lab sitting settles it. Until then D
+> ships because nothing measured says it is worse — not because the margin is established.
 
 
 ---

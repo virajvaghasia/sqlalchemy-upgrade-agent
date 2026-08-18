@@ -1391,3 +1391,52 @@ Q3 (rank 23) and Q5 (rank 12) stay outside the prompt even at k=10 — **they sh
 refused, by every wording, and a prompt that answers them is fabricating.** They are the control.
 
 **Paste both blocks in full.** The per-question lines are the finding; the totals hide it.
+
+
+---
+
+# Round 11 — run it to a conclusion, not to another round
+
+**Why this one is different.** Rounds 8–10 each ran **one pass per configuration**, and D's whole
+advantage over B is **one question, observed once**. That is the `n=1` standard `D43` shipped on
+and `D52` had to correct — so `D54` is marked **provisional** until this round.
+
+**`--repeat N` aggregates internally**, so this settles the question in one sitting instead of
+five exchanges through this file. It prints per-question refusal counts and stars any cell that
+was **not unanimous** across runs — an unstable cell is the finding, because a prompt whose
+behaviour flips between identical runs is not a prompt you can reason about.
+
+## ASK 11.1
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-1/completion && git pull
+
+uv run python -m rag.compare_prompts --all --repeat 5 2>&1 | tail -35
+```
+
+**380 generations** (4 wordings × 19 questions × 5 runs) at `k=5`. Long, and it ends the argument
+rather than extending it. **Do not stop early** — a partial run is another `n=1`.
+
+### REPLY 11.1
+
+```
+(paste here)
+```
+
+## How to read it
+
+**Look at the starred rows first.** Any question where a prompt refused on some runs and not
+others is non-deterministic, and no conclusion drawn from a single pass on that question was ever
+valid — including conclusions in `D52`, `D53` and `D54`.
+
+| result | means |
+|---|---|
+| **no stars, D=5 and B=8** | the margin is real and reproducible — `D54` drops "provisional" |
+| **no stars, D and B identical** | D bought nothing; A, B and D are all one option, and `D52` extends to three |
+| **Q16 starred** | the single question D's advantage rests on is a coin-flip — **revert to B**, since D would then be churn |
+| **many stars** | prompt comparison at this scale is noise-dominated, and every prompt conclusion today needs re-deriving with `--repeat` |
+
+**The last row is the one to hope against and the most useful if true.** It would mean the method
+was wrong, not just the answer — and it would be better to learn that now than after Phase 3 is
+built on it.

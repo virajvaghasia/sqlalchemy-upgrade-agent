@@ -5,6 +5,7 @@ Re-run D43 — is the refusal clause necessary, and does the strict wording over
     uv run python -m rag.compare_prompts --prompt C   # just one variant
     uv run python -m rag.compare_prompts --all        # all 19 probe questions, counts only
     uv run python -m rag.compare_prompts --all --k 10 # the same at a different top-k
+    uv run python -m rag.compare_prompts --all --repeat 5  # n=5 per cell, not n=1
 
 `study/09-DECISIONS.md` **D43** recorded a three-by-two table on 2026-08-15 and
 shipped prompt B off it. It existed only as a table: the experiment was run by
@@ -140,7 +141,7 @@ def refused(answer: str) -> bool:
     return answer.lower().startswith("the sources do not answer this")
 
 
-def sweep_all(variants: list[str], k: int = ask.DEFAULT_K) -> None:
+def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> None:
     """
     Every probe question against each wording, counting refusals.
 
@@ -152,25 +153,38 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K) -> None:
     Counts only — no answers printed, because 57 answers is not readable and
     the question here is a rate, not a reading.
     """
-    tally = {v: {"refused": 0, "answered": 0} for v in variants}
-    per_q: list[tuple[str, str, dict[str, str]]] = []
-    for question, category, _sym in probe.QUESTIONS:
-        hits = index.retrieve(question, limit=k)
-        prompt = ask.build_prompt(question, hits)
-        row = {}
-        for v in variants:
-            answer = generate(system_prompt(v), prompt)
-            r = refused(answer)
-            tally[v]["refused" if r else "answered"] += 1
-            row[v] = "refused" if r else "answered"
-        per_q.append((question, category, row))
-        print(f"  {category:9} {' '.join(f'{v}={row[v][:3]}' for v in variants)}  {question[:46]}")
+    # counts[variant][question_index] = how many of `repeat` runs refused.
+    # n=1 per cell is what D43 shipped on and D52 had to correct; --repeat is
+    # the fix, and aggregating here means one sitting settles it rather than
+    # five round-trips through this file.
+    counts = {v: [0] * len(probe.QUESTIONS) for v in variants}
+    for r in range(repeat):
+        for qi, (question, _cat, _sym) in enumerate(probe.QUESTIONS):
+            hits = index.retrieve(question, limit=k)
+            prompt = ask.build_prompt(question, hits)
+            for v in variants:
+                if refused(generate(system_prompt(v), prompt)):
+                    counts[v][qi] += 1
+        print(f"  run {r + 1}/{repeat} done", flush=True)
 
+    print()
+    if repeat > 1:
+        print(f"per-question refusals out of {repeat} runs "
+              f"({' '.join(variants)} — * = not unanimous)")
+        for qi, (question, category, _s) in enumerate(probe.QUESTIONS):
+            cells = " ".join(f"{v}={counts[v][qi]}" for v in variants)
+            unstable = any(0 < counts[v][qi] < repeat for v in variants)
+            print(f"  {qi+1:2d} {category:9} {cells} {'*' if unstable else ' '} {question[:42]}")
+        print()
+
+    tally = {v: {"refused": sum(counts[v]) / repeat,
+                 "answered": len(probe.QUESTIONS) - sum(counts[v]) / repeat} for v in variants}
+    per_q = []
     print()
     print(f"{'prompt':<8} {'refused':>8} {'answered':>9}   of {len(probe.QUESTIONS)}")
     for v in variants:
         t = tally[v]
-        print(f"{v:<8} {t['refused']:>8} {t['answered']:>9}   {LABELS[v]}")
+        print(f"{v:<8} {t['refused']:>8.1f} {t['answered']:>9.1f}   {LABELS[v]}")
     print()
     print("A refusal is CORRECT for the 3 `absent` questions and a failure elsewhere,")
     print("so the floor is 3 — a variant refusing 3 is not under-refusing, it is right.")
@@ -186,7 +200,9 @@ def main() -> None:
     if "--all" in argv:
         kk = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K
         print(f"top-k = {kk}\n")
-        sweep_all(variants, k=kk)
+        rp = int(argv[argv.index("--repeat") + 1]) if "--repeat" in argv else 1
+        print(f"repeat = {rp}")
+        sweep_all(variants, k=kk, repeat=rp)
         return
 
     grid: dict[tuple[str, str], bool] = {}

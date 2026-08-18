@@ -323,31 +323,36 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    after retrieval and generation, numbering continued per `D47`. Its §R4.3 is the one to reread:
    the rank of the first containing chunk split what was filed as one Phase 3 fix into **four**
    different problems, one of which is a constant being wrong.
-3. **Ship prompt D, keep `DEFAULT_K = 5` — `D54`, and this is settled.** Round 10 (152
+3. **Round 11 settles whether D actually beats B — `D54` is PROVISIONAL until it runs.** Rounds
+   8–10 ran one pass per configuration, and D's whole advantage is **one question observed once**
+   — the `n=1` standard `D43` shipped on. `--repeat 5` aggregates per-question and stars any
+   non-unanimous cell. **If Q16 is starred, revert to B.** D ships meanwhile because nothing
+   measured says it is worse, not because the margin is established.
+4. **Ship prompt D, keep `DEFAULT_K = 5` — `D54`.** Round 10 (152
    generations, both k values) found that **at k=5 every one of D's nine refusals is correct**:
    four have answers outside the top-5, five are ceilings or `absent`. **D at k=5 is the only
    configuration measured with zero prompt errors.** Raising k to 10 trades four honest refusals
    for **two over-fires** (Q18/Q19 — chunks present, Q19 has three, all wordings refuse) and
    **one fabrication** (Q5 — `keys()` in no top-10 chunk, and A/B/D all answered it).
-4. **Phase 3 is justified after all**, and `D51` is corrected in place: at k=5 the sources
+5. **Phase 3 is justified after all**, and `D51` is corrected in place: at k=5 the sources
    genuinely do not arrive. The residue is Q18/Q19 — a real generation defect no wording fixes,
    but **two questions rather than eight**.
-5. ~~Round 10~~ — **done 2026-08-17.** All four wordings
+6. ~~Round 10~~ — **done 2026-08-17.** All four wordings
    at **k=5 and k=10**, 152 generations. Rounds 8–9 both ran at k=5, where the four unfixed
    refusals have answers at ranks 23/12/8/6 — **outside the prompt**, so refusing them was
    correct, not an over-fire. Round 7 showed the opposite at k=10 for `backref`. **Compare each
    prompt against itself across the two k values:** refusals dropping means retrieval was the
    problem; staying flat means the instruction is. Q18/Q19 are the watch, Q3/Q5 the control.
-6. ~~Ship prompt D regardless of Round 10~~ — it is strictly better than B, wrong in 4 places
+7. ~~Ship prompt D regardless of Round 10~~ — it is strictly better than B, wrong in 4 places
    against B's 5, and the one it fixed (Q16) is the only `absent` question that had been getting
    a confident answer.
-7. ~~Round 9: prompt D~~ — **done 2026-08-17.** A and B both
+8. ~~Round 9: prompt D~~ — **done 2026-08-17.** A and B both
    ask the model to judge *sufficiency*; D makes partial answers the expected output, narrows
    refusal to *subject* rather than sufficiency, and requires a refusal to name what was looked
    for. **Target: 5 refusals, and the right five** (Q4, Q6, Q15, Q16, Q17) — the count alone
    proves nothing. **If D also lands on 8, the instruction is not the lever and the model finally
    enters scope.**
-8. ~~Write a fourth prompt — `D52`~~ — **written 2026-08-17**, pinned by a test that it differs
+9. ~~Write a fourth prompt — `D52`~~ — **written 2026-08-17**, pinned by a test that it differs
    from B in kind rather than degree. Round 8 settled it: A and B refuse the **same 8 questions,
    identically**, so `D43` chose between two options that are the same option. C refuses 0 and
    fabricates. **The correct floor is 5** (3 `absent` + `has_table` + `relation`, both ceilings);
@@ -355,14 +360,14 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    search space so far was two points that turned out to be one. **Not tuning — a genuinely
    different fourth wording**, then `compare_prompts --all` again. Do not change the model: C
    proves it answers all 19 when permitted to.
-9. ~~The next experiment is a PROMPT experiment — `D51`~~ — **done, that was Round 8.** Round 7 came back
+10. ~~The next experiment is a PROMPT experiment — `D51`~~ — **done, that was Round 8.** Round 7 came back
    2026-08-17: sweeping `k` moved retrieval and left `refused` at **8 at every value**, and a
    `--retrieval-only` run proved the answer was in the prompt at k=10 while the model still
    declined. **The eight refusals are not the argument for hybrid search.** `D43` measured
    over-firing at 1-in-13 — but on prompt A, on one question; this is prompt **B**, the shipped
    one, refusing 8 of 19 with the answer present. `rag/compare_prompts.py` already exists, so
    testing wordings against the full probe set is cheap.
-10. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
+11. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
    rose, so retrieval is genuinely imperfect), but **its stated justification needs rewriting
    first**. Do not build it on the eight refusals.
 
