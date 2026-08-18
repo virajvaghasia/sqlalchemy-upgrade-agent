@@ -240,7 +240,7 @@ indicating those places where an explicit t
 
 ## 2. Query.join with aliased=True stopped working, what do I use?
 
-`symbol` · top score **0.697** · versions retrieved 1.4.52, 2.0.51 · cited nothing · 8.3s · symbol `aliased` appears in **99** corpus chunks
+`symbol` · top score **0.697** · versions retrieved 1.4.52, 2.0.51 · cited nothing · 8.3s · symbol `aliased` appears in **95** corpus chunks
 
 **Signals:** `uncited`
 
@@ -389,7 +389,7 @@ a join::
 
 **Signals:** `refused`, `retrieval_failure`
 
-**Verdict:** `WRONG` — Refused a question the corpus can answer — `table_names` is in 6 chunks and the fix is `inspect(engine).get_table_names()`. A retrieval failure, which is what Phase 3 targets.
+**Verdict:** `WRONG` — Refused although `table_names` is in 6 chunks, the first at rank 23 of 3284. Note what the five it did return scored: 0.575, 0.573, 0.560, 0.541, 0.540 against a 0.540 noise floor — the last two are +0.001 and +0.000, so search did not rank the answer low, it found nothing and filled the slots. Keyword search reaches this; reranking a top-5 of noise cannot.
 
 ### Answer
 
@@ -694,7 +694,7 @@ the removal of "implicit autocommit", string statements require the
 
 **Signals:** `refused`, `retrieval_failure`
 
-**Verdict:** `WRONG` — Refused although `keys()` is in 7 chunks; the fix is `row._mapping.keys()`. Retrieval failure.
+**Verdict:** `WRONG` — Refused although `keys()` is in 7 chunks, the first at rank 12 of 3284 — outside k=5 but comfortably inside the candidate set a reranker would see. The fix is `row._mapping.keys()`. This is the cleanest reranking case in the set.
 
 ### Answer
 
@@ -826,11 +826,11 @@ implemented by the
 
 ## 6. orm.relation() is not available any more, what is it called now?
 
-`symbol` · top score **0.581** · versions retrieved 1.4.52, 2.0.51 · cited nothing · 0.9s · symbol `relation` appears in **798** corpus chunks
+`symbol` · top score **0.581** · versions retrieved 1.4.52, 2.0.51 · cited nothing · 0.9s · symbol `relation` appears in **21** corpus chunks
 
 **Signals:** `refused`
 
-**Verdict:** `WRONG` — Refused; the replacement is `relationship()`, which the corpus documents in 768 chunks. Also exposed an instrument bug — the recorded symbol `relation` matches every `relationship`, so `symbol_missing` could never fire here.
+**Verdict:** `CORRECT` — Refused, and the corpus genuinely cannot answer: `orm.relation()` appears in 0 chunks. The 21 chunks matching the bare token `relation` are prose — 'in relation to', 'correlation' — and none names it as the old alias for `relationship()`. A ceiling, not a retrieval failure, so the refusal is the honest output. This entry previously read WRONG on the strength of a 798-chunk count that was a substring bug, now fixed in probe.py.
 
 ### Answer
 
@@ -943,7 +943,7 @@ and techniques.
 
 ## 7. should I pass future=True to create_engine?
 
-`skew` · top score **0.659** · versions retrieved 1.4.52, 2.0.51 · cited [1] · 2.4s · symbol `future` appears in **103** corpus chunks
+`skew` · top score **0.659** · versions retrieved 1.4.52, 2.0.51 · cited [1] · 2.4s · symbol `future` appears in **77** corpus chunks
 
 **Signals:** `single_source`
 
@@ -1068,7 +1068,7 @@ A full intro to the :class:`_engine.Engine` starts at :ref:`
 
 ## 8. is Session.autocommit still supported?
 
-`skew` · top score **0.742** · versions retrieved 1.4.52, 2.0.51 · cited [1, 5] · 2.7s · symbol `autocommit` appears in **83** corpus chunks
+`skew` · top score **0.742** · versions retrieved 1.4.52, 2.0.51 · cited [1, 5] · 2.7s · symbol `autocommit` appears in **82** corpus chunks
 
 **Signals:** _none_
 
@@ -1190,7 +1190,7 @@ The :class:`_orm.Session` features "aut
 
 ## 9. can I still use session.begin() with subtransactions?
 
-`skew` · top score **0.744** · versions retrieved 1.4.52, 2.0.51 · cited [4] · 4.6s · symbol `subtransaction` appears in **13** corpus chunks
+`skew` · top score **0.744** · versions retrieved 1.4.52, 2.0.51 · cited [4] · 4.6s · symbol `subtransaction` appears in **6** corpus chunks
 
 **Signals:** `single_source`
 
@@ -1337,7 +1337,7 @@ operations are per
 
 ## 10. does MetaData still accept a bind argument?
 
-`skew` · top score **0.599** · versions retrieved 1.4.52, 2.0.51 · cited [1] · 1.7s · symbol `bind` appears in **140** corpus chunks
+`skew` · top score **0.599** · versions retrieved 1.4.52, 2.0.51 · cited [1] · 1.7s · symbol `bind` appears in **71** corpus chunks
 
 **Signals:** `single_source`
 
@@ -1591,7 +1591,7 @@ As is the case described at :ref:`migration_20_query_from_self`, the
 
 ## 12. what is the full set of steps to migrate a 1.4 app to 2.0?
 
-`spanning` · top score **0.681** · versions retrieved 2.0.51 · cited nothing · 23.4s · symbol `migration` appears in **73** corpus chunks
+`spanning` · top score **0.681** · versions retrieved 2.0.51 · cited nothing · 23.4s · symbol `migration` appears in **45** corpus chunks
 
 **Signals:** `uncited`
 
@@ -1724,7 +1724,7 @@ SQLAlchemy 2.0 - Major Migration Guide
 
 ## 13. how do I get scalar values instead of Row objects from session.execute?
 
-`spanning` · top score **0.664** · versions retrieved 1.4.52, 2.0.51 · cited [1] · 11.5s · symbol `scalars` appears in **145** corpus chunks
+`spanning` · top score **0.664** · versions retrieved 1.4.52, 2.0.51 · cited [1] · 11.5s · symbol `scalars` appears in **136** corpus chunks
 
 **Signals:** `single_source`
 
@@ -2407,7 +2407,7 @@ The above bullets link
 
 **Signals:** `refused`, `retrieval_failure`, `duplicate_slots`
 
-**Verdict:** `WRONG` — Refused although `cascade_backrefs` is in 12 chunks. Retrieval failure, and the breakage it misses is the silent one — no exception, the INSERT simply never runs.
+**Verdict:** `WRONG` — Refused although `cascade_backrefs` is in 12 chunks, the first at rank 8 of 3284. The five returned scored 0.547 to 0.537 against a 0.540 floor — at or below noise. A reranker over a wider candidate set would reach rank 8; the breakage it misses is the silent one, where no exception is raised and the INSERT simply never runs.
 
 ### Answer
 
@@ -2529,11 +2529,11 @@ object,
 
 ## 19. why would an object assigned to a many-to-one relationship never be inserted?
 
-`silent` · top score **0.603** · versions retrieved 2.0.51 · cited nothing · 1.1s · symbol `backref` appears in **91** corpus chunks
+`silent` · top score **0.603** · versions retrieved 2.0.51 · cited nothing · 1.1s · symbol `backref` appears in **80** corpus chunks
 
 **Signals:** `refused`, `retrieval_failure`
 
-**Verdict:** `WRONG` — Refused although `cascade_backrefs` is in 12 chunks — the same retrieval failure as 18, on the phrasing a developer would actually use when the symptom is 'my object was never inserted'.
+**Verdict:** `WRONG` — Refused although `backref` is in 80 chunks and the first containing chunk ranked **6** — it missed the top-k cut by a single place. DEFAULT_K = 6 would have surfaced it with no other change. The sharpest argument in the set for tuning k before reaching for architecture.
 
 ### Answer
 
