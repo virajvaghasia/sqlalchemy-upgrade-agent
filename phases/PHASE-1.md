@@ -872,3 +872,12 @@ Cold, no notes:
 
 **Hard gate:** an answer with sources from a terminal, and a written list of failures with the
 wrong chunks shown.
+
+**The answers are written up in [`../study/13-VERIFICATION.md`](../study/13-VERIFICATION.md)
+(§R5)** — each question with the plain-words version, the mechanism, the measurement that makes
+it checkable, the sixty-second spoken answer, and the wrong answer it attracts.
+
+> **Read it after a sitting, not before.** The gate is *cold, from memory, no notes*. Reading the
+> answers first converts a recall test into a recognition test, and a recognition test measures
+> nothing — every answer looks familiar, which is exactly the feeling this gate exists to
+> distinguish from knowing.

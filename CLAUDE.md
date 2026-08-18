@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D54`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D55`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 129 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 133 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -282,14 +282,15 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-17, end of day):** Phase 1 is **BUILT, two gates from COMPLETE**.
-**Work is on branch `phase-1/completion`, not `main`** — `main` is deliberately stale and gets
-one PR when the phase closes. **129 tests**, **52/52** `# runnable` blocks, **54** decision
-entries, **§H empty**, 19 verdicts in sync (`tools.apply_verdicts --check`).
+**State (2026-08-18):** Phase 1 is **BUILT, two gates from COMPLETE** — and both remaining
+gates are a human's. **Work is on branch `phase-1/completion`, not `main`** — `main` is
+deliberately stale and gets one PR when the phase closes. **133 tests**, **56/56** `# runnable`
+blocks, **55** decision entries, **§H empty**, 19 verdicts in sync
+(`tools.apply_verdicts --check`).
 
-**The teaching files are three:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
-(generation), `12-EVALUATION.md` §R4 (evaluation). One `R` run across all three — it stands for
-RAG, not Retrieval (`D47`).
+**The teaching files are four:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
+(generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md` §R5 (defending it under
+questioning). One `R` run across all four — it stands for RAG, not Retrieval (`D47`).
 
 **What today settled, in the order it matters:**
 
@@ -674,6 +675,28 @@ Append a dated entry each session; keep each entry to a few bullets.
 - The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
   plain language**, then **Short:** answers.
+
+### 2026-08-18 — the five verification answers, written up as §R5
+
+- **A cold sitting on the five `PHASE-1.md` verification questions was run and did not pass.**
+  Two of five answered unaided; three answered the *setup* rather than the final clause of the
+  question. Recorded because the correction is not more study — one answer was right in five
+  words on the first attempt — it is answering the last clause.
+- **`study/13-VERIFICATION.md` (§R5) written**, one section per question in a fixed four-part
+  shape: plain words → mechanism → the measurement → the sixty-second spoken answer, plus the
+  wrong answer each question attracts and the follow-up that kills it. **`D55`** records why it
+  is a new file when `CLAUDE.md` says not to create one, and what that costs.
+- **A new measurement, and a correction to it made before it shipped.** Q3 is posed
+  hypothetically in `PHASE-1.md`; it is not hypothetical. The first count of chunk boundaries
+  severing a literal block was **96 of 3077** — and **72 of those are `glossary.rst`**, where
+  every definition body is indented under its term. Requiring positive evidence of code gives
+  **11**. The honest claim is "at least 11", and both numbers are in the file, because the wrong
+  one is the same class of error the file is about.
+- **`PHASE-1.md` said three gates were open; the verdicts gate closed on 08-17.** Four places
+  fixed. Nothing caught it: every claim was in prose, and `check_runnable` was green across the
+  file the whole time.
+- **Adding 4 tests broke 4 `# runnable` blocks** in `README.md`, `07-TESTS.md` and `PHASE-0.md`,
+  all quoting the test count. That is the mechanism working — the counts are now 133 and 56/56.
 
 ### 2026-08-17 — verdicts closed, prompt D shipped, §H emptied
 
