@@ -1143,6 +1143,52 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > running the full question set to see it.
 
 
+### D53 — D beats B by exactly one question, and the rest was never the prompt's fault
+
+> **Measured 2026-08-17, Round 9** — four wordings, 19 questions, 76 generations.
+>
+> ```
+> prompt    refused  answered   of 19
+> A               8        11
+> B               8        11    <- shipped
+> C               0        19
+> D               9        10    <- answer partially, refuse only on subject
+> ```
+>
+> **D refused the right five and nothing new.** Its nine are the target five — Q4, Q6, Q15, Q16,
+> Q17 — plus the same four A and B refuse. Scored against this repo's verdicts:
+>
+> | | wrong in |
+> |---|---|
+> | B | **5** — 4 over-fires and 1 under-fire (Q16, an `absent` question it answered) |
+> | D | **4** — the same 4, and it **fixed the under-fire** |
+>
+> **So the mechanism change bought exactly one question**, and the one it bought is real: Q16 is
+> the only `absent` question that had been getting a confident answer. Requiring a refusal to
+> *name what was looked for* is what caught it.
+>
+> **The four it did not fix are invariant across every wording tried** — A, B and D all refuse
+> Q3, Q5, Q18, Q19. Three different instructions, identical behaviour on those four.
+>
+> **And there is a confound in Rounds 8 and 9 that has to be stated before anyone concludes from
+> that.** Both ran at `DEFAULT_K = 5`. The answers to those four sit at ranks **23, 12, 8 and 6**
+> — **all outside the top-5.** So in these runs the model was refusing questions whose answers
+> were **not in its prompt**, which is the correct behaviour, not an over-fire. On this evidence
+> alone the prompt is doing the right thing and retrieval is the problem.
+>
+> **That contradicts `D51`, and the contradiction is only apparent.** Round 7 ran at k=10, where
+> Q18 and Q19's chunks *are* present, and confirmed by `--retrieval-only` that the `backref`
+> chunk was in the prompt while the model refused anyway. **So those two are genuine over-fires
+> at k=10 and correct refusals at k=5**, and Rounds 8–9 could not have distinguished them.
+> **What this means practically:** no wording has yet been tested under the condition that makes
+> the over-fire visible. The decisive run is **D at k=10**, not another wording.
+> **Ship D regardless.** It is strictly better than B — same behaviour everywhere except Q16,
+> where it is right and B is wrong — and nothing measured argues for keeping B.
+> **Asked as** — *"How do you know the prompt is the problem and not retrieval?"* — where the
+> honest answer today is that at k=5 it is retrieval, at k=10 it is partly the prompt, and the
+> experiment that separates them has not been run yet.
+
+
 ---
 
 ## Using this in an interview

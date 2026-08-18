@@ -1266,3 +1266,63 @@ worth running before anything else. Three genuinely different wordings all landi
 mean the refusals are not coming from the instruction at all.
 
 **Paste the per-question lines, not just the totals.** Which five is the whole question.
+
+---
+
+# Round 10 — the run that separates the prompt from retrieval
+
+**Round 9's result, and the confound in it.** D refused the **right five** plus the same four A
+and B refuse. It is wrong in **4** where B is wrong in **5** — it fixed the under-fire, Q16, the
+only `absent` question that had been getting a confident answer.
+
+**But Rounds 8 and 9 both ran at `DEFAULT_K = 5`, and the four D did not fix have their answers at
+ranks 23, 12, 8 and 6 — all outside the top-5.** In those runs the model was refusing questions
+whose answers **were not in its prompt**. That is correct behaviour, not an over-fire, and no
+wording could have fixed it.
+
+**Round 7 already showed the other half**: at k=10, the `backref` chunk *is* in the prompt and the
+model refuses anyway. So Q18 and Q19 are genuine over-fires at k=10 and correct refusals at k=5,
+and no round so far has tested a wording under the condition that makes the difference visible
+(`09-DECISIONS.md` **D53**).
+
+**This round is that test.** `--all` now takes `--k`.
+
+## ASK 10.1 — all four wordings at k=5 and k=10
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-1/completion && git pull
+
+for k in 5 10; do
+  echo "########## k=$k ##########"
+  uv run python -m rag.compare_prompts --all --k $k 2>&1 | tail -30
+done
+```
+
+**152 generations** — four wordings, 19 questions, two values of k. The longest round yet, and
+the only one that can answer the question.
+
+### REPLY 10.1
+
+```
+(paste here)
+```
+
+## How to read it — compare each prompt against ITSELF across the two k values
+
+The comparison that matters is **not** between prompts. It is each prompt at k=5 versus k=10.
+
+| what happens to a prompt's refusals as k goes 5 → 10 | means |
+|---|---|
+| **drops toward 5** | the refusals were honest — the answer had not been retrieved. **Retrieval is the problem, Phase 3 is the fix, and the prompt is fine.** |
+| **stays flat** | the answer arrived and it refused anyway. **The instruction is the problem for that prompt.** |
+| **D drops and B stays flat** | D is the fix and it is measurable — ship D, and `D43`/`D52`/`D53` all resolve |
+
+**Q18 and Q19 are the two to watch**, because ranks 8 and 6 mean they enter the prompt at k=10
+and not at k=5. **If any prompt answers them at k=10 having refused at k=5, that prompt is
+working and the earlier rounds were measuring retrieval all along.**
+
+Q3 (rank 23) and Q5 (rank 12) stay outside the prompt even at k=10 — **they should still be
+refused, by every wording, and a prompt that answers them is fabricating.** They are the control.
+
+**Paste both blocks in full.** The per-question lines are the finding; the totals hide it.

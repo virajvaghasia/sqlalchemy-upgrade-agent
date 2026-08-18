@@ -132,7 +132,7 @@ to "§18" is unambiguous in either file.
 | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) | **§R1–§R2 — RAG from zero.** Why we look things up instead of asking from memory; why 270 files is a ceiling; why more docs can make answers worse; what the 1024 numbers on disk actually are. Two sittings — stop after the first |
 | [`study/11-GENERATION.md`](study/11-GENERATION.md) | **§R3 — after search.** The prompt as a component: three wordings of one sentence (C fabricates 3/3, A over-refused 1/3, B ships), how the cause was found by removing search, and why fixing it did not violate "build the naive version first". The `R` run continues here — it stands for RAG, not retrieval (**D47**) |
 | [`study/12-EVALUATION.md`](study/12-EVALUATION.md) | **§R4 — measuring a thing with no right answer.** What a script can score and what it cannot, why the golden set is hand-verified, and the rank measurement that split one planned Phase 3 fix into four different problems |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 52 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 53 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 

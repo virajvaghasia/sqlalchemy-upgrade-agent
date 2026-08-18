@@ -4,6 +4,7 @@ Re-run D43 — is the refusal clause necessary, and does the strict wording over
     uv run python -m rag.compare_prompts              # all three prompts, both questions
     uv run python -m rag.compare_prompts --prompt C   # just one variant
     uv run python -m rag.compare_prompts --all        # all 19 probe questions, counts only
+    uv run python -m rag.compare_prompts --all --k 10 # the same at a different top-k
 
 `study/09-DECISIONS.md` **D43** recorded a three-by-two table on 2026-08-15 and
 shipped prompt B off it. It existed only as a table: the experiment was run by
@@ -139,7 +140,7 @@ def refused(answer: str) -> bool:
     return answer.lower().startswith("the sources do not answer this")
 
 
-def sweep_all(variants: list[str]) -> None:
+def sweep_all(variants: list[str], k: int = ask.DEFAULT_K) -> None:
     """
     Every probe question against each wording, counting refusals.
 
@@ -154,7 +155,7 @@ def sweep_all(variants: list[str]) -> None:
     tally = {v: {"refused": 0, "answered": 0} for v in variants}
     per_q: list[tuple[str, str, dict[str, str]]] = []
     for question, category, _sym in probe.QUESTIONS:
-        hits = index.retrieve(question, limit=ask.DEFAULT_K)
+        hits = index.retrieve(question, limit=k)
         prompt = ask.build_prompt(question, hits)
         row = {}
         for v in variants:
@@ -183,13 +184,15 @@ def main() -> None:
     variants = [only] if only else list(REFUSAL_CLAUSES)
 
     if "--all" in argv:
-        sweep_all(variants)
+        kk = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K
+        print(f"top-k = {kk}\n")
+        sweep_all(variants, k=kk)
         return
 
     grid: dict[tuple[str, str], bool] = {}
 
     for kind, question in QUESTIONS:
-        hits = index.retrieve(question, limit=ask.DEFAULT_K)
+        hits = index.retrieve(question, limit=k)
         prompt = ask.build_prompt(question, hits)
         print("=" * 78)
         print(f"{kind.strip()}: {question}")
