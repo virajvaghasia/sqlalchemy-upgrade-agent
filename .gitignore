@@ -51,3 +51,26 @@ corpus/embeddings.ids.json
 # A working aid for the 19 verdicts, not a deliverable — regenerate rather than commit.
 deliverables/VERDICTS.md
 deliverables/VERDICTS-FULL.md
+
+# graphify — the knowledge graph of this repo (see study/README.md).
+# Same rule the corpus uses: BULK OUT, RECORD IN. What the lab PC needs to
+# query the graph is committed, because D29 says handoff goes through git;
+# what it can rebuild in one command, or what is machine-specific, is not.
+#
+#   committed   graph.json          1.0M  the graph itself. Rebuilding costs
+#                                         ~334k LLM tokens across 3 agents.
+#               GRAPH_REPORT.md      32K  god nodes, communities, audit trail
+#               manifest.json        16K  lets `--update` re-extract only what
+#                                         changed; contains no absolute paths
+#               .graphify_labels.json 4K  the 68 community names, hand-written
+#
+#   ignored     graph.html          920K  one command from graph.json
+#               cache/              1.2M  regenerable, and re-derived per machine
+#               .graphify_python           an ABSOLUTE path to a Mac uv venv —
+#               .graphify_root             committing these would break the lab PC
+#               cost.json                  local token accounting
+graphify-out/graph.html
+graphify-out/cache/
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/cost.json
