@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D57`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D58`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1371,6 +1371,46 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How do you know when a phase is done?"* — and the answer is that the criteria
 > were written before the work, checked one at a time, and each outcome recorded next to the
 > criterion rather than summarised as a tick.
+
+### D58 — `P2-a`: either half of a duplicate pair counts as a hit, and the cost is reported separately
+
+> **Decided 2026-08-18, before any score exists** — which is the only time this can be decided
+> honestly. `recall@k` counts a hit when **any chunk whose `(heading_path, text)` matches a
+> golden answer chunk** appears in the top k, regardless of its version tag. Two further numbers
+> ship beside it: **`recall@k (version-strict)`**, and **`slots_lost_to_duplicates`** as a figure
+> in its own right rather than a gap to be inferred.
+> **Instead of** — version-strict as the headline, which is the intuitive choice and is wrong
+> here for a mechanical reason rather than a philosophical one.
+> **The mechanism, verified rather than argued.** `rag/embed.py` prepends the heading path before
+> embedding, so `(heading_path, text)` is exactly the unit that determines a vector. Group the
+> 3284 chunks that way and **437 pairs share a text and a heading**, and their vectors are
+> **byte-identical — 437 of 437 checked**. Identical vectors give an identical cosine to every
+> possible query, so **the two copies always occupy adjacent slots or neither.** Under
+> version-strict counting one of the five slots is therefore *provably* wasted whenever such a
+> pair is relevant, and the retriever has no lever to prefer the right copy. Penalising it
+> measures the corpus, not the ranking.
+> **A second group behaves differently and must not be lumped in.** 31 pairs share a text but sit
+> under **different** heading paths — and **0 of 31** have identical vectors, with cosines as low
+> as `0.964`. Those are ordinary near-neighbours and get no special treatment. This is also why
+> `D38`'s `(heading_path, text)` grouping was the right one: it matches what is embedded. Grouped
+> by text alone the count is 468 pairs / 936 chunks; `D38`'s 437 / 874 is the meaningful figure.
+> **Incidence, measured on real queries:** `probe.py` recorded **2 of 19** questions with a
+> duplicate slot, 2 slots in total. So this is a real but small tax — not a reason to stop and
+> deduplicate before Phase 2 can start.
+> **The escape hatch that keeps `D10` intact.** Version skew is in the corpus on purpose, and for
+> some questions *the version is the answer*. Golden items may set `version_sensitive: true`, and
+> those are scored version-strict whatever the headline rule says. Without this, the permissive
+> rule would quietly excuse the exact failure `D10` exists to study.
+> **A method error caught while settling this, kept because it is the transferable part.** The
+> first incidence figure was **6 of 19**, computed by parsing `deliverables/FAILURES.md`. That
+> file truncates every shown chunk at **700 characters** (`probe.py:417`) and carries no chunk
+> ids, so two different chunks sharing their first 700 characters render identically and count as
+> a duplicate. **The report is a rendering, not the data.** Phase 2's scorer reads
+> `corpus/chunks.jsonl`, never a deliverable — the same class of error as the truncated review
+> sheet found on 2026-08-17.
+> **Asked as** — *"How did you define a hit?"* — and the answer names a mechanism: two copies with
+> identical vectors cannot be told apart by any ranker, so a metric that punishes the ranker for
+> them is measuring the wrong component.
 
 
 ## Using this in an interview

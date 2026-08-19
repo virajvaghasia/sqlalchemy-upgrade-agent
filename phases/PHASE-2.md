@@ -7,7 +7,7 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 
 | step | state | machine | what exists |
 |---|---|---|---|
-| [1. decide what a question is](#1-decide-what-a-question-is) | **planned** | Mac | this file |
+| [1. decide what a question is](#1-decide-what-a-question-is) | **planned** · `P2-a` settled (`D58`) | Mac | this file |
 | [2. harvest the questions](#2-harvest-the-questions) | not started | — | `deliverables/BREAKAGES.md` is the seed |
 | [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | not started | — | — |
 | [4. score it](#4-score-it-with-one-command) | not started | — | — |
@@ -69,13 +69,26 @@ SQLAlchemy's prose did not change between releases. `errors.rst` alone holds 27 
 So when the golden set says *"chunk `c00403` holds the answer"* and search returns `c01965` —
 **byte-identical text, different version tag** — is that a hit or a miss?
 
-| answer | consequence |
-|---|---|
-| **hit** — either copy counts | `recall@k` measures *did we find the text*. Honest, and blind to a real failure: answering a 2.0 question from a 1.4 page is the thing `D10` kept version skew in the corpus to study |
-| **miss** — only the tagged copy counts | punishes the system for a duplicate it did not create, and the score moves when the corpus is deduplicated, not when retrieval improves |
+**Settled 2026-08-18 as `D58`, before any score existed — which is the only honest time to settle
+it.** Either copy counts as a hit. The reason is mechanical rather than philosophical:
 
-**Neither is wrong; picking silently is.** The plan below records both and reports the pair,
-because the gap between them *is* a measurement of how much duplication is costing.
+`rag/embed.py` prepends the heading path before embedding, so **`(heading_path, text)` is exactly
+the unit that decides a vector.** Grouped that way, **437 pairs share both** — and their vectors
+are **byte-identical, 437 of 437 checked.** Identical vectors score identically against every
+possible query, so the two copies **always occupy adjacent slots or neither**. No ranker can
+prefer the right one. A metric that penalises the ranker for that is scoring the corpus.
+
+A second group behaves differently and is deliberately not lumped in: **31 pairs share a text but
+sit under different headings**, and **0 of 31** have identical vectors — cosines go as low as
+`0.964`. Those are ordinary near-neighbours.
+
+Two numbers ship beside the headline so nothing is hidden: **version-strict recall**, and
+**`slots_lost_to_duplicates`** as a figure in its own right rather than a gap to be inferred.
+`probe.py` measured **2 of 19** questions losing a slot this way — a real tax, and a small one.
+
+And the escape hatch that keeps `D10` intact: an item marked **`version_sensitive: true`** is
+always scored strictly, because for some questions the version *is* the answer, and the permissive
+default would otherwise excuse the exact failure the skew was kept to study.
 
 ### The rank of the first correct chunk is worth more than recall
 
@@ -123,6 +136,8 @@ in a generated file.
   the first.
 - **`answer_chunks` is a list** — more than one chunk can legitimately hold the answer, and with
   874 duplicate halves in the index, sometimes both members of a pair do.
+- **`version_sensitive`** (default `false`) — set it when the *version* is part of the right
+  answer. Those items are scored version-strict regardless of `D58`'s permissive default.
 - **`answer_note`** — the sentence a human wrote after opening the file. Without it, a year from
   now nobody can tell a verified item from a guessed one.
 
@@ -173,8 +188,17 @@ read.
 | **rank of first hit** | how far off a miss was — the Phase 1 finding | nothing about the other slots |
 | **refusal accuracy** | on `answerable: false` items, did it correctly decline | nothing about answerable ones |
 
-Reported **twice** where duplicates matter: once counting either half of a cross-version pair as
-a hit, once counting only the tagged half. The difference is the cost of `D38`.
+**`P2-a` is settled — `D58`.** Either half of a duplicate pair counts as a hit, because the 437
+same-heading pairs have **byte-identical vectors** and therefore an identical score to every
+possible query: no ranker can prefer the right copy, so a metric that penalises it is scoring the
+corpus rather than retrieval. Version-strict recall ships beside it, and
+**`slots_lost_to_duplicates`** ships as its own number rather than as a gap to be inferred —
+`probe.py` measured 2 of 19 questions losing a slot. Items marked `version_sensitive: true` are
+always scored strictly, so `D10`'s skew questions are not quietly excused.
+
+**The scorer reads `corpus/chunks.jsonl`, never `deliverables/FAILURES.md`.** That file truncates
+each shown chunk at 700 characters and carries no chunk ids; measuring duplicates off it returns
+6 of 19 instead of 2. A rendered report is not the data.
 
 **Done when:** one command prints a score, and that score is committed as the Phase 1 baseline
 row of `ROADMAP.md`'s metrics table — the row every Phase 3 change is measured against.
@@ -185,7 +209,7 @@ row of `ROADMAP.md`'s metrics table — the row every Phase 3 change is measured
 
 | | decision | why it cannot be deferred |
 |---|---|---|
-| **P2-a** | duplicate-pair counting: either-half, tagged-only, or both reported | changes every recall number; deciding after seeing the scores is choosing the flattering one |
+| ~~**P2-a**~~ | ~~duplicate-pair counting~~ — **settled 2026-08-18, `D58`.** Either half counts as a hit; version-strict and `slots_lost_to_duplicates` reported beside it; `version_sensitive` items always scored strictly | the 437 same-heading pairs have **byte-identical vectors**, so no ranker can prefer one — punishing it measures the corpus, not retrieval |
 | **P2-b** | `k` for `recall@k` — 5 to match `DEFAULT_K`, or 10 to see near-misses | 5 measures what ships; 10 measures what a reranker could reach. Probably both |
 | **P2-c** | whether the 19 probe questions enter the set at all | they are labelled and free, and they are the leakiest items available |
 | **P2-d** | target size: 30 or 50 | 15 min an item means 7.5 vs 12.5 hours, and a small honest set beats a large padded one |

@@ -23,7 +23,7 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D57`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D58`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -327,7 +327,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 gate with a recorded exception (`D56`: 8 of 10, population rate 10.7%, 6.3% unrecoverable), the
 five verification questions per `D57`. **Next is Phase 2.** **Work is on branch
 `phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
-closes. **140 tests**, **58/58** `# runnable` blocks, **57** decision entries, **§H empty**,
+closes. **140 tests**, **58/58** `# runnable` blocks, **58** decision entries, **§H empty**,
 19 verdicts in sync (`tools.apply_verdicts --check`).
 
 **The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at
@@ -390,12 +390,13 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
 
 **Next work, in order — Phase 2:**
 
-1. **Settle `P2-a`: how a cross-version duplicate counts.** `phases/PHASE-2.md` "Decisions to
-   make". **874 of 3284 chunks are half of a duplicate pair** (`D38`), so when the golden set
-   names `c00403` and search returns byte-identical `c01965` under the other version tag, that is
-   either a hit or a miss and the choice moves every recall number. **Decide before any score is
-   printed** — deciding after is picking the flattering one. The plan proposes reporting both and
-   calling the gap the cost of `D38`.
+1. ~~**Settle `P2-a`**~~ — **done 2026-08-18, `D58`.** Either half of a duplicate pair counts as
+   a hit, because the **437 same-heading pairs have byte-identical vectors** (437/437 checked) and
+   so score identically against every query — no ranker can prefer one, and penalising it scores
+   the corpus rather than retrieval. Version-strict recall and `slots_lost_to_duplicates` ship
+   beside it; `version_sensitive: true` items are always scored strictly, which is what keeps
+   `D10` intact. **The scorer reads `corpus/chunks.jsonl`, never `FAILURES.md`** — that file
+   truncates chunks at 700 chars, and measuring duplicates off it gives 6 of 19 instead of 2.
 2. **Settle `P2-b`/`P2-c`/`P2-d`** — `k` for `recall@k` (5 matches `DEFAULT_K`, 10 sees
    near-misses), whether the 19 probe questions enter the set, and 30 vs 50 items.
 3. **Harvest the golden set.** 30–50 questions, **found not written** — real GitHub issues and SO
