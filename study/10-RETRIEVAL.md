@@ -893,7 +893,7 @@ Do not answer Q4 with *"the filter wasn't switched on."* Read source `[1]`'s fir
 
 **Q1 — why more docs can make it worse**
 
-**Short:** five slots. New text cannot add a sixth. It can only steal a slot from whatever was
+There are five slots. New text cannot add a sixth. It can only steal a slot from whatever was
 winning.
 
 Every chunk is scored on every question. Added text competes on queries it has nothing to do
@@ -909,7 +909,7 @@ where…"* on every question.
 
 **Q2 — why Phase 3 cannot answer `has_table`**
 
-**Short:** the name is in **zero** chunks. Ranking cannot rank an empty list.
+The name is in **zero** chunks. Ranking cannot rank an empty list.
 
 The corpus is documentation *source*. Method signatures live in HTML that Sphinx generates
 later from `.. autoclass::` stubs. In our 270 files those stubs number 514 (1.4) and 569 (2.0).
@@ -925,7 +925,7 @@ Step 1 (change the corpus) can touch it. Same-looking wrong answer; different ow
 
 **Q3 — why `BREAKAGES.md` is out**
 
-**Short:** it is the answer key for Phase 2.
+It is the answer key for Phase 2.
 
 If the corpus contains the eval answers, the score measures "can we find our own homework."
 The number goes up and means less. That is leakage. **D09.** Real quality now, traded for an
@@ -933,7 +933,7 @@ honest number later.
 
 **Q4 — why `--version` did not save question #7**
 
-**Short:** `[1]` was already a 2.0 page. The filter was never positioned to catch it.
+`[1]` was already a 2.0 page, so the filter was never positioned to catch it.
 
 Skew has two shapes. A filter only catches one:
 
@@ -1381,8 +1381,19 @@ the cost half is the half worth being able to state.
 
 ### R2.4 "Close" means the angle between them
 
-Everything sits on a unit sphere (length 1). Similarity is the **cosine of the angle** between
-two arrows:
+**You have written this query hundreds of times.** In SQL, ranking is:
+
+```sql
+SELECT id, <some number> AS score FROM pages ORDER BY score DESC LIMIT 5;
+```
+
+The database computes one number per row, sorts by it, returns five. **Search here is that
+statement.** The `LIMIT 5` is `DEFAULT_K` in `rag/ask.py`. The only part that is new is how
+`<some number>` gets computed — and this section is only about that number.
+
+Everything sits on a unit sphere (length 1) — meaning every chunk's 1024 numbers are scaled so
+the arrow they describe has length exactly 1. Two arrows of length 1 can differ in one way
+only: **direction**. So the score is the **cosine of the angle** between them:
 
 | angle | cosine | means |
 |---|---|---|
@@ -1393,6 +1404,14 @@ two arrows:
 Because every vector has length 1, cosine **is** the dot product — multiply matching pairs,
 add. One CPU instruction over 1024 numbers. That is why searching 3284 chunks takes no
 perceptible time, and it is what `vectors @ query` does in `rag/index.py`.
+
+**What the number is not.** It is not a percentage and not a probability. `0.83` does not mean
+*83% relevant* — there is nothing it is 83% of. It is a comparison between two arrows and it is
+only meaningful **against the other scores in the same query**. The floor is not 0 either: two
+unrelated pages in this corpus already score around **0.54**, because they are both technical
+English about databases. So a chunk scoring `0.61` is not "somewhat relevant" — it is noise
+that happens to be written in the same dialect. That is exactly the `table_names` failure in
+§R4.3, where the five returned chunks beat the rest of the index by `+0.001`.
 
 Measured against a real chunk — `c01464`, the 1.4 tutorial paragraph about `create_engine`:
 

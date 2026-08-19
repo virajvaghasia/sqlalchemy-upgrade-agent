@@ -336,8 +336,8 @@ question is a claim; when the evidence moves, the question moves.
 
 **Q1 — why "necessary" is the stronger claim, and how to say it**
 
-**Short:** C failed every time we ran it. A failed once in three. Same number of tries; not
-the same strength.
+C failed every time we ran it. A failed once in three. Same number of tries; not the same
+strength.
 
 | prompt | what we saw |
 |---|---|
@@ -361,8 +361,7 @@ none of this counts." B is still **6/6**. Weak A evidence does not make C a good
 
 **Q2 — how you know it was the prompt, not search**
 
-**Short:** give the model **only** the right pages. If it still refuses, search is not the
-suspect.
+Give the model **only** the right pages. If it still refuses, search is not the suspect.
 
 The original A bug: *why can't I call `engine.execute` any more?* → canned refusal, while
 those migration pages were already in the prompt.
@@ -379,8 +378,8 @@ Nothing is left upstream of `SYSTEM`. That is the proof. Reading the paragraph a
 
 **Q3 — why fixing the prompt is not cheating D04**
 
-**Short:** D04 says do not add hybrid search / reranking yet. It does not say leave a
-**broken** `SYSTEM` in place.
+D04 says do not add hybrid search or reranking yet. It does not say leave a **broken**
+`SYSTEM` in place.
 
 If we had kept A as the default, almost every Step 5 row in `FAILURES.md` would have been
 "refused." That file is supposed to show **retrieval** failures so Phase 3 has a before

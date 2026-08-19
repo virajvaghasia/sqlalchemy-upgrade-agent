@@ -766,7 +766,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   fixed. Nothing caught it: every claim was in prose, and `check_runnable` was green across the
   file the whole time.
 - **Adding 4 tests broke 4 `# runnable` blocks** in `README.md`, `07-TESTS.md` and `PHASE-0.md`,
-  all quoting the test count. That is the mechanism working — the counts are now 133 and 56/56.
+  all quoting the test count. That is the mechanism working — the counts went to 133 and 56/56
+  at that commit, and have moved since; the current figures are in the state block above.
 
 ### 2026-08-18 — explanations that lived only in chat, written into the files
 
