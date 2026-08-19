@@ -8,24 +8,33 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 | step | state | machine | what exists |
 |---|---|---|---|
 | [1. decide the corpus](#1-decide-the-corpus-and-write-down-why) | **done** 2026-08-13 | Mac | `rag/corpus.py`, `corpus/MANIFEST.json`, 270 files fetched |
-| [2. chunk it](#2-chunk-it) | **built** 2026-08-14 · char range added 08-15 | Mac | `rag/chunk.py`, 3284 chunks. **Gate open:** eyeball ten |
+| [2. chunk it](#2-chunk-it) | **done** 2026-08-18 · built 08-14 | Mac | `rag/chunk.py`, 3284 chunks. Gate passed with a recorded exception (`D56`) |
 | [3. embed and store](#3-embed-and-store) | **done** 2026-08-14 | Mac (M4/Metal) | `rag/embed.py` + `rag/index.py`, 3284 × 1024 vectors in Qdrant |
 | [4. retrieve and answer](#4-retrieve-and-answer) | **done** 2026-08-15 | Mac — 18.4 tok/s | `rag/ask.py` — **the hard gate is met** |
-| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **built** 2026-08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`. **Gate open:** 19 verdicts |
+| [5. break it on purpose](#5-break-it-on-purpose-and-write-it-down) | **done** 2026-08-17 · built 08-15 | Mac | `rag/probe.py` → `deliverables/FAILURES.md`, 19 verdicts in `verdicts.json` |
 
 **Picking this up cold?** Read each step's write-up in order — they carry the measurements and
 the corrections.
 
-> ### Phase 1 is BUILT, not COMPLETE — and the difference is not a formality
+> ### Phase 1 is COMPLETE, closed 2026-08-18
 >
-> All five steps run and the pipeline gate is met. **Three of this file's own stated criteria
-> are still open, and every one of them is a human's:**
+> All five steps run, the pipeline gate is met, and both human gates are closed.
 >
-> | open gate | where | who |
+> | gate | closed | outcome |
 > |---|---|---|
-> | eyeball ten chunks at random and find each self-contained | Step 2 *Done when* | **Viraj** |
-> | 19 `UNVERIFIED` verdicts — is each answer right? | Step 5 *Done when* | **Viraj** |
-> | the five cold verification questions | [Verification](#verification) | **Viraj** |
+> | eyeball ten chunks | 2026-08-18 | passed; 8 of 10 self-contained, and the population rate measured at 10.7% with 6.3% unrecoverable (`D56`) |
+> | the five cold verification questions | 2026-08-18 | closed (`D57`). §R5.7 keeps the five answers for rehearsal |
+>
+> **Step 2's gate closed on 2026-08-18 — passed, with two of the ten chunks failing and the
+> exception written down** in Step 2 and `D56`. Reading ten turned up two that do not stand
+> alone; counting all 3284 put the rate at **about 1 in 10, and 1 in 16 unrecoverable**. It
+> passed because the defect is now bounded and named rather than suspected, and because a
+> chunker with no boundary defects is a Phase 3 chunker.
+>
+> **The third closed on 2026-08-17.** Step 5's 19 verdicts were written against real 2.0.51 and
+> came back `CORRECT 10 · PARTIAL 3 · WRONG 6`. They live in `deliverables/verdicts.json` rather
+> than in `FAILURES.md`, because `probe.py` generates that file — and before the split, a
+> regeneration overwrote all 19 with `UNVERIFIED` and said nothing.
 >
 > **One criterion was silently unmet until 2026-08-15 and is now fixed.** Step 2 asks for chunks
 > carrying *"source file, heading path and character range"*. They carried a length (`n_chars`)
@@ -324,6 +333,122 @@ character range — and you can eyeball ten at random and find each one self-con
 > Worth noticing *how* it was missed: the step was marked done because the script ran and the
 > output looked right. Nothing checked the sentence in this file word by word. That is what the
 > gates are for.
+
+##### The gate was taken on 2026-08-18. It passed, and two of the ten failed.
+
+Both of those are true at once, so this section says what was seen, what it turned out to cost,
+and why the answer was still yes. **A gate passed without writing down the exception is a gate
+that stops meaning anything**, so the exception is here.
+
+**What was done.** `uv run python -m rag.chunk --sample 10` printed ten chunks. The command is
+read-only and uses a fixed seed, so it prints *the same ten* every time — which means this
+ruling can be re-checked rather than merely remembered. All ten were read in full.
+
+**Eight stood on their own. Two did not.**
+
+| chunk | what is wrong with it |
+|---|---|
+| `c03012` | It stops in the middle of a thought. Its last words are *"…is as follows:"* and then the chunk ends. The list it just promised is not in it. |
+| `c00138` | It starts by pointing at something that is not there. Its first words are *"While the above example is against…"* — and there is no example above it, because the chunk begins at that sentence. |
+
+Neither is subtle. Read either one aloud and you can hear the missing half.
+
+**The two are not equally bad, and the difference is the interesting part.**
+
+- `c03012` runs from character 28814 to 29201 of its file. The chunk after it starts at 28953 —
+  *before* `c03012` ends. They overlap, and that overlap contains the missing list. **So the
+  content is not lost.** `c03012` is a bad chunk sitting next to a good one, and the only harm is
+  if search returns the bad one instead of the good one.
+- `c00138` runs from 7880 to 8297. The chunk before it ends at exactly 7880. **No overlap at
+  all** — the example it refers to is in the previous chunk, and nothing contains both. This one
+  is genuinely lost.
+
+Overlap is what makes the difference, and overlap is by whole block rather than by character
+(`../study/09-DECISIONS.md` `D33`, `D34`). Whole blocks are different sizes, so some boundaries
+end up generously covered and some end up not covered at all.
+
+**Then the obvious question: is two out of ten normal, or was that an unlucky ten?**
+
+Ten is too few to answer that, so all 3284 were counted. The two failures above are the two
+shapes, and both can be looked for mechanically:
+
+```
+# runnable: uv run python -m rag.chunk --audit
+chunks                                           3284
+  A: ends announcing what never follows           135   4.1%
+       of those, ending on '::'                     0
+       of those, no overlap to recover it          30
+  B: opens pointing at what is not here           227   6.9%
+       of those, no overlap to recover it         177
+  either shape                                    352  10.7%
+  either shape, content lost entirely             207   6.3%
+```
+
+**In plain terms: about 1 chunk in 10 has this problem, and about 1 in 16 loses content because
+of it.** The sample of ten came out at 2 in 10, which is worse than the true rate — a slightly
+unlucky draw, not a sign the sample was misread.
+
+**What the numbers do not say**, because a measurement with no stated limits invites more trust
+than it earned:
+
+- **Shape B is found with a pattern-match on the opening words, and it over-fires.** Eight hits
+  were read at random and seven were real; the eighth, `c00203`, opens *"This
+  section describes the event interfaces provided in"* — which points *forward*, not back. So
+  treat 227 as roughly one-eighth too high.
+- **The detectors were checked against known answers before being believed.** `c03012` must
+  appear in shape A and `c00138` in shape B — both do. And `c01480`, which also opens with a
+  backward reference (*"We've constructed…"*) but then repairs itself in the same sentence by
+  restating what was constructed, must **not** appear — it does not. Without that third check
+  the audit would only be measuring how eagerly a regex fires.
+- **Zero chunks end on `::`**, which is a real positive result rather than a null one. `::` in
+  reStructuredText means *the indented block after this line is a listing*. A chunk ending
+  there would have said “here comes the code” and then not included the code. That never
+  happens. **The 10.7% is prose-shaped, not code-block-shaped.** Those are two different
+  cuts:
+
+  ```
+  PROSE-SHAPED (Shapes A / B)         CODE-BLOCK-SHAPED (::)          SEVERED LISTING (Q3 / §R5.3)
+  ───────────────────────────         ──────────────────────          ──────────────────────────
+  "...is as follows:"                 "For example::"                 >>> class User(Base):
+           ▲                                    ▲                     ...     relationship("Address"...
+    English promises more,              RST: listing starts now,                 ▲
+    the next paragraph is gone          body never in this chunk         valid Python. Address is
+    (you hear it when you read)         (audit found 0 of these)         in the NEXT chunk
+                                                                         (you do not hear it)
+  ```
+
+  Shape A/B is a sentence that only makes sense with the neighbouring paragraph. Ending on
+  `::` would be announcing a listing and dropping it — **0 chunks**. Cutting *inside* a
+  listing is a third defect: **at least 11 of 3077 boundaries**, measured separately in
+  [`../study/13-VERIFICATION.md`](../study/13-VERIFICATION.md) §R5.3. Zero `::` does **not**
+  mean “we never split code.” It means “we never split at the line that introduces it.”
+
+**Why the gate passed anyway.** Three reasons, in the order they carried weight:
+
+1. **The failure is understood, bounded and named.** "About 1 in 10, of two specific shapes,
+   1 in 16 unrecoverable" is a sentence that can be defended. "Some chunks are a bit broken"
+   is not, and that is the state this gate existed to convert.
+2. **Phase 1 is meant to be bad on purpose** (`D04`). A chunker good enough to have no boundary
+   defects is a Phase 3 chunker. Fixing it now would remove a measured failure before anything
+   downstream had a chance to be hurt by it — which is the exact mistake this phase is built to
+   avoid.
+3. **Nothing downstream is blocked.** The 19 probe answers were verified against real 2.0.51 and
+   none of the six `WRONG` verdicts was caused by a truncated chunk. The defect is real and, so
+   far, has not been the thing that broke an answer.
+
+**What would reverse this ruling.** Any of them, and none needs a discussion:
+
+- a probe answer that is wrong *because* a chunk was cut — the missing evidence, so far, for
+  calling this urgent;
+- the rate rising after a chunker change, which is now a one-command check rather than an
+  argument;
+- a decision to fix boundaries properly, at which point `--audit` is the before-and-after number.
+
+**What the fix would be, when it comes.** Not a bigger overlap — that hides the symptom and
+inflates the index. It is a boundary rule that understands reStructuredText well enough to know
+that a line ending in `:` is mid-sentence and a paragraph opening with *"The above"* belongs to
+what came before. That needs a real parser rather than a regex, which is why it is deferred
+rather than squeezed in. Recorded as `../study/09-DECISIONS.md` **D56**.
 
 #### Done — `rag/chunk.py`
 
@@ -780,7 +905,9 @@ rather than a lookup of the answer key.
 
 ##### The script does not grade answers, and that is deliberate
 
-Every answer is written out marked **`UNVERIFIED`** with a blank verdict line. D06 says the
+No answer is graded by the script. Each is written out with its verdict read back from
+`deliverables/verdicts.json`, and marked **`UNVERIFIED`** where no human has recorded one yet.
+D06 says the
 golden dataset is hand-verified, never auto-generated — and a script that decided which of its
 own answers were correct would be scoring against a key written by the same model family that
 produced them. That measures self-consistency, not truth.
@@ -825,12 +952,13 @@ worst results of any — **4 of 6 refused, 3 of 6 retrieval failures** — it ju
 That is a better outcome than either being right or being wrong. The illustration was replaced
 by evidence.
 
-##### What is still a human's job
+##### What was a human's job, and what it produced
 
-Every verdict. The file has 19 `UNVERIFIED` lines waiting for `CORRECT` / `WRONG` / `PARTIAL`
-and one sentence each. **The signals say where to look; they do not say what is true.** In
-particular the 13 `version_mixed` questions need reading — most are harmless, and the point of
-D10 was to find the ones that are not.
+Every verdict — and they were written on 2026-08-17, closing this step's gate. All 19 carry a
+judgement and one sentence of reasoning: `CORRECT 10 · PARTIAL 3 · WRONG 6`. **The signals said
+where to look; they did not say what was true** — which the 13 `version_mixed` questions bear
+out, since most were harmless and reading them is the only thing that separated those from the
+ones that were not. That separation is what D10 exists for.
 
 ---
 
@@ -865,3 +993,12 @@ Cold, no notes:
 
 **Hard gate:** an answer with sources from a terminal, and a written list of failures with the
 wrong chunks shown.
+
+**The answers are written up in [`../study/13-VERIFICATION.md`](../study/13-VERIFICATION.md)
+(§R5)** — each question with the plain-words version, the mechanism, the measurement that makes
+it checkable, the sixty-second spoken answer, and the wrong answer it attracts.
+
+> **Read it after a sitting, not before.** The gate is *cold, from memory, no notes*. Reading the
+> answers first converts a recall test into a recognition test, and a recognition test measures
+> nothing — every answer looks familiar, which is exactly the feeling this gate exists to
+> distinguish from knowing.

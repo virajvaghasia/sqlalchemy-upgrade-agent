@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D46`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D57`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1268,6 +1268,110 @@ the numbers were, and — the part people skip — what fifteen data points do *
 
 
 ---
+
+### D55 — the five verification answers got their own file, against this repo's own no-new-files rule
+
+> **Decided** — the answers to `PHASE-1.md`'s five cold questions went into a new
+> `study/13-VERIFICATION.md` as **§R5**, continuing the `R` run per `D47`.
+> **Instead of** — the default, which `CLAUDE.md` states plainly: *"Everything goes in the
+> existing docs. Do not create a new file to hold an explanation that belongs beside the thing
+> it explains."* Two placements were available and both were rejected.
+> **Rejected — expanding `PHASE-1.md`'s Verification section.** It is where the questions live,
+> so it looks like the obvious home. But `PHASE-1.md` is a **plan**, and plans go cold: when
+> Phase 2 opens, that file stops being read. These five answers are the opposite — they are the
+> material rehearsed before every interview, for as long as the project is on a CV. Filing
+> permanent material inside a document with a scheduled end date is how it gets lost.
+> **Rejected — splitting the answers across `10`, `11` and `12`.** Q2 is corpus (§R1), Q3 is
+> chunking (§R1), Q4 is embeddings (§R2), Q5 is generation and evaluation (§R3–§R4), Q1 is a
+> design decision belonging to none of them. Each answer would land in the right file and the
+> **set** would cease to exist — and the set is the artefact, because the gate is five questions
+> in one sitting, not five paragraphs in four files.
+> **Because the splitting rule's actual condition is met.** `study/README.md` allows a split when
+> a file "has grown to cover two genuinely different subjects". §R5 is a different subject from
+> all three existing ones: `10`–`12` are about **building and measuring** the system, §R5 is
+> about **defending it out loud without notes**. Those fail differently — the recorded failure
+> mode for §R5 is answering the setup instead of the question, which no amount of building skill
+> prevents.
+> **The cost, stated rather than hidden.** A file of model answers can be read before the gate
+> instead of after, which converts a recall test into a recognition test and makes the gate
+> measure nothing. That is not solved by good intentions, so it is written into both files and
+> pinned by a test (`test_the_answers_file_does_not_claim_to_replace_the_gate`). The mitigation
+> is a sentence, and a sentence is a weak mitigation — the honest position is that this file
+> **spends** a one-shot cold gate in exchange for material that is reusable indefinitely.
+> **Asked as** — *"When do you break your own documentation rules?"* — and the answer is when
+> the rule's stated reason does not apply. The no-new-files rule exists so explanations sit
+> beside what they explain; these explanations have no single thing to sit beside.
+
+
+### D56 — the chunk gate passed with 2 of 10 failing, and the exception is the record
+
+> **Decided 2026-08-18** — Step 2's *"eyeball ten at random and find each one self-contained"*
+> gate is **passed**, with two of the ten failing and the reason written down instead of the
+> failures being talked away.
+> **What failed.** `c03012` ends mid-promise — its last words are *"…is as follows:"* and the
+> list never arrives. `c00138` opens *"While the above example is against…"* and there is no
+> example above it. Neither is a judgement call; read either aloud and the missing half is
+> audible.
+> **They are not equally bad, and that is the transferable part.** `c03012` (28814→29201) is
+> overlapped by the chunk after it, which starts at 28953 and carries the missing list — the
+> content survives, only this copy of it is bad. `c00138` (7880→8297) follows a chunk ending at
+> exactly 7880, so there is **no overlap at all** and nothing holds both halves. Overlap is by
+> whole block (`D33`, `D34`), and whole blocks are uneven, so some boundaries are covered
+> generously and some not at all.
+> **Ten was not enough to rule on, so all 3284 were counted** — `uv run python -m rag.chunk
+> --audit`, added for this and re-runnable after any chunker change. **352 chunks (10.7%)** show
+> one of the two shapes; **207 (6.3%)** lose content because no neighbour overlaps them. The
+> ten-chunk sample read 2 in 10, which is an unlucky draw against a true rate near 1 in 10, not
+> a misreading.
+> **The detectors were validated against known answers before being believed**: `c03012` must
+> appear in shape A, `c00138` in shape B, and `c01480` — which also opens with a backward
+> reference and then repairs itself in the same sentence — must **not**. All three hold. Without
+> the third, the audit measures how eagerly a regex fires and nothing else. Shape B still
+> over-fires by roughly an eighth, measured by reading eight hits at random, and that is printed
+> beside the number rather than left for someone to discover.
+> **Instead of** — three alternatives, all rejected:
+> **(a) Fail the gate and fix the chunker now.** Rejected on `D04`: a chunker with no boundary
+> defects is a Phase 3 chunker, and fixing a measured failure before anything downstream has been
+> hurt by it is the exact mistake this phase exists to avoid. The fix is also not small — it needs
+> a boundary rule that parses reStructuredText, not a wider overlap, which would hide the symptom
+> and inflate the index.
+> **(b) Redefine "self-contained" to a looser reading and pass cleanly.** Rejected as moving the
+> bar after seeing the result. The two readings were fair to choose between before the reading;
+> picking the convenient one afterwards is the thing an interviewer asks the date of.
+> **(c) Pass it quietly.** Rejected because that is how a gate stops meaning anything — and this
+> repo has already watched `PHASE-1.md` claim three open gates when one had closed, purely
+> because nothing wrote the change down.
+> **What reverses it:** a probe answer that is wrong *because* a chunk was cut — currently zero
+> of the six `WRONG` verdicts are — or the rate rising after a chunker change, which `--audit`
+> now makes a one-command check rather than an argument.
+> **Asked as** — *"You found a defect and shipped anyway. Defend that."* — and the answer is that
+> the defect was bounded first: 1 in 10, 1 in 16 unrecoverable, two named shapes, one command to
+> re-check. Shipping with a measured defect is engineering; shipping with an unmeasured one is
+> the thing that gets called technical debt afterwards.
+
+
+### D57 — Phase 1 closed, and the useful finding is where the answers stopped
+
+> **Decided 2026-08-18** — Phase 1 is COMPLETE. Both human gates are closed; `D56` covers the
+> chunk gate and this entry covers the five verification questions.
+> **What the sitting produced, because it is the finding rather than the score.** Two of the five
+> were answered unaided — Q4, *an embedding matches meaning, not strings*, in five words on the
+> first attempt. In the other three the content was right and the **last clause of the question
+> went unanswered**: *on purpose*, *and what did you leave out*, *and was not invented*.
+> **That is a delivery pattern, not a knowledge gap**, and Q4 is the proof — the material is
+> held. Every one of these five questions carries its real content in its final words, so it is
+> possible to say something true about the first half and never reach what was asked. Naming the
+> pattern is worth more than the count, because the correction is a habit rather than more study.
+> **What that changed.** `study/13-VERIFICATION.md` §R5.7 was written from it: the five answers
+> said end to end, so the run can be rehearsed as one piece. The gate's standard is unchanged and
+> re-sittable — cold, from memory, without opening §R5 first (`D55`).
+> **Instead of** — holding the phase open until a second sitting. Rejected: the artefacts are
+> finished, Phase 2 depends on them, and a rehearsal gate blocking a build phase costs more than
+> it measures.
+> **Asked as** — *"How do you know when a phase is done?"* — and the answer is that the criteria
+> were written before the work, checked one at a time, and each outcome recorded next to the
+> criterion rather than summarised as a tick.
+
 
 ## Using this in an interview
 

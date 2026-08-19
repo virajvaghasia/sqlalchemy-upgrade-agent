@@ -539,9 +539,47 @@ Interviewer: *"Can't you just add reranking?"* Answer: *"Not for `has_table`. Ze
 
 The instinct: more docs = safer. Wrong for this system.
 
-**Search returns a fixed number of chunks.** Ours is k = 5. Those five slots are all the model
-will ever see. New text can add answers. It also adds **rivals** for the same five slots, on
-*every* question — including questions the new text has nothing to do with.
+**Search returns a fixed number of chunks.** Ours is k = 5 — the constant `DEFAULT_K` in
+`rag/ask.py`. Those five slots are all the model will ever see. New text can add answers. It also
+adds **rivals** for the same five slots, on *every* question — including questions the new text
+has nothing to do with.
+
+**This is not a thought experiment. It already happened here, before anyone added anything.**
+SQLAlchemy barely changed much of its prose between 1.4 and 2.0, so the same paragraph is in the
+index twice — once per version. **874 of the 3284 chunks are one half of a cross-version
+duplicate pair** (`D38`). `errors.rst` alone contains **27** such pairs. Here is one, byte-for-byte
+the same text under two ids and two version tags:
+
+```
+# runnable: uv run python -c "
+#   import json, collections
+#   rows=[json.loads(l) for l in open('corpus/chunks.jsonl')]
+#   g=collections.defaultdict(list)
+#   [g[r['text']].append(r) for r in rows if r['source_path'].endswith('errors.rst')]
+#   d=[v for v in g.values() if len(v)>1]
+#   print('duplicate pairs in errors.rst:', len(d))
+#   p=max(d, key=lambda v: len(v[0]['text']))
+#   print(' ', [(x['id'], x['sqlalchemy_version']) for x in p])
+#   print(' ', ' > '.join(p[0]['heading_path'])[:78])"
+duplicate pairs in errors.rst: 27
+  [('c00403', '1.4.52'), ('c01965', '2.0.51')]
+  Error Messages > Connections and Transactions > QueuePool limit of size <x> ov
+```
+
+When a question lands near that paragraph, **both** copies score almost identically, because they
+are the same words. Two of the five slots go to one paragraph. That is not a prediction: the very
+first real question asked of this system — *"why can't I call `engine.execute` any more?"* —
+came back with the same `errors.rst` passage at rank 1 and rank 2, one tagged 1.4.52 and one
+tagged 2.0.51 (`D38`).
+
+**Note what that example does not show.** Neither copy contains the string `engine.execute` —
+**no chunk of `errors.rst` does.** They were retrieved on meaning, not words, which is §R2's
+whole subject and the reason you cannot debug retrieval by grepping for the question.
+
+Nothing was added to cause any of this; it is what a corpus holding two versions of the same book
+does on its own. Now add SQLAlchemy's `changelog/` — roughly 60% of the doc tree by bytes, almost
+all of it one-line release notes — and ask what those five slots look like on *every* question
+afterwards.
 
 #### "Irrelevant" is your word. The machine never uses it
 
@@ -893,7 +931,7 @@ Do not answer Q4 with *"the filter wasn't switched on."* Read source `[1]`'s fir
 
 **Q1 — why more docs can make it worse**
 
-**Short:** five slots. New text cannot add a sixth. It can only steal a slot from whatever was
+There are five slots. New text cannot add a sixth. It can only steal a slot from whatever was
 winning.
 
 Every chunk is scored on every question. Added text competes on queries it has nothing to do
@@ -909,7 +947,7 @@ where…"* on every question.
 
 **Q2 — why Phase 3 cannot answer `has_table`**
 
-**Short:** the name is in **zero** chunks. Ranking cannot rank an empty list.
+The name is in **zero** chunks. Ranking cannot rank an empty list.
 
 The corpus is documentation *source*. Method signatures live in HTML that Sphinx generates
 later from `.. autoclass::` stubs. In our 270 files those stubs number 514 (1.4) and 569 (2.0).
@@ -925,7 +963,7 @@ Step 1 (change the corpus) can touch it. Same-looking wrong answer; different ow
 
 **Q3 — why `BREAKAGES.md` is out**
 
-**Short:** it is the answer key for Phase 2.
+It is the answer key for Phase 2.
 
 If the corpus contains the eval answers, the score measures "can we find our own homework."
 The number goes up and means less. That is leakage. **D09.** Real quality now, traded for an
@@ -933,7 +971,7 @@ honest number later.
 
 **Q4 — why `--version` did not save question #7**
 
-**Short:** `[1]` was already a 2.0 page. The filter was never positioned to catch it.
+`[1]` was already a 2.0 page, so the filter was never positioned to catch it.
 
 Skew has two shapes. A filter only catches one:
 
@@ -1381,8 +1419,19 @@ the cost half is the half worth being able to state.
 
 ### R2.4 "Close" means the angle between them
 
-Everything sits on a unit sphere (length 1). Similarity is the **cosine of the angle** between
-two arrows:
+**You have written this query hundreds of times.** In SQL, ranking is:
+
+```sql
+SELECT id, <some number> AS score FROM pages ORDER BY score DESC LIMIT 5;
+```
+
+The database computes one number per row, sorts by it, returns five. **Search here is that
+statement.** The `LIMIT 5` is `DEFAULT_K` in `rag/ask.py`. The only part that is new is how
+`<some number>` gets computed — and this section is only about that number.
+
+Everything sits on a unit sphere (length 1) — meaning every chunk's 1024 numbers are scaled so
+the arrow they describe has length exactly 1. Two arrows of length 1 can differ in one way
+only: **direction**. So the score is the **cosine of the angle** between them:
 
 | angle | cosine | means |
 |---|---|---|
@@ -1393,6 +1442,14 @@ two arrows:
 Because every vector has length 1, cosine **is** the dot product — multiply matching pairs,
 add. One CPU instruction over 1024 numbers. That is why searching 3284 chunks takes no
 perceptible time, and it is what `vectors @ query` does in `rag/index.py`.
+
+**What the number is not.** It is not a percentage and not a probability. `0.83` does not mean
+*83% relevant* — there is nothing it is 83% of. It is a comparison between two arrows and it is
+only meaningful **against the other scores in the same query**. The floor is not 0 either: two
+unrelated pages in this corpus already score around **0.54**, because they are both technical
+English about databases. So a chunk scoring `0.61` is not "somewhat relevant" — it is noise
+that happens to be written in the same dialect. That is exactly the `table_names` failure in
+§R4.3, where the five returned chunks beat the rest of the index by `+0.001`.
 
 Measured against a real chunk — `c01464`, the 1.4 tutorial paragraph about `create_engine`:
 

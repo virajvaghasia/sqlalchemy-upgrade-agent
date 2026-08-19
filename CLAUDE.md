@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D54`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D57`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 129 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 140 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -117,7 +117,7 @@ Two things the original rule was protecting, which still apply:
 - **The drills still matter.** `study/04-DOCKER.md` keeps its question list, and the Phase 0
   hard gate is unchanged — the gate is whether he can explain it, not who typed it.
 
-### How to explain things. **Added 2026-08-15, from his own worked example.**
+### How to explain things. **Added 2026-08-15, from his own worked example. Amended 2026-08-18.**
 
 He rewrote §R1.2's explanation of "augmented" and his version was better than mine. The
 difference is the rule:
@@ -131,8 +131,10 @@ difference is the rule:
 - **"Nothing magical" is a sentence worth writing.** These systems are surrounded by language
   that implies the model learned something. Saying flatly that it did not is a correction, not
   filler.
-- **Short declarative lines beat qualified ones.** *"Same question. Bigger prompt. The extra
-  bytes are the lookup results."* Three sentences, no hedging, and the idea has landed.
+- **Plain sentences beat qualified ones.** *"Same question. Bigger prompt. The extra bytes are
+  the lookup results."* is easy to follow because each sentence does one job, not because it
+  is short. Hedging ("in a sense, one might say the prompt is somewhat enlarged") is what to
+  cut. Length is not.
 
 - **Every number in a block needs a sentence.** He read §R2 and asked: *where did the .rst come
   from, why only 3284 chunks, what is 1024, why float32, what is a median.* The doc printed all
@@ -141,6 +143,44 @@ difference is the rule:
   Where it can be *derived*, show the arithmetic: `3284 × 1024 × 4 bytes = 13451264`, which is
   exactly the file size printed two lines above. A reader who can recompute it stops having to
   trust it.
+
+**Assume he does not know the term. Show the thing. Then name it.** **Amended 2026-08-18,
+after he said the R1–R3 Q&A was weird and later: explain like that.** The 08-15 rules were
+right and still not enough. The remaining failure is writing as if he already sat the sitting.
+
+**Answers can be long. They must be easy to understand.** He said this outright on 2026-08-18.
+Do not compress a mechanism into a slogan to look punchy. Do not label a drill **Short:** and
+stop. Walk the example until the hole is visible — the three-cut picture for prose vs `::` vs
+a severed listing is the right length; "some chunks are a bit broken" is the wrong length.
+A long answer that uses only words he already has is better than a short one that uses
+*cosine* and hopes. If a paragraph needs a named example, a side-by-side, and what it is not,
+write all three.
+
+Do this:
+
+1. **Start from Python and SQL.** Do not open with RAG, cosine, top-k, Shape B, or
+   `single_source`. A library with 270 books and five pages on the desk first; *corpus* and
+   *top-k* after.
+2. **A named example, not a type of example.** `c03012` ending *“…is as follows:”*. Question 7
+   citing only `[1]`. `DEFAULT_K = 5` and `backref` at rank 6. “A truncated chunk” is a type.
+   He reads the example first.
+3. **Side by side when two things look alike.** Prose-shaped vs `::` vs a severed listing.
+   Rank 6 vs rank 23. One picture, then the names. A paragraph that says “they are different”
+   without showing both is the weird Q&A again.
+4. **Name the actual lever.** Not “tune k.” The integer is `DEFAULT_K` in `rag/ask.py`, it is
+   5, 6 would have included rank 6, 6 is not what ships. Not “the answer is fragile.” *Does
+   not survive* means: five pages in the prompt, one `[n]` in the answer, so if that page is
+   the bad one there is no backup in the citations — Q7.
+5. **Say what it is not, in the same breath.** Zero chunks ending `::` is not “we never split
+   code.” `single_source` is not `uncited`. Raising k is not “the model will answer.”
+6. **Do not write drills that assume the sitting.** “Cover these on a first pass / shaped
+   short answer → why → what it is NOT” reads as already-knowing. Plain-language question,
+   then a full answer with the named example — as long as it needs to be. The 08-17 rewrite
+   of §R1–§R3 is the template for *clarity*, not for keeping answers short.
+
+Chat is not the artifact. **When he asks “what do you mean by X”, X gets that treatment in
+the file that uses X, and in the comment next to the constant if there is one.** Leaving it
+only in the session is how the next sitting starts from zero again.
 
 Apply this to every `study/` file, not only the new ones. **When he asks a question about a doc,
 the answer belongs in that doc** — the question is evidence the file was incomplete, not just a
@@ -282,14 +322,25 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-17, end of day):** Phase 1 is **BUILT, two gates from COMPLETE**.
-**Work is on branch `phase-1/completion`, not `main`** — `main` is deliberately stale and gets
-one PR when the phase closes. **129 tests**, **52/52** `# runnable` blocks, **54** decision
-entries, **§H empty**, 19 verdicts in sync (`tools.apply_verdicts --check`).
+**State (2026-08-18):** Phase 1 is **COMPLETE.** Both human gates closed 2026-08-18 — the chunk
+gate with a recorded exception (`D56`: 8 of 10, population rate 10.7%, 6.3% unrecoverable), the
+five verification questions per `D57`. **Next is Phase 2.** **Work is on branch
+`phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
+closes. **140 tests**, **58/58** `# runnable` blocks, **57** decision entries, **§H empty**,
+19 verdicts in sync (`tools.apply_verdicts --check`).
 
-**The teaching files are three:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
-(generation), `12-EVALUATION.md` §R4 (evaluation). One `R` run across all three — it stands for
-RAG, not Retrieval (`D47`).
+**The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at
+random turned up two that do not stand alone; `rag.chunk --audit` (new) then counted all 3284 and
+put the rate at **10.7%, of which 6.3% is unrecoverable**. It passed because the defect is bounded
+and named rather than suspected, and because fixing it now would remove a measured failure before
+anything downstream had been hurt by it (`D04`). **The remaining gate is the five cold
+verification questions** — sat 2026-08-18 and **not passed**: 2 of 5 unaided, 3 answered the
+setup rather than the question. `study/13-VERIFICATION.md` (§R5) is the write-up, and reading it
+before a re-sit converts the gate into a recognition test.
+
+**The teaching files are four:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
+(generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md` §R5 (defending it under
+questioning). One `R` run across all four — it stands for RAG, not Retrieval (`D47`).
 
 **What today settled, in the order it matters:**
 
@@ -315,12 +366,12 @@ RAG, not Retrieval (`D47`).
 **The open defect no wording fixes:** Q18 and Q19. At k=10 their chunks are in the prompt — Q19
 has **three**, at positions 6, 7, 8 — and all four wordings refuse. Two questions, real, unsolved.
 
-**Two gates remain and both are a human's:**
+**One gate remains and it is a human's:**
 
 | gate | how | where |
 |---|---|---|
-| eyeball ten chunks, confirm each is self-contained | `uv run python -m rag.chunk --sample 10` (read-only) | `phases/PHASE-1.md` Step 2 |
-| the five cold verification questions | from memory, no notes | `phases/PHASE-1.md` Verification |
+| ~~eyeball ten chunks~~ | **closed 2026-08-18** — passed with exception, `D56` | `phases/PHASE-1.md` Step 2 |
+| the five cold verification questions | from memory, no notes. **Sat 08-18, not passed** | `phases/PHASE-1.md` Verification |
 
 **What the verdicts actually showed, which is not what the phase predicted.** Five of the six
 `WRONG` are **refusals** — the system declining questions it could answer — not hallucinations.
@@ -673,7 +724,69 @@ Append a dated entry each session; keep each entry to a few bullets.
   `# runnable` blocks and numbers untouched.
 - The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
-  plain language**, then **Short:** answers.
+  plain language**, then a full answer with a named example. Length is fine; jargon-first is
+  not. He later made that explicit: answers can be long if they stay easy to follow.
+
+### 2026-08-18 — the chunk gate, taken and passed with an exception
+
+- **Step 2's gate closed. Viraj ruled PASS with 2 of 10 chunks failing**, and the exception is
+  written into `PHASE-1.md` Step 2 and `D56` rather than smoothed over. The two failures are
+  `c03012` (ends on *"is as follows:"*, list never arrives) and `c00138` (opens *"While the
+  above example…"*, and no chunk holds both halves).
+- **Ten was not enough to rule on, so `rag/chunk.py --audit` was added** and all 3284 counted:
+  **10.7% show one of the two shapes, 6.3% lose content entirely.** Read-only, and its numbers
+  now live in the committed `CHUNK_STATS.json` so CI can pin the doc against them — `build()`
+  cannot run in CI because `corpus/raw/` is not committed (`D11`).
+- **The detectors were validated against known answers before being trusted**, including a
+  negative control: `c01480` opens with a backward reference and repairs itself in the same
+  sentence, so it must NOT be flagged. Without that check the audit measures regex eagerness.
+- **Two of my own errors, both caught by machinery rather than reading.** A test fixture asserted
+  `ends_open == 2` for a chunk whose last line was `* one`; and a first pass at "how many answers
+  leak Sphinx markup" said 19 of 19 because the split swept in the retrieved-sources block —
+  it is **3 of 19**.
+- **`--audit` numbers are a `# runnable` block**, so the recorded exception cannot go stale
+  silently. Adding 5 tests broke the 3 blocks quoting the test count, again.
+- **The remaining gate is the five verification questions**, sat and not passed.
+
+### 2026-08-18 — the five verification answers, written up as §R5
+
+- **A cold sitting on the five `PHASE-1.md` verification questions was run and did not pass.**
+  Two of five answered unaided; three answered the *setup* rather than the final clause of the
+  question. Recorded because the correction is not more study — one answer was right in five
+  words on the first attempt — it is answering the last clause.
+- **`study/13-VERIFICATION.md` (§R5) written**, one section per question in a fixed four-part
+  shape: plain words → mechanism → the measurement → the sixty-second spoken answer, plus the
+  wrong answer each question attracts and the follow-up that kills it. **`D55`** records why it
+  is a new file when `CLAUDE.md` says not to create one, and what that costs.
+- **A new measurement, and a correction to it made before it shipped.** Q3 is posed
+  hypothetically in `PHASE-1.md`; it is not hypothetical. The first count of chunk boundaries
+  severing a literal block was **96 of 3077** — and **72 of those are `glossary.rst`**, where
+  every definition body is indented under its term. Requiring positive evidence of code gives
+  **11**. The honest claim is "at least 11", and both numbers are in the file, because the wrong
+  one is the same class of error the file is about.
+- **`PHASE-1.md` said three gates were open; the verdicts gate closed on 08-17.** Four places
+  fixed. Nothing caught it: every claim was in prose, and `check_runnable` was green across the
+  file the whole time.
+- **Adding 4 tests broke 4 `# runnable` blocks** in `README.md`, `07-TESTS.md` and `PHASE-0.md`,
+  all quoting the test count. That is the mechanism working — the counts went to 133 and 56/56
+  at that commit, and have moved since; the current figures are in the state block above.
+
+### 2026-08-18 — explanations that lived only in chat, written into the files
+
+- **Did not rewrite `01`–`08`.** Those already teach SQLAlchemy and Docker in their own shape.
+  The confusion was in the RAG files, so that is what moved.
+- **`single_source`** — "does not survive" means the answer cited only one of five pages, so if
+  that page is the bad one there is no backup in the citations. Q7 is the example. In
+  `rag/probe.py` and `deliverables/FAILURES.md`.
+- **Which integer** — `DEFAULT_K = 5`; 6 would have included `backref` at rank 6. Comment on
+  the constant in `rag/ask.py`; table in `study/12-EVALUATION.md` §R4.3.
+- **Prose-shaped vs code-block-shaped vs severed listing** — three different cuts. In
+  `phases/PHASE-1.md` Step 2, `rag/chunk.py` `audit()`, and `study/13-VERIFICATION.md` Q3.
+- **Explanation style is now a rule, not a mood.** `CLAUDE.md` *How to explain things*
+  amended 2026-08-18: assume no jargon, show then name, named examples, side-by-side when
+  two things look alike, name the actual lever, put the answer in the file. **He then
+  corrected the length bias:** answers can be long; they must be easy to understand. Do not
+  slogan a mechanism or stop at **Short:**.
 
 ### 2026-08-17 — verdicts closed, prompt D shipped, §H emptied
 

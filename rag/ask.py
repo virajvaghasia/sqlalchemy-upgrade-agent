@@ -67,6 +67,11 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 # on both machines is what makes those numbers comparable.
 MODEL = "qwen2.5-coder:7b"
 
+# How many pages get pasted into the prompt. Search ranks all 3284; the chatbot
+# only sees this many. `backref` landed at rank 6 of 3284 — one place below this
+# cut — so 6 would have put that page in with no other change (§R4.3). Round 7
+# then showed refusals stay 8 at k=5, 6 and 10, and k=10 bought over-fires, so
+# D54 kept 5. The integer that fixes the miss is not the one that ships.
 DEFAULT_K = 5
 
 # Temperature 0. A retrieval system that answers the same question two different

@@ -20,5 +20,15 @@
     "p90": 1740,
     "p99": 2451,
     "max": 5346
+  },
+  "audit": {
+    "n_chunks": 3284,
+    "ends_open": 135,
+    "ends_open_lost": 30,
+    "ends_open_literal": 0,
+    "opens_backward": 227,
+    "opens_backward_lost": 177,
+    "either": 352,
+    "lost": 207
   }
 }

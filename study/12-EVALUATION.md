@@ -30,6 +30,19 @@ So evaluation splits into two questions that get confused constantly:
 | **retrieval** | did the right chunk reach the prompt? | **yes** — it is a set membership test |
 | **generation** | is the answer any good? | **no** — it is a judgement |
 
+**One question of ours on each row, so the split is concrete rather than tidy.**
+
+- **Retrieval, and a script settles it.** *"`engine.has_table()` no longer exists, what replaces
+  it?"* — does any of the five pages contain the string `has_table`? `grep` answers that: **zero
+  chunks in the whole index contain it.** No reading, no opinion, no argument.
+- **Generation, and no script can settle it.** Question 1 asked what replaces
+  `Query.from_self()`. The answer said the `aliased` construct should be used instead, and cited
+  `[2][3]` — real pages, correct section. Right or wrong? **Partly right.** `aliased(Issue)`
+  renames a table; `aliased(Issue, subq)` wraps a subquery. The answer never mentions the second
+  argument, and run against the practice database the query returns `['a','e']` where the
+  correct version returns `['a']`. **A human had to know that.** No string match separates that
+  answer from a complete one: both name `aliased`, both cite a real page, both read fluently.
+
 **Almost everything measurable is on the first row.** That is not a coincidence and it is not a
 limitation to apologise for — it is why Phase 2 is scoped to retrieval and Phase 4 is a separate
 phase for answers. Conflating them produces a number that looks like quality and measures
@@ -69,15 +82,25 @@ has_table                  0    none   the ceiling — no k, no reranker, ever
 **Read the first row again. `DEFAULT_K = 5`, and the answer was at 6.**
 
 Before this, all five of those were filed as one thing: *"dense retrieval missed it, Phase 3 will
-fix it with hybrid search."* They are **four different problems**:
+fix it with hybrid search."* They are **four different problems**, and the first one is an integer.
 
-- **rank 6** — a constant is wrong. One integer fixes it.
-- **rank 8, 12** — the ranking is roughly right and the cut is too tight. A reranker over a wider
-  candidate set fixes these without changing search at all.
-- **rank 23, with a top-5 scoring `+0.001` over noise** — search did not rank the answer low, it
-  **found nothing** and filled five slots with near-random text. Reranking a list of noise cannot
-  help; keyword search can.
-- **not present** — the corpus ceiling (`D45`, §R1.4). No phase touches it.
+The integer is **`DEFAULT_K` in `rag/ask.py`**. It is currently **5**. Search put the first
+`backref` page at **rank 6 of 3284**. The chatbot only sees the top k pages, so rank 6 never
+gets pasted in. Change the constant to **6** and that page is in the prompt — no hybrid
+search, no reranker, no new model.
+
+Raising k *gets the page in*. It does **not** automatically get an answer: Round 7 left
+refusals at 8 at every k, and at k=10 the `backref` page was in the prompt and the model still
+refused (`D51`). k=10 also bought over-fires. **D54 kept `DEFAULT_K = 5`.** So 6 is the
+integer that fixes the *retrieval miss*. It is not the integer that ships.
+
+| failure | rank | what you change |
+|---|---|---|
+| `backref` | **6** | one integer: `DEFAULT_K` 5 → 6 |
+| `cascade_backrefs` | 8 | rerank a *wider* list (take 20, keep 5). Search unchanged |
+| `keys()` | 12 | same reranker — 6 is not enough |
+| `table_names` | 23 | keyword search; the top-5 scored ~noise |
+| `has_table` | none | nothing. Zero chunks. Only the corpus decision (`D45`) |
 
 **That is the shape of a real evaluation finding**: it did not say the system is 74% good, it said
 the plan was aimed at the wrong thing for at least one of five failures.

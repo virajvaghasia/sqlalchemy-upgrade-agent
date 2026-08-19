@@ -25,6 +25,20 @@ Plenty. A wrong *instruction* at the top of the message can:
 
 Search did not do that. The English we send with every question did.
 
+**The named case, because "a wrong instruction" is a type of thing and this was a real one.**
+The question was *"why can't I call `engine.execute` any more?"* The five pages handed to the
+model **already contained the answer** — the 2.0 migration pages saying exactly that. The reply
+was:
+
+```
+The sources do not answer this.
+```
+
+Search worked. The library found the right pages. Then one sentence of standing instruction —
+*refuse if the sources do not contain the answer* — fired anyway, and the pages were thrown
+away unread. Two other explanations were tested first and both were wrong (§R3.4). The bug was
+in the English.
+
 | subsection | after it you can say |
 |---|---|
 | R3.1 | the message has two parts: standing rules (same every time) and this question's five pages |
@@ -336,8 +350,8 @@ question is a claim; when the evidence moves, the question moves.
 
 **Q1 — why "necessary" is the stronger claim, and how to say it**
 
-**Short:** C failed every time we ran it. A failed once in three. Same number of tries; not
-the same strength.
+C failed every time we ran it. A failed once in three. Same number of tries; not the same
+strength.
 
 | prompt | what we saw |
 |---|---|
@@ -361,8 +375,7 @@ none of this counts." B is still **6/6**. Weak A evidence does not make C a good
 
 **Q2 — how you know it was the prompt, not search**
 
-**Short:** give the model **only** the right pages. If it still refuses, search is not the
-suspect.
+Give the model **only** the right pages. If it still refuses, search is not the suspect.
 
 The original A bug: *why can't I call `engine.execute` any more?* → canned refusal, while
 those migration pages were already in the prompt.
@@ -379,8 +392,8 @@ Nothing is left upstream of `SYSTEM`. That is the proof. Reading the paragraph a
 
 **Q3 — why fixing the prompt is not cheating D04**
 
-**Short:** D04 says do not add hybrid search / reranking yet. It does not say leave a
-**broken** `SYSTEM` in place.
+D04 says do not add hybrid search or reranking yet. It does not say leave a **broken**
+`SYSTEM` in place.
 
 If we had kept A as the default, almost every Step 5 row in `FAILURES.md` would have been
 "refused." That file is supposed to show **retrieval** failures so Phase 3 has a before
