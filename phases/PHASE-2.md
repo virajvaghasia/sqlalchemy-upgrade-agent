@@ -177,7 +177,22 @@ three `answerable: false`.
 For each question, open the corpus and find the chunk that genuinely answers it. **This is the
 part no script does** (`D06`), and it is roughly 15 minutes an item.
 
-Two tools already exist and should be used rather than rebuilt:
+**`rag/golden.py` is the bench for this**, built 2026-08-19:
+
+```
+uv run python -m rag.golden --status                  # how many verified, what each still needs
+uv run python -m rag.golden --add "question text"     # append a draft, never verified
+uv run python -m rag.golden --candidates "question"   # top-10 chunks with ids AND offsets
+uv run python -m rag.golden --show c01542             # the chunk in full, and the file:line to open
+```
+
+`--show` prints the exact line to open, e.g. `corpus/raw/2.0.51/changelog/migration_20.rst +40`,
+which is the clerical half of the 15 minutes. **`--candidates` ranks with the same dense search
+the system under test uses**, so the top hit is *what the system found*, not *what is correct* —
+and on a developer-phrased question the right chunk may not be listed at all. When that happens,
+record the chunk you found by reading: that item is now evidence of a retrieval failure (`D60`).
+
+Two more tools already exist and should be used rather than rebuilt:
 
 - `uv run python -m rag.chunk --sample N` prints chunks with `source_path`, `heading_path` and
   `char_start`/`char_end`, so the original `.rst` can be opened at the exact offset.

@@ -41,3 +41,12 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+# qdrant-client emits this from its own stderr handle during the import-time
+# "is the stack up?" probes in test_index.py and test_score.py, so neither
+# warnings.catch_warnings() nor contextlib.redirect_stderr() suppresses it.
+# It only fires when Qdrant is partially reachable, which makes it INTERMITTENT
+# -- and tools/check_runnable.py compares stdout AND stderr, so it silently
+# breaks the doc blocks that run `pytest --collect-only` while their visible
+# output stays identical. Filtered here because this is the only layer that
+# catches it. Narrow on purpose: the message, not the category.
+filterwarnings = ["ignore:Failed to obtain server version:UserWarning"]

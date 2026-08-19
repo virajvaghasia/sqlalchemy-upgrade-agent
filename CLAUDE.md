@@ -22,6 +22,10 @@ Meta, Google, Apple, Anthropic, and startups).
   `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md`
   §R5 (defending it under questioning, and the five cold questions). One `R` run across all
   four — it stands for RAG, not Retrieval (`D47`).
+- **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,
+  `--candidates` (chunk ids **and** char offsets, which `index --search` omits), `--show`
+  (the chunk in full plus the `file +line` to open). **It cannot mark anything verified**, and a
+  test asserts that.
 - **`rag/score.py`** — the Phase 2 scorer. `--validate` before any number is printed;
   `--baseline` for the paired comparison Phase 3 needs. Implements `D58`–`D62` rather than
   describing them.
@@ -40,7 +44,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 157 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 165 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -336,7 +340,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
 **State (2026-08-19):** **Phase 2 is the current phase.** Phase 0 and Phase 1 are COMPLETE and
-merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **157 tests** (152 pass, 5 skip
+merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **165 tests** (160 pass, 5 skip
 without Qdrant), **58/58** `# runnable` blocks, **62** decision entries, **§H empty**, 19 verdicts
 in sync.
 
@@ -442,7 +446,8 @@ enforced in code, not remembered.
 3. ~~**Build `rag/score.py`**~~ — **built 2026-08-18**, 17 tests, six mutations checked, and run
    end to end against live Qdrant. The validator runs before any number is printed and **drops
    items no human verified**, naming them.
-4. **Harvest the golden set — the next real work, and it is Viraj's.** 50 questions, **found not
+4. **Harvest the golden set — the next real work, and it is Viraj's.** Use `rag/golden.py`
+   (`--status`, `--add`, `--candidates`, `--show`). 50 questions, **found not
    written** — real GitHub issues and Stack Overflow questions, seeded from `BREAKAGES.md`'s 23
    entries with `provenance` recorded. ~15 minutes an item, ~12.5 hours, and `D06` means only a
    human verifies. At least three `answerable: false`, and **`has_table` is the best one

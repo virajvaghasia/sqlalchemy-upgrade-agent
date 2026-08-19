@@ -30,7 +30,7 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-157 tests collected in 0.37s
+165 tests collected in 0.37s
 ```
 
 **Collected, not passed — and the difference is the point.** `uv run pytest` reports *114 passed*
@@ -49,6 +49,7 @@ tests/test_compare_prompts.py: 9
 tests/test_corpus.py: 25
 tests/test_db_config.py: 5
 tests/test_embed.py: 12
+tests/test_golden.py: 8
 tests/test_index.py: 9
 tests/test_models.py: 6
 tests/test_probe.py: 18
