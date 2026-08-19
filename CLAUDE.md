@@ -22,12 +22,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D55`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D56`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 133 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 138 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -282,11 +282,19 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-18):** Phase 1 is **BUILT, two gates from COMPLETE** — and both remaining
-gates are a human's. **Work is on branch `phase-1/completion`, not `main`** — `main` is
-deliberately stale and gets one PR when the phase closes. **133 tests**, **56/56** `# runnable`
-blocks, **55** decision entries, **§H empty**, 19 verdicts in sync
-(`tools.apply_verdicts --check`).
+**State (2026-08-18):** Phase 1 is **BUILT, ONE gate from COMPLETE**. **Work is on branch
+`phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
+closes. **138 tests**, **57/57** `# runnable` blocks, **56** decision entries, **§H empty**,
+19 verdicts in sync (`tools.apply_verdicts --check`).
+
+**The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at
+random turned up two that do not stand alone; `rag.chunk --audit` (new) then counted all 3284 and
+put the rate at **10.7%, of which 6.3% is unrecoverable**. It passed because the defect is bounded
+and named rather than suspected, and because fixing it now would remove a measured failure before
+anything downstream had been hurt by it (`D04`). **The remaining gate is the five cold
+verification questions** — sat 2026-08-18 and **not passed**: 2 of 5 unaided, 3 answered the
+setup rather than the question. `study/13-VERIFICATION.md` (§R5) is the write-up, and reading it
+before a re-sit converts the gate into a recognition test.
 
 **The teaching files are four:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
 (generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md` §R5 (defending it under
@@ -316,12 +324,12 @@ questioning). One `R` run across all four — it stands for RAG, not Retrieval (
 **The open defect no wording fixes:** Q18 and Q19. At k=10 their chunks are in the prompt — Q19
 has **three**, at positions 6, 7, 8 — and all four wordings refuse. Two questions, real, unsolved.
 
-**Two gates remain and both are a human's:**
+**One gate remains and it is a human's:**
 
 | gate | how | where |
 |---|---|---|
-| eyeball ten chunks, confirm each is self-contained | `uv run python -m rag.chunk --sample 10` (read-only) | `phases/PHASE-1.md` Step 2 |
-| the five cold verification questions | from memory, no notes | `phases/PHASE-1.md` Verification |
+| ~~eyeball ten chunks~~ | **closed 2026-08-18** — passed with exception, `D56` | `phases/PHASE-1.md` Step 2 |
+| the five cold verification questions | from memory, no notes. **Sat 08-18, not passed** | `phases/PHASE-1.md` Verification |
 
 **What the verdicts actually showed, which is not what the phase predicted.** Five of the six
 `WRONG` are **refusals** — the system declining questions it could answer — not hallucinations.
@@ -675,6 +683,27 @@ Append a dated entry each session; keep each entry to a few bullets.
 - The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
   plain language**, then **Short:** answers.
+
+### 2026-08-18 — the chunk gate, taken and passed with an exception
+
+- **Step 2's gate closed. Viraj ruled PASS with 2 of 10 chunks failing**, and the exception is
+  written into `PHASE-1.md` Step 2 and `D56` rather than smoothed over. The two failures are
+  `c03012` (ends on *"is as follows:"*, list never arrives) and `c00138` (opens *"While the
+  above example…"*, and no chunk holds both halves).
+- **Ten was not enough to rule on, so `rag/chunk.py --audit` was added** and all 3284 counted:
+  **10.7% show one of the two shapes, 6.3% lose content entirely.** Read-only, and its numbers
+  now live in the committed `CHUNK_STATS.json` so CI can pin the doc against them — `build()`
+  cannot run in CI because `corpus/raw/` is not committed (`D11`).
+- **The detectors were validated against known answers before being trusted**, including a
+  negative control: `c01480` opens with a backward reference and repairs itself in the same
+  sentence, so it must NOT be flagged. Without that check the audit measures regex eagerness.
+- **Two of my own errors, both caught by machinery rather than reading.** A test fixture asserted
+  `ends_open == 2` for a chunk whose last line was `* one`; and a first pass at "how many answers
+  leak Sphinx markup" said 19 of 19 because the split swept in the retrieved-sources block —
+  it is **3 of 19**.
+- **`--audit` numbers are a `# runnable` block**, so the recorded exception cannot go stale
+  silently. Adding 5 tests broke the 3 blocks quoting the test count, again.
+- **The remaining gate is the five verification questions**, sat and not passed.
 
 ### 2026-08-18 — the five verification answers, written up as §R5
 

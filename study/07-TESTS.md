@@ -30,7 +30,7 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-133 tests collected in 0.37s
+138 tests collected in 0.37s
 ```
 
 **Collected, not passed — and the difference is the point.** `uv run pytest` reports *114 passed*
@@ -44,7 +44,7 @@ Nine files, and none of them check that SQLAlchemy works:
 ```
 # runnable: uv run pytest --collect-only -q | grep '^tests/'
 tests/test_ask.py: 12
-tests/test_chunk.py: 27
+tests/test_chunk.py: 32
 tests/test_compare_prompts.py: 9
 tests/test_corpus.py: 25
 tests/test_db_config.py: 5

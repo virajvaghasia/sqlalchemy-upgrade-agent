@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D55`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D56`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1301,6 +1301,53 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"When do you break your own documentation rules?"* — and the answer is when
 > the rule's stated reason does not apply. The no-new-files rule exists so explanations sit
 > beside what they explain; these explanations have no single thing to sit beside.
+
+
+### D56 — the chunk gate passed with 2 of 10 failing, and the exception is the record
+
+> **Decided 2026-08-18** — Step 2's *"eyeball ten at random and find each one self-contained"*
+> gate is **passed**, with two of the ten failing and the reason written down instead of the
+> failures being talked away.
+> **What failed.** `c03012` ends mid-promise — its last words are *"…is as follows:"* and the
+> list never arrives. `c00138` opens *"While the above example is against…"* and there is no
+> example above it. Neither is a judgement call; read either aloud and the missing half is
+> audible.
+> **They are not equally bad, and that is the transferable part.** `c03012` (28814→29201) is
+> overlapped by the chunk after it, which starts at 28953 and carries the missing list — the
+> content survives, only this copy of it is bad. `c00138` (7880→8297) follows a chunk ending at
+> exactly 7880, so there is **no overlap at all** and nothing holds both halves. Overlap is by
+> whole block (`D33`, `D34`), and whole blocks are uneven, so some boundaries are covered
+> generously and some not at all.
+> **Ten was not enough to rule on, so all 3284 were counted** — `uv run python -m rag.chunk
+> --audit`, added for this and re-runnable after any chunker change. **352 chunks (10.7%)** show
+> one of the two shapes; **207 (6.3%)** lose content because no neighbour overlaps them. The
+> ten-chunk sample read 2 in 10, which is an unlucky draw against a true rate near 1 in 10, not
+> a misreading.
+> **The detectors were validated against known answers before being believed**: `c03012` must
+> appear in shape A, `c00138` in shape B, and `c01480` — which also opens with a backward
+> reference and then repairs itself in the same sentence — must **not**. All three hold. Without
+> the third, the audit measures how eagerly a regex fires and nothing else. Shape B still
+> over-fires by roughly an eighth, measured by reading eight hits at random, and that is printed
+> beside the number rather than left for someone to discover.
+> **Instead of** — three alternatives, all rejected:
+> **(a) Fail the gate and fix the chunker now.** Rejected on `D04`: a chunker with no boundary
+> defects is a Phase 3 chunker, and fixing a measured failure before anything downstream has been
+> hurt by it is the exact mistake this phase exists to avoid. The fix is also not small — it needs
+> a boundary rule that parses reStructuredText, not a wider overlap, which would hide the symptom
+> and inflate the index.
+> **(b) Redefine "self-contained" to a looser reading and pass cleanly.** Rejected as moving the
+> bar after seeing the result. The two readings were fair to choose between before the reading;
+> picking the convenient one afterwards is the thing an interviewer asks the date of.
+> **(c) Pass it quietly.** Rejected because that is how a gate stops meaning anything — and this
+> repo has already watched `PHASE-1.md` claim three open gates when one had closed, purely
+> because nothing wrote the change down.
+> **What reverses it:** a probe answer that is wrong *because* a chunk was cut — currently zero
+> of the six `WRONG` verdicts are — or the rate rising after a chunker change, which `--audit`
+> now makes a one-command check rather than an argument.
+> **Asked as** — *"You found a defect and shipped anyway. Defend that."* — and the answer is that
+> the defect was bounded first: 1 in 10, 1 in 16 unrecoverable, two named shapes, one command to
+> re-check. Shipping with a measured defect is engineering; shipping with an unmeasured one is
+> the thing that gets called technical debt afterwards.
 
 
 ## Using this in an interview
