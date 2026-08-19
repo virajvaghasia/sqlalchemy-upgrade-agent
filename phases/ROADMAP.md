@@ -1,7 +1,7 @@
 # Roadmap — the six-phase arc
 
 The long view for [`sqlalchemy-upgrade-agent`](../README.md): what gets built, in what order,
-and why each phase exists. Start at [`../README.md`](../README.md); the current phase is detailed
+and why each phase exists. Start at [`../README.md`](../README.md); the current phase (**Phase 2**) is detailed
 in [`../phases/PHASE-0.md`](../phases/PHASE-0.md).
 
 ---
@@ -315,6 +315,30 @@ Now you fix it — **one change at a time, measuring after each.**
 1. Add keyword search (BM25) + hybrid + RRF → **re-measure**
 2. Add the reranker → **re-measure**
 3. Improve chunking (code split by function, prose split by paragraph) → **re-measure**
+
+> #### Which failure each step is answering — measured 2026-08-17, not assumed
+>
+> This list was written before Phase 1 ran, when the five known failures were all filed as one
+> problem: *"dense retrieval missed it, hybrid search will fix it."* Measuring the **rank of the
+> first chunk that actually contains the answer** split that into four
+> ([`../study/12-EVALUATION.md`](../study/12-EVALUATION.md) §R4.3):
+>
+> | failure | rank of the answer | which step above fixes it |
+> |---|---|---|
+> | `backref` | **6** of 3284 | **none of them.** `DEFAULT_K` is 5 and the answer is at 6 — one integer |
+> | `cascade_backrefs` | 8 | step 2, the reranker, over a wider candidate list |
+> | `keys()` | 12 | step 2 as well |
+> | `table_names` | 23, top-5 scoring `+0.001` over noise | **step 1.** The only one keyword search helps — search found nothing at all |
+> | `has_table` | in **zero** chunks | none, ever. The corpus ceiling (`D45`), and only Step 1 of Phase 1 could have touched it |
+>
+> **So step 1 is justified by one failure, not five**, and step 3 has its own evidence now: the
+> chunk audit found **10.7%** of chunks do not stand alone, **6.3%** unrecoverably (`D56`), plus
+> at least 11 boundaries cutting inside a code listing.
+>
+> **What this does not license.** Raising `DEFAULT_K` to 6 is not the fix — at k=10 the `backref`
+> page reaches the prompt and the model still declines, and k=10 also buys two over-fires and a
+> fabrication (`D54`). Getting a page into the prompt and getting an answer out are different
+> problems, and Q18/Q19 are the two where the second one is still unsolved.
 
 Each step produces a before/after number. Together they become **the metrics table**, the
 single highest-value object in the whole repo:

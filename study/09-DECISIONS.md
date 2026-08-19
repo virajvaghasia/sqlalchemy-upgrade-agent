@@ -1396,7 +1396,8 @@ and the follow-up question finds out.
 | | |
 |---|---|
 | [`../README.md`](../README.md) | the front door, with a **Start here** table |
-| [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | the current phase and its open steps |
+| [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | the current phase and its open decisions (`P2-a`…`P2-d`) |
+| [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | the phase before, complete — and the record of how each gate closed |
 | [`./README.md`](README.md) | this folder's index and the two § numbering families |
 | [`../logs/LEARNING-LOG.md`](../logs/LEARNING-LOG.md) | the dated timeline — *when* things were learned |
 | [`../CLAUDE.md`](../CLAUDE.md) | how the work gets done, and the rules above as working agreements |

@@ -145,7 +145,8 @@ forbids.
 |---|---|
 | [`../README.md`](../README.md) | the front door and the map — its **Start here** table says which of these files to open for which question |
 | [`../phases/ROADMAP.md`](../phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term |
-| [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | **the current phase** — a deliberately dumb RAG, its five steps, and the decisions already settled |
+| [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | **the current phase** — a hand-verified golden set and one command that prints a score |
+| [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | complete 2026-08-18 — a deliberately dumb RAG, its five steps, and the four constraints it hands Phase 2 |
 | [`../phases/PHASE-0.md`](../phases/PHASE-0.md) | the phase before: complete except its Day 3 tunnel, with its gates and deliverables |
 | [`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages |
 | [`../logs/LEARNING-LOG.md`](../logs/LEARNING-LOG.md) | the dated timeline |

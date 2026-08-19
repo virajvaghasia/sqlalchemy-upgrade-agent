@@ -1,6 +1,6 @@
 # Phase 0 — Foundations & Environment (~2 weeks)
 
-The current phase, in detail. See [`../README.md`](../README.md) for the repo map and
+**Complete**, except its Day 3 tunnel. See [`../README.md`](../README.md) for the repo map and
 [`../phases/ROADMAP.md`](../phases/ROADMAP.md) for the phases either side of this one.
 
 ## Context

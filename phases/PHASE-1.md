@@ -1,6 +1,8 @@
 # Phase 1 — A deliberately dumb RAG (~2–3 weeks)
 
-The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it.
+**Complete 2026-08-18.** [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file planned it.
+[`PHASE-2.md`](PHASE-2.md) is the phase after, and inherits four constraints from what this one
+measured.
 [`PHASE-0.md`](PHASE-0.md) is the phase before, complete except its Day 3 tunnel.
 
 ## Where this phase is

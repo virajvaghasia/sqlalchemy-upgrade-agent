@@ -10,7 +10,8 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`README.md`** — the front door and the map: every doc, every script, and what each proves.
   **Keep it current** — it is the only file that indexes the whole repo.
 - **`phases/ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
-- **`phases/PHASE-0.md`** — the current phase in detail.
+- **`phases/PHASE-2.md`** — the current phase in detail. `PHASE-1.md` and `PHASE-0.md` are the
+  phases before, both complete; their plan files stay as the record of how each gate closed.
 - **`study/01-CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
 - **`study/02-MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `study/01-CONCEPTS.md`'s section
   numbering, so a reference to "§18" is unambiguous across both files.
@@ -387,71 +388,42 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
   VRAM. Round 5 predicted the opposite. Variable-length chunks make batching pad, not amortise.
 - **Retrieval and generation coexist on one 12 GiB card** (~9 GiB together).
 
-**Next work, in order:**
+**Next work, in order — Phase 2:**
 
-1. ~~**`D31`**~~ — **settled 2026-08-17, and pgvector won on every number**: 0.45 ms against
-   2.65 ms, zero extra containers, 40 MB. Qdrant stays because migrating a working Step 3b buys
-   2 ms, which is a legitimate reason and not the one originally given. **§H is now empty.**
-   The finding worth carrying: the two stores returned **identical top-5 on only 15 of 19**
-   probe questions, so the vector store is not a neutral component — swap it and Phase 2's
-   numbers move without retrieval improving.
-2. ~~**§R4 — evaluation**~~ — **written 2026-08-17** as `study/12-EVALUATION.md`, third subject
-   after retrieval and generation, numbering continued per `D47`. Its §R4.3 is the one to reread:
-   the rank of the first containing chunk split what was filed as one Phase 3 fix into **four**
-   different problems, one of which is a constant being wrong.
-3. ✅ **Settled 2026-08-17 — Round 11, `n=5`, zero non-unanimous cells.** D's margin over B is
-   Q16 at **5/5 vs 0/5**; `D54` is confirmed and no longer provisional. **Ship D, keep k=5.**
-   The bigger finding: refusal behaviour is **deterministic** here — every cell 0 or 5 — so
-   Rounds 8–10's `n=1` runs were *right*, and still the wrong method, because nothing before
-   this round said the process was deterministic and `D43` had measured the opposite. Re-check
-   determinism whenever model, temperature or sources change.
-4. **Ship prompt D, keep `DEFAULT_K = 5` — `D54`.** Round 10 (152
-   generations, both k values) found that **at k=5 every one of D's nine refusals is correct**:
-   four have answers outside the top-5, five are ceilings or `absent`. **D at k=5 is the only
-   configuration measured with zero prompt errors.** Raising k to 10 trades four honest refusals
-   for **two over-fires** (Q18/Q19 — chunks present, Q19 has three, all wordings refuse) and
-   **one fabrication** (Q5 — `keys()` in no top-10 chunk, and A/B/D all answered it).
-5. **Phase 3 is justified after all**, and `D51` is corrected in place: at k=5 the sources
-   genuinely do not arrive. The residue is Q18/Q19 — a real generation defect no wording fixes,
-   but **two questions rather than eight**.
-6. ~~Round 10~~ — **done 2026-08-17.** All four wordings
-   at **k=5 and k=10**, 152 generations. Rounds 8–9 both ran at k=5, where the four unfixed
-   refusals have answers at ranks 23/12/8/6 — **outside the prompt**, so refusing them was
-   correct, not an over-fire. Round 7 showed the opposite at k=10 for `backref`. **Compare each
-   prompt against itself across the two k values:** refusals dropping means retrieval was the
-   problem; staying flat means the instruction is. Q18/Q19 are the watch, Q3/Q5 the control.
-7. ~~Ship prompt D regardless of Round 10~~ — it is strictly better than B, wrong in 4 places
-   against B's 5, and the one it fixed (Q16) is the only `absent` question that had been getting
-   a confident answer.
-8. ~~Round 9: prompt D~~ — **done 2026-08-17.** A and B both
-   ask the model to judge *sufficiency*; D makes partial answers the expected output, narrows
-   refusal to *subject* rather than sufficiency, and requires a refusal to name what was looked
-   for. **Target: 5 refusals, and the right five** (Q4, Q6, Q15, Q16, Q17) — the count alone
-   proves nothing. **If D also lands on 8, the instruction is not the lever and the model finally
-   enters scope.**
-9. ~~Write a fourth prompt — `D52`~~ — **written 2026-08-17**, pinned by a test that it differs
-   from B in kind rather than degree. Round 8 settled it: A and B refuse the **same 8 questions,
-   identically**, so `D43` chose between two options that are the same option. C refuses 0 and
-   fabricates. **The correct floor is 5** (3 `absent` + `has_table` + `relation`, both ceilings);
-   B refuses 8 and misses one, so it is wrong in **5 of 19**. No wording tested is good, and the
-   search space so far was two points that turned out to be one. **Not tuning — a genuinely
-   different fourth wording**, then `compare_prompts --all` again. Do not change the model: C
-   proves it answers all 19 when permitted to.
-10. ~~The next experiment is a PROMPT experiment — `D51`~~ — **done, that was Round 8.** Round 7 came back
-   2026-08-17: sweeping `k` moved retrieval and left `refused` at **8 at every value**, and a
-   `--retrieval-only` run proved the answer was in the prompt at k=10 while the model still
-   declined. **The eight refusals are not the argument for hybrid search.** `D43` measured
-   over-firing at 1-in-13 — but on prompt A, on one question; this is prompt **B**, the shipped
-   one, refusing 8 of 19 with the answer present. `rag/compare_prompts.py` already exists, so
-   testing wordings against the full probe set is cheap.
-11. **Phase 3** — still worth building (`symbol_missing` and `retrieval_failure` both fell as `k`
-   rose, so retrieval is genuinely imperfect), but **its stated justification needs rewriting
-   first**. Do not build it on the eight refusals.
+1. **Settle `P2-a`: how a cross-version duplicate counts.** `phases/PHASE-2.md` "Decisions to
+   make". **874 of 3284 chunks are half of a duplicate pair** (`D38`), so when the golden set
+   names `c00403` and search returns byte-identical `c01965` under the other version tag, that is
+   either a hit or a miss and the choice moves every recall number. **Decide before any score is
+   printed** — deciding after is picking the flattering one. The plan proposes reporting both and
+   calling the gap the cost of `D38`.
+2. **Settle `P2-b`/`P2-c`/`P2-d`** — `k` for `recall@k` (5 matches `DEFAULT_K`, 10 sees
+   near-misses), whether the 19 probe questions enter the set, and 30 vs 50 items.
+3. **Harvest the golden set.** 30–50 questions, **found not written** — real GitHub issues and SO
+   questions, seeded from `BREAKAGES.md`'s 23 entries with provenance recorded. ~15 min an item,
+   and `D06` means only a human verifies. At least three `answerable: false`, and **`has_table`
+   is the best one available**: zero of 3284 chunks contain it, provable by `grep`.
+4. **Build `rag/score.py`** — recall@k, MRR, **rank of the first containing chunk**, refusal
+   accuracy. The rank metric is not optional: in Phase 1 `recall@5` said *five failed* and the
+   rank said they failed **four different ways** (§R4.3).
+5. **Fill the Phase 1 baseline row** of `ROADMAP.md`'s metrics table. That row is what every
+   Phase 3 change gets measured against.
 
-**Working branch: `phase-1/completion`.** Everything for the rest of Phase 1 lands there and it
-merges to `main` **once**, when the phase is done — not a PR per change. Push and pull on it
-directly. `main` goes stale during the phase, deliberately. **The lab PC checks out this branch
-too**, so any ASK block in `logs/HANDOFF.md` must name it rather than `main`.
+**Carried over from Phase 1, not urgent and not forgotten:**
+
+- **Q18 and Q19.** Both refuse at `k=10` with their chunks in the prompt — Q19 has **three**, at
+  positions 6, 7 and 8 — across all four prompt wordings. Two questions, real, unsolved. Nothing
+  tried touches it. **This is a generation defect, so it belongs to Phase 4, not Phase 3.**
+- **The five verification questions are re-sittable** — cold, no notes, without opening
+  `study/13-VERIFICATION.md` first. §R5.7 is the five answers said end to end, for after.
+- **The lab PC Day 3 tunnel** — still blocked on Shaili sharing the Tailscale node.
+
+
+**Branching: one long-lived branch per phase.** Phase 1's work sits on `phase-1/completion`,
+which is where the six commits from 2026-08-17/18 are; `main` is at `eeedbc4` and is
+deliberately stale. **Phase 2 gets its own branch under the same convention** — push and pull on
+it directly, no PR per change. **Never commit to local `main`**, and **Viraj says when work
+lands** — do not propose merging or pushing. The lab PC checks out the working branch too, so any
+ASK block in `logs/HANDOFF.md` must name it.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
