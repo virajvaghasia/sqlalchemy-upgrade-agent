@@ -28,7 +28,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 155 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 157 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -734,6 +734,12 @@ Append a dated entry each session; keep each entry to a few bullets.
   `"human"` is dropped, loudly, with its id named.
 - **`deliverables/golden.json` exists as a skeleton** — schema, README, three DRAFT items, none
   verified. The 50 questions are Viraj's; drafting is allowed, verifying is not.
+- **The scorer had never actually run.** All 15 tests injected a fake retriever, so the real path
+  — live Qdrant, the real 3284 chunks, `report()` — had been executed by nobody. Running it found
+  no bug and **a stronger finding than `D60` had recorded**: one question, one answer chunk
+  `c01542`, **rank 1** in the tidy phrasing and **not in the top 20** in developer phrasing. Not
+  ranked lower — absent. Two end-to-end tests now cover that path and skip where the stack is
+  missing, rather than the path staying unexercised.
 - **Still not built and named as missing:** refusal accuracy (`--refusals`), which `D62` puts in
   scope. The docstring says so rather than advertising a flag that does not exist.
 

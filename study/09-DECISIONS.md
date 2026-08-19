@@ -1454,6 +1454,14 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **The harder evidence is not the overlap — it is that the phrasing changes the result.** Of five
 > questions rewritten the way somebody stuck would type them, **three returned a different top-1
 > chunk**. A benchmark built on the tidy phrasing measures a system nobody is using.
+> **Strengthened the same day, by running the scorer end to end.** Take one question and one
+> answer chunk, `c01542`. Asked as *"what replaces `Query.from_self()` in SQLAlchemy 2.0?"* that
+> chunk comes back at **rank 1**. Asked as *"my old query.from_self() call blew up after
+> upgrading, whats the new way"* — same question, same answer — it is **not in the top 20 at
+> all**. Not ranked lower: absent. **Rewording the question moved the answer from first place to
+> outside the retrieved set**, and a benchmark written in the tidy voice would have scored that
+> question 1.0 and reported the system as working. Pinned by
+> `tests/test_score.py::test_phrasing_alone_can_push_the_answer_out_of_the_index`.
 > **Stated limits.** The developer phrasings are `n = 5` and were **drafted here**, so they could
 > unconsciously favour low overlap; the overlap figure is indicative, and the changed-top-1 count
 > is the harder fact. Neither is a reason to drop the probe items — a benchmark whose items have

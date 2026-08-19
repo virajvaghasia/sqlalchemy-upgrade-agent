@@ -161,3 +161,73 @@ def test_the_committed_golden_file_parses_and_is_shaped_right():
     for it in data["items"]:
         assert set(("id", "question", "provenance", "answerable")) <= set(it)
         assert it["provenance"] in score.PROVENANCE
+
+
+# --- end to end against the real stack -------------------------------------
+#
+# Everything above injects a retriever, which is what lets the suite run in CI.
+# That leaves the real path -- live Qdrant, the real 3284 chunks, report() --
+# executed by nobody. This repo has been bitten by exactly that before: a step
+# marked done because the code looked right and was never run. So this one runs
+# it, and skips where the stack is absent rather than being deleted.
+
+def _stack_available() -> bool:
+    if not score.CHUNKS_PATH.exists():
+        return False
+    try:
+        from rag import index
+        index.retrieve("ping", limit=1)
+        return True
+    except Exception:
+        return False
+
+
+requires_stack = pytest.mark.skipif(
+    not _stack_available(), reason="needs corpus/chunks.jsonl and a running Qdrant")
+
+
+@requires_stack
+def test_end_to_end_against_live_retrieval():
+    """The whole path: real chunks, real search, aggregate, report, compare.
+
+    Asserts shape rather than scores -- the scores depend on the index and are
+    not this test's business. What it catches is the path being broken at all.
+    """
+    chunks = score.load_chunks()
+    items = [{"id": "s1", "question": "what replaces Query.from_self() in SQLAlchemy 2.0?",
+              "provenance": "breakages", "answerable": True, "answer_chunks": ["c01542"],
+              "answer_note": "smoke", "verified_by": "human"},
+             {"id": "s2", "question": "engine.has_table() no longer exists, what is the replacement?",
+              "provenance": "breakages", "answerable": False, "verified_by": "human"}]
+    assert score.validate(items, chunks) == []
+
+    rows = score.score_items(items, chunks)
+    assert len(rows) == 2
+    assert len(rows[0]["hits"]) == score.DEPTH
+    assert rows[0]["rank"] == 1, "the tidy phrasing should still put c01542 first"
+    assert rows[1]["rank"] is None, "an unanswerable item has no rank"
+
+    a = score.aggregate(rows)
+    assert a["n_answerable"] == 1 and a["recall"][5] == 1.0
+    score.report(rows)                                   # must not raise
+    score.compare(rows, [dict(r, rank=None) for r in rows])
+
+
+@requires_stack
+def test_phrasing_alone_can_push_the_answer_out_of_the_index():
+    """D60's hardest evidence, pinned so it cannot quietly stop being true.
+
+    Two phrasings of one question, one answer chunk. The corpus-vocabulary
+    version retrieves it at rank 1; the way a stuck developer would type it does
+    not retrieve it in twenty. This is why the probe questions are a labelled
+    subset and never the benchmark.
+    """
+    chunks = score.load_chunks()
+    tidy = {"id": "t", "question": "what replaces Query.from_self() in SQLAlchemy 2.0?",
+            "provenance": "breakages", "answerable": True, "answer_chunks": ["c01542"],
+            "answer_note": "n", "verified_by": "human"}
+    rough = dict(tidy, id="r", provenance="github",
+                 question="my old query.from_self() call blew up after upgrading, whats the new way")
+    rows = score.score_items([tidy, rough], chunks)
+    assert rows[0]["rank"] == 1
+    assert rows[1]["rank"] is None or rows[1]["rank"] > rows[0]["rank"]
