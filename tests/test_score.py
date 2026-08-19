@@ -178,7 +178,13 @@ def _stack_available() -> bool:
         from rag import index
         index.retrieve("ping", limit=1)
         return True
-    except Exception:
+    except BaseException:
+        # BaseException, not Exception, and the difference is the whole point:
+        # rag/index.py calls sys.exit() when Qdrant is unreachable, which raises
+        # SystemExit -- and SystemExit does NOT inherit from Exception. With
+        # `except Exception` this guard never fires, and pytest dies with
+        # INTERNALERROR instead of skipping. Found the first time Qdrant was
+        # actually down, which is the only time the guard matters.
         return False
 
 
