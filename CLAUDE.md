@@ -324,7 +324,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **State (2026-08-18):** Phase 1 is **BUILT, ONE gate from COMPLETE**. **Work is on branch
 `phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
-closes. **138 tests**, **57/57** `# runnable` blocks, **56** decision entries, **§H empty**,
+closes. **138 tests**, **58/58** `# runnable` blocks, **56** decision entries, **§H empty**,
 19 verdicts in sync (`tools.apply_verdicts --check`).
 
 **The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at

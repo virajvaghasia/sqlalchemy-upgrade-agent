@@ -25,6 +25,20 @@ Plenty. A wrong *instruction* at the top of the message can:
 
 Search did not do that. The English we send with every question did.
 
+**The named case, because "a wrong instruction" is a type of thing and this was a real one.**
+The question was *"why can't I call `engine.execute` any more?"* The five pages handed to the
+model **already contained the answer** — the 2.0 migration pages saying exactly that. The reply
+was:
+
+```
+The sources do not answer this.
+```
+
+Search worked. The library found the right pages. Then one sentence of standing instruction —
+*refuse if the sources do not contain the answer* — fired anyway, and the pages were thrown
+away unread. Two other explanations were tested first and both were wrong (§R3.4). The bug was
+in the English.
+
 | subsection | after it you can say |
 |---|---|
 | R3.1 | the message has two parts: standing rules (same every time) and this question's five pages |

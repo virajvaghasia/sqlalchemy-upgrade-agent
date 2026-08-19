@@ -30,6 +30,19 @@ So evaluation splits into two questions that get confused constantly:
 | **retrieval** | did the right chunk reach the prompt? | **yes** — it is a set membership test |
 | **generation** | is the answer any good? | **no** — it is a judgement |
 
+**One question of ours on each row, so the split is concrete rather than tidy.**
+
+- **Retrieval, and a script settles it.** *"`engine.has_table()` no longer exists, what replaces
+  it?"* — does any of the five pages contain the string `has_table`? `grep` answers that: **zero
+  chunks in the whole index contain it.** No reading, no opinion, no argument.
+- **Generation, and no script can settle it.** Question 1 asked what replaces
+  `Query.from_self()`. The answer said the `aliased` construct should be used instead, and cited
+  `[2][3]` — real pages, correct section. Right or wrong? **Partly right.** `aliased(Issue)`
+  renames a table; `aliased(Issue, subq)` wraps a subquery. The answer never mentions the second
+  argument, and run against the practice database the query returns `['a','e']` where the
+  correct version returns `['a']`. **A human had to know that.** No string match separates that
+  answer from a complete one: both name `aliased`, both cite a real page, both read fluently.
+
 **Almost everything measurable is on the first row.** That is not a coincidence and it is not a
 limitation to apologise for — it is why Phase 2 is scoped to retrieval and Phase 4 is a separate
 phase for answers. Conflating them produces a number that looks like quality and measures

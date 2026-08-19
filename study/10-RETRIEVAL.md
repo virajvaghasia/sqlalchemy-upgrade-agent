@@ -539,9 +539,47 @@ Interviewer: *"Can't you just add reranking?"* Answer: *"Not for `has_table`. Ze
 
 The instinct: more docs = safer. Wrong for this system.
 
-**Search returns a fixed number of chunks.** Ours is k = 5. Those five slots are all the model
-will ever see. New text can add answers. It also adds **rivals** for the same five slots, on
-*every* question — including questions the new text has nothing to do with.
+**Search returns a fixed number of chunks.** Ours is k = 5 — the constant `DEFAULT_K` in
+`rag/ask.py`. Those five slots are all the model will ever see. New text can add answers. It also
+adds **rivals** for the same five slots, on *every* question — including questions the new text
+has nothing to do with.
+
+**This is not a thought experiment. It already happened here, before anyone added anything.**
+SQLAlchemy barely changed much of its prose between 1.4 and 2.0, so the same paragraph is in the
+index twice — once per version. **874 of the 3284 chunks are one half of a cross-version
+duplicate pair** (`D38`). `errors.rst` alone contains **27** such pairs. Here is one, byte-for-byte
+the same text under two ids and two version tags:
+
+```
+# runnable: uv run python -c "
+#   import json, collections
+#   rows=[json.loads(l) for l in open('corpus/chunks.jsonl')]
+#   g=collections.defaultdict(list)
+#   [g[r['text']].append(r) for r in rows if r['source_path'].endswith('errors.rst')]
+#   d=[v for v in g.values() if len(v)>1]
+#   print('duplicate pairs in errors.rst:', len(d))
+#   p=max(d, key=lambda v: len(v[0]['text']))
+#   print(' ', [(x['id'], x['sqlalchemy_version']) for x in p])
+#   print(' ', ' > '.join(p[0]['heading_path'])[:78])"
+duplicate pairs in errors.rst: 27
+  [('c00403', '1.4.52'), ('c01965', '2.0.51')]
+  Error Messages > Connections and Transactions > QueuePool limit of size <x> ov
+```
+
+When a question lands near that paragraph, **both** copies score almost identically, because they
+are the same words. Two of the five slots go to one paragraph. That is not a prediction: the very
+first real question asked of this system — *"why can't I call `engine.execute` any more?"* —
+came back with the same `errors.rst` passage at rank 1 and rank 2, one tagged 1.4.52 and one
+tagged 2.0.51 (`D38`).
+
+**Note what that example does not show.** Neither copy contains the string `engine.execute` —
+**no chunk of `errors.rst` does.** They were retrieved on meaning, not words, which is §R2's
+whole subject and the reason you cannot debug retrieval by grepping for the question.
+
+Nothing was added to cause any of this; it is what a corpus holding two versions of the same book
+does on its own. Now add SQLAlchemy's `changelog/` — roughly 60% of the doc tree by bytes, almost
+all of it one-line release notes — and ask what those five slots look like on *every* question
+afterwards.
 
 #### "Irrelevant" is your word. The machine never uses it
 
