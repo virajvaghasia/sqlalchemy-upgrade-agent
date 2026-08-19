@@ -285,3 +285,75 @@ def test_phase_1_quotes_the_measured_chunk_counts():
     doc = (chunk.corpus.REPO_ROOT / "phases" / "PHASE-1.md").read_text()
     line = f"  {STATS['n_chunks']} chunks   {STATS['n_chars']} chars"
     assert line in doc, f"PHASE-1.md does not contain: {line!r}"
+
+
+# --- the "stands on its own" audit (D56) -----------------------------------
+#
+# These run on hand-written chunks, not the corpus, so they work in CI where
+# corpus/raw/ is absent. The corpus-wide numbers are pinned separately, off the
+# committed stats file.
+
+def _c(cid, text, start, end, path="doc/build/x.rst", version="2.0.51"):
+    return {"id": cid, "text": text, "char_start": start, "char_end": end,
+            "source_path": path, "sqlalchemy_version": version, "n_chars": len(text),
+            "has_code": False, "heading_path": []}
+
+
+def test_backward_opener_fires_on_a_real_dangling_reference():
+    """c00138's actual opening. If this stops matching, the audit stops seeing
+    the failure it was built from.
+
+    Note it does not pin any single branch of the pattern: two alternatives
+    match this string, so breaking one leaves the test green. That is the
+    detector being robust, not the test being strong -- checked by mutation."""
+    assert chunk.OPENS_BACKWARD.search(
+        "While the above example is against the built-in :class:`.AddConstraint`")
+
+
+def test_backward_opener_ignores_a_chunk_that_repairs_itself():
+    """c01480 opens backwards too -- 'We've constructed...' -- and then says
+    what was constructed in the same sentence, so it stands alone. This is the
+    control: without it the audit only measures how eagerly the regex fires,
+    and every number it prints would be meaningless."""
+    assert not chunk.OPENS_BACKWARD.search(
+        "We've constructed a fairly elaborate object hierarchy to represent")
+
+
+def test_audit_counts_a_chunk_ending_on_a_promise():
+    a = _c("a", "the state is as follows:", 0, 100)
+    b = _c("b", "* first\n* second", 100, 200)
+    assert chunk.audit([a, b])["ends_open"] == 1
+
+
+def test_audit_separates_a_bad_chunk_from_lost_content():
+    """The distinction D56 turns on. Both pairs have a chunk ending mid-promise;
+    only one has lost the payload. Overlap is what decides, and conflating the
+    two would have reported 352 broken chunks as 352 holes in the corpus."""
+    # Identical first chunk in both. The ONLY difference is whether the chunk
+    # after it starts before it ends -- c03012 (overlapped, payload survives)
+    # against c00138 (not overlapped, payload gone).
+    covered = [_c("a", "as follows:", 0, 100), _c("b", "as follows:\n* one", 80, 200)]
+    orphan = [_c("a", "as follows:", 0, 100), _c("b", "* one", 100, 200)]
+
+    assert chunk.audit(covered)["ends_open"] == 1
+    assert chunk.audit(covered)["ends_open_lost"] == 0
+    assert chunk.audit(covered)["lost"] == 0
+
+    assert chunk.audit(orphan)["ends_open"] == 1
+    assert chunk.audit(orphan)["ends_open_lost"] == 1
+    assert chunk.audit(orphan)["lost"] == 1
+
+
+def test_phase_1_quotes_the_measured_audit_numbers():
+    """PHASE-1.md pastes `rag.chunk --audit`. Fails if the chunker changes the
+    rate and the gate record keeps claiming the old one -- which is the whole
+    point of recording an exception with a number in it."""
+    a = STATS["audit"]
+    doc = (chunk.corpus.REPO_ROOT / "phases" / "PHASE-1.md").read_text()
+    for label, key in (
+        ("A: ends announcing what never follows", "ends_open"),
+        ("B: opens pointing at what is not here", "opens_backward"),
+        ("either shape", "either"),
+        ("either shape, content lost entirely", "lost"),
+    ):
+        assert f"{a[key]:5}" in doc, f"PHASE-1.md does not quote {label} = {a[key]}"

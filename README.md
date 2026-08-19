@@ -104,7 +104,7 @@ experiments/           the code under study: the 1.4 app and the measurement har
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 129 tests pinning what the docs claim
+tests/                 140 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -116,9 +116,9 @@ to "§18" is unambiguous in either file.
 | file | what it is |
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
-| [`phases/PHASE-1.md`](phases/PHASE-1.md) | **the current phase** — a deliberately dumb RAG, and why it must be bad first |
+| [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
-| [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the two § numbering families |
+| [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the three § numbering families, and carries a **by-phase view** (`01`–`08` Phase 0, `10`–`13` Phase 1, `09` all of them) for reading it phase by phase instead |
 | [`study/01-CONCEPTS.md`](study/01-CONCEPTS.md) | **§0–§15** — the relational model, the ORM layer, the session at runtime |
 | [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
 | [`deliverables/FAILURES.md`](deliverables/FAILURES.md) | **the Phase 1 deliverable** — 19 questions, where retrieval breaks, and the split between failures Phase 3 can fix and the corpus ceiling it cannot. Verdicts are UNVERIFIED by design |
@@ -132,7 +132,8 @@ to "§18" is unambiguous in either file.
 | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) | **§R1–§R2 — RAG from zero.** Why we look things up instead of asking from memory; why 270 files is a ceiling; why more docs can make answers worse; what the 1024 numbers on disk actually are. Two sittings — stop after the first |
 | [`study/11-GENERATION.md`](study/11-GENERATION.md) | **§R3 — after search.** The prompt as a component: three wordings of one sentence (C fabricates 3/3, A over-refused 1/3, B ships), how the cause was found by removing search, and why fixing it did not violate "build the naive version first". The `R` run continues here — it stands for RAG, not retrieval (**D47**) |
 | [`study/12-EVALUATION.md`](study/12-EVALUATION.md) | **§R4 — measuring a thing with no right answer.** What a script can score and what it cannot, why the golden set is hand-verified, and the rank measurement that split one planned Phase 3 fix into four different problems |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 54 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
+| [`study/13-VERIFICATION.md`](study/13-VERIFICATION.md) | **§R5 — defending it without notes.** The five questions Phase 1 closes on, answered four ways each: plain words, mechanism, the measurement that makes it checkable, and the spoken version. Includes the wrong answer each question attracts, the follow-up that kills it, and **§R5.7** — all five said end to end, for rehearsing as one piece |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 57 entries, each with what was rejected and why. Includes a §H of choices that are *not yet justified*, which is the honest edge of the project |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -167,7 +168,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-129 tests collected in 0.37s
+140 tests collected in 0.37s
 ```
 
 Three of them skip when Qdrant is not running, so a run reports 114 passed with it up and 111

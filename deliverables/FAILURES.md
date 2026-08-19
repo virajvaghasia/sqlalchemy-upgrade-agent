@@ -92,7 +92,17 @@ recall test.
 | `symbol_missing` | no retrieved chunk contains the exact symbol asked about | see the two below — the reason decides the fix |
 | **`retrieval_failure`** | the symbol IS in the corpus and search did not find it | **yes — and Phase 3 can fix it** |
 | **`ceiling`** | the symbol is in **no** chunk at all | **yes — and no phase can fix it.** Only the corpus decision can (R1.4) |
-| `single_source` | every citation points at one source | the answer does not survive that source being wrong |
+| `single_source` | several pages retrieved; only one `[n]` cited | warning, not a verdict — see below |
+
+**`single_source` in one sentence.** We handed the chatbot five pages. It showed its
+work for only one of them. If that page is wrong, outdated, or easy to misread, the
+answer collapses, because the citations do not mention the correcting pages sitting
+in `[2]`–`[5]`. *Does not survive* means: there is no backup in the answer itself.
+Question 7 is the case: it cited only `[1]` (a 2.0 migration page saying *"In 1.4,
+pass `future=True`"*) while `[2]` already said the flag is legacy on 2.0.
+
+`uncited` is worse: a long answer with **no** `[n]` at all, so nothing is checkable.
+`single_source` cited *something* — just only one page while others were available.
 
 ## Summary
 

@@ -4,6 +4,7 @@ has to stay whole.
 
     uv run python -m rag.chunk              # chunk, write jsonl + stats, report
     uv run python -m rag.chunk --sample 10  # print N random chunks to eyeball
+    uv run python -m rag.chunk --audit      # count chunks that do not stand alone
 
 A chunk is **one retrievable idea**. Too large and the embedding averages
 several ideas into mush; too small and it loses the context that made it an
@@ -517,6 +518,11 @@ def stats(chunks: list[dict]) -> dict:
             "min": sizes[0], "median": int(statistics.median(sizes)),
             "p75": q(0.75), "p90": q(0.90), "p99": q(0.99), "max": sizes[-1],
         },
+        # Carried in the committed stats file so the numbers PHASE-1.md quotes
+        # can be checked in CI, where corpus/raw/ does not exist and build()
+        # cannot run (D11). Without this the audit would be a claim no test
+        # could reach -- the shape of every drift this repo has had to fix.
+        "audit": audit(chunks),
     }
 
 
@@ -539,13 +545,123 @@ def report(s: dict, wrote: bool = True) -> None:
           f"p90={z['p90']}  p99={z['p99']}  max={z['max']}")
 
 
+# A chunk fails "stands on its own" in one of two shapes, both found by reading
+# ten at random on 2026-08-18 and then counted here across all of them.
+#
+# The detectors are deliberately crude and their limits are printed with the
+# result, because a number nobody can criticise is a number nobody can check.
+# They were validated against the two chunks that failed the human reading:
+# c03012 must appear in shape A and c00138 in shape B, and c01480 — which opens
+# with a backward reference and then repairs it in the same sentence — must NOT
+# appear. That last one is the control: without it, this only measures how
+# eagerly the regex fires.
+OPENS_BACKWARD = re.compile(
+    r"^\W*(?:while\s+)?(?:the\s+)?(?:above|preceding|previous|foregoing)\b"
+    r"|^\W*as\s+(?:noted|shown|mentioned|seen|illustrated|described)\s+above\b"
+    r"|^\W*(?:this|these|that|those)\s+(?:example|examples|section|approach|pattern)\b"
+    r"|\bthe\s+above\s+example\b",
+    re.I,
+)
+
+
+def _non_blank(text: str) -> list[str]:
+    return [l for l in text.split("\n") if l.strip()]
+
+
+def audit(chunks: list[dict]) -> dict:
+    """Count chunks that do not stand on their own, and say how many are lost.
+
+    Two different questions, and conflating them overstates the problem:
+
+      * **Is this a bad chunk?** It ends mid-promise, or opens pointing at
+        something that is not in it.
+      * **Is the content lost?** Only if no neighbouring chunk overlaps it.
+        Overlap is by whole block (D33/D34), so it covers some boundaries
+        entirely and others not at all — c03012's payload survives in the
+        chunk that overlaps it, c00138's does not survive anywhere.
+
+    Two *shapes* of bad chunk, both prose:
+
+      A  last line ends with a colon that is not ``::`` — English promised
+         more ("…is as follows:") and the next paragraph is in another chunk.
+      B  first line points backward ("The above example…") and that example
+         is not in this chunk.
+
+    A chunk ending on ``::`` would be *code-block-shaped*: RST uses ``::`` to
+    introduce a listing, so the chunk would have announced code and then
+    dropped it. That count is reported because **zero is a real result** —
+    the packer never stops on that knife-edge. Splitting *inside* a listing
+    is a third defect, measured in study/13-VERIFICATION.md §R5.3 (at least
+    11 of 3077 boundaries), not here.
+    """
+    order: dict[tuple[str, str], list[dict]] = {}
+    for c in chunks:
+        order.setdefault((c["source_path"], c["sqlalchemy_version"]), []).append(c)
+    nxt: dict[str, dict] = {}
+    prv: dict[str, dict] = {}
+    for group in order.values():
+        group.sort(key=lambda c: c["char_start"])
+        for a, b in zip(group, group[1:]):
+            nxt[a["id"]], prv[b["id"]] = b, a
+
+    # Shape A — ends announcing something that never arrives ("...is as follows:").
+    # A single trailing colon, not RST's `::` (that would introduce a listing).
+    ends_open = [c for c in chunks if _non_blank(c["text"])[-1].rstrip().endswith(":")]
+    # Shape B — opens pointing at something that is not here ("The above example...").
+    # Regex over-fires ~1 in 8 (c00203 points forward). Treat the count as slightly high.
+    opens_back = [c for c in chunks
+                  if OPENS_BACKWARD.search(" ".join(_non_blank(c["text"])[:1])[:160])]
+
+    def a_lost(c: dict) -> bool:
+        n = nxt.get(c["id"])
+        return n is None or n["char_start"] >= c["char_end"]
+
+    def b_lost(c: dict) -> bool:
+        p = prv.get(c["id"])
+        return p is None or c["char_start"] >= p["char_end"]
+
+    lost = ({c["id"] for c in ends_open if a_lost(c)}
+            | {c["id"] for c in opens_back if b_lost(c)})
+    return {
+        "n_chunks": len(chunks),
+        "ends_open": len(ends_open),
+        "ends_open_lost": sum(map(a_lost, ends_open)),
+        # A chunk ending on "::" would be a literal block introduced and then
+        # cut away before its body. Reported because zero is a real result.
+        "ends_open_literal": sum(
+            1 for c in ends_open if _non_blank(c["text"])[-1].rstrip().endswith("::")),
+        "opens_backward": len(opens_back),
+        "opens_backward_lost": sum(map(b_lost, opens_back)),
+        "either": len({c["id"] for c in ends_open} | {c["id"] for c in opens_back}),
+        "lost": len(lost),
+    }
+
+
+def report_audit(a: dict) -> None:
+    n = a["n_chunks"]
+    pct = lambda k: f"{a[k] / n:5.1%}"
+    print(f"chunks                                          {n:5}")
+    print(f"  A: ends announcing what never follows         {a['ends_open']:5}  {pct('ends_open')}")
+    print(f"       of those, ending on '::'                 {a['ends_open_literal']:5}")
+    print(f"       of those, no overlap to recover it       {a['ends_open_lost']:5}")
+    print(f"  B: opens pointing at what is not here         {a['opens_backward']:5}  {pct('opens_backward')}")
+    print(f"       of those, no overlap to recover it       {a['opens_backward_lost']:5}")
+    print(f"  either shape                                  {a['either']:5}  {pct('either')}")
+    print(f"  either shape, content lost entirely           {a['lost']:5}  {pct('lost')}")
+
+
 def main() -> None:
     sample = 0
     if "--sample" in sys.argv:
         sample = int(sys.argv[sys.argv.index("--sample") + 1])
+    auditing = "--audit" in sys.argv
 
     chunks = build()
     s = stats(chunks)
+
+    if auditing:
+        report_audit(audit(chunks))
+        return
 
     # --sample is READ-ONLY. It used to rewrite chunks.jsonl and
     # CHUNK_STATS.json before printing, which is a trap: a flag whose whole

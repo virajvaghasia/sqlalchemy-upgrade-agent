@@ -25,8 +25,11 @@ or false without opinion:
     duplicate_slots  the same text occupied more than one top-k slot (D38)
     version_mixed    top-k contains both 1.4 and 2.0 passages
     symbol_missing   no retrieved chunk contains the exact symbol asked about
-    single_source    every citation points at one source — the answer may not
-                     survive that source being wrong
+    single_source    search returned several pages; the answer cites only one.
+                     If that one page is misleading, the answer has no backup
+                     in the citations — even if [2] in the prompt contradicted it.
+                     Question 7 is the worked example: cited only [1] (a 2.0 page
+                     describing 1.4); [2] said the flag is legacy and was unused.
 
 None of those is automatically a failure. `version_mixed` is usually fine and
 occasionally the whole problem; `refused` is correct when the corpus genuinely
@@ -332,7 +335,17 @@ def write_report(rows: list[dict]) -> None:
     add("| `symbol_missing` | no retrieved chunk contains the exact symbol asked about | see the two below — the reason decides the fix |")
     add("| **`retrieval_failure`** | the symbol IS in the corpus and search did not find it | **yes — and Phase 3 can fix it** |")
     add("| **`ceiling`** | the symbol is in **no** chunk at all | **yes — and no phase can fix it.** Only the corpus decision can (R1.4) |")
-    add("| `single_source` | every citation points at one source | the answer does not survive that source being wrong |")
+    add("| `single_source` | several pages retrieved; only one `[n]` cited | warning, not a verdict — see below |")
+    add("")
+    add("**`single_source` in one sentence.** We handed the chatbot five pages. It showed its")
+    add("work for only one of them. If that page is wrong, outdated, or easy to misread, the")
+    add("answer collapses, because the citations do not mention the correcting pages sitting")
+    add("in `[2]`–`[5]`. *Does not survive* means: there is no backup in the answer itself.")
+    add("Question 7 is the case: it cited only `[1]` (a 2.0 migration page saying *\"In 1.4,")
+    add("pass `future=True`\"*) while `[2]` already said the flag is legacy on 2.0.")
+    add("")
+    add("`uncited` is worse: a long answer with **no** `[n]` at all, so nothing is checkable.")
+    add("`single_source` cited *something* — just only one page while others were available.")
     add("")
     add("## Summary")
     add("")
