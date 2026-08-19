@@ -18,6 +18,18 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`deliverables/BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
+- **The four teaching files for the RAG system:** `10-RETRIEVAL.md` §R1–§R2 (retrieval),
+  `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md`
+  §R5 (defending it under questioning, and the five cold questions). One `R` run across all
+  four — it stands for RAG, not Retrieval (`D47`).
+- **`rag/score.py`** — the Phase 2 scorer. `--validate` before any number is printed;
+  `--baseline` for the paired comparison Phase 3 needs. Implements `D58`–`D62` rather than
+  describing them.
+- **`deliverables/golden.json`** — the Phase 2 ruler. **Hand-verified only (`D06`)**; the scorer
+  drops anything whose `verified_by` is not `"human"` and names it.
+- **`graphify-out/`** — the repo's knowledge graph, 1074 nodes. `graph.json` and
+  `GRAPH_REPORT.md` are committed so the lab PC gets them through git (`D29`); `graph.html`,
+  `cache/` and the machine-specific `.graphify_*` paths are not.
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
   index and explains the two § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure)
   plus the two runbooks (`03`, `08`).
@@ -323,70 +335,93 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-18):** Phase 1 is **COMPLETE.** Both human gates closed 2026-08-18 — the chunk
-gate with a recorded exception (`D56`: 8 of 10, population rate 10.7%, 6.3% unrecoverable), the
-five verification questions per `D57`. **Next is Phase 2.** **Work is on branch
-`phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
-closes. **140 tests**, **58/58** `# runnable` blocks, **62** decision entries, **§H empty**,
-19 verdicts in sync (`tools.apply_verdicts --check`).
+**State (2026-08-19):** **Phase 2 is the current phase.** Phase 0 and Phase 1 are COMPLETE and
+merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **157 tests** (152 pass, 5 skip
+without Qdrant), **58/58** `# runnable` blocks, **62** decision entries, **§H empty**, 19 verdicts
+in sync.
 
-**The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at
-random turned up two that do not stand alone; `rag.chunk --audit` (new) then counted all 3284 and
-put the rate at **10.7%, of which 6.3% is unrecoverable**. It passed because the defect is bounded
-and named rather than suspected, and because fixing it now would remove a measured failure before
-anything downstream had been hurt by it (`D04`). **The remaining gate is the five cold
-verification questions** — sat 2026-08-18 and **not passed**: 2 of 5 unaided, 3 answered the
-setup rather than the question. `study/13-VERIFICATION.md` (§R5) is the write-up, and reading it
-before a re-sit converts the gate into a recognition test.
+### Run these first — they tell you the truth in about ten seconds
 
-**The teaching files are four:** `10-RETRIEVAL.md` §R1–§R2 (retrieval), `11-GENERATION.md` §R3
-(generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md` §R5 (defending it under
-questioning). One `R` run across all four — it stands for RAG, not Retrieval (`D47`).
+```
+uv run pytest                            # 152 passed, 5 skipped
+uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
+uv run python -m tools.apply_verdicts --check
+uv run python -m rag.score --validate    # what is still unverified in the golden set
+```
 
-**What today settled, in the order it matters:**
+If any disagrees with the numbers above, **the docs are stale and the code is right** — fix the
+docs. That has happened four times and never the other way round.
 
-| | |
-|---|---|
-| **19 verdicts closed** | `CORRECT 10 · PARTIAL 3 · WRONG 6`, in `deliverables/verdicts.json` so a regeneration cannot destroy them |
-| **Prompt D shipped** (`D54`) | confirmed at `n=5`, zero non-unanimous cells; beats B on Q16, 5/5 vs 0/5 |
-| **`DEFAULT_K` stays 5** | k=10 was measured and is worse — two over-fires and one fabrication |
-| **`D31` settled** | pgvector beat Qdrant on every number; Qdrant stays because migrating buys 2 ms |
-| **`D48`/`D49`** | 3060 embeds 2.8x faster at **batch 8**; bigger batches are slower on CUDA too |
-| **`D50`** | fixes verified twice — they run, and the docs recommend them (12 of 13) |
+### Where each phase stands
 
-**Two findings to read before doing anything else:**
-
-- **Refusal behaviour is deterministic** (`D54`, Round 11): every cell 0 or 5 across 5 runs. So
-  Rounds 8-10's `n=1` runs were *right* — and still the wrong method, because nothing before
-  Round 11 said so and `D43` had measured the opposite. **Re-check determinism whenever the
-  model, temperature or sources change.**
-- **`D51` is corrected in place by `D54`.** At `k=5` the failures ARE retrieval failures — four
-  of five have answers outside the top-5. `D51` generalised from the one case where the chunk was
-  present. **Phase 3 is justified**, by a cleaner argument than it started with.
-
-**The open defect no wording fixes:** Q18 and Q19. At k=10 their chunks are in the prompt — Q19
-has **three**, at positions 6, 7, 8 — and all four wordings refuse. Two questions, real, unsolved.
-
-**One gate remains and it is a human's:**
-
-| gate | how | where |
+| phase | state | deliverable |
 |---|---|---|
-| ~~eyeball ten chunks~~ | **closed 2026-08-18** — passed with exception, `D56` | `phases/PHASE-1.md` Step 2 |
-| the five cold verification questions | from memory, no notes. **Sat 08-18, not passed** | `phases/PHASE-1.md` Verification |
+| **0** | complete, except the Day 3 tunnel (blocked on Shaili sharing the Tailscale node) | `deliverables/BREAKAGES.md`, 23 entries |
+| **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
+| **2** | **current.** All five decisions settled (`D58`–`D62`), `rag/score.py` built and run for real | `deliverables/golden.json` — **skeleton only, 3 drafts, none verified** |
+| 3–6 | planned in `phases/ROADMAP.md` §6 | — |
 
-**What the verdicts actually showed, which is not what the phase predicted.** Five of the six
-`WRONG` are **refusals** — the system declining questions it could answer — not hallucinations.
-And the ranks say those five are three different problems: `backref` ranked **6** and missed the
-top-k cut by one place; `keys()` ranked **12**, squarely a reranking case; `table_names` ranked
-**23** while the five returned scored `+0.001` and `+0.000` over noise, meaning search found
-nothing at all. **Tune `k` before reaching for architecture** is now an evidenced claim.
+### Phase 2: what is built, and the one thing that is not
 
-**Settled by the lab PC, 2026-08-17** (replies are in `logs/HANDOFF.md`, Rounds 5–6):
-- **`D43` is 1 refusal in 13** — the over-fire never reproduced. `D48`/`D49` are new.
-- **The 3060 embeds 2.8x faster** (19.9 vs 7.2 chunks/s), closing `D27`'s untested half.
-- **Bigger batches are *slower* on CUDA too** — batch 8 beats 128 by 2.7x at an eighth of the
-  VRAM. Round 5 predicted the opposite. Variable-length chunks make batching pad, not amortise.
-- **Retrieval and generation coexist on one 12 GiB card** (~9 GiB together).
+**Built and tested.** `rag/score.py` — validation, `recall@1/3/5/10/20`, MRR, rank of the first
+containing chunk, duplicate-slot count, per-provenance breakdown, and a paired `--baseline`
+comparison with an exact McNemar p-value. 17 tests, six mutations checked, two end-to-end that
+skip when Qdrant is absent.
+
+**Not built, and named rather than hidden:** `--refusals`. `D62` puts refusal accuracy in scope;
+it needs generation rather than retrieval and there is only one drafted unanswerable item to test
+it against. The docstring says so.
+
+**The work that is left is a human's, and no script may do it (`D06`).** 50 questions, *found not
+written*, each with the chunk that answers it, ~15 minutes an item. `rag/score.py` **refuses to
+score any item whose `verified_by` is not `"human"`** and names the ones it dropped — `D06`
+enforced in code, not remembered.
+
+### Do not re-derive these
+
+- **`D58`–`D62` are settled and each rests on a measurement**, not an argument. Either half of a
+  duplicate pair is a hit (437 pairs have **byte-identical vectors**, so no ranker can prefer
+  one); retrieve top-20 once (depth is free — latency is the ~88 ms query embedding at every `k`);
+  the 19 probe questions join only as a labelled subset; 50 items, and Phase 3 reports **flipped
+  items** because one recall figure at n=50 carries **±0.131**.
+- **Phrasing alone can push an answer out of the index.** One question, one answer chunk
+  `c01542`: **rank 1** in corpus vocabulary, **not in the top 20** when phrased the way a stuck
+  developer types it. Pinned by a test. This is why the golden set must be harvested.
+- **Refusal behaviour is deterministic** (`D54`): every cell 0 or 5 across 5 runs. Re-check only
+  if the model, temperature or sources change.
+- **`D51` is wrong and `D54` corrects it in place.** At `k=5` the failures ARE retrieval failures.
+  **Phase 3 is justified** — but by the rank split, not by the eight refusals.
+- **The rank table is the most reused measurement here** (§R4.3): `backref` **6**,
+  `cascade_backrefs` 8, `keys()` 12, `table_names` 23 (top-5 only `+0.001` over noise — search
+  found nothing), `has_table` **absent from all 3284 chunks**. Four different fixes, not one.
+- **Lab PC, settled 2026-08-17:** the 3060 embeds 2.8× faster at **batch 8** (bigger batches are
+  *slower* on CUDA); retrieval and generation coexist on one 12 GiB card.
+
+### Open, and not blocking
+
+- **Q18 and Q19** refuse at `k=10` with their chunks in the prompt — Q19 has three, at positions
+  6, 7, 8 — across all four wordings. **A generation defect, so Phase 4, not Phase 3.**
+- **The five verification questions are re-sittable**: cold, from memory, **without opening
+  `study/13-VERIFICATION.md` first.** §R5.7 is the five answers said end to end, for afterwards.
+- **The knowledge graph** is in `graphify-out/` — `graph.json` and `GRAPH_REPORT.md` committed,
+  `graph.html` and `cache/` ignored, and `.graphify_python` ignored **because it holds an absolute
+  Mac path that would break the lab PC**. Rebuild: `/graphify`. Update only what changed:
+  `/graphify . --update`.
+
+### Traps this repo has actually fallen into — all of them cost a session
+
+- **`check_runnable` compares stdout AND stderr.** A library warning on stderr breaks a block
+  whose visible output is identical. Diff stderr separately before concluding a block is fine.
+- **`SystemExit` does not inherit from `Exception`.** `rag/index.py` calls `sys.exit()` when
+  Qdrant is unreachable, so `except Exception` never catches it.
+- **A rendered report is not the data.** `FAILURES.md` truncates chunks at 700 chars and carries
+  no chunk ids; measuring duplicates off it gives 6 of 19 instead of 2. Read `corpus/chunks.jsonl`.
+- **Run the gates *before* committing, in a separate command.** Chaining them with `&&` to a
+  commit lets the commit run on a red build.
+- **Adding tests breaks the docs that quote the test count.** Expect `README.md`,
+  `study/07-TESTS.md` and `phases/PHASE-0.md` to need updating in the same commit.
+- **`check_runnable` has no opinion about prose.** Every false claim found by reading lived in a
+  sentence, and CI was green across all of them.
 
 **Next work, in order — Phase 2:**
 
@@ -404,17 +439,19 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    different top-1. `D61` 50 items, and Phase 3 reports **flipped items**, because at n=50 one
    recall figure carries a **±0.131** interval and the paired bar is ~6 clean fixes.
    `D62` refusal accuracy stays in Phase 2, printed apart from retrieval.
-3. ~~**Build `rag/score.py`**~~ — **built 2026-08-18**, 15 tests, all mutation-checked. Validator
-   runs before any number and **drops items no human verified**, naming them.
-3. **Harvest the golden set.** 30–50 questions, **found not written** — real GitHub issues and SO
-   questions, seeded from `BREAKAGES.md`'s 23 entries with provenance recorded. ~15 min an item,
-   and `D06` means only a human verifies. At least three `answerable: false`, and **`has_table`
-   is the best one available**: zero of 3284 chunks contain it, provable by `grep`.
-4. **Build `rag/score.py`** — recall@k, MRR, **rank of the first containing chunk**, refusal
-   accuracy. The rank metric is not optional: in Phase 1 `recall@5` said *five failed* and the
-   rank said they failed **four different ways** (§R4.3).
-5. **Fill the Phase 1 baseline row** of `ROADMAP.md`'s metrics table. That row is what every
-   Phase 3 change gets measured against.
+3. ~~**Build `rag/score.py`**~~ — **built 2026-08-18**, 17 tests, six mutations checked, and run
+   end to end against live Qdrant. The validator runs before any number is printed and **drops
+   items no human verified**, naming them.
+4. **Harvest the golden set — the next real work, and it is Viraj's.** 50 questions, **found not
+   written** — real GitHub issues and Stack Overflow questions, seeded from `BREAKAGES.md`'s 23
+   entries with `provenance` recorded. ~15 minutes an item, ~12.5 hours, and `D06` means only a
+   human verifies. At least three `answerable: false`, and **`has_table` is the best one
+   available**: zero of 3284 chunks contain it, provable by `grep`.
+   **Claude may draft questions and propose candidate chunks; Claude may not set `verified_by`.**
+5. **Build `--refusals`** (`D62`) once there are verified unanswerable items to test it against.
+   Decided, not built, and named as missing in `rag/score.py`'s docstring.
+6. **Fill the Phase 1 baseline row** of `ROADMAP.md`'s metrics table — the row every Phase 3
+   change is measured against. Needs 4 first.
 
 **Carried over from Phase 1, not urgent and not forgotten:**
 
@@ -715,6 +752,29 @@ Append a dated entry each session; keep each entry to a few bullets.
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
   plain language**, then a full answer with a named example. Length is fine; jargon-first is
   not. He later made that explicit: answers can be long if they stay easy to follow.
+
+### 2026-08-19 — the repo's own knowledge graph, and two bugs in one guard
+
+- **`/graphify` run over the repo:** 1074 nodes, 1841 edges, 68 communities. 46 Python files by
+  AST (no LLM), 27 markdown files by three parallel agents. **The correction chain is now
+  traversable** — `D54→D51`, `D52→D43`, `D58→D38`, `D48→D27`, `D34→D33`, `D56→D33/D34/D04` — so
+  *"if this decision is wrong, what else moves"* is a query rather than a memory. God nodes are
+  the register (66 edges) and the two deliverables (42, 37), which is the right shape.
+- **Two agents read the same decisions from opposite ends** — one the register, one the
+  citations — and **40 nodes merged onto the same ids** instead of forking into ghosts. That was
+  the test of the id convention.
+- **Gitignore decided against sizes, not reflex.** Bulk out, record in, the same rule
+  `corpus/raw/` and `MANIFEST.json` already follow. `.graphify_python` holds an **absolute Mac
+  path** and would break the lab PC if committed — the reflex answer was wrong in both directions.
+- **Two defects in one test guard, both mine, both found by asking whether the work was
+  finished.** `except Exception` cannot catch `SystemExit`, so the "skip if Qdrant is absent"
+  guard killed the whole suite instead of skipping. Then, silenced, it still wrote a
+  `qdrant_client` warning to **stderr** — which `check_runnable` compares — breaking a doc block
+  whose visible output was identical. **A guard that only works when it is not needed.**
+- **I committed on a red build** by chaining the gate checks and the commit in one shell command.
+  Recorded rather than amended away.
+- **The graph found a doc drift I had missed by writing:** `study/README.md` said the register
+  holds `D01`…`D55`.
 
 ### 2026-08-18 (later) — Phase 2's five decisions settled and the scorer built
 
