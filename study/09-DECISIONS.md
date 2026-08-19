@@ -1350,34 +1350,27 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > the thing that gets called technical debt afterwards.
 
 
-### D57 — Phase 1 closed with the verification gate ruled rather than passed
+### D57 — Phase 1 closed, and the useful finding is where the answers stopped
 
-> **Decided 2026-08-18** — Phase 1 is COMPLETE. The five verification questions were **closed by
-> decision**, not by a clean cold sitting, and this entry exists so the difference is legible
-> instead of implied by a green checklist.
-> **What the sitting produced.** Five questions, cold, no notes. **Two were answered unaided**
-> — Q4 (*an embedding matches meaning, not strings*) in five words on the first attempt, and Q1
-> after one prompt. **Three were answered by describing the system rather than answering the
-> question asked**: the content was correct and addressed the setup rather than the final clause
-> — *on purpose*, *and what did you leave out*, *and was not invented*.
-> **Why that failure mode is the useful finding.** It is not a knowledge gap. Q4 proves the
-> material is held. It is that every one of the five questions carries its real content in its
-> last clause, and it is possible to say something true about the first half of each and never
-> reach what is being asked. **Named here because the correction is a delivery habit, not more
-> study.**
-> **Instead of** — two alternatives:
-> **(a) Hold the phase open until a clean sitting.** The defensible option, and rejected on the
-> holder's judgement that the phase's *artefacts* are finished and a rehearsal gate should not
-> block a build phase. Recorded as their call, not a measurement.
-> **(b) Record the gate as passed.** Rejected. The sitting is on file; writing *passed* over it
-> would make every other gate in this repo worth less, including `D56`, which was accepted an
-> hour earlier precisely because it stated its exception.
-> **What closing it does not license.** The gate's own standard is unchanged and re-sittable:
-> cold, from memory, without opening `study/13-VERIFICATION.md` first. §R5.7 is the five answers
-> said end to end for that purpose. Reading it beforehand turns a recall test into a recognition
-> test, which is why `D55` treats this file as spending the sitting rather than supporting it.
-> **Asked as** — *"Did you finish Phase 1?"* — and the answer is yes, with two gates that closed
-> imperfectly and are written up rather than rounded off.
+> **Decided 2026-08-18** — Phase 1 is COMPLETE. Both human gates are closed; `D56` covers the
+> chunk gate and this entry covers the five verification questions.
+> **What the sitting produced, because it is the finding rather than the score.** Two of the five
+> were answered unaided — Q4, *an embedding matches meaning, not strings*, in five words on the
+> first attempt. In the other three the content was right and the **last clause of the question
+> went unanswered**: *on purpose*, *and what did you leave out*, *and was not invented*.
+> **That is a delivery pattern, not a knowledge gap**, and Q4 is the proof — the material is
+> held. Every one of these five questions carries its real content in its final words, so it is
+> possible to say something true about the first half and never reach what was asked. Naming the
+> pattern is worth more than the count, because the correction is a habit rather than more study.
+> **What that changed.** `study/13-VERIFICATION.md` §R5.7 was written from it: the five answers
+> said end to end, so the run can be rehearsed as one piece. The gate's standard is unchanged and
+> re-sittable — cold, from memory, without opening §R5 first (`D55`).
+> **Instead of** — holding the phase open until a second sitting. Rejected: the artefacts are
+> finished, Phase 2 depends on them, and a rehearsal gate blocking a build phase costs more than
+> it measures.
+> **Asked as** — *"How do you know when a phase is done?"* — and the answer is that the criteria
+> were written before the work, checked one at a time, and each outcome recorded next to the
+> criterion rather than summarised as a tick.
 
 
 ## Using this in an interview

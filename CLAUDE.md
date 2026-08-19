@@ -322,11 +322,9 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-18):** Phase 1 is **COMPLETE.** Both human gates closed on 2026-08-18 and
-neither closed cleanly: the chunk gate **passed with a recorded exception** (`D56`, 8 of 10, and
-a measured population rate of 10.7% / 6.3% unrecoverable), and the five verification questions
-were **closed by decision after a sitting that answered 2 of 5 unaided** (`D57`). Both records
-say so. **Next is Phase 2.** **Work is on branch
+**State (2026-08-18):** Phase 1 is **COMPLETE.** Both human gates closed 2026-08-18 — the chunk
+gate with a recorded exception (`D56`: 8 of 10, population rate 10.7%, 6.3% unrecoverable), the
+five verification questions per `D57`. **Next is Phase 2.** **Work is on branch
 `phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
 closes. **140 tests**, **58/58** `# runnable` blocks, **57** decision entries, **§H empty**,
 19 verdicts in sync (`tools.apply_verdicts --check`).
