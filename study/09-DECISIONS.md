@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D56`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D57`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1348,6 +1348,36 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > the defect was bounded first: 1 in 10, 1 in 16 unrecoverable, two named shapes, one command to
 > re-check. Shipping with a measured defect is engineering; shipping with an unmeasured one is
 > the thing that gets called technical debt afterwards.
+
+
+### D57 — Phase 1 closed with the verification gate ruled rather than passed
+
+> **Decided 2026-08-18** — Phase 1 is COMPLETE. The five verification questions were **closed by
+> decision**, not by a clean cold sitting, and this entry exists so the difference is legible
+> instead of implied by a green checklist.
+> **What the sitting produced.** Five questions, cold, no notes. **Two were answered unaided**
+> — Q4 (*an embedding matches meaning, not strings*) in five words on the first attempt, and Q1
+> after one prompt. **Three were answered by describing the system rather than answering the
+> question asked**: the content was correct and addressed the setup rather than the final clause
+> — *on purpose*, *and what did you leave out*, *and was not invented*.
+> **Why that failure mode is the useful finding.** It is not a knowledge gap. Q4 proves the
+> material is held. It is that every one of the five questions carries its real content in its
+> last clause, and it is possible to say something true about the first half of each and never
+> reach what is being asked. **Named here because the correction is a delivery habit, not more
+> study.**
+> **Instead of** — two alternatives:
+> **(a) Hold the phase open until a clean sitting.** The defensible option, and rejected on the
+> holder's judgement that the phase's *artefacts* are finished and a rehearsal gate should not
+> block a build phase. Recorded as their call, not a measurement.
+> **(b) Record the gate as passed.** Rejected. The sitting is on file; writing *passed* over it
+> would make every other gate in this repo worth less, including `D56`, which was accepted an
+> hour earlier precisely because it stated its exception.
+> **What closing it does not license.** The gate's own standard is unchanged and re-sittable:
+> cold, from memory, without opening `study/13-VERIFICATION.md` first. §R5.7 is the five answers
+> said end to end for that purpose. Reading it beforehand turns a recall test into a recognition
+> test, which is why `D55` treats this file as spending the sitting rather than supporting it.
+> **Asked as** — *"Did you finish Phase 1?"* — and the answer is yes, with two gates that closed
+> imperfectly and are written up rather than rounded off.
 
 
 ## Using this in an interview

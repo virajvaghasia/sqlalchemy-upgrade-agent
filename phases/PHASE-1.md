@@ -16,14 +16,16 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §3 defines it; this file plans it
 **Picking this up cold?** Read each step's write-up in order — they carry the measurements and
 the corrections.
 
-> ### Phase 1 is BUILT, not COMPLETE — and the difference is not a formality
+> ### Phase 1 is COMPLETE, closed 2026-08-18 — and how each gate closed is on the record
 >
-> All five steps run and the pipeline gate is met. **One of this file's own stated criteria is
-> still open, and it is a human's:**
+> All five steps run, the pipeline gate is met, and **both human gates are closed.** Neither
+> closed cleanly, and both records say so — a phase whose gates all read *passed* teaches nothing
+> about the gates.
 >
-> | open gate | where | who |
+> | gate | closed | how |
 > |---|---|---|
-> | the five cold verification questions | [Verification](#verification) | **Viraj** |
+> | eyeball ten chunks | 2026-08-18 | **passed with a recorded exception.** 8 of 10 stood alone; the audit put the population rate at 10.7%, 6.3% unrecoverable (`D56`) |
+> | the five cold verification questions | 2026-08-18 | **closed by decision, not by a clean sitting.** The sitting answered 2 of 5 unaided (`D57`) |
 >
 > **Step 2's gate closed on 2026-08-18 — passed, with two of the ten chunks failing and the
 > exception written down** in Step 2 and `D56`. Reading ten turned up two that do not stand
