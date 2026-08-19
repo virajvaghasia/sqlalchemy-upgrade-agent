@@ -419,12 +419,21 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
 - **The lab PC Day 3 tunnel** — still blocked on Shaili sharing the Tailscale node.
 
 
-**Branching: one long-lived branch per phase.** Phase 1's work sits on `phase-1/completion`,
-which is where the six commits from 2026-08-17/18 are; `main` is at `eeedbc4` and is
-deliberately stale. **Phase 2 gets its own branch under the same convention** — push and pull on
-it directly, no PR per change. **Never commit to local `main`**, and **Viraj says when work
-lands** — do not propose merging or pushing. The lab PC checks out the working branch too, so any
-ASK block in `logs/HANDOFF.md` must name it.
+**Branching: one long-lived branch per phase.**
+
+| branch | holds | state |
+|---|---|---|
+| `main` | `eeedbc4` | deliberately stale; one merge per phase |
+| `phase-1/completion` | Phase 1, 10 commits from 2026-08-17/18 | complete, awaiting its merge |
+| **`phase-2/measure`** | Phase 2, branched off the above | **the working branch** |
+
+Push and pull on the working branch directly — **no PR per change**. **Never commit to local
+`main`**, and **Viraj says when work lands** — do not propose merging or pushing. The lab PC
+checks out the working branch too, so any ASK block in `logs/HANDOFF.md` must name it.
+
+**Phase 2 branched off `phase-1/completion`, not off `main`**, because Phase 1 has not merged
+yet and Phase 2's plan cites its measurements. When Phase 1 merges, this branch rebases onto
+`main` and the two Phase 2 commits go with it.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
