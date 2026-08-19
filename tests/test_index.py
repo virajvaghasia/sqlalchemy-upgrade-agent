@@ -10,7 +10,10 @@ sentence-transformers, so nothing here imports them or expects a server. The
 integration checks skip rather than fail when the database is absent.
 """
 
+import contextlib
+import io
 import json
+import warnings
 
 import pytest
 
@@ -79,15 +82,28 @@ def test_search_reuses_the_corpus_embedding_settings():
 # --- integration, only when a database is actually there -------------------
 
 def _live_client():
+    """A Qdrant client if one is reachable, else None — and SILENT either way.
+
+    The silence is load-bearing, not tidiness. This runs at import time, and
+    `tools/check_runnable.py` compares stdout AND stderr for every `# runnable`
+    block — including the ones that run `pytest --collect-only`. With Qdrant
+    down, `QdrantClient` writes a version-check UserWarning to stderr, which
+    breaks those blocks while their visible output stays identical. A test
+    helper must not be able to invalidate the documentation.
+    """
     try:
         from qdrant_client import QdrantClient
     except ImportError:
         return None
     try:
-        c = QdrantClient(url=index.URL, timeout=2)
-        c.get_collections()
+        with warnings.catch_warnings(), contextlib.redirect_stderr(io.StringIO()):
+            warnings.simplefilter("ignore")
+            c = QdrantClient(url=index.URL, timeout=2)
+            c.get_collections()
         return c
-    except Exception:
+    except BaseException:
+        # BaseException: rag/index.py exits via sys.exit() on an unreachable
+        # Qdrant, and SystemExit does not inherit from Exception.
         return None
 
 
