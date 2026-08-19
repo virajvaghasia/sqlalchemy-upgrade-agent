@@ -117,7 +117,7 @@ Two things the original rule was protecting, which still apply:
 - **The drills still matter.** `study/04-DOCKER.md` keeps its question list, and the Phase 0
   hard gate is unchanged — the gate is whether he can explain it, not who typed it.
 
-### How to explain things. **Added 2026-08-15, from his own worked example.**
+### How to explain things. **Added 2026-08-15, from his own worked example. Amended 2026-08-18.**
 
 He rewrote §R1.2's explanation of "augmented" and his version was better than mine. The
 difference is the rule:
@@ -131,8 +131,10 @@ difference is the rule:
 - **"Nothing magical" is a sentence worth writing.** These systems are surrounded by language
   that implies the model learned something. Saying flatly that it did not is a correction, not
   filler.
-- **Short declarative lines beat qualified ones.** *"Same question. Bigger prompt. The extra
-  bytes are the lookup results."* Three sentences, no hedging, and the idea has landed.
+- **Plain sentences beat qualified ones.** *"Same question. Bigger prompt. The extra bytes are
+  the lookup results."* is easy to follow because each sentence does one job, not because it
+  is short. Hedging ("in a sense, one might say the prompt is somewhat enlarged") is what to
+  cut. Length is not.
 
 - **Every number in a block needs a sentence.** He read §R2 and asked: *where did the .rst come
   from, why only 3284 chunks, what is 1024, why float32, what is a median.* The doc printed all
@@ -141,6 +143,44 @@ difference is the rule:
   Where it can be *derived*, show the arithmetic: `3284 × 1024 × 4 bytes = 13451264`, which is
   exactly the file size printed two lines above. A reader who can recompute it stops having to
   trust it.
+
+**Assume he does not know the term. Show the thing. Then name it.** **Amended 2026-08-18,
+after he said the R1–R3 Q&A was weird and later: explain like that.** The 08-15 rules were
+right and still not enough. The remaining failure is writing as if he already sat the sitting.
+
+**Answers can be long. They must be easy to understand.** He said this outright on 2026-08-18.
+Do not compress a mechanism into a slogan to look punchy. Do not label a drill **Short:** and
+stop. Walk the example until the hole is visible — the three-cut picture for prose vs `::` vs
+a severed listing is the right length; "some chunks are a bit broken" is the wrong length.
+A long answer that uses only words he already has is better than a short one that uses
+*cosine* and hopes. If a paragraph needs a named example, a side-by-side, and what it is not,
+write all three.
+
+Do this:
+
+1. **Start from Python and SQL.** Do not open with RAG, cosine, top-k, Shape B, or
+   `single_source`. A library with 270 books and five pages on the desk first; *corpus* and
+   *top-k* after.
+2. **A named example, not a type of example.** `c03012` ending *“…is as follows:”*. Question 7
+   citing only `[1]`. `DEFAULT_K = 5` and `backref` at rank 6. “A truncated chunk” is a type.
+   He reads the example first.
+3. **Side by side when two things look alike.** Prose-shaped vs `::` vs a severed listing.
+   Rank 6 vs rank 23. One picture, then the names. A paragraph that says “they are different”
+   without showing both is the weird Q&A again.
+4. **Name the actual lever.** Not “tune k.” The integer is `DEFAULT_K` in `rag/ask.py`, it is
+   5, 6 would have included rank 6, 6 is not what ships. Not “the answer is fragile.” *Does
+   not survive* means: five pages in the prompt, one `[n]` in the answer, so if that page is
+   the bad one there is no backup in the citations — Q7.
+5. **Say what it is not, in the same breath.** Zero chunks ending `::` is not “we never split
+   code.” `single_source` is not `uncited`. Raising k is not “the model will answer.”
+6. **Do not write drills that assume the sitting.** “Cover these on a first pass / shaped
+   short answer → why → what it is NOT” reads as already-knowing. Plain-language question,
+   then a full answer with the named example — as long as it needs to be. The 08-17 rewrite
+   of §R1–§R3 is the template for *clarity*, not for keeping answers short.
+
+Chat is not the artifact. **When he asks “what do you mean by X”, X gets that treatment in
+the file that uses X, and in the comment next to the constant if there is one.** Leaving it
+only in the session is how the next sitting starts from zero again.
 
 Apply this to every `study/` file, not only the new ones. **When he asks a question about a doc,
 the answer belongs in that doc** — the question is evidence the file was incomplete, not just a
@@ -682,7 +722,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   `# runnable` blocks and numbers untouched.
 - The old Q&A shape (*"cover these on a first pass / shaped short answer → why → what it is
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
-  plain language**, then **Short:** answers.
+  plain language**, then a full answer with a named example. Length is fine; jargon-first is
+  not. He later made that explicit: answers can be long if they stay easy to follow.
 
 ### 2026-08-18 — the chunk gate, taken and passed with an exception
 
@@ -726,6 +767,23 @@ Append a dated entry each session; keep each entry to a few bullets.
   file the whole time.
 - **Adding 4 tests broke 4 `# runnable` blocks** in `README.md`, `07-TESTS.md` and `PHASE-0.md`,
   all quoting the test count. That is the mechanism working — the counts are now 133 and 56/56.
+
+### 2026-08-18 — explanations that lived only in chat, written into the files
+
+- **Did not rewrite `01`–`08`.** Those already teach SQLAlchemy and Docker in their own shape.
+  The confusion was in the RAG files, so that is what moved.
+- **`single_source`** — "does not survive" means the answer cited only one of five pages, so if
+  that page is the bad one there is no backup in the citations. Q7 is the example. In
+  `rag/probe.py` and `deliverables/FAILURES.md`.
+- **Which integer** — `DEFAULT_K = 5`; 6 would have included `backref` at rank 6. Comment on
+  the constant in `rag/ask.py`; table in `study/12-EVALUATION.md` §R4.3.
+- **Prose-shaped vs code-block-shaped vs severed listing** — three different cuts. In
+  `phases/PHASE-1.md` Step 2, `rag/chunk.py` `audit()`, and `study/13-VERIFICATION.md` Q3.
+- **Explanation style is now a rule, not a mood.** `CLAUDE.md` *How to explain things*
+  amended 2026-08-18: assume no jargon, show then name, named examples, side-by-side when
+  two things look alike, name the actual lever, put the answer in the file. **He then
+  corrected the length bias:** answers can be long; they must be easy to understand. Do not
+  slogan a mechanism or stop at **Short:**.
 
 ### 2026-08-17 — verdicts closed, prompt D shipped, §H emptied
 

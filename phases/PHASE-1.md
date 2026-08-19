@@ -401,8 +401,27 @@ than it earned:
   restating what was constructed, must **not** appear — it does not. Without that third check
   the audit would only be measuring how eagerly a regex fires.
 - **Zero chunks end on `::`**, which is a real positive result rather than a null one. `::` in
-  reStructuredText introduces a code block; a chunk ending there would have announced code and
-  then delivered none. It never happens, so this defect is prose-shaped, not code-shaped.
+  reStructuredText means *the indented block after this line is a listing*. A chunk ending
+  there would have said “here comes the code” and then not included the code. That never
+  happens. **The 10.7% is prose-shaped, not code-block-shaped.** Those are two different
+  cuts:
+
+  ```
+  PROSE-SHAPED (Shapes A / B)         CODE-BLOCK-SHAPED (::)          SEVERED LISTING (Q3 / §R5.3)
+  ───────────────────────────         ──────────────────────          ──────────────────────────
+  "...is as follows:"                 "For example::"                 >>> class User(Base):
+           ▲                                    ▲                     ...     relationship("Address"...
+    English promises more,              RST: listing starts now,                 ▲
+    the next paragraph is gone          body never in this chunk         valid Python. Address is
+    (you hear it when you read)         (audit found 0 of these)         in the NEXT chunk
+                                                                         (you do not hear it)
+  ```
+
+  Shape A/B is a sentence that only makes sense with the neighbouring paragraph. Ending on
+  `::` would be announcing a listing and dropping it — **0 chunks**. Cutting *inside* a
+  listing is a third defect: **at least 11 of 3077 boundaries**, measured separately in
+  [`../study/13-VERIFICATION.md`](../study/13-VERIFICATION.md) §R5.3. Zero `::` does **not**
+  mean “we never split code.” It means “we never split at the line that introduces it.”
 
 **Why the gate passed anyway.** Three reasons, in the order they carried weight:
 

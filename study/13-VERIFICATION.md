@@ -278,6 +278,14 @@ Because a broken piece of English looks broken and a broken piece of code does n
 paragraph ends mid-sentence and anyone can see it. Half a code example is still valid Python,
 correctly indented, and looks like something a person wrote on purpose.
 
+This is **not** the same defect as Step 2's Shape A / Shape B. Those are *prose-shaped*: a
+chunk that ends *“…is as follows:”* or opens *“While the above example…”*. You hear the hole
+when you read it. Q3 is asking about a *silent* hole: the cut falls **inside a listing**, so
+both halves still look like complete examples. The Step 2 audit found **zero** chunks ending
+on `::` (the RST “code starts now” marker). That is good, and it does not answer this
+question. Zero `::` means we never split *at the introduction*. The 11 below are splits
+*inside the body*.
+
 #### The mechanism
 
 Nothing downstream can detect it. The chunk embeds normally, scores normally, is retrieved

@@ -579,6 +579,20 @@ def audit(chunks: list[dict]) -> dict:
         Overlap is by whole block (D33/D34), so it covers some boundaries
         entirely and others not at all — c03012's payload survives in the
         chunk that overlaps it, c00138's does not survive anywhere.
+
+    Two *shapes* of bad chunk, both prose:
+
+      A  last line ends with a colon that is not ``::`` — English promised
+         more ("…is as follows:") and the next paragraph is in another chunk.
+      B  first line points backward ("The above example…") and that example
+         is not in this chunk.
+
+    A chunk ending on ``::`` would be *code-block-shaped*: RST uses ``::`` to
+    introduce a listing, so the chunk would have announced code and then
+    dropped it. That count is reported because **zero is a real result** —
+    the packer never stops on that knife-edge. Splitting *inside* a listing
+    is a third defect, measured in study/13-VERIFICATION.md §R5.3 (at least
+    11 of 3077 boundaries), not here.
     """
     order: dict[tuple[str, str], list[dict]] = {}
     for c in chunks:
@@ -590,9 +604,11 @@ def audit(chunks: list[dict]) -> dict:
         for a, b in zip(group, group[1:]):
             nxt[a["id"]], prv[b["id"]] = b, a
 
-    # Shape A — ends announcing something that never arrives ("...is as follows:")
+    # Shape A — ends announcing something that never arrives ("...is as follows:").
+    # A single trailing colon, not RST's `::` (that would introduce a listing).
     ends_open = [c for c in chunks if _non_blank(c["text"])[-1].rstrip().endswith(":")]
-    # Shape B — opens pointing at something that is not here ("The above example...")
+    # Shape B — opens pointing at something that is not here ("The above example...").
+    # Regex over-fires ~1 in 8 (c00203 points forward). Treat the count as slightly high.
     opens_back = [c for c in chunks
                   if OPENS_BACKWARD.search(" ".join(_non_blank(c["text"])[:1])[:160])]
 
