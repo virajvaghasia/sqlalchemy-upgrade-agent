@@ -9,7 +9,10 @@ where `corpus/chunks.jsonl` is absent (it is generated, not committed — D11)
 and Qdrant is not running.
 """
 
+import contextlib
+import io
 import json
+import warnings
 
 import pytest
 
@@ -172,11 +175,27 @@ def test_the_committed_golden_file_parses_and_is_shaped_right():
 # it, and skips where the stack is absent rather than being deleted.
 
 def _stack_available() -> bool:
+    """Is the real stack reachable? Asked once, at import, and it must be SILENT.
+
+    Two traps, both hit for real:
+
+    1. `except BaseException`, not `except Exception`. rag/index.py calls
+       sys.exit() when Qdrant is unreachable, and SystemExit does not inherit
+       from Exception -- so `except Exception` never fires and pytest dies with
+       INTERNALERROR instead of skipping.
+    2. stderr is swallowed. With Qdrant down, qdrant_client writes a
+       UserWarning to stderr during this probe. `tools/check_runnable.py`
+       compares stdout+stderr of every `# runnable` block, so an unsuppressed
+       warning here breaks the doc blocks that run pytest collection -- a test
+       helper silently invalidating the documentation.
+    """
     if not score.CHUNKS_PATH.exists():
         return False
     try:
-        from rag import index
-        index.retrieve("ping", limit=1)
+        with warnings.catch_warnings(), contextlib.redirect_stderr(io.StringIO()):
+            warnings.simplefilter("ignore")
+            from rag import index
+            index.retrieve("ping", limit=1)
         return True
     except BaseException:
         # BaseException, not Exception, and the difference is the whole point:
