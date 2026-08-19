@@ -30,7 +30,7 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-138 tests collected in 0.37s
+140 tests collected in 0.37s
 ```
 
 **Collected, not passed — and the difference is the point.** `uv run pytest` reports *114 passed*
@@ -53,7 +53,7 @@ tests/test_index.py: 9
 tests/test_models.py: 6
 tests/test_probe.py: 18
 tests/test_seed.py: 6
-tests/test_verification_doc.py: 4
+tests/test_verification_doc.py: 6
 ```
 
 `test_db_config.py`, `test_models.py` and `test_seed.py` are Phase 0's, and are what the rest

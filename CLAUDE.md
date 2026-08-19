@@ -27,7 +27,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 138 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 140 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -324,7 +324,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **State (2026-08-18):** Phase 1 is **BUILT, ONE gate from COMPLETE**. **Work is on branch
 `phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
-closes. **138 tests**, **58/58** `# runnable` blocks, **56** decision entries, **§H empty**,
+closes. **140 tests**, **58/58** `# runnable` blocks, **56** decision entries, **§H empty**,
 19 verdicts in sync (`tools.apply_verdicts --check`).
 
 **The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at

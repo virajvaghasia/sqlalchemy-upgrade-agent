@@ -21,7 +21,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — why we look things up instead of asking from memory (§R1); what the 1024 numbers on disk actually are (§R2). Two sittings; stop after the first | §R1–§R2 |
 | [`11-GENERATION.md`](11-GENERATION.md) | what happens *after* search: the prompt as a component. Three wordings of one sentence; C fabricates, A over-refused once, B ships (§R3) | §R3– |
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4– |
-| [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the sixty-second spoken version, plus the wrong answer it attracts (§R5) | §R5– |
+| [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5– |
 
 ## By phase — which file belongs to what
 

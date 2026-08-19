@@ -10,6 +10,8 @@ So the questions are extracted from PHASE-1.md and required to appear verbatim
 in the answers file. Reword one and this test says so.
 """
 
+import collections
+import json
 import pathlib
 import re
 
@@ -63,3 +65,30 @@ def test_the_answers_file_does_not_claim_to_replace_the_gate():
     answers = ANSWERS.read_text()
     assert "cold, from memory, no notes" in answers
     assert "recognition" in answers
+
+
+def test_the_spoken_run_carries_all_five_questions_as_headings():
+    """R5.7 is the five answers said end to end, for rehearsing as one piece.
+    It only works if it is complete -- four spoken answers and a gap is worse
+    than no section, because the gap is invisible while reading aloud."""
+    answers = ANSWERS.read_text()
+    assert "### R5.7 The five, spoken end to end" in answers
+    spoken = answers.split("### R5.7 The five, spoken end to end", 1)[1]
+    for n, q in enumerate(verification_questions(), start=1):
+        assert f"#### {n}. {q}" in spoken, f"R5.7 has no spoken answer for Q{n}"
+    assert spoken.count("*Follow-up:*") == 5
+
+
+def test_the_spoken_run_states_the_numbers_it_rests_on():
+    """Every figure quoted in R5.7 is one this repo measured. If a chunker or
+    corpus change moves one, the spoken answer becomes a confident wrong
+    sentence -- the worst kind, because it is the one said out loud."""
+    spoken = ANSWERS.read_text().split("### R5.7", 1)[1]
+    stats = json.loads((REPO / "corpus" / "CHUNK_STATS.json").read_text())
+    verdicts = json.loads((REPO / "deliverables" / "verdicts.json").read_text())
+    counts = collections.Counter(
+        v[0] for k, v in verdicts.items() if not k.startswith("_"))
+
+    assert str(stats["n_chunks"]) in spoken, "R5.7 does not quote the chunk count"
+    assert f"**{counts['CORRECT']} correct, {counts['PARTIAL']} partial," in spoken
+    assert f"**{sum(counts.values())}** probe answers" in spoken

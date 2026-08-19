@@ -610,6 +610,117 @@ For revision. Each line is the compressed claim; the section above it is why the
 | **Q4** | An embedding matches meaning, not strings — and `backref` at rank 6 despite 80 chunks proves scarcity is not the mechanism |
 | **Q5** | From the answer alone you cannot; offsets make checking cheap and a human checked all nineteen — one verdict cites correctly and is wrong, another cites nothing and is right |
 
+### R5.7 The five, spoken end to end
+
+The table above is a memory card. **This is the answer as it would actually be said**, all five
+in a row, so the run can be rehearsed as one piece rather than five lookups. Each is the
+`Say this` block from its section, updated with everything settled by 2026-08-18 — `D56`'s
+audit in Q3, the corrected rank table in Q1.
+
+Read it aloud. If a sentence is hard to say, it is hard to follow, and it needs rewriting here
+rather than improvising at the time.
+
+#### 1. Why is your retrieval bad on purpose?
+
+> Phase 1 is meaning-search only — no keyword search, no reranker — because those are **fixes**,
+> and I wanted the failures they fix to be measured rather than assumed. That paid off in a way I
+> did not predict. I had five failing questions all filed as one problem: *"dense retrieval missed
+> it, hybrid search will fix it."* When I measured where the right page actually ranked, they were
+> **four different problems**. `backref` was at **rank 6** and I show the top **5** — that is a
+> constant being wrong, `DEFAULT_K` in `rag/ask.py`, not an architecture problem. Two were at 8
+> and 12, which a reranker fixes without touching search. One was at 23 with the top five scoring
+> `+0.001` over noise, meaning search found nothing — the only one keyword search helps. And one
+> is in zero chunks, so nothing fixes it. If I had built hybrid search first, all four would have
+> improved and I would have credited hybrid search for a constant.
+
+*Follow-up:* **"Why not just build the good version?"** It would have hidden which component was
+doing the work — and the rank table proves the hiding would have been real, not hypothetical.
+
+#### 2. What is in your corpus and what did you leave out?
+
+> **270 files** of narrative documentation from SQLAlchemy's own git tags — **1.4.52 and 2.0.51**,
+> both, on purpose. Four directories: ORM, Core, tutorial, FAQ. Two single files: the error index
+> and the glossary. Plus exactly one changelog file, the 2.0 migration guide. That is 126 files at
+> 1.4 and 144 at 2.0. I rejected about **60% of the doc tree by bytes** — the rest of the changelog
+> is per-release noise, and the dialect docs are backend specifics, not migration material.
+>
+> Two exclusions are the interesting ones. **`BREAKAGES.md` is out because it seeds the Phase 2
+> golden dataset**, and the corpus is what Phase 2 grades — leave it in and the system retrieves
+> the answer key at query time, then gets marked against it.
+>
+> And **the API reference is not excluded, it is absent.** SQLAlchemy generates it from docstrings
+> when Sphinx builds; it does not exist in the `.rst` source. That became a measured ceiling:
+> `has_table` appears in **zero** of my 3284 chunks, so one of my nineteen probe questions can
+> never be answered by any amount of retrieval work. I know that structurally, without running a
+> query.
+
+*Follow-up:* **"What can your system never answer?"** — already answered, which is why this one
+is worth leading with.
+
+#### 3. Your chunker split a code block. Why does that matter more than it sounds?
+
+> Because **broken English announces itself and broken code does not.** A truncated sentence ends
+> on a colon — you hear the hole. A truncated code example is still valid Python, correctly
+> indented, and looks deliberate. Nothing downstream can tell: it embeds, scores and gets
+> retrieved like any other chunk.
+>
+> That matters here specifically because this system's output is **code somebody pastes**. A
+> half-example becomes advice that does not run — or worse, runs and silently does nothing, which
+> is the same failure shape as the `cascade_backrefs` breakage I documented, where the INSERT
+> never happens and there is no error.
+>
+> I measured it instead of assuming. **At least 11 of my 3077 chunk boundaries cut inside a code
+> listing** with no overlap to repair it. One splits a doctest between two mapped classes — the
+> first half declares `relationship("Address", back_populates="user")` and `Address` is only in
+> the second half. Both halves look complete.
+>
+> Separately I audited a different defect: chunks that end mid-promise or open pointing backwards.
+> About **1 in 10, and 1 in 16 unrecoverable**. Zero end on `::`, the marker that introduces a
+> listing — so we never split at the *introduction*. That is not the same as never splitting code.
+
+*Follow-up:* **"So fix the chunker."** Detecting it needs a parser rather than a regex — my own
+first count was 96 until I noticed 72 were glossary entries, which are indented by nature.
+
+#### 4. Dense retrieval missed a question containing an exact symbol name. Why?
+
+> Because **an embedding matches meaning, not strings.** `Query.get` and `Session.get` mean almost
+> the same thing, so they sit almost on top of each other in the vector space, and the only thing
+> separating them is the literal characters — the one thing dense retrieval has no channel for.
+> That is the argument for hybrid search: BM25 adds the missing channel.
+>
+> What it is **not** is a rarity problem. `backref` appears in **80 chunks** — one of the most
+> common symbols in my corpus — and the first page containing it still ranked 6th. Rarity is an
+> IDF concept; it is what makes BM25 work. A dense retriever holds no term-frequency statistics at
+> all, so there is nothing for rarity to act on.
+>
+> It is not a model-size problem either — a model 25× smaller matched the shipped one when I
+> compared them.
+
+*Follow-up:* **"So a bigger model?"** No. The channel is missing, not undersized.
+
+#### 5. How do you know the answer came from the sources and was not invented?
+
+> **From the answer alone, I do not — and that is the honest starting point.** A citation is
+> generated text like everything else. My one mechanical signal, `uncited`, only detects the
+> *absence* of an `[n]` marker in a long answer. It never opens the cited chunk. Nothing in my
+> pipeline checks that a cited source supports the claim.
+>
+> What the system does instead is make checking cheap. Every answer prints the chunks it was
+> given, and every chunk carries its source file, heading path and **character offsets** — so
+> anyone can open the original at that exact position. Then a human walks that link. I
+> hand-verified all **19** probe answers against real SQLAlchemy 2.0.51: **10 correct, 3 partial,
+> 6 wrong.** Never auto-graded, because a model scoring its own output measures self-consistency
+> and reports it as truth.
+>
+> And the verdicts prove citations are not the mechanism, in **both** directions. **Question 1
+> cites exactly the right migration section and is still wrong** — it omits `aliased`'s second
+> argument, and the query returns `['a','e']` instead of `['a']`. **Question 2 cites nothing and
+> is exactly right** — its SQL is byte-identical to the verified fix. Citation and correctness are
+> independent here, and that is measured, not argued.
+
+*Follow-up:* **"And if it cites a chunk that does not say that?"** Already conceded in the first
+sentence, with Question 1 as the case where it happened.
+
 ### What this file does not claim
 
 Three things are easy to run together here and only two are established:
