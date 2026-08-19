@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D58`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D62`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1411,6 +1411,104 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"How did you define a hit?"* — and the answer names a mechanism: two copies with
 > identical vectors cannot be told apart by any ranker, so a metric that punishes the ranker for
 > them is measuring the wrong component.
+
+### D59 — `P2-b`: retrieve deep once and report the whole recall curve
+
+> **Decided 2026-08-18** — the scorer retrieves **top-20** for every question and computes
+> `recall@1 / @3 / @5 / @10 / @20` and MRR from that one list. There is no single `k`.
+> **Instead of** — picking `k = 5` to match `DEFAULT_K`, or `k = 10` to see near-misses, and
+> arguing about which.
+> **Because depth is free, measured rather than assumed.** Retrieval latency on this Mac is
+> dominated entirely by embedding the question, and that cost is identical at every depth:
+> `top-5` 95.7 ms, `top-10` 71.2 ms, `top-20` 109.4 ms, `top-50` 88.6 ms — differences that are
+> measurement noise around the ~88 ms query embedding (`D31` puts the Qdrant search itself at
+> 2.65 ms). **When the expensive part happens before `k` is even read, choosing a small `k` buys
+> nothing and discards information.**
+> **And Phase 1 already proved the discarded information was the useful part.** `recall@5` said
+> five questions failed; the *rank* said they failed four different ways — 6, 8, 12, 23, absent
+> (§R4.3). A single `recall@5` would have sent all five to hybrid search, and one of them needed
+> an integer. A curve makes "missed by one place" and "found nothing" different numbers instead
+> of the same zero.
+> **`recall@5` stays the headline** because it is what ships (`DEFAULT_K = 5`, `D54`). The rest
+> are reported beside it, not instead of it.
+> **Asked as** — *"What k did you evaluate at?"* — and the answer is that the question assumes a
+> choice that the cost structure does not force.
+
+### D60 — `P2-c`: the 19 probe questions join the set as a labelled subset, never as the benchmark
+
+> **Decided 2026-08-18** — the 19 questions in `FAILURES.md` enter `golden.json` with
+> `provenance: "breakages"`, and **every score is reported with and without them**.
+> **Instead of** — using them as the benchmark (they are free and already verified) or excluding
+> them (they are real failures with known answers).
+> **Because their leakage is measurable, and it was measured.** They were written from
+> `BREAKAGES.md`'s keys, so they carry the corpus's own vocabulary. Content-word overlap between
+> a question and the single top-ranked chunk it retrieves:
+>
+> | question set | median overlap with top-1 | with top-5 |
+> |---|---|---|
+> | the 19 probe questions | **0.57** | 0.75 |
+> | the same questions in developer phrasing | **0.33** | 0.67 |
+>
+> **A probe question shares 57% of its content words with the best chunk; a developer asking the
+> same thing shares 33%.** Search is being handed much of its own answer.
+> **The harder evidence is not the overlap — it is that the phrasing changes the result.** Of five
+> questions rewritten the way somebody stuck would type them, **three returned a different top-1
+> chunk**. A benchmark built on the tidy phrasing measures a system nobody is using.
+> **Stated limits.** The developer phrasings are `n = 5` and were **drafted here**, so they could
+> unconsciously favour low overlap; the overlap figure is indicative, and the changed-top-1 count
+> is the harder fact. Neither is a reason to drop the probe items — a benchmark whose items have
+> different provenance is fine, one that hides it is not.
+> **Asked as** — *"Where did your eval questions come from?"* — and the answer names the weakest
+> subset first, with the number that says how weak.
+
+### D61 — `P2-d`: 50 items, and Phase 3 reports which items flipped, not a recall delta
+
+> **Decided 2026-08-18** — target **50** golden items, and every Phase 3 comparison reports
+> **`fixed` and `broken` item lists** alongside the recall numbers.
+> **Instead of** — 30 items, and comparing two recall percentages before and after.
+> **Because 50 items cannot support the comparison everyone reaches for first.** The 95% Wilson
+> interval on a single recall figure at `n = 50, p = 0.6` is **±0.131**. Going from `0.60` to
+> `0.70` produces two intervals that overlap heavily — **a real ten-point improvement would be
+> indistinguishable from noise** if reported that way.
+> **What rescues it is that the comparison is paired.** Phase 3 runs the *same* questions before
+> and after, so only the items that **flip** carry information. Exact two-sided McNemar on the
+> discordant pairs:
+>
+> | fixed | broken | p | |
+> |---|---|---|---|
+> | 6 | 0 | **0.031** | significant |
+> | 5 | 0 | 0.062 | just short |
+> | 8 | 2 | 0.109 | **not** distinguishable |
+> | 10 | 4 | 0.180 | not distinguishable |
+>
+> **So the bar at `n = 50` is roughly six clean fixes with no regressions.** That is a real
+> constraint and it is stated rather than discovered later: this set detects **large** changes.
+> Phase 3's changes are supposed to be large — and if hybrid search moves three questions with
+> two regressions, *that is the finding*, not a measurement failure.
+> **Why not more than 50.** The binding cost is human verification at ~15 minutes an item (`D06`),
+> so 50 is 12.5 hours and 80 would be 20. The honest trade is a smaller set with stated limits
+> over a larger one that never gets finished.
+> **Asked as** — *"Is that improvement significant?"* — and the answer is a paired test with the
+> flipped items named, not two percentages and a hopeful adjective.
+
+### D62 — `P2-e`: refusal accuracy stays in Phase 2, reported separately from retrieval
+
+> **Decided 2026-08-18** — the scorer measures whether the system declines the `answerable: false`
+> items, and prints it as **its own section**, never folded into recall.
+> **Instead of** — deferring it to Phase 4, which is what `ROADMAP.md`'s wording implies:
+> *"Retrieval metrics (deterministic, free, no AI needed)."*
+> **Because the unanswerable items are otherwise dead weight for an entire phase.** At the
+> retrieval level an unanswerable question scores `recall = 0` by construction — the chunk does
+> not exist, so the number is arithmetic, not evidence. The only thing those items can test is
+> whether the system **says so**, and that needs generation.
+> **The cost is small enough that the scope argument does not survive it.** 50 generations at the
+> measured 18.4 tok/s on this Mac is roughly seven minutes; Round 10 ran 152 generations in a
+> single sitting. Deferring seven minutes of compute for a definitional reason would leave
+> `has_table` in the set for two phases doing nothing.
+> **The separation is the part that matters.** A refusal is not a retrieval result, and averaging
+> the two produces a number that improves when the system gets more cautious. They are printed
+> apart so neither can flatter the other.
+> **Asked as** — *"Your benchmark has questions with no answer. What do they measure?"*
 
 
 ## Using this in an interview

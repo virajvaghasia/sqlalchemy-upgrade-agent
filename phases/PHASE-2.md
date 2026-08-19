@@ -7,13 +7,23 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 
 | step | state | machine | what exists |
 |---|---|---|---|
-| [1. decide what a question is](#1-decide-what-a-question-is) | **planned** · `P2-a` settled (`D58`) | Mac | this file |
-| [2. harvest the questions](#2-harvest-the-questions) | not started | — | `deliverables/BREAKAGES.md` is the seed |
-| [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | not started | — | — |
-| [4. score it](#4-score-it-with-one-command) | not started | — | — |
+| [1. decide what a question is](#1-decide-what-a-question-is) | **done** 2026-08-18 | Mac | `deliverables/golden.json` — schema, README, 3 draft items |
+| [2. harvest the questions](#2-harvest-the-questions) | **open — yours** | — | 3 of 50 drafted; `BREAKAGES.md` is the seed |
+| [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | **open — yours** | — | `D06`: only a human verifies, and `rag/score.py` enforces it |
+| [4. score it](#4-score-it-with-one-command) | **built** 2026-08-18 | Mac | `rag/score.py`, 15 tests, all mutation-checked |
 
-**Nothing here is built yet.** This file is the plan, written the day Phase 1 closed, while what
-Phase 1 measured is still exact rather than remembered.
+**All five decisions are settled and the machinery is built.** What is left is the part no script
+may do: 50 questions found and verified by hand. `rag/score.py` **refuses to score any item whose
+`verified_by` is not `"human"`**, and says which ones it dropped — `D06` enforced in code rather
+than remembered.
+
+| | decision | settled |
+|---|---|---|
+| `P2-a` | a duplicate under the other version counts as a hit | `D58` |
+| `P2-b` | retrieve top-20 once; report `recall@1/3/5/10/20` | `D59` |
+| `P2-c` | the 19 probe questions join as a labelled subset | `D60` |
+| `P2-d` | 50 items, and Phase 3 reports which items flipped | `D61` |
+| `P2-e` | refusal accuracy is in Phase 2, printed separately | `D62` |
 
 ## What this phase is, in one sentence
 
@@ -200,6 +210,28 @@ always scored strictly, so `D10`'s skew questions are not quietly excused.
 each shown chunk at 700 characters and carries no chunk ids; measuring duplicates off it returns
 6 of 19 instead of 2. A rendered report is not the data.
 
+### Built 2026-08-18 — `rag/score.py`
+
+```
+# summary of: uv run python -m rag.score --validate, run against the skeleton
+#   golden.json. The exact output tracks that file and changes as items are
+#   verified, so it is summarised rather than pasted.
+golden set has 5 problem(s):
+  - g001: verified_by is None, not 'human' — D06, only a person verifies…
+  - g002: answerable with no answer_chunks
+  …
+```
+
+**The validator runs before any number is printed**, because the golden set is the ruler and a
+bent ruler does not announce itself — it produces plausible numbers wrong in the same direction
+every time. It catches: a missing field, a duplicate id, an unknown provenance, an
+`answer_chunks` naming a chunk id that is not in the index (which would score 0 forever and look
+like a retrieval failure), an answerable item with no note, and **any item a human has not
+verified**.
+
+**`--baseline` does the paired comparison** `D61` requires: which items were fixed, which broke,
+and the exact McNemar p-value — rather than two recall percentages whose intervals overlap.
+
 **Done when:** one command prints a score, and that score is committed as the Phase 1 baseline
 row of `ROADMAP.md`'s metrics table — the row every Phase 3 change is measured against.
 
@@ -207,12 +239,16 @@ row of `ROADMAP.md`'s metrics table — the row every Phase 3 change is measured
 
 ## Decisions to make before writing code
 
+**All five were settled on 2026-08-18, before any score existed** — which is the only honest
+time, because a metric chosen after seeing the numbers is the flattering one.
+
 | | decision | why it cannot be deferred |
 |---|---|---|
 | ~~**P2-a**~~ | ~~duplicate-pair counting~~ — **settled 2026-08-18, `D58`.** Either half counts as a hit; version-strict and `slots_lost_to_duplicates` reported beside it; `version_sensitive` items always scored strictly | the 437 same-heading pairs have **byte-identical vectors**, so no ranker can prefer one — punishing it measures the corpus, not retrieval |
-| **P2-b** | `k` for `recall@k` — 5 to match `DEFAULT_K`, or 10 to see near-misses | 5 measures what ships; 10 measures what a reranker could reach. Probably both |
-| **P2-c** | whether the 19 probe questions enter the set at all | they are labelled and free, and they are the leakiest items available |
-| **P2-d** | target size: 30 or 50 | 15 min an item means 7.5 vs 12.5 hours, and a small honest set beats a large padded one |
+| ~~**P2-b**~~ | ~~`k` for `recall@k`~~ — **`D59`: neither. Retrieve top-20 once and report the whole curve** | depth is free — latency is the ~88 ms query embedding and is identical at `k=5` and `k=50`, so a small `k` buys nothing and discards the rank |
+| ~~**P2-c**~~ | ~~whether the 19 probe questions enter~~ — **`D60`: yes, labelled, and every score reported with and without them** | their content-word overlap with their own top-1 chunk is **0.57** against **0.33** for developer phrasing, and 3 of 5 rephrasings returned a different top-1 |
+| ~~**P2-d**~~ | ~~30 or 50~~ — **`D61`: 50, and Phase 3 reports flipped items, not a recall delta** | at n=50 the 95% interval on one recall figure is **±0.131**, so a real ten-point gain is invisible. Paired, the bar is ~**6 clean fixes with no regressions** |
+| ~~**P2-e**~~ | ~~does refusal accuracy belong in Phase 2~~ — **`D62`: yes, printed separately** | unanswerable items score `recall = 0` by construction; the only thing they can test needs generation, and 50 generations is ~7 minutes |
 
 Each gets an entry in [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) when settled, with
 what was rejected.

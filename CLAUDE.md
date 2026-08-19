@@ -23,12 +23,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D58`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D62`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 140 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 155 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -327,7 +327,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 gate with a recorded exception (`D56`: 8 of 10, population rate 10.7%, 6.3% unrecoverable), the
 five verification questions per `D57`. **Next is Phase 2.** **Work is on branch
 `phase-1/completion`, not `main`** — `main` is deliberately stale and gets one PR when the phase
-closes. **140 tests**, **58/58** `# runnable` blocks, **58** decision entries, **§H empty**,
+closes. **140 tests**, **58/58** `# runnable` blocks, **62** decision entries, **§H empty**,
 19 verdicts in sync (`tools.apply_verdicts --check`).
 
 **The chunk gate closed 2026-08-18 — PASSED with a recorded exception (`D56`).** Reading ten at
@@ -397,8 +397,15 @@ nothing at all. **Tune `k` before reaching for architecture** is now an evidence
    beside it; `version_sensitive: true` items are always scored strictly, which is what keeps
    `D10` intact. **The scorer reads `corpus/chunks.jsonl`, never `FAILURES.md`** — that file
    truncates chunks at 700 chars, and measuring duplicates off it gives 6 of 19 instead of 2.
-2. **Settle `P2-b`/`P2-c`/`P2-d`** — `k` for `recall@k` (5 matches `DEFAULT_K`, 10 sees
-   near-misses), whether the 19 probe questions enter the set, and 30 vs 50 items.
+2. ~~**Settle `P2-b`/`P2-c`/`P2-d`**~~ — **done 2026-08-18.** `D59` retrieve top-20 once and
+   report the whole curve (depth is free: latency is the ~88 ms query embedding at every `k`).
+   `D60` the 19 probe questions join as a labelled subset — their overlap with their own top-1
+   chunk is **0.57** against **0.33** for developer phrasing, and 3 of 5 rephrasings returned a
+   different top-1. `D61` 50 items, and Phase 3 reports **flipped items**, because at n=50 one
+   recall figure carries a **±0.131** interval and the paired bar is ~6 clean fixes.
+   `D62` refusal accuracy stays in Phase 2, printed apart from retrieval.
+3. ~~**Build `rag/score.py`**~~ — **built 2026-08-18**, 15 tests, all mutation-checked. Validator
+   runs before any number and **drops items no human verified**, naming them.
 3. **Harvest the golden set.** 30–50 questions, **found not written** — real GitHub issues and SO
    questions, seeded from `BREAKAGES.md`'s 23 entries with provenance recorded. ~15 min an item,
    and `D06` means only a human verifies. At least three `answerable: false`, and **`has_table`
@@ -708,6 +715,27 @@ Append a dated entry each session; keep each entry to a few bullets.
   NOT"*) was the thing that read as already-knowing-the-sitting. Replaced with **Q1–Qn in
   plain language**, then a full answer with a named example. Length is fine; jargon-first is
   not. He later made that explicit: answers can be long if they stay easy to follow.
+
+### 2026-08-18 (later) — Phase 2's five decisions settled and the scorer built
+
+- **Phase 1 merged** as PR #28, squashed to `main` at `19024c2`, all five CI checks green.
+  Phase 2 work had been committed onto `phase-1/completion` by mistake; the three commits moved
+  to **`phase-2/measure`** with no force-push, because they were unpushed. **After a squash-merge
+  a downstream branch needs `git rebase --onto main <old-tip>`, not a plain rebase** — a plain one
+  conflicts, because `main` holds the squash of the same commits.
+- **`P2-b`–`P2-e` settled from measurements, not argument** (`D59`–`D62`). Retrieval depth is free
+  (~88 ms query embedding at every `k`), so the scorer takes top-20 once and reports the curve.
+  The probe questions overlap their own top-1 chunk **0.57** against **0.33** for developer
+  phrasing — and **3 of 5 rephrasings returned a different top-1**, which is the harder fact.
+  At n=50 one recall figure carries **±0.131**, so Phase 3 must report flipped items; the paired
+  bar is ~**6 clean fixes with no regressions**.
+- **`rag/score.py` built**, 15 tests, all six mutations caught. It implements `D58`–`D62` rather
+  than describing them, and **enforces `D06` in code**: any item whose `verified_by` is not
+  `"human"` is dropped, loudly, with its id named.
+- **`deliverables/golden.json` exists as a skeleton** — schema, README, three DRAFT items, none
+  verified. The 50 questions are Viraj's; drafting is allowed, verifying is not.
+- **Still not built and named as missing:** refusal accuracy (`--refusals`), which `D62` puts in
+  scope. The docstring says so rather than advertising a flag that does not exist.
 
 ### 2026-08-18 — the chunk gate, taken and passed with an exception
 

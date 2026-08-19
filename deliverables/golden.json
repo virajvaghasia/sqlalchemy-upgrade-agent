@@ -1,0 +1,52 @@
+{
+  "_README": [
+    "The Phase 2 golden set — the ruler every later number is measured with.",
+    "",
+    "D06: hand-verified, NEVER auto-generated. AI may draft a question and propose",
+    "candidate answer chunks; only a human sets verified_by to 'human'. rag/score.py",
+    "refuses to score any item that is not human-verified, and says so loudly.",
+    "",
+    "To verify one item: read the question, open the chunk it names (rag/chunk.py",
+    "carries source_path + char_start/char_end so the .rst opens at the exact spot),",
+    "confirm the answer is genuinely there, write one sentence in answer_note saying",
+    "what convinced you, then set verified_by to 'human' and verified_on to the date.",
+    "",
+    "Fields: id, question, provenance (github|stackoverflow|migration_guide|breakages),",
+    "answerable, answer_chunks (list, omit when unanswerable), answer_note,",
+    "version_sensitive (optional, true when the VERSION is part of the right answer —",
+    "those items are scored version-strict, D58), verified_by, verified_on.",
+    "",
+    "Target is 50 items (D61). Everything below is a DRAFT for review."
+  ],
+  "items": [
+    {
+      "id": "g001",
+      "question": "engine.has_table() no longer exists, what is the replacement?",
+      "provenance": "breakages",
+      "answerable": false,
+      "answer_note": "CANDIDATE — the corpus ceiling. `has_table` appears in ZERO of the 3284 chunks: it is documented only in the API reference, which Sphinx generates from docstrings and which is absent from the .rst source (D07, D50). Correct behaviour is to decline. Check with: grep -c has_table corpus/chunks.jsonl",
+      "verified_by": null,
+      "verified_on": null
+    },
+    {
+      "id": "g002",
+      "question": "my old query.from_self() call blew up after upgrading, whats the new way",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [],
+      "answer_note": "CANDIDATE — developer phrasing of probe question 1. Answer chunks NOT yet chosen; retrieval returns a different top-1 than the tidy phrasing did, which is the point of including it.",
+      "verified_by": null,
+      "verified_on": null
+    },
+    {
+      "id": "g003",
+      "question": "cant list tables anymore, engine.table_names() attribute error",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [],
+      "answer_note": "CANDIDATE — developer phrasing of probe question 3. In Phase 1 the answer ranked 23 of 3284 with the top-5 scoring +0.001 over noise, so this item is the one that should move when hybrid search lands.",
+      "verified_by": null,
+      "verified_on": null
+    }
+  ]
+}
