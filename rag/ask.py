@@ -134,6 +134,29 @@ SYSTEM = (
 )
 
 
+# The exact opening the SYSTEM clause above mandates. It lives HERE, beside the
+# sentence that demands it, because a refusal detector that drifts from the
+# prompt reports the wrong number in both directions at once: a reworded prompt
+# makes every real refusal look like an answer, and nothing fails loudly.
+#
+# `rag/probe.py` and `rag/score.py --refusals` both call this. Two copies of the
+# string was the alternative, and it is how the two would eventually disagree
+# about the same run.
+REFUSAL_OPENING = "The sources do not answer"
+
+
+def refused(answer: str) -> bool:
+    """Did the model decline, rather than answer badly?
+
+    A prefix test, not a search: the clause tells the model to OPEN with this
+    sentence. Matching it anywhere would count an answer that *mentions* the
+    sources not covering some sub-part -- which is the behaviour prompt D was
+    built to produce (answer the part that is covered, say which part is not)
+    and is the opposite of a refusal.
+    """
+    return answer.strip().startswith(REFUSAL_OPENING)
+
+
 def build_prompt(question: str, hits) -> str:
     blocks = []
     for n, hit in enumerate(hits, 1):

@@ -96,6 +96,8 @@ ENV_MARKERS = {
     "rag.ask": "nondeterministic model output",
     "rag.probe": "nondeterministic model output; minutes to run",
     "rag.index": "needs Qdrant running",
+    "rag.score": "reads corpus/chunks.jsonl, which is generated and gitignored (D11), and the live path also needs Qdrant",
+    "rag.golden": "reads corpus/chunks.jsonl, which is generated and gitignored (D11)",
     "psql": "needs a running database",
 }
 
