@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D63`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D64`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1555,6 +1555,29 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"Your benchmark has questions with no answer. What do they measure?"*
 
 
+### D64 — Phase 2's golden scorecard got its own file, so Sitting 4 stays Phase 1
+
+> **Decided 2026-08-21** — the measured Phase 2 baseline, refusal run, and three ceiling items
+> went into a new `study/14-MEASURE.md` as **§R6**, continuing the `R` run per `D47`.
+> **Instead of** — leaving them as R4.7–R4.9 at the end of `study/12-EVALUATION.md`, or folding
+> them into `13-VERIFICATION.md`.
+> **Rejected — keeping them in `12`.** Sitting 4 opens as measured off the **19**
+> `FAILURES.md` answers. The golden-set score is a different artefact (50 items, a different
+> harvest, Phase 2's deliverable). Leaving it in `12` made Phase 1 look unfinished after §R5
+> had already closed the phase.
+> **Rejected — putting them in `13`.** §R5 is defending the system **out loud**; a scorecard is
+> not that skill. Mixing interview rehearsal with recall tables would fail the same split test
+> `D55` already used the other way.
+> **Because the splitting rule's condition is met.** `12` had grown to cover two subjects:
+> *how* to measure (R4.1–R4.6) and *what* the finished ruler scored (the old R4.7–R4.9). Those
+> fail differently — one is conceptual, the other goes stale when you re-run `rag.score`.
+> **The cost, stated rather than hidden.** One more file in the `R` run. The mitigation is the
+> same as `D55`: say out loud that Phase 1 ends at §R5, and point from `12` to `14` so Sitting 4
+> does not claim the golden set.
+> **Asked as** — *"When do you split a study file after the phase that produced the earlier
+> half has already closed?"*
+
+
 ## Using this in an interview
 
 **Three entries carry the project**, and they are the ones nobody else will have:
@@ -1580,7 +1603,7 @@ and the follow-up question finds out.
 | [`../README.md`](../README.md) | the front door, with a **Start here** table |
 | [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | the current phase and its open decisions (`P2-a`…`P2-d`) |
 | [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | the phase before, complete — and the record of how each gate closed |
-| [`./README.md`](README.md) | this folder's index and the two § numbering families |
+| [`./README.md`](README.md) | this folder's index and the three § numbering families |
 | [`../logs/LEARNING-LOG.md`](../logs/LEARNING-LOG.md) | the dated timeline — *when* things were learned |
 | [`../CLAUDE.md`](../CLAUDE.md) | how the work gets done, and the rules above as working agreements |
 

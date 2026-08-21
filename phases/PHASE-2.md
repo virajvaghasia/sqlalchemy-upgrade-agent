@@ -12,10 +12,13 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 | [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | **done** 2026-08-20 | Mac | 68 answer-chunk ids, all resolving; every item human-verified (`D06`) |
 | [4. score it](#4-score-it-with-one-command) | **done** 2026-08-20 | Mac | `rag/score.py`, 25 tests, six mutations checked; baseline row filled |
 | [5. refusal accuracy](#5-refusal-accuracy-d62) | **built** 2026-08-20 | Mac | `--refusals`, the one section that needs generation |
+| [6. the second 50](#6-the-second-50--real-questions-harvested) | **drafted — yours to verify** | Mac | 50 real questions harvested from Stack Overflow (25) and GitHub discussions (25), `verified_by: null` |
 
-**The phase is measured.** The headline is **recall@5 = 0.51 ±0.131** over the 50 hand-verified
-items, saved to `deliverables/baseline-phase1.json` and written into `ROADMAP.md`'s metrics
-table as the row every Phase 3 change is compared against.
+**The phase is measured.** The teaching write-up of the score — baseline, refusals, three
+ceilings — is [`../study/14-MEASURE.md`](../study/14-MEASURE.md) §R6. The headline is
+**recall@5 = 0.51 ±0.131** over the 50 hand-verified items, saved to
+`deliverables/baseline-phase1.json` and written into `ROADMAP.md`'s metrics table as the row
+every Phase 3 change is compared against.
 
 **Read it with `D63`.** That 0.51 averages two subsets that behave very differently —
 `migration_guide` at **0.73** and `breakages` at **0.41** — and `D63` records that `D60` had the
@@ -233,8 +236,13 @@ each shown chunk at 700 characters and carries no chunk ids; measuring duplicate
 ### Built 2026-08-18, run for real 2026-08-20 — `rag/score.py`
 
 ```
-# runnable: uv run python -m rag.score --validate
-golden set OK: 50 items, 3 unanswerable
+# summary of: uv run python -m rag.score --validate. ENV in check_runnable —
+#   reads the generated, gitignored corpus/chunks.jsonl (D11). Output tracks the
+#   file: with the 50 harvested drafts present it lists them as unverified, and
+#   `--validate` exits 1 until a human has been through them (D06).
+golden set has 50 problem(s):
+  - g051: verified_by is None, not 'human' — D06, only a person verifies…
+  …
 ```
 
 **The validator runs before any number is printed**, because the golden set is the ruler and a
@@ -348,6 +356,74 @@ That is Phase 4's job (`D06`).
 
 **Done when:** the refusal section runs against the finished golden set and its numbers are
 recorded here — **done 2026-08-20**.
+
+---
+
+## 6. The second 50 — real questions, harvested
+
+The first 50 items were **seeded from this repo**: 34 from `BREAKAGES.md`'s entries and 16 from
+the migration guide. `D63` then measured what that costs. The `migration_guide` half overlaps its
+own answer chunk **0.64** and scores **0.73**; the `breakages` half, written in developer phrasing,
+overlaps **0.43** and scores **0.41**. **Phrasing is the variable**, and both halves were phrased
+*here* — the realistic-looking half is realism as imagined, not observed. `D60` said so itself:
+*"the developer phrasings are n = 5 and were drafted here, so they could unconsciously favour low
+overlap."*
+
+**So the second 50 are found, not written, and not by us.** 25 Stack Overflow questions and 25
+`sqlalchemy/sqlalchemy` GitHub discussions, harvested 2026-08-21, each with its `source_url`.
+Titles are kept **verbatim**, typos included — `g052` is *"Base = declarative_base(bind=engine) How
+do I migrate this statment to SQLAlchemy 2.0"*, and the misspelling is data, not noise.
+
+### The trap this had to avoid, and how
+
+**Proposing answer chunks with the dense retriever would have graded the benchmark against
+itself.** Pick each golden chunk from the top 5 of the system under test and `recall@5` is ~1.0 by
+construction — a perfect score that measures nothing. `rag/golden.py`'s own docstring warns about
+this from the other direction: `--candidates` ranks by the same dense search, so its top hit is
+*what the system found*, not *what is correct*.
+
+The drafts therefore propose chunks by **BM25 keyword search over `corpus/chunks.jsonl`** — a
+channel the graded system does not use. Every draft's `answer_note` records the top five BM25 hits
+with their scores, so the reasoning is inspectable rather than asserted.
+
+**This is a proposal, not an answer.** `verified_by` is `null` on all 50, `rag/score.py` drops them
+loudly and names each one, and the committed baseline is unchanged at **`recall@5 = 0.51 ±0.137`**
+because it scores the 50 verified items only. `D06` is not a convention here; it is the reason the
+number did not move when 50 items appeared.
+
+### What the harvest already fixes
+
+The concentration recorded in step 4 was the sharpest limitation of the first 50:
+
+| | first 50 (verified) | second 50 (drafts) |
+|---|---|---|
+| source files touched | **4** of 270 | **32** of 270 |
+| share of answer chunks in `migration_20.rst` | **91%** (62 of 68) | **19%** (19 of 100) |
+
+The proposals reach `orm/session_basics.rst`, `orm/declarative_tables.rst`, `errors.rst`,
+`core/engines.rst`, `orm/dataclasses.rst` and `faq/ormconfiguration.rst` — pages the first 50 never
+asked about. If they survive verification, the set stops grading *"can it find the migration
+guide"* and starts grading *"can it search the corpus"*.
+
+### The sizing, and why 50 rather than 150
+
+95% Wilson half-width on one recall figure at `p = 0.5`:
+
+| n | half-width | a real move must exceed |
+|---|---|---|
+| 50 | ±0.134 | 27 points |
+| **100** | **±0.096** | **19 points** |
+| 200 | ±0.069 | 14 points |
+
+**50 → 100 is the last increment that clearly pays.** Doubling again buys 19 → 14 points for
+another ~25 hours of human verification at `D61`'s measured ~15 minutes an item. And because
+GitHub and Stack Overflow are both *real* developer phrasing, they pool: the contrast `D63` needs
+becomes **50 harvested against 50 repo-authored**, ±0.134 on each side, rather than four thin
+subgroups.
+
+**Done when:** a human has been through all 50 — keeping the BM25 proposal where it answers,
+replacing it by reading where it does not, and setting `answerable: false` where the corpus cannot
+answer at all. **`--validate` exits 1 until then, and that is the gate working.**
 
 ---
 

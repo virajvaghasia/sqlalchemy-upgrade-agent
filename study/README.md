@@ -20,8 +20,9 @@ when measured, the correction is kept rather than quietly edited out.
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **every design decision, what was rejected, and why** — written for interview revision. Cite entries by ID (`D19`) | — |
 | [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — why we look things up instead of asking from memory (§R1); what the 1024 numbers on disk actually are (§R2). Two sittings; stop after the first | §R1–§R2 |
 | [`11-GENERATION.md`](11-GENERATION.md) | what happens *after* search: the prompt as a component. Three wordings of one sentence; C fabricates, A over-refused once, B ships (§R3) | §R3– |
-| [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4– |
-| [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5– |
+| [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
+| [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
+| [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — the 50-item golden baseline, the refusal run, and the three ceiling questions (`answerable: false`). Continues the `R` run after Phase 1 closed (§R6) | §R6 |
 
 ## By phase — which file belongs to what
 
@@ -74,20 +75,32 @@ human verdicts. Plan: [`../phases/PHASE-1.md`](../phases/PHASE-1.md).
 | [`12-EVALUATION.md`](12-EVALUATION.md) | §R4 | how you find out whether any of it worked |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | §R5 | defending the result out loud, cold — the phase's five closing questions |
 
+### Phase 2 — Measure it
+
+Deliverable: [`../deliverables/golden.json`](../deliverables/golden.json) — 50 hand-verified
+items. Plan: [`../phases/PHASE-2.md`](../phases/PHASE-2.md).
+
+| file | § | what it was for |
+|---|---|---|
+| [`14-MEASURE.md`](14-MEASURE.md) | §R6 | the measured baseline, refusals, and three ceiling items — written after the score existed |
+
+**Phase 1's evaluation teaching stays in `12`.** How to score (two report cards, rank table,
+`D06`) is Sitting 4. What the finished golden set scored is Sitting-adjacent Phase 2 material in
+`14`, so Phase 1's last gate (`13`) stays the end of that phase.
+
 ### Every phase — the register
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D63`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D64`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
 
-### Phases 2–6
+### Phases 3–6
 
-**No study files yet, and that is the honest state rather than an omission.** Phase 2 is
-measurement, Phase 3 is hybrid search and reranking, Phase 4 judges answers, Phase 5 is the
-agent and MCP, Phase 6 is production polish — see [`../phases/ROADMAP.md`](../phases/ROADMAP.md)
-§6. Teaching material is written *after* the thing it teaches has been measured here, never
-ahead of it, which is why `12-EVALUATION.md` could not have been written before the 19 verdicts
-existed.
+**No study files yet for these, and that is the honest state rather than an omission.** Phase 3
+is hybrid search and reranking, Phase 4 judges answers, Phase 5 is the agent and MCP, Phase 6 is
+production polish — see [`../phases/ROADMAP.md`](../phases/ROADMAP.md) §6. Teaching material is
+written *after* the thing it teaches has been measured here, never ahead of it — which is why
+`14-MEASURE.md` waited until the golden set was scored.
 
 ## Three numbering families, and why
 
@@ -99,11 +112,12 @@ things and they do not line up — deliberately.
   to "§18" is unambiguous across the pair.
 - **`04`–`07` share a second run, `§1`–`§6`**, for the same reason: `05` continues `04`,
   `06` continues `05`. One container, then several, then the database in one, then the tests.
-- **`10`–`13` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
+- **`10`–`14` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
   without it, `§1` would mean Docker in one family and RAG in another. A letter makes a collision
-  impossible rather than merely unlikely. `11` continues `10`, `12` continues `11` and `13`
-  continues `12` — §R1–§R2 are retrieval, §R3 is generation, §R4 is evaluation, and §R5 is
-  defending the result under questioning.
+  impossible rather than merely unlikely. `11` continues `10`, `12` continues `11`, `13`
+  continues `12`, and `14` continues after Phase 1 closed — §R1–§R2 are retrieval, §R3 is
+  generation, §R4 is evaluation, §R5 is defending the result under questioning, and §R6 is the
+  Phase 2 golden-set scorecard.
 
   **The `R` is for RAG, not for Retrieval**, and the distinction only became visible when §R3
   moved into `11`. A subject-labelled prefix would have forced `§G1` there and a fourth family on

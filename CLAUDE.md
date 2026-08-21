@@ -18,10 +18,12 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`deliverables/BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
-- **The four teaching files for the RAG system:** `10-RETRIEVAL.md` §R1–§R2 (retrieval),
-  `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation), `13-VERIFICATION.md`
-  §R5 (defending it under questioning, and the five cold questions). One `R` run across all
-  four — it stands for RAG, not Retrieval (`D47`).
+- **The five teaching files for the RAG system:** `10-RETRIEVAL.md` §R1–§R2 (retrieval),
+  `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation — how to measure),
+  `13-VERIFICATION.md` §R5 (defending it under questioning; Phase 1's last gate),
+  `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard). One `R` run across all five — it stands
+  for RAG, not Retrieval (`D47`). Phase 1 ends at §R5; §R6 is Phase 2's measured result
+  (`D64`).
 - **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,
   `--candidates` (chunk ids **and** char offsets, which `index --search` omits), `--show`
   (the chunk in full plus the `file +line` to open). **It cannot mark anything verified**, and a
@@ -35,11 +37,11 @@ Meta, Google, Apple, Anthropic, and startups).
   `GRAPH_REPORT.md` are committed so the lab PC gets them through git (`D29`); `graph.html`,
   `cache/` and the machine-specific `.graphify_*` paths are not.
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
-  index and explains the two § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure)
-  plus the two runbooks (`03`, `08`).
+  index and explains the three § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure,
+  §R1–§R6 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D63`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D64`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -341,7 +343,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **State (2026-08-20):** **Phase 2 is the current phase, and it is measured.** Phase 0 and Phase 1
 are COMPLETE and merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **173 tests**,
-**58/58** `# runnable` blocks, **63** decision entries, **§H empty**, 19 verdicts in sync.
+**58/58** `# runnable` blocks, **64** decision entries, **§H empty**, 19 verdicts in sync.
 
 **The golden set is finished: 50 items, all human-verified (`D06`).** The Phase 1 baseline is
 **recall@5 = 0.51 ±0.131**, saved to `deliverables/baseline-phase1.json` and written into
@@ -353,7 +355,8 @@ are COMPLETE and merged; `main` is at `19024c2`. Work is on **`phase-2/measure`*
 uv run pytest                            # 173 passed (5 of them skip without Qdrant)
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
-uv run python -m rag.score --validate    # golden set OK: 50 items, 3 unanswerable
+uv run python -m rag.golden --status     # 100 items: 50 verified, 50 DRAFTS awaiting you
+uv run python -m rag.score               # scores the 50 verified only (D06), baseline 0.51
 ```
 
 If any disagrees with the numbers above, **the docs are stale and the code is right** — fix the
@@ -387,6 +390,37 @@ The named example, both ends of it: **`g034`** overlaps its top chunk **6/6** an
 **`g042`** (*"I assigned comment.issue = issue and the Comment never got INSERTed"*) overlaps
 **0/7** and is **not in the top 20** — its answer `c02230` is written in the vocabulary of the
 cause (`cascade_backrefs`), and the developer only has the symptom.
+
+### The second 50 — harvested 2026-08-21, and they are YOURS to verify
+
+`golden.json` now holds **100 items: 50 verified, 50 drafts.** The drafts are **real questions**,
+found not written — **25 Stack Overflow + 25 `sqlalchemy/sqlalchemy` GitHub discussions**, titles
+kept verbatim (`g052` keeps its *"statment"* typo), each with a `source_url`.
+
+**Why they exist:** `D63` proved phrasing is the variable that decides retrieval, and *both* halves
+of the first 50 were phrased **here**. The realistic half is realism as imagined. These are
+observed.
+
+**The trap that was avoided, and it matters.** Proposing answer chunks with the dense retriever
+would grade the benchmark against itself — pick each chunk from the system's own top 5 and
+`recall@5` is ~1.0 by construction. The drafts propose via **BM25 keyword search**, a channel the
+graded system does not use, and each `answer_note` records the top-5 BM25 hits with scores.
+
+**They already fix the concentration problem**, if they survive verification:
+
+| | first 50 | second 50 (drafts) |
+|---|---|---|
+| source files touched | **4** of 270 | **32** of 270 |
+| answer chunks in `migration_20.rst` | **91%** | **19%** |
+
+**The baseline did not move** — `rag/score.py` scores the 50 verified only and says so out loud, so
+`recall@5 = 0.51 ±0.137` still stands. **`--validate` now exits 1** until a human is through the
+drafts. That is the gate working, not a breakage.
+
+**What verifying one looks like:** `uv run python -m rag.golden --show <chunk>` prints the chunk and
+the `file +line` to open. Keep the BM25 proposal if it answers, replace it by reading if not, set
+`answerable: false` if the corpus cannot answer, write the note, set `verified_by` to `"human"`.
+~15 min an item (`D61`), so ~12.5 hours. **Claude may not set `verified_by` and a test asserts it.**
 
 ### Refusals: the finding that outgrew Phase 1
 
@@ -1014,7 +1048,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   whose answer was retrieved, 7 were refused, so the system answered with the right page in hand
   on **17 of 47 = 0.36** against a recall of **0.51**. **Retrieval's number is a ceiling that
   generation loses another 15 points of**, invisible to every retrieval metric.
-- **A fabricated example, caught before it shipped.** Writing R4.7 I invented a side-by-side of
+- **A fabricated example, caught before it shipped.** Writing what is now §R6.1 I invented a
+  side-by-side of
   two `from_self` questions with overlap figures `0.8` and `0.29`. There is only **one**
   `from_self` item in the set; the pairing and both numbers were made up. Replaced with the real
   extremes, derived: `g034` at **6/6, rank 1** and `g042` at **0/7, not in the top 20**. The
@@ -1023,3 +1058,38 @@ Append a dated entry each session; keep each entry to a few bullets.
   passed here and would have failed CI: `corpus/chunks.jsonl` is gitignored (`D11`). Classified
   ENV with the reason, alongside `rag.golden`. Adding 8 tests (165 → 173) broke the three blocks
   quoting the test count, as it always does.
+
+### 2026-08-21 — Phase 2 scorecard split into `study/14-MEASURE.md`
+
+- **`R4.7`–`R4.9` moved out of `12-EVALUATION.md` into `14-MEASURE.md` as §R6.1–§R6.3.** Sitting 4
+  stays how to measure (the 19 probe answers); Phase 1 already ended at §R5. Golden baseline,
+  refusals, and three ceilings are Phase 2's result, not an appendix to Sitting 4 (`D64`).
+- Indexes updated: `study/README.md`, root `README.md`, `PHASE-2.md`, CLAUDE teaching-files
+  line. `13` points forward so the cold gate is not confused with the scorecard.
+
+### 2026-08-21 — the second 50: real questions, harvested
+
+- **Why, in one line:** `D63` proved **phrasing** decides retrieval, and both halves of the first
+  50 were phrased *here*. `D60` had already admitted it — *"the developer phrasings are n = 5 and
+  were drafted here."* The realistic half was realism as imagined; these are observed.
+- **Harvested 25 Stack Overflow + 25 `sqlalchemy/sqlalchemy` GitHub discussions**, titles kept
+  verbatim including typos (`g052`: *"How do I migrate this statment"*). Every item carries its
+  `source_url`. Sourced by searching the error strings developers actually paste, then filtered
+  for genuine 1.4→2.0 relevance — off-topic hits (numpy casting, pandas/mssql perf, 1.3→1.4
+  questions, polymorphic loading) excluded explicitly rather than left to dilute the set.
+- **The circularity trap, and it would have been invisible.** Proposing answer chunks with the
+  dense retriever grades the benchmark against itself: pick each chunk from the system's own top 5
+  and `recall@5` is ~1.0 **by construction**, a perfect score measuring nothing. Proposals come
+  from **BM25 over `chunks.jsonl`** instead — a channel the graded system does not use — and each
+  `answer_note` records the top-5 BM25 hits with scores so the reasoning is inspectable.
+  `rag/golden.py`'s docstring already warned about this from the other direction.
+- **It fixes the concentration limitation**, if the drafts survive verification: source files
+  touched **4 → 32** of 270; share of answer chunks in `migration_20.rst` **91% → 19%**.
+- **The baseline did not move**, which is `D06` working rather than luck: `rag/score.py` scores the
+  50 verified only and announces it, so `recall@5 = 0.51 ±0.137` is unchanged with 50 new items in
+  the file. `--validate` now exits 1 until a human is through them — the gate, not a breakage.
+- **Sizing was computed, not guessed.** Wilson half-width at p=0.5: n=50 ±0.134, n=100 ±0.096,
+  n=200 ±0.069. 50→100 is the last increment that clearly pays; doubling again buys 19→14 points
+  for ~25 more hours of `D06` verification.
+- **Not done and it is his:** all 50 drafts. Claude may draft and propose; a test asserts Claude
+  cannot set `verified_by`.

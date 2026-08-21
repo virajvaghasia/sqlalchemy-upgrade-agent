@@ -10,6 +10,8 @@ not Retrieval (`09-DECISIONS.md` **D47**).
 skill from building it, it fails in its own characteristic way, and — unlike the other three —
 it spans every subject at once. There is no single file the five answers belong beside, which is
 the only reason this is a new file rather than five paragraphs added to the other three.
+Phase 2's measured scorecard continues afterwards in [`14-MEASURE.md`](14-MEASURE.md) §R6 —
+that is not Sitting 6 of Phase 1.
 
 > **Sitting 5 is §R5.** It assumes §R1–§R4 have landed. Every number here is measured against
 > this repo and carries the command that produces it. Where a measurement in this file was wrong
