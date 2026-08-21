@@ -290,6 +290,12 @@ exam key. Phase 2 will score retrieval against ~50 of those.
 model writes the answers *and* grades them, you measure “does it agree with itself,” not “is it
 true.” Longer cost: **that gate stayed open for two days.**
 
+**Two jobs, do not mix them** (full write-up in [`14-MEASURE.md`](14-MEASURE.md) §R6.0):
+**verifying** = you open the page and judge that it really answers the question (meaning, once
+per item); **scoring** = the script only checks whether those chunk **ids** landed in top-k
+(no understanding). You do not memorise every golden Q&A for interviews — you verify drafts
+once, then defend the rule.
+
 Two things make the cost survivable:
 
 - **The answers were already known.** Questions come from `BREAKAGES.md` — 23 breakages measured

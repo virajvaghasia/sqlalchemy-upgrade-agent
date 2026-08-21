@@ -77,8 +77,11 @@ human verdicts. Plan: [`../phases/PHASE-1.md`](../phases/PHASE-1.md).
 
 ### Phase 2 — Measure it
 
-Deliverable: [`../deliverables/golden.json`](../deliverables/golden.json) — 50 hand-verified
-items. Plan: [`../phases/PHASE-2.md`](../phases/PHASE-2.md).
+Deliverable: [`../deliverables/golden.json`](../deliverables/golden.json) — **100 items**, half
+written here and half harvested from Stack Overflow and GitHub, plus
+[`../deliverables/GOLDEN-FULLBAR-AUDIT.md`](../deliverables/GOLDEN-FULLBAR-AUDIT.md), which
+re-checks all 100 against `chunks.jsonl`, live docs, and real `sqlalchemy==2.0.51`. Plan:
+[`../phases/PHASE-2.md`](../phases/PHASE-2.md).
 
 | file | § | what it was for |
 |---|---|---|
@@ -92,7 +95,7 @@ items. Plan: [`../phases/PHASE-2.md`](../phases/PHASE-2.md).
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D64`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D65`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
 
 ### Phases 3–6
 

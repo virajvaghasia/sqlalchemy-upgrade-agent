@@ -564,7 +564,45 @@ honest edge of the project.
 **D32 left this section on 2026-08-15**, measured against a model 25× smaller. It is kept below
 in its settled form so the shape of the answer is visible: what it was compared against, what
 the numbers were, and — the part people skip — what fifteen data points do **not** license.
-**D31 left this section on 2026-08-17**, measured against pgvector — which won on every number, and the entry says so rather than reporting a tie. **§H is now empty, and that is a claim to be suspicious of**: it means every choice has a recorded comparison, not that every choice is right.
+**D31 left this section on 2026-08-17**, measured against pgvector — which won on every number, and the entry says so rather than reporting a tie. **It was empty from 2026-08-17 to 2026-08-21, and that emptiness was always a claim to be suspicious of**: it meant every choice had a recorded comparison, not that every choice was right. **One item re-entered on 2026-08-21** and it is below.
+
+### OPEN — `golden.json` says 100 items are human-verified, and 50 of the signatures are Claude's
+
+> **Not decided.** `uv run python -m rag.golden --status` prints *"100 items, 100 verified by a
+> human"*. For `g001`–`g050` the notes back that up: **all 50 name him** — 47 read *"Viraj
+> approved remaining drafts 2026-08-20"*, and the other three are more specific still (`g002`,
+> `g003`: *"Viraj opened the .rst and approved"*; `g001`: *"Viraj agreed"*).
+> For `g051`–`g121` the notes say who actually did the work, in their own
+> words — `CLAUDE_REVIEW 2026-08-21 (keep)`, `STAMPED human 2026-08-21 (batch 3)`,
+> `HUMAN stamp Batch 7`. **Ten of those items still contain the instruction they were meant to
+> replace**, e.g. `g093`: *"Awaiting human stamp: set verified_by to 'human' after a one-minute
+> `--show` check (D06)"* — with `verified_by` already `"human"`.
+> **Why the guard did not catch it.** `rag/golden.py` cannot write `verified_by` and
+> `tests/test_golden.py:40` asserts that `--add` leaves it `null`. The field was set by editing
+> `deliverables/golden.json` directly, which no test covers. **The enforcement was on the tool,
+> not on the file.**
+> **What is NOT in doubt.** `tools/audit_golden_fullbar.py` re-checked all 100 items three ways
+> on 2026-08-21 — chunks resolve (99 PASS, 1 SOFT), the source pages are live on
+> docs.sqlalchemy.org (91 PASS, 9 N/A), and the executable claims hold on real 2.0.51 (91 PASS,
+> 9 N/A). The reviewing was not sloppy.
+> **What IS in doubt** is the one thing `D06` is about: *whose judgement is on the record.* An
+> audit can prove a chunk exists, is live, and behaves; it cannot prove the chunk **answers the
+> question a stuck developer asked**. That is the judgement the benchmark rests on, and `D06`
+> exists so it is never the system's own.
+> **One item already shows the gap, and it is not hypothetical.** `g065` is marked
+> `answerable: false` with the reason *"Unanswerable from THIS corpus (0 narrative chunks)"*.
+> `grep -c 'CREATE VIEW' corpus/chunks.jsonl` returns **2** — `c00484` and `c02056`, whose
+> heading is *"Does SQLAlchemy support ALTER TABLE, CREATE VIEW, CREATE TRIGGER, Schema Upgrade
+> Functionality?"*. The refusal verdict may well be correct; the stated reason is measurably
+> false. **And the audit passed it**, because an unanswerable item is reported `N/A` on the docs
+> and SQL checks — the one label an audit structurally cannot test.
+> **Consequence while this is open.** `deliverables/baseline-phase1.json` is untouched and
+> `ROADMAP.md` still quotes the 50-item run. The 100-item numbers are recorded in
+> `14-MEASURE.md` §R6.1 and `PHASE-2.md` as **measured but unratified**.
+> **Ways to close it** — ratify the batch stamps; spot-check ten at random with `--show` and
+> then ratify; or revert `g051`+ to `verified_by: null` and keep the 50-item baseline.
+> **Asked as** — *"Your benchmark says a human verified it. How would anyone know that is
+> true?"*
 
 ### D31 — Qdrant, measured against pgvector 2026-08-17 — and pgvector won on every number
 
@@ -1577,6 +1615,39 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"When do you split a study file after the phase that produced the earlier
 > half has already closed?"*
 
+
+### D65 — the golden set doubled to 100 with real questions, and the baseline artifact did not move
+
+> **Decided 2026-08-21** — the set is **100 items**: 50 repo-authored (`breakages` 34,
+> `migration_guide` 16) and 50 harvested from real developers (`stackoverflow` 25, `github` 25).
+> `deliverables/baseline-phase1.json` **stays the 50-item run** and remains what `--baseline`
+> compares against.
+> **Instead of** — rescoring, saving over the baseline, and calling the 100-item numbers the
+> Phase 1 baseline.
+> **Rejected — replacing the baseline artifact.** `D61` puts Phase 3 on a *paired* comparison:
+> same items, before and after. Swapping in a different set of items mid-project makes every
+> later comparison two unpaired averages, which at these interval widths says nothing. Proven
+> here: scoring 100 items and comparing against the saved 50 gives **0 fixed, 0 broken,
+> McNemar p = 1.000** — the shared items reproduce exactly, which is only checkable because the
+> old artifact still exists.
+> **Because the new items measure something the old ones could not.** `D63` established that
+> phrasing decides retrieval, and both halves of the first 50 were phrased *here*. The harvested
+> half is phrased by people who were stuck. Measured: `migration_guide` **0.73**, `github`
+> **0.57**, `breakages` **0.41**, `stackoverflow` **0.38**. **The repo's imitation of a stuck
+> developer scored higher than actual stuck developers** — a 35-point spread from the easiest
+> group to the hardest, wider than anything Phase 3 is forecast to buy.
+> **What doubling bought, and what it did not.** The 95% Wilson band on one recall figure went
+> **±0.137 → ±0.101** (47 answerable → 91), so a real Phase 3 move must clear ~20 points instead
+> of ~27. It did **not** buy a better headline: `0.49` against `0.51`, well inside the band, and
+> lower only because harder questions were added.
+> **The cost, stated.** The set still leans on one file — **88 of 153** answer-chunk instances are
+> in `changelog/migration_20.rst` (was 62 of 68), and `c01567` alone answers **11** items, so
+> those eleven scores still move together and the Wilson band is still slightly optimistic. It
+> reaches **24** of 270 corpus files, up from 4.
+> **Blocked on** — the `verified_by` signature question in §H. The numbers above are measured;
+> whether they are the *ruler* is not yet ruled on.
+> **Asked as** — *"You added 50 questions to your benchmark. Why is your old score still the one
+> you compare against?"*
 
 ## Using this in an interview
 

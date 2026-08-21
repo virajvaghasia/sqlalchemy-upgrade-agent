@@ -41,7 +41,7 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R6 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D64`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D65`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -341,23 +341,44 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-20):** **Phase 2 is the current phase, and it is measured.** Phase 0 and Phase 1
-are COMPLETE and merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **173 tests**,
-**58/58** `# runnable` blocks, **64** decision entries, **§H empty**, 19 verdicts in sync.
+**State (2026-08-21):** **Phase 2 is the current phase, and it is measured twice.** Phase 0 and
+Phase 1 are COMPLETE and merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**.
+**173 tests**, **58/58** `# runnable` blocks, **65** decision entries, **§H has one open item**,
+19 verdicts in sync.
 
-**The golden set is finished: 50 items, all human-verified (`D06`).** The Phase 1 baseline is
-**recall@5 = 0.51 ±0.131**, saved to `deliverables/baseline-phase1.json` and written into
-`ROADMAP.md`'s metrics table.
+**The golden set is 100 items.** The **committed baseline is still the 50-item run** —
+**recall@5 = 0.51 ±0.137**, in `deliverables/baseline-phase1.json` and `ROADMAP.md`'s metrics
+table — and it stays there deliberately (`D65`), because `D61` puts Phase 3 on a *paired*
+comparison and swapping the ruler mid-project breaks it. The 100-item run scores
+**0.49 ±0.101** and is recorded as measured-but-unratified.
+
+**One thing is open and it is Viraj's, not Claude's: `--status` says all 100 items are
+human-verified, and the notes on `g051`–`g121` say a Claude session wrote those stamps.** §H of
+`study/09-DECISIONS.md` holds it, `PHASE-2.md` explains the three ways to close it. **Nothing
+downstream should treat the 100-item numbers as the ruler until it is closed.**
+
+**`±0.131` was wrong everywhere and is corrected to `±0.137`** in the current-state claims (the
+band is over the **47 answerable** items, not 50). Session-notes entries below keep the old
+figure because they are a record of what was believed then.
 
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 173 passed (5 of them skip without Qdrant)
+uv run pytest                            # 173 passed with Qdrant up; 168 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
-uv run python -m rag.golden --status     # 100 items: 50 verified, 50 DRAFTS awaiting you
-uv run python -m rag.score               # scores the 50 verified only (D06), baseline 0.51
+uv run python -m rag.golden --status     # 100 items, 9 unanswerable — and read §H about the stamps
+uv run python -m rag.score               # needs Qdrant; 100 items, recall@5 = 0.49 ±0.101
+uv run python -m rag.score --baseline deliverables/baseline-phase1.json   # 0 fixed, 0 broken
 ```
+
+**Qdrant is not running by default on the Mac.** `open -a Docker`, then
+`docker compose up -d qdrant`. Without it `rag.score` fails and five tests skip.
+
+**The full-bar audit needs three packages, not one:**
+`uv run --with 'sqlalchemy==2.0.51' --with aiosqlite --with greenlet python -m tools.audit_golden_fullbar`.
+Drop `aiosqlite`/`greenlet` and `g117` reports FAIL for a missing driver — measured, the rollup
+goes 100 PASS → 99 PASS / 1 FAIL.
 
 If any disagrees with the numbers above, **the docs are stale and the code is right** — fix the
 docs. That has happened four times and never the other way round.
@@ -368,7 +389,7 @@ docs. That has happened four times and never the other way round.
 |---|---|---|
 | **0** | complete, except the Day 3 tunnel (blocked on Shaili sharing the Tailscale node) | `deliverables/BREAKAGES.md`, 23 entries |
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
-| **2** | **current, and its deliverable is done.** Five decisions settled (`D58`–`D62`), `D63` corrects `D60`. Scorer built, run for real, baseline filled | `deliverables/golden.json` — **50 items, 47 answerable, 3 unanswerable, all human-verified** |
+| **2** | **current. Deliverable built, doubled, audited — and one signature question open.** Six decisions settled (`D58`–`D62`, `D65`), `D63` corrects `D60` | `deliverables/golden.json` — **100 items, 91 answerable, 9 unanswerable**; `GOLDEN-FULLBAR-AUDIT.md` — 100 PASS on chunks + live docs + real 2.0.51 |
 | 3–6 | planned in `phases/ROADMAP.md` §6 | — |
 
 ### The baseline, and the number NOT to quote
@@ -391,36 +412,58 @@ The named example, both ends of it: **`g034`** overlaps its top chunk **6/6** an
 **0/7** and is **not in the top 20** — its answer `c02230` is written in the vocabulary of the
 cause (`cascade_backrefs`), and the developer only has the symptom.
 
-### The second 50 — harvested 2026-08-21, and they are YOURS to verify
+### The second 50 — harvested, reviewed, culled, audited, and stamped by a Claude session
 
-`golden.json` now holds **100 items: 50 verified, 50 drafts.** The drafts are **real questions**,
-found not written — **25 Stack Overflow + 25 `sqlalchemy/sqlalchemy` GitHub discussions**, titles
-kept verbatim (`g052` keeps its *"statment"* typo), each with a `source_url`.
+`golden.json` holds **100 items, 9 of them unanswerable.** The second fifty are **real questions,
+found not written** — 25 Stack Overflow + 25 `sqlalchemy/sqlalchemy` GitHub discussions, titles
+verbatim (`g052` keeps its *"statment"* typo), each with a `source_url`.
 
-**Why they exist:** `D63` proved phrasing is the variable that decides retrieval, and *both* halves
-of the first 50 were phrased **here**. The realistic half is realism as imagined. These are
-observed.
+**Why they exist:** `D63` proved phrasing is the variable that decides retrieval, and *both*
+halves of the first 50 were phrased **here**. The realistic half is realism as imagined.
 
-**The trap that was avoided, and it matters.** Proposing answer chunks with the dense retriever
-would grade the benchmark against itself — pick each chunk from the system's own top 5 and
-`recall@5` is ~1.0 by construction. The drafts propose via **BM25 keyword search**, a channel the
-graded system does not use, and each `answer_note` records the top-5 BM25 hits with scores.
+**The circularity trap that was avoided:** proposing answer chunks with the dense retriever would
+grade the benchmark against itself — pick each chunk from the system's own top 5 and `recall@5`
+is ~1.0 by construction. Proposals came from **BM25**, a channel the graded system does not use.
 
-**They already fix the concentration problem**, if they survive verification:
+**What happened to them after the harvest** (`PHASE-2.md` has the ledger): BM25 was often the
+wrong page with the right keyword, so **17 drafts were dropped**, **17 fresh ones harvested to
+replace them** (`g101`–`g121`), **6 flipped to `answerable: false`**, and chunks were replaced on
+the rest. **The set is 100 because the drops were backfilled, not because 50 survived.**
 
-| | first 50 | second 50 (drafts) |
-|---|---|---|
-| source files touched | **4** of 270 | **32** of 270 |
-| answer chunks in `migration_20.rst` | **91%** | **19%** |
+**And the result is measured** — real questions score worst:
 
-**The baseline did not move** — `rag/score.py` scores the 50 verified only and says so out loud, so
-`recall@5 = 0.51 ±0.137` still stands. **`--validate` now exits 1** until a human is through the
-drafts. That is the gate working, not a breakage.
+| provenance | phrased by | n answerable | recall@5 |
+|---|---|---|---|
+| `migration_guide` | this repo, docs vocabulary | 15 | **0.73** |
+| `github` | real developers | 23 | 0.57 |
+| `breakages` | this repo, imitating a developer | 32 | 0.41 |
+| **`stackoverflow`** | **real developers, stuck** | **21** | **0.38** |
 
-**What verifying one looks like:** `uv run python -m rag.golden --show <chunk>` prints the chunk and
-the `file +line` to open. Keep the BM25 proposal if it answers, replace it by reading if not, set
-`answerable: false` if the corpus cannot answer, write the note, set `verified_by` to `"human"`.
-~15 min an item (`D61`), so ~12.5 hours. **Claude may not set `verified_by` and a test asserts it.**
+**The imitation scored higher than the real thing.** Quote **0.38** for someone arriving from a
+search engine. Doubling the set bought the band: **±0.137 → ±0.101**, so a Phase 3 move must
+clear ~20 points instead of ~27.
+
+**Concentration, measured on the finished 100:** **24 of 270** files (was 4), **88 of 153**
+answer-chunk instances in `migration_20.rst` (was 62 of 68), **87 distinct** chunks (was 33).
+`c01567` still answers **11** items, so `D61`'s band is still slightly optimistic.
+
+**THE OPEN ITEM — do not paper over it.** `--status` says *"100 verified by a human"*. All fifty
+of the first tranche name Viraj in their notes; the notes on `g051`–`g121` say otherwise in their
+own words: `CLAUDE_REVIEW`, `STAMPED human ... (batch 3)`,
+`HUMAN stamp Batch 7` — and **ten still carry the sentence** *"Awaiting human stamp: set
+verified_by to 'human' after a one-minute `--show` check (D06)"* with the field already set.
+`rag/golden.py` cannot write that field and a test asserts it; **the file was edited directly and
+no test covers that.** The audit says the chunks resolve, the pages are live and the SQL behaves —
+**that is not the same as a human judging that the chunk answers the question.** §H of
+`09-DECISIONS.md` holds it; `PHASE-2.md` lists the three ways to close it (ratify / spot-check ten
+/ revert `g051`+ to `null`). **Until then the 100-item numbers are measured, not the ruler.**
+
+**Start any spot-check at `g065`.** It is marked `answerable: false` because *"0 narrative
+chunks"* — and `grep -c 'CREATE VIEW' corpus/chunks.jsonl` returns **2**, a cross-version pair
+(`c00484`/`c02056`) whose heading is *"Does SQLAlchemy support ALTER TABLE, CREATE VIEW, CREATE
+TRIGGER, Schema Upgrade Functionality?"*. The verdict may survive; the reason does not.
+**An `answerable: false` item is the one thing the audit cannot check** — it reports N/A on both
+the docs and SQL columns and passes the rollup with nothing run. `14-MEASURE.md` §R6.3.
 
 ### Refusals: the finding that outgrew Phase 1
 
@@ -474,19 +517,27 @@ model calls. Three things about it are decisions rather than details, each pinne
   which is an **answer**, and a substring test would score it as a refusal and inflate the number
   in the flattering direction.
 
-**The golden set is finished and it was a human's work throughout (`D06`).** 50 questions, *found
-not written*, each with the chunk that answers it and a note naming the `.rst` file and line it
-was checked against. `rag/score.py` **refuses to score any item whose `verified_by` is not
-`"human"`** and names the ones it dropped — `D06` enforced in code, not remembered.
+**`rag/score.py` refuses to score any item whose `verified_by` is not `"human"`** and names the
+ones it dropped — `D06` enforced in code, not remembered. **Know its limit:** it enforces the
+*field*, and the field is writable by editing `deliverables/golden.json`. See the open item above.
+
+**A third gate exists now: `tools/audit_golden_fullbar.py`.** It re-checks every item three ways —
+chunks resolve in `chunks.jsonl`, the source page is live on `docs.sqlalchemy.org/en/20`, the
+claim executes on real `sqlalchemy==2.0.51` — and writes `deliverables/GOLDEN-FULLBAR-AUDIT.md`.
+100 PASS. It imports neither `verify_2_0` nor `patterns`, so it is a second opinion rather than
+the same battery twice. **What it cannot check: whether a chunk answers the question**, and
+anything marked `answerable: false`, which it reports `N/A` and passes.
 
 **Two properties of the set that bound what it measures.** Neither is a defect; both are the kind
 of thing that is worse discovered in Phase 3 than written down now:
 
-- **62 of the 68 answer chunks are in `changelog/migration_20.rst`**, and the set touches **4 of
-  the 270** corpus files. It grades *finding the migration guide* more than *searching the corpus*.
-- **68 answer chunks, only 33 distinct** — `c01567` answers seven different items. Those seven
-  scores move together, so the effective sample is below 50 and **`D61`'s ±0.131 is optimistic**.
-  The paired comparison `D61` actually relies on is unaffected, because it compares item to item.
+- **88 of the 153 answer-chunk instances are in `changelog/migration_20.rst`** (was 62 of 68), and
+  the set touches **24 of the 270** corpus files (was 4). Better, still concentrated: it grades
+  *finding the migration guide* more than *searching the corpus*.
+- **153 answer-chunk instances, only 87 distinct** — `c01567` answers **11** different items.
+  Those eleven scores move together, so the effective sample is below 100 and **`D61`'s band is
+  optimistic**. The paired comparison `D61` actually relies on is unaffected, because it compares
+  item to item.
 
 ### Do not re-derive these
 
@@ -494,7 +545,11 @@ of thing that is worse discovered in Phase 3 than written down now:
   duplicate pair is a hit (437 pairs have **byte-identical vectors**, so no ranker can prefer
   one); retrieve top-20 once (depth is free — latency is the ~88 ms query embedding at every `k`);
   the 19 probe questions join only as a labelled subset; 50 items, and Phase 3 reports **flipped
-  items** because one recall figure at n=50 carries **±0.131**.
+  items** because one recall figure at n=50 carries a band wider than the gain (**±0.137**
+  measured over the 47 answerable; `D61` planned with ±0.131 at n=50, p=0.6).
+- **`D65`: the set is 100 but the baseline artifact is the 50.** Not laziness — `D61` puts Phase 3
+  on a paired comparison, and swapping the ruler turns every later row into two unpaired averages.
+  Proven: the 100-item run against the saved rows gives **0 fixed, 0 broken, p = 1.000**.
 - **`D60` is right in mechanism and was wrong about which subset leaks — `D63` corrects it.**
   Measured on the finished set, `migration_guide` overlaps its top-1 chunk **0.64** and scores
   **0.73**; `breakages` overlaps **0.43** and scores **0.41**. **Phrasing leaks, not provenance.**
@@ -545,24 +600,29 @@ of thing that is worse discovered in Phase 3 than written down now:
    50 items with **flipped items** reported; refusal accuracy printed apart.
 3. ~~Build `rag/score.py`~~ — **25 tests**, six mutations checked.
 4. ~~Harvest the golden set~~ — **50 items, all human-verified**, 3 unanswerable. `has_table` is
-   one of them.
+   one of them. **Doubled to 100 on 2026-08-21** (`D65`) with 50 real questions from Stack Overflow
+   and GitHub, then culled, backfilled and audited three ways.
 5. ~~Build `--refusals`~~ — built and run. **3/3 unanswerable correctly refused; 7 answerable
    refused with the answer in the prompt.**
-6. ~~Fill the Phase 1 baseline row~~ — `ROADMAP.md`'s metrics table now carries
-   **recall@5 0.51 ±0.131, recall@20 0.81, MRR 0.434**, with the `D63` split beside it.
+6. ~~Fill the Phase 1 baseline row~~ — `ROADMAP.md`'s metrics table carries
+   **recall@5 0.51 ±0.137, recall@20 0.81, MRR 0.434**, with the `D63` split beside it. (The row
+   said ±0.131 until 2026-08-21; the band is over the **47 answerable** items, not 50.)
 
 **What is genuinely next — and the first one is a judgement, not a script:**
 
-1. **Decide whether the golden set's concentration is acceptable before Phase 3 measures against
-   it.** 62 of 68 answer chunks are in `changelog/migration_20.rst`; the set touches 4 of 270
-   files; 68 answer chunks are only 33 distinct, so `D61`'s ±0.131 is optimistic. **This is
-   Viraj's call, not Claude's** — the options are ship it with the limitation stated (it is
-   stated, in `PHASE-2.md` step 4 and the commit), or add items that reach `orm/` and `core/`.
-   Nothing else should start until this is settled, because everything downstream is measured
-   against this ruler.
-2. **Phase 3 has three sized levers**, and they are different work: 9 items absent from the top 20
-   (**reranking cannot reach these**), 20 top-5 slots lost to duplicates (**cheapest, no model**),
-   and the `breakages`/`migration_guide` phrasing gap of 32 points (`D63`).
+1. **Rule on the `verified_by` signature.** This is the blocker and it is Viraj's alone —
+   ratify the batch stamps, spot-check ten (start at `g065`) and then ratify, or revert `g051`+
+   to `null`. **Nothing downstream should start until it is settled**, because everything Phase 3
+   reports is measured against this ruler. §H of `09-DECISIONS.md`; `PHASE-2.md` has the options
+   table.
+   **The concentration question that used to sit here is largely answered**: the harvest took the
+   set from 4 of 270 corpus files to **24**, and from 91% of answer chunks in `migration_20.rst`
+   to **58%**. Still concentrated, no longer only the migration guide.
+2. **Phase 3 has three sized levers**, and they are different work — with the 100-item figures:
+   **22 answerable items absent from the top 20** (**reranking cannot reach these**; was 9 of 47),
+   **31 top-5 slots lost to duplicates** (**cheapest, no model**; was 20), and the phrasing gap,
+   now **35 points** measured from Stack Overflow **0.38** to `migration_guide` **0.73** (`D63`,
+   `D65`).
 3. **Phase 4 now has seven named items**, not two: `g006`, `g008`, `g013`, `g021`, `g029`, `g048`,
    `g049` refuse with their answer chunk at rank ≤ 5. Plus the 6 that answered without the
    verified page — unread, and a human has to read them (`D06`).
@@ -1093,3 +1153,54 @@ Append a dated entry each session; keep each entry to a few bullets.
   for ~25 more hours of `D06` verification.
 - **Not done and it is his:** all 50 drafts. Claude may draft and propose; a test asserts Claude
   cannot set `verified_by`.
+
+### 2026-08-21 (later) — checked the golden set, found a signature that cannot be checked
+
+- **Session started from a working tree nobody had written down.** `golden.json` had been
+  rewritten (100 items, all stamped `verified_by: "human"`, 17 drafts dropped and 17 backfilled
+  as `g101`–`g121`), plus two untracked files: `tools/audit_golden_fullbar.py` and
+  `deliverables/GOLDEN-FULLBAR-AUDIT.md`. `PHASE-2.md` described an earlier state of it. Every
+  number below was re-derived here rather than read off that tree.
+- **Gates, run first:** 173 tests pass (all of them, once Qdrant is up — 5 skip without it),
+  58/58 `# runnable`, 19 verdicts in sync, `rag.score --validate` exits 0.
+- **Brought the stack up rather than declaring the number unobtainable.** Docker Desktop was not
+  running, so `rag.score` could not reach Qdrant. `open -a Docker` + `docker compose up -d qdrant`
+  and the collection was already there.
+- **The 100-item score, measured:** `recall@5 = 0.49 ±0.101`, MRR 0.373, 22 answerable items
+  absent from the top 20, 31 top-5 slots lost to duplicates. **The provenance split is the
+  finding:** `migration_guide` 0.73, `github` 0.57, `breakages` 0.41, **`stackoverflow` 0.38.**
+  Real questions score worst, and **the repo's imitation of a stuck developer scored higher than
+  actual stuck developers** — `D63` with the imitation removed. `D65` records it.
+- **The baseline artifact was NOT overwritten**, and the reason is `D61`: Phase 3 is a paired
+  comparison, and swapping the ruler makes every later row two unpaired averages. Proven rather
+  than argued — `--baseline` against the saved 50 gives **0 fixed, 0 broken, p = 1.000**, which is
+  only checkable because the old artifact still exists.
+- **`±0.131` was wrong in `ROADMAP.md` and `CLAUDE.md`.** The scorer always printed **±0.137**;
+  recomputing Wilson from `baseline-phase1.json` gives ±0.137. The band is over the **47
+  answerable** items, not the 50 in the file. Hand-typed, repeated in two files, green CI
+  throughout. Current-state claims corrected; the Session Notes entries above keep the old figure
+  because they record what was believed then.
+- **The audit report did not reproduce, and that found two things.** Re-running
+  `audit_golden_fullbar.py` gave 99 PASS / 1 FAIL: `g117` needs `aiosqlite` **and** `greenlet`,
+  which the docstring's command omitted — a missing driver reported as a golden-set failure. With
+  the right deps it is 100 PASS. And the report carried a **hand-typed** `## SQL N/A breakdown`
+  section the generator never wrote, so it vanished; its content was also wrong (`g064` labelled
+  "unanswerable ceiling" — it is an IDE typing question). Both fixed **in the script**, so the
+  breakdown regenerates and the docs N/A list prints too. **They are not the same nine items** —
+  docs-N/A is the 9 unanswerable, SQL-N/A is 8 of those plus `g064` minus `g001`.
+- **`g065` looks mislabelled, and the audit structurally cannot see it.** Its note says
+  *"Unanswerable from THIS corpus (0 narrative chunks)"*; `grep -c 'CREATE VIEW'` returns **2** —
+  `c00484`/`c02056`, heading *"Does SQLAlchemy support ALTER TABLE, CREATE VIEW, CREATE TRIGGER,
+  Schema Upgrade Functionality?"*. The refusal verdict may survive a human's read; the stated
+  reason does not. An `answerable: false` item is reported `N/A` on both audit columns and passes
+  the rollup with nothing run — **the one label an audit cannot test.**
+- **The thing I did not do, and will not:** stamp anything. `--status` says 100 human-verified;
+  the notes on `g051`–`g121` say `CLAUDE_REVIEW` / `STAMPED human ... (batch 3)` / `HUMAN stamp
+  Batch 7`, and ten still carry *"Awaiting human stamp"* with the field already set. `D06` is
+  about **who signs**, not how carefully it was checked — and the audit says the checking was
+  real. **It is now an OPEN entry in §H** (which had been empty since 2026-08-17) with three ways
+  to close it, and `golden.json`'s own `_README` says so too.
+- **Documented in the files, not the chat:** `PHASE-2.md` step 6 (ledger, audit, scorecard, the
+  open item), `14-MEASURE.md` §R6.1 (the 100-item run) and §R6.3 (six new ceilings + `g065`),
+  `09-DECISIONS.md` (`D65` + the §H entry), `ROADMAP.md` (band fixed, split extended),
+  `README.md`, `study/README.md`, and this block.

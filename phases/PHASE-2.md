@@ -12,13 +12,18 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 | [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | **done** 2026-08-20 | Mac | 68 answer-chunk ids, all resolving; every item human-verified (`D06`) |
 | [4. score it](#4-score-it-with-one-command) | **done** 2026-08-20 | Mac | `rag/score.py`, 25 tests, six mutations checked; baseline row filled |
 | [5. refusal accuracy](#5-refusal-accuracy-d62) | **built** 2026-08-20 | Mac | `--refusals`, the one section that needs generation |
-| [6. the second 50](#6-the-second-50--real-questions-harvested) | **drafted — yours to verify** | Mac | 50 real questions harvested from Stack Overflow (25) and GitHub discussions (25), `verified_by: null` |
+| [6. the second 50](#6-the-second-50--real-questions-harvested) | **harvested, reviewed, culled, audited — one open question** | Mac | 50 real questions from Stack Overflow (25) and GitHub discussions (25); 17 dropped and backfilled; `deliverables/GOLDEN-FULLBAR-AUDIT.md` = 100 PASS. **Open: who signed `verified_by` on `g051`+** |
 
 **The phase is measured.** The teaching write-up of the score — baseline, refusals, three
 ceilings — is [`../study/14-MEASURE.md`](../study/14-MEASURE.md) §R6. The headline is
-**recall@5 = 0.51 ±0.131** over the 50 hand-verified items, saved to
+**recall@5 = 0.51 ±0.137** over the 50 hand-verified items, saved to
 `deliverables/baseline-phase1.json` and written into `ROADMAP.md`'s metrics table as the row
 every Phase 3 change is compared against.
+
+**The set is now 100 items and the baseline row is deliberately still the 50** (`D65`). The
+100-item run scores **`0.49 ±0.101`**, and against the saved rows it is **0 fixed, 0 broken** —
+nothing regressed; the average fell because harder questions were added. Swapping the baseline
+artifact would turn every Phase 3 row from a paired comparison into two unpaired averages.
 
 **Read it with `D63`.** That 0.51 averages two subsets that behave very differently —
 `migration_guide` at **0.73** and `breakages` at **0.41** — and `D63` records that `D60` had the
@@ -391,14 +396,178 @@ loudly and names each one, and the committed baseline is unchanged at **`recall@
 because it scores the 50 verified items only. `D06` is not a convention here; it is the reason the
 number did not move when 50 items appeared.
 
+### What actually happened to the second 50 — the ledger
+
+The BM25 proposals were often the **wrong page with the right keyword**. `g090` asked about
+`load_only` typing and BM25 had proposed `c00705`, a chunk about the *attrs library* — same word
+`attrs`, unrelated subject. A pass over all 50 drafts read the proposals and moved items:
+
+| what happened to the 50 drafts | n | ids |
+|---|---|---|
+| **survived** the review | 33 | of which **27** kept as answerable and **6** flipped |
+| — kept answerable, chunks replaced where BM25 was wrong | 27 | 32 of the 33 survivors had their question or their chunks edited |
+| — flipped to `answerable: false` | 6 | `g056`, `g065`, `g067`, `g075`, `g093`, `g097` |
+| **dropped from the set** | 17 | `g054`, `g059`, `g061`, `g063`, `g066`, `g068`, `g069`, `g070`, `g072`, `g073`, `g076`, `g077`, `g082`, `g086`, `g089`, `g091`, `g092` |
+| **harvested to replace the drops** | 17 | `g101`, `g103`, `g104`, `g106`, `g109`–`g121` — all answerable |
+
+Dropped means *the question was not usable*, not *the system failed it*: `g068` asked about
+"nullable one-to-many" and the live docs page it pointed at is titled **Nullable Many-to-One** —
+the question was about a thing the docs do not say. Others were IDE-only, Flask/Alembic ops, or
+third-party noise.
+
+**The set is 100 items again because the drops were backfilled, not because 50 survived.**
+
+```
+# runnable: uv run python -m rag.golden --status
+golden set: 100 items, 100 verified by a human, target 50 (D61)
+  unanswerable: 9  (at least 3 wanted — they are the only way to measure whether the system declines when it should)
+  provenance: breakages=34, github=25, migration_guide=16, stackoverflow=25
+```
+
+### The full-bar audit — what it certifies and what it does not
+
+`tools/audit_golden_fullbar.py` re-checks every item three ways and writes
+[`../deliverables/GOLDEN-FULLBAR-AUDIT.md`](../deliverables/GOLDEN-FULLBAR-AUDIT.md). It is
+**new code**: it does not import `verify_2_0` or `patterns`, so it is a second opinion rather
+than the same battery run twice.
+
+| check | what it asks | result |
+|---|---|---|
+| **chunk** | do the `answer_chunks` resolve in `corpus/chunks.jsonl`, and how much question vocabulary do they share? | 99 PASS, 1 SOFT (`g042`, overlap 0/7 — the `cascade_backrefs` item `D63` already names) |
+| **docs** | fetch `docs.sqlalchemy.org/en/20/…` for the chunk's `.rst` and check a heading needle hits | 91 PASS, 9 N/A |
+| **sql** | run an executable probe on real `sqlalchemy==2.0.51` | 91 PASS, 9 N/A |
+
+**The two N/A columns are not the same nine items**, which is the sort of thing a rollup hides.
+Docs-N/A is the 9 unanswerable items (no page to fetch). SQL-N/A is 8 of those 9 **plus `g064`**,
+an IDE typing complaint with no runtime behaviour — and **minus `g001`**, where "does
+`engine.has_table` still exist?" *is* executable and passes. The script now prints both lists with
+its own reason strings.
+
+**The audit needs three packages, not one.** Run it without `aiosqlite` and `greenlet` and `g117`
+(async relationship access) reports `FAIL` for a missing driver rather than for anything about the
+golden set — measured here, 100 PASS became 99 PASS / 1 FAIL. The docstring carries the full
+command.
+
+**What it does not certify:** that a chunk *answers* the question. A page can resolve, be live on
+docs.sqlalchemy.org, and demonstrate real 2.0.51 behaviour while still being the wrong page for
+what the developer asked. That judgement is `D06`'s and a human's.
+
+**And one thing was caught by re-running it.** The committed report carried a hand-typed
+`## SQL N/A breakdown (honest)` section the generator never wrote, so it vanished on the first
+re-run. Its content was close but not right — it labelled all nine as "unanswerable ceiling",
+including `g064`, which is not unanswerable. The breakdown is now generated from the script's own
+detail strings.
+
+### The 100-item scorecard — and the finding that came with it
+
+```
+# summary of: uv run python -m rag.score, 2026-08-21, over the 100-item set.
+#   ENV in check_runnable: needs corpus/chunks.jsonl (gitignored, D11) and Qdrant.
+ALL ITEMS  —  100 items, 91 answerable
+  recall@k   @1=0.26  @3=0.38  @5=0.49  @10=0.65  @20=0.76
+  MRR        0.373
+  recall@5    0.49  ±0.101  (95%, Wilson)
+  median rank when found  3   not in top-20: 22
+  slots lost to duplicates in top-5: 31
+```
+
+**The headline barely moved — `0.51` → `0.49` — and the band tightened from ±0.137 to ±0.101**,
+which is the whole reason `n = 100` was worth the hours. The split underneath is what changed:
+
+| provenance | phrased by | n answerable | recall@5 | never in top-20 |
+|---|---|---|---|---|
+| `migration_guide` | this repo, in corpus vocabulary | 15 | **0.73** | 0 |
+| `github` | real developers, issue threads | 23 | 0.57 | 4 |
+| `breakages` | this repo, imitating a developer | 32 | 0.41 | 9 |
+| **`stackoverflow`** | **real developers, stuck** | **21** | **0.38** | **9** |
+
+**Real questions score worst, and the imitation of a real question scored higher than the real
+thing.** `D63` said phrasing leaks rather than provenance; this is the same claim with the
+imitation removed. **The 35-point spread from `0.73` to `0.38` is larger than anything Phase 3
+is expected to buy** — so quote **`0.38`** for a developer arriving from a search engine, and
+never `0.49` unqualified.
+
+**Nothing about the first 50 changed, and that was checked rather than assumed:**
+
+```
+# summary of: uv run python -m rag.score --baseline deliverables/baseline-phase1.json
+PAIRED against baseline  (recall@5)
+  fixed    0  —
+  broken   0  —
+  exact McNemar p = 1.000  — NOT distinguishable from noise
+```
+
+Zero flips against the saved 50-item baseline. Retrieval is deterministic, the index did not
+move, and the new items are additions rather than a rewrite of the ruler.
+
+### `±0.131` was wrong and the scorer was always right
+
+`ROADMAP.md` and `CLAUDE.md` both carried **`recall@5 = 0.51 ±0.131`**. The scorer prints
+**±0.137**, and recomputing Wilson from the saved `baseline-phase1.json` rows gives ±0.137 as
+well. The difference: **±0.131 is the band at n = 50, and recall is computed over the 47
+answerable items**, not over all 50. A number nobody derived, typed once, repeated in two files —
+exactly the failure mode `CLAUDE.md`'s measurement rule exists for, and prose is still where it
+hides.
+
+### Open, and it is Viraj's call: who set `verified_by`
+
+`--status` now says **100 verified by a human**, and the item notes do not fully support that
+sentence. **All fifty of the first tranche name him** — 47 read *"Viraj approved remaining
+drafts 2026-08-20"*, and `g001`–`g003` are more specific (*"Viraj opened the .rst and
+approved"*). The other fifty were
+stamped by a Claude session on 2026-08-21 — the notes say so in their own words:
+`CLAUDE_REVIEW 2026-08-21 (keep)`, `STAMPED human 2026-08-21 (batch 3)`, `HUMAN stamp Batch 7`.
+**Ten of them still contain the sentence they were supposed to be replaced by**:
+
+> `g093`: *"Awaiting human stamp: set verified_by to 'human' after a one-minute `--show` check
+> (D06)."* — with `verified_by` already set to `"human"`.
+
+`rag/golden.py` cannot write that field and a test asserts it; the file was edited directly, which
+the test does not cover. **This is not a claim that the reviewing was bad** — the full-bar audit
+says the chunks resolve, the pages are live, and the SQL behaves. It is a claim that
+**`D06` is about who signs, not about how carefully it was checked**, and the signature is
+currently unverifiable from inside the repo.
+
+Three ways out, and only one of them is Claude's to do:
+
+| option | what it costs | what it buys |
+|---|---|---|
+| **ratify** — you confirm you authorised the batch stamps | minutes | the 100-item scorecard becomes the baseline |
+| **spot-check** — pick 10 of the 50 at random, `--show` each, then ratify | ~1 hour | a sampled defence: "I read ten, all held" |
+| **revert** — set `g051+` back to `verified_by: null` | the 100-item numbers become provisional | `D06` clean, baseline stays `0.51` on 50 |
+
+**And there is already one item to start the spot-check with.** `g065` (*"Create table and view
+in the same migration in SQLAlchemy"*) is marked `answerable: false` with the note *"Unanswerable
+from THIS corpus (0 narrative chunks)"*. The corpus has **2** chunks — `c00484` and `c02056`, a
+cross-version pair — whose heading is *"Does SQLAlchemy support ALTER TABLE, **CREATE VIEW**,
+CREATE TRIGGER, Schema Upgrade Functionality?"*. The verdict may still be right; the stated reason
+is measurably wrong. **And the audit cannot see it**: an `answerable: false` item is reported
+`N/A` on both the docs and SQL checks and passes the rollup without anything being run. That is
+the one label an audit structurally cannot test — which is the argument for `D06` in one item.
+`14-MEASURE.md` §R6.3 walks it.
+
+**Until you rule, the committed baseline artifact is untouched.** `deliverables/baseline-phase1.json`
+still holds the 50-item run, `ROADMAP.md`'s metrics row still quotes it, and the 100-item numbers
+above are recorded as measured-but-unratified.
+
 ### What the harvest already fixes
 
 The concentration recorded in step 4 was the sharpest limitation of the first 50:
 
-| | first 50 (verified) | second 50 (drafts) |
+| | first 50 alone | the finished 100 |
 |---|---|---|
-| source files touched | **4** of 270 | **32** of 270 |
-| share of answer chunks in `migration_20.rst` | **91%** (62 of 68) | **19%** (19 of 100) |
+| source files touched | **4** of 270 | **24** of 270 |
+| answer-chunk instances in `migration_20.rst` | **91%** (62 of 68) | **58%** (88 of 153) |
+| distinct answer chunks | 33 (of 68 instances) | **87** (of 153) |
+
+Still concentrated, and less so. `c01567` — the `engine.execute` migration section — is now the
+answer to **11** of the 100 items, so those eleven scores still move together and `D61`'s Wilson
+band is still slightly optimistic. But the set now asks about `orm/session_basics.rst`,
+`orm/declarative_tables.rst`, `orm/queryguide/columns.rst`, `orm/inheritance_loading.rst` and
+`orm/extensions/asyncio.rst` — pages the first 50 never touched.
+
+**The pre-cull "32 of 270" is superseded**: seventeen drafts were dropped and their files went
+with them.
 
 The proposals reach `orm/session_basics.rst`, `orm/declarative_tables.rst`, `errors.rst`,
 `core/engines.rst`, `orm/dataclasses.rst` and `faq/ormconfiguration.rst` — pages the first 50 never
@@ -423,7 +592,14 @@ subgroups.
 
 **Done when:** a human has been through all 50 — keeping the BM25 proposal where it answers,
 replacing it by reading where it does not, and setting `answerable: false` where the corpus cannot
-answer at all. **`--validate` exits 1 until then, and that is the gate working.**
+answer at all.
+
+**Status 2026-08-21: `--validate` exits 0, and that is the part to look at rather than take
+comfort from.** Every item now carries `verified_by: "human"`, so the gate is satisfied *as
+written* — the gate tests a field, and the field was set by editing the file. The reviewing
+happened and the audit backs the mechanical half of it; what is missing is a signature that can be
+checked from inside the repo. **That is the open item above, and it is the last thing standing
+between Phase 2 and a ruler Phase 3 can be measured against.**
 
 ---
 

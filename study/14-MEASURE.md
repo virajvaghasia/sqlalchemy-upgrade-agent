@@ -41,18 +41,87 @@ defects that look like retrieval successes on report card A.
 
 | section | plain job |
 |---|---|
+| **R6.0** | two jobs people mix up — verifying the key vs scoring search |
 | **R6.1** | the baseline — and why not to quote `0.51` alone |
 | **R6.2** | refusals — the 15 points recall cannot see |
-| **R6.3** | the three `answerable: false` items — and what that word does not mean |
+| **R6.3** | the 9 `answerable: false` items — what that word does not mean, and the one that looks mislabelled |
 
 ---
 
 ## §R6 — The Phase 2 scorecard
 
+### R6.0 Verifying the key vs scoring search — not the same job
+
+People ask two related things that get mashed together:
+
+1. *“Doesn’t the system just check whether the right words are in the chunk?”*
+2. *“I didn’t deep-read all 50 the first time — so verification is basically the same shortcut,
+   right?”*
+
+**Honest answer to (2): the first 50 were mostly a light check, and that was only safe because
+the answers were already measured elsewhere.** Of the 50 human notes, almost all say
+*approved*; only a couple say *opened* the `.rst`. **34 of 50** are `breakages` items whose
+fix was already proven on real 2.0.51 in Phase 0 (`BREAKAGES.md`, many marked `FIX OK`).
+Verification there was closer to: *does this chunk point at the section we already know is the
+fix?* — not a fresh SQLAlchemy deep-dive per question. The 16 `migration_guide` items were
+the same shape: the question was harvested from a heading you could match to a chunk.
+
+That is **not** the same as what `rag.score` does. And it is **not** enough, alone, for the
+SO/GitHub drafts — those have **no** Phase 0 measurement behind them.
+
+```
+  WHAT YOU DID ON THE FIRST 50 (practical)              WHAT rag.score DOES (always)
+  ──────────────────────────────────────────            ────────────────────────────
+  Often: confirm the chunk is about the same            Look up the chunk ids you stored
+         API / section you already knew from            (e.g. c01598). Are they in top-k?
+         BREAKAGES or the migration heading.            Yes/no. No reading. No keywords.
+  Sometimes: open the .rst briefly.
+  Rarely: re-derive the fix from scratch.
+
+  WHAT THE NEW SO/GITHUB DRAFTS NEED (minimum)
+  ────────────────────────────────────────────
+  Open `uv run python -m rag.golden --show <chunk>`.
+  Ask only: “is this page about THIS stuck-developer
+  question?” Keep / replace / set answerable:false.
+  You still do not memorise 100 answers.
+```
+
+**So: scoring never “checks the right words.”** It checks **ids you already recorded**. If you
+recorded the wrong chunk, recall can look great or terrible for the wrong reason — the script
+will not save you.
+
+**And: “right words exist” is a weak verify.** It is how you get fooled (`relation` inside
+`relationship`, a BM25 hit that says `execute` but never shows `text()`). For breakages-backed
+items the risk was low because Phase 0 already knew the fix. For SO/GitHub drafts the risk is
+the whole point of `D06` — BM25 proposed the chunks; **keyword search is exactly what proposed
+them**, so “I see the word” is circular. The minimum bar is: open `--show`, decide if the
+*page* answers the *question*, then mark human. Drop the item if you cannot tell in a minute.
+
+**You do not need to memorise all 100 for interviews.** You need a once-per-draft pass at that
+minimum bar (or delete the draft). Defend the *rule* later, not every `g0xx`.
+
+**And this is exactly what is open right now.** Every item in `golden.json` carries
+`verified_by: "human"`, but the notes on `g051`–`g121` record that a Claude session did the
+reviewing and wrote the stamps. The mechanical half was checked hard —
+`tools/audit_golden_fullbar.py` resolves every chunk, fetches every source page live, and runs
+the executable claims on real 2.0.51, 100 PASS. **The half in the picture above — "is this page
+about THIS question?" — is the half an audit cannot do.** §H of `09-DECISIONS.md` holds it and
+`PHASE-2.md` lists the three ways to close it.
+
+**Named example.** For `g002` (*from_self blew up*), the key was already BREAKAGES #12. Checking
+meant confirming `c01598`/`c01599` are the migration section for `from_self` — light, because
+the fix was already known. Scoring later only asks whether those ids landed in top-k.
+
 ### R6.1 The baseline — and the number not to quote
 
-The golden set was finished on 2026-08-20: **50 questions, all verified by hand.** One command
-scored them, and this is the Phase 1 baseline every Phase 3 change gets compared against.
+The first tranche was finished on 2026-08-20: **50 questions, all verified by hand.** One command
+scored them, and that run — saved as `deliverables/baseline-phase1.json` — is **the** Phase 1
+baseline every Phase 3 change gets compared against. It is still the baseline today.
+
+**A second tranche has since landed and is measured further down** (*"The 100-item run"*, end of
+this section). It is kept separate here on purpose: the baseline is an artifact you compare
+against later, and swapping the ruler halfway through is how a paired comparison stops meaning
+anything.
 
 ```
 # summary of: uv run python -m rag.score. The command is ENV in
@@ -242,6 +311,69 @@ Not "improve retrieval." Three separate things, with the number that sizes each:
   not gradual** — the answer is either near the top or nowhere. That is why `D61` reports flipped
   items rather than a moving average: there is no gentle slope here to nudge.
 
+#### The 100-item run — and the group that scores worst is the real one
+
+Fifty more questions were added on 2026-08-21, and unlike the first fifty **they were not written
+here**: 25 Stack Overflow titles and 25 `sqlalchemy/sqlalchemy` GitHub discussion titles, kept
+verbatim, typos included. Scored on 2026-08-21:
+
+```
+# summary of: uv run python -m rag.score, 2026-08-21, 100-item set. ENV in
+#   check_runnable: needs corpus/chunks.jsonl (gitignored, D11) and Qdrant.
+ALL ITEMS  —  100 items, 91 answerable
+  recall@k   @1=0.26  @3=0.38  @5=0.49  @10=0.65  @20=0.76
+  MRR        0.373
+  recall@5    0.49  ±0.101  (95%, Wilson)
+  median rank when found  3   not in top-20: 22
+  slots lost to duplicates in top-5: 31
+```
+
+**The headline hardly moved. The band is what doubling bought:** ±0.137 on 47 answerable items
+became **±0.101** on 91. In plain terms — before, a Phase 3 change had to move recall by roughly
+27 points before you could tell it apart from luck; now it is about 20. That is the whole return
+on the hours, and it was predicted before the work started, not discovered after.
+
+The interesting part is underneath the average:
+
+| provenance | who phrased the question | n answerable | recall@5 | never in top-20 |
+|---|---|---|---|---|
+| `migration_guide` | this repo, in the docs' own words | 15 | **0.73** | 0 |
+| `github` | real developers, in an issue thread | 23 | 0.57 | 4 |
+| `breakages` | this repo, *imitating* a stuck developer | 32 | 0.41 | 9 |
+| **`stackoverflow`** | **real developers, stuck** | **21** | **0.38** | **9** |
+
+**Read the two middle rows against each other.** `breakages` was the repo's attempt to write like
+a developer in trouble, and `D63` already showed it is harder than the guide-shaped questions.
+Now there are real questions to compare it against, and **the imitation scored higher than the
+real thing** — 0.41 against 0.38. Not by much, and n is small on both, but it points the same way
+`D63` did: the closer a question gets to how someone actually types, the worse dense retrieval
+does on it.
+
+**Nine of the 21 answerable Stack Overflow items never appear in the top 20 at all** — the same
+absent-not-buried failure `g042` shows. A reranker cannot reach those, whatever it costs.
+
+**What this is not.** It is not "the system got worse" — `0.51` → `0.49` is inside the band, and
+the paired check proves nothing regressed:
+
+```
+# summary of: uv run python -m rag.score --baseline deliverables/baseline-phase1.json
+PAIRED against baseline  (recall@5)
+  fixed    0  —
+  broken   0  —
+  exact McNemar p = 1.000  — NOT distinguishable from noise
+```
+
+Zero items flipped in either direction against the saved 50-item run. The retriever is unchanged
+and deterministic; the average dropped because **harder questions were added**, not because
+anything got worse. That is the difference between a score falling and a ruler getting honest.
+
+**And one correction, because it is the exact error this file exists to catch.** `ROADMAP.md` and
+`CLAUDE.md` quoted **`0.51 ±0.131`** for weeks. The scorer prints **±0.137**, and recomputing
+Wilson from the saved baseline rows gives ±0.137. The `±0.131` is the band for **n = 50** — but
+recall is computed over the **47 answerable** items, because the three unanswerable ones have no
+answer page to hit. A hand-typed number, off by a group of three, repeated in two files, with a
+green CI the whole time.
+
 ### R6.2 Refusals — and the 15 points that recall does not see
 
 `--refusals` is the half of the score that needs the model to actually answer. Run against the
@@ -325,9 +457,10 @@ can a refusal count** — deciding it means reading six answers against real 2.0
 exactly the judgement `D06` reserves for a human and exactly what Phase 4 exists to grade. It is
 recorded here as an open cell rather than quietly averaged into a pass.
 
-### R6.3 The three questions with no answer — and what "unanswerable" does not mean
+### R6.3 The questions with no answer — and what "unanswerable" does not mean
 
-Three of the 50 golden items are marked `answerable: false`. The word invites a wrong reading, so
+**Three of the first 50 golden items are marked `answerable: false`; the finished 100 carries 9.**
+The first three are below and the six that arrived with the harvest have their own subsection. The word invites a wrong reading, so
 start with what it is **not**.
 
 **It does not mean the question has no answer in the world.** For two of the three, this repo
@@ -353,6 +486,54 @@ retrieval mistake.
 `answerable: false` means exactly one thing: **the text that would answer it is not in this
 corpus**, so no amount of search can produce it. The answer exists in the world; it does not exist
 on the shelf the system is allowed to read.
+
+#### Six more arrived with the second fifty — and one of them may be wrong
+
+The harvested questions brought the count from 3 to **9**. The new six are a different species
+from the first three: those were **API-reference ceilings** (`D07`/`D50` — the API reference is
+generated from docstrings and was never in the `.rst` tree we fetched). These are **topic**
+ceilings — questions about tooling next to SQLAlchemy rather than SQLAlchemy itself.
+
+| item | asked on | why it was marked unanswerable | corpus hits, measured |
+|---|---|---|---|
+| `g056` | Stack Overflow | `query_property` is API-reference material | `query_property` → **0** of 3284 |
+| `g067` | Stack Overflow | `SQLALCHEMY_SILENCE_UBER_WARNING` lives in `changelog_14`, excluded by `D07` | **0** of 3284 |
+| `g075` | Stack Overflow | *"relation does not exist"* after `flask migrate` — a Postgres error and an Alembic workflow | `flask_migrate` → **0**; `relation ... does not exist` → **0** |
+| `g093` | GitHub | *"How long will 1.4 be supported?"* — a support policy, not documentation | — |
+| `g097` | GitHub | `AttributeError: no attribute _active_history` | `_active_history` → **0** |
+| **`g065`** | Stack Overflow | *"Alembic"* — creating a table and a view in one migration | **see below** |
+
+**`g065` does not hold up as written, and this is worth walking through** because it is the
+failure mode an automated audit cannot catch. Its note says *"Unanswerable from THIS corpus
+(0 narrative chunks)"*. Grep the corpus for `CREATE VIEW` and you get **2** — a duplicate pair,
+`c00484` (1.4) and `c02056` (2.0), and their heading is not incidental:
+
+```
+doc/build/faq/metadata_schema.rst
+  MetaData / Schema
+    > Does SQLAlchemy support ALTER TABLE, CREATE VIEW, CREATE TRIGGER,
+    > Schema Upgrade Functionality?
+
+  "General ALTER support isn't present in SQLAlchemy directly. For special DDL
+   on an ad-hoc basis, the :class:`.DDL` and related constructs can be used.
+   See :ref:`metadata_ddl_toplevel` …"
+```
+
+**That is an FAQ entry whose title is the question.** Whether it *answers* the developer — who
+wanted a table and a view in one Alembic migration — is a judgement: it says SQLAlchemy does not
+do this directly, names `DDL` as the tool, and points at the section. It may well be the right
+call to refuse. But **"0 narrative chunks" is not a judgement, it is a measurement, and the
+measurement is wrong.**
+
+**Why this matters more than one item.** `g065` is marked `answerable: false`, so
+`tools/audit_golden_fullbar.py` reports it `N/A` on both the docs and SQL checks and it lands in
+the 100 PASS rollup **without anything being checked**. An unanswerable label is the one label an
+audit cannot test, because the audit has nothing to run. It is exactly why `D06` puts a human on
+the signature — and it is the first item to open if a spot-check happens (§H).
+
+**The cost of getting this wrong runs both ways.** Mark an answerable item unanswerable and you
+have removed a question retrieval was supposed to pass; mark an unanswerable one answerable and
+you punish the system for not finding a page that does not exist. Both quietly move the baseline.
 
 #### The check is a `grep`, and it is decisive
 
@@ -474,10 +655,11 @@ too, is a stronger result than a higher recall figure.
 
 | | |
 |---|---|
-| [`../deliverables/golden.json`](../deliverables/golden.json) | the 50 hand-verified items |
-| [`../deliverables/baseline-phase1.json`](../deliverables/baseline-phase1.json) | the saved recall curve, if present |
+| [`../deliverables/golden.json`](../deliverables/golden.json) | the golden items — **100**, 91 answerable |
+| [`../deliverables/GOLDEN-FULLBAR-AUDIT.md`](../deliverables/GOLDEN-FULLBAR-AUDIT.md) | all 100 re-checked against `chunks.jsonl`, live docs, and real 2.0.51 |
+| [`../deliverables/baseline-phase1.json`](../deliverables/baseline-phase1.json) | the saved recall curve — **the 50-item run, and it stays that way** (`D65`) |
 | [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | the phase plan; this file is the teaching write-up of its score |
 | [`12-EVALUATION.md`](12-EVALUATION.md) | §R4 — *how* to measure (Sitting 4, still the 19 probe answers) |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | §R5 — defend Phase 1 cold; Phase 1's last gate |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | **D06, D45, D58–D63, D64** |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | **D06, D45, D58–D65**, plus §H's open question about who signed `verified_by` |
 

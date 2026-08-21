@@ -345,7 +345,7 @@ single highest-value object in the whole repo:
 
 | Setup | recall@5 | recall@20 | MRR |
 |---|---|---|---|
-| **Meaning-search only (Phase 1 baseline)** | **0.51** ±0.131 | 0.81 | **0.434** |
+| **Meaning-search only (Phase 1 baseline)** | **0.51** ±0.137 | 0.81 | **0.434** |
 | \+ hybrid search | ? | ? | ? |
 | \+ reranker | ? | ? | ? |
 | \+ better chunking | ? | ? | ? |
@@ -355,6 +355,18 @@ hand-verified items of `deliverables/golden.json`, 2026-08-20. The rows saved to
 [`../deliverables/baseline-phase1.json`](../deliverables/baseline-phase1.json) are what
 `--baseline` compares against, so every later row is a **paired** comparison rather than two
 percentages (`D61`).
+
+**`±0.137`, not `±0.131`** — this row said ±0.131 until 2026-08-21. Wilson's band is computed
+over the **47 answerable** items, not the 50 in the file; the three unanswerable ones have no
+answer page to hit and are excluded from recall by construction. The scorer always printed
+±0.137. The wrong figure was hand-typed and lived in prose, where `check_runnable` has no
+opinion.
+
+**The set is now 100 items and this row is deliberately still the 50** (`D65`). The 100-item run
+scores `recall@5 = 0.49 ±0.101`, and comparing it against the saved rows gives **0 fixed,
+0 broken** — nothing regressed, the average fell because harder questions were added. Swapping
+the baseline artifact would turn every later row from a paired comparison into two unpaired
+averages. See `study/14-MEASURE.md` §R6.1.
 
 **Read the headline with `D63` in hand.** `0.51` averages two subsets that behave very
 differently, and the gap between them is larger than anything Phase 3 is expected to buy:
@@ -367,6 +379,12 @@ differently, and the gap between them is larger than anything Phase 3 is expecte
 **0.41 is the number that describes the shipped system** for somebody typing an error message,
 and `0.73` is what a question phrased like the documentation gets. Quoting `0.51` unqualified
 overstates it.
+
+**The 100-item run sharpens this, and the sharper number is worse.** Both rows above were phrased
+in this repo. Scored against 50 questions harvested from real developers: Stack Overflow
+**0.38**, GitHub **0.57** — so the repo's own imitation of a stuck developer (`breakages`, 0.41)
+scored *higher* than actual stuck developers. **`0.38` is the number for someone arriving from a
+search engine.**
 
 **Three other numbers from the same run, because they name the Phase 3 levers:**
 
