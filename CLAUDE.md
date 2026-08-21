@@ -890,3 +890,21 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **What I got wrong and he caught:** shipping prompt D when he was asking whether we *should*,
   and holding Rounds 8–10 to an `n=1` standard I had spent the day insisting `D43` should have
   met. Both are recorded in the entries rather than smoothed over.
+
+### 2026-08-20 — `study/13-VERIFICATION.md` enriched to the R1–R3 explanation style
+
+- Whole-file pass: show-then-name, named examples, side-by-sides, “what did not happen,” long
+  answers that stay plain. Measured `# runnable` blocks and numbers left alone.
+- **Q3** densest: three cuts (prose / `::` / severed listing), char ranges `c00233`/`c00234`
+  (85→1528 | 1529→3243), direction table for `relationship("Address")`, overlap diagrams for
+  `c03012` vs `c00138`.
+- **Q1–Q2, Q4–Q5, R5.0, R5.6–R5.7** brought to the same density (`DEFAULT_K`, answer-key vs
+  API-absence, meaning≠string table, citation≠correctness with Q1/Q2 verdicts).
+- **Second pass:** every *Say this* / *Do not say* / *Follow-up* expanded to the same density —
+  second jabs, named traps, R5.6 trap column, R5.7 rehearsal includes *Do not say* lines.
+
+### 2026-08-20 (later) — `study/12-EVALUATION.md` §R4 clarified
+
+- Added “two report cards” opener (retrieval vs generation) so metrics stop blending into one
+  grade. R4.2 now shows recall / MRR / rank on the `backref`@6 example before naming them.
+- Softened Round 7 callout into “rank ≠ component”; plain-language R4.4–R4.6 and vocabulary.

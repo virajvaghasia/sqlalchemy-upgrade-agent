@@ -1532,7 +1532,10 @@ category has the worst results of any in `deliverables/FAILURES.md`.
 
 **This is the argument for hybrid search**, and it is now a measured argument rather than the
 borrowed one. §R1 quoted the roadmap's example — *"what replaces `Query.get()`"* — which turned
-out **not** to fail (D39: ranked 1 of 3284). The claim was right; the illustration was wrong.
+out **not** to fail (D39: ranked 1 of 3284). The claim (meaning search is weak on exact
+symbols) was right; that illustration was wrong. **Do not read it as “we got Query instead of
+Session.”** Search returns pages; that question’s right page came first. The measured symbol
+misses are `table_names`, `keys()`, `cascade_backrefs`, `backref` (see §R4 / `FAILURES.md`).
 Keyword search would nail `table_names` precisely because it is a literal string, and that is
 Phase 3.
 
