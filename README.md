@@ -104,7 +104,7 @@ experiments/           the code under study: the 1.4 app and the measurement har
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 165 tests pinning what the docs claim
+tests/                 173 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -116,7 +116,7 @@ to "§18" is unambiguous in either file.
 | file | what it is |
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
-| [`phases/PHASE-2.md`](phases/PHASE-2.md) | **the current phase** — turn "it seems okay" into a number: a hand-verified golden set, and the four constraints Phase 1 handed it |
+| [`phases/PHASE-2.md`](phases/PHASE-2.md) | **the current phase** — turn "it seems okay" into a number. The golden set is finished (50 items, all human-verified) and the baseline is measured; `--refusals` covers `D62`'s generation half |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the three § numbering families, and carries a **by-phase view** (`01`–`08` Phase 0, `10`–`13` Phase 1, `09` all of them) for reading it phase by phase instead |
@@ -124,7 +124,8 @@ to "§18" is unambiguous in either file.
 | [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) | **§16–§22** — the 1.4 → 2.0 upgrade: what breaks, what only looks like it does |
 | [`deliverables/FAILURES.md`](deliverables/FAILURES.md) | **the Phase 1 deliverable** — 19 questions, where retrieval breaks, and the split between failures Phase 3 can fix and the corpus ceiling it cannot. Verdicts closed 2026-08-17: **10 correct, 3 partial, 6 wrong**, hand-written and kept in `verdicts.json` so a regeneration cannot destroy them |
 | [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) | **the Phase 0 deliverable** — 23 verified breakages; seeds the Phase 2 golden dataset |
-| [`deliverables/golden.json`](deliverables/golden.json) | **the Phase 2 ruler** — hand-verified questions with the chunk that answers each. `rag/score.py` refuses to score any item a human has not verified (`D06`) |
+| [`deliverables/golden.json`](deliverables/golden.json) | **the Phase 2 ruler** — **50 hand-verified questions**, each with the chunk that answers it. `rag/score.py` refuses to score any item a human has not verified (`D06`). Baseline **recall@5 = 0.51 ±0.131** — but read `D63` first: that averages `migration_guide` at **0.73** with `breakages` at **0.41**, and 0.41 is the honest number |
+| [`deliverables/baseline-phase1.json`](deliverables/baseline-phase1.json) | **the Phase 1 baseline rows** — what `rag/score.py --baseline` compares against, so every Phase 3 result is a *paired* comparison with the flipped items named, not two percentages (`D61`) |
 | [`study/03-PRACTICE-APP.md`](study/03-PRACTICE-APP.md) | the design of the app under test, and why this schema |
 | [`study/04-DOCKER.md`](study/04-DOCKER.md) | **§1–§3, one container** — opens with a one-page plain-language summary, then layers, the build cache, build context, base images and wheels, `CMD`/`ENTRYPOINT`, non-root. Every number measured against this repo |
 | [`study/05-COMPOSE.md`](study/05-COMPOSE.md) | **§4, more than one container** — Compose, networking and DNS, ports, volumes, healthchecks. Numbering continues from `study/04-DOCKER.md` |
@@ -170,7 +171,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-165 tests collected in 0.37s
+173 tests collected in 0.37s
 ```
 
 Three of them skip when Qdrant is not running, so a run reports 114 passed with it up and 111

@@ -328,6 +328,194 @@ Any Phase 2 score computed across that swap would move without retrieval having 
 **pinned** — model *and revision* (`D41`), normalisation (`D36`), chunk settings, `k`, and the
 store. The repo already pinned the first four. The fifth was invisible until measured.
 
+### R4.7 The baseline — and the number not to quote
+
+The golden set was finished on 2026-08-20: **50 questions, all verified by hand.** One command
+scored them, and this is the Phase 1 baseline every Phase 3 change gets compared against.
+
+```
+# summary of: uv run python -m rag.score. The command is ENV in
+#   tools/check_runnable.py because corpus/chunks.jsonl is generated and
+#   gitignored (D11) and the live path needs Qdrant.
+ALL ITEMS  —  50 items, 47 answerable
+  recall@k   @1=0.34  @3=0.43  @5=0.51  @10=0.68  @20=0.81
+  MRR        0.434
+  recall@5    0.51  ±0.137  (95%, Wilson)
+  median rank when found  2.5   not in top-20: 9
+  slots lost to duplicates in top-5: 20
+```
+
+**Read that as a sentence.** For half the questions, the page holding the answer never reached
+the prompt. `DEFAULT_K = 5`, so the model was handed five pages, and for 23 of 47 answerable
+questions none of them was the right one. The model was not being stupid on those — it was
+never shown the answer.
+
+#### The number not to quote, and why
+
+`0.51` is the average of two groups that behave nothing alike. Split by where the question came
+from:
+
+| provenance | n | median overlap with top-1 | recall@5 |
+|---|---|---|---|
+| `migration_guide` | 16 | 0.64 | **0.73** |
+| `breakages` | 34 | 0.43 | **0.41** |
+
+**That gap — 32 points — is bigger than anything Phase 3 is expected to buy.** So which half you
+quote matters more than the improvement you are about to make.
+
+The **overlap** column is what explains it, and it is worth spelling out because it is not a
+technical term so much as a bookkeeping one. Take the question, take the top-ranked chunk it
+retrieved, and ask: *what fraction of the question's real words already appear in that chunk?*
+Drop `the`, `a`, `is`, `how` — count the rest.
+
+Side by side, the two real extremes of the set — `g034` and `g042`:
+
+```
+g034   provenance: migration_guide          overlap 6/6 = 1.00     rank 1
+  "Query.select_entity_from removed how do I select an entity from a subquery"
+   content words:  entity  query  removed  select  select_entity_from  subquery
+   in chunk c01601: entity  query  removed  select  select_entity_from  subquery
+                    ^ every single one. The question is nearly the heading.
+
+g042   provenance: breakages                overlap 0/7 = 0.00     NOT IN TOP 20
+  "I assigned comment.issue = issue and the Comment never got INSERTed silent bug"
+   content words:  assigned  bug  comment  inserted  issue  never  silent
+   in top-1 chunk: (none)
+   the answer is c02230, in orm/cascades.rst, and it was never retrieved.
+```
+
+**Look at what `g042` does not contain: the word `cascade_backrefs`.** That is the name of the
+thing that broke — and the developer hitting it does not know that name, because **nothing was
+raised.** They know `comment.issue = issue`, they know the row is missing, and those are the
+words they type. The chunk that answers them is written in the vocabulary of the *cause*; the
+question is written in the vocabulary of the *symptom*. Meaning-search is supposed to bridge
+exactly that gap, and here it does not: zero shared words, and the answer never appears in
+twenty results.
+
+`g034` is the opposite in every respect. `select_entity_from` is a name you can only be holding
+if you have already read the API that removed it, so the question arrives pre-loaded with the
+documentation's own vocabulary — and the right chunk comes back first.
+
+**Same corpus. Same retriever. Same `k`. Rank 1 versus not-found.** The only variable is whether
+the asker already knew the words.
+
+#### What this corrects
+
+`D60` predicted this problem and **attached it to the wrong group.** It quarantined the
+`breakages` items as the leaky ones, because the 19 probe questions had been written from
+`BREAKAGES.md`'s keys and carried the corpus's vocabulary. Measured on the finished set, the
+`breakages` items are the **hardest** group and `migration_guide` is the leaky one — at **0.64**,
+leakier than the 0.57 `D60` measured on the probe questions it was worried about.
+
+**The thing that leaks is phrasing, not provenance.** `D60`'s own best evidence already said so
+and it was not read that way at the time: chunk `c01542` comes back at **rank 1** for the tidy
+phrasing and is **not in the top 20 at all** for the developer phrasing. Same question, same
+answer chunk, and the only thing that changed was the words.
+
+`D63` records the correction. `D60` is not reversed — the mechanism it chose, *report every
+number with and without a provenance group*, is exactly what made this visible. Only the label
+was wrong.
+
+**So: `0.41` is the number that describes the shipped system** for a developer pasting an error
+message. `0.51` is the honest average, and it needs the split said out loud beside it.
+
+#### Three levers this run names for Phase 3
+
+Not "improve retrieval." Three separate things, with the number that sizes each:
+
+- **9 of 47 answerable items are not in the top 20 at all.** Not ranked low — **absent**. A
+  reranker reorders a list it is handed; it can do nothing for these. Only recall-side work
+  (keyword search, chunking) can reach them. This is the ceiling on reranking.
+- **20 top-5 slots across the 50 items are lost to duplicates** — a cross-version twin taking a
+  second slot that a different page could have used (`D58`). Deduplicating at retrieval time is
+  the cheapest lever on this list and it touches no model.
+- **Median rank when found is 2.5.** When search works, it works well. The failure is **binary,
+  not gradual** — the answer is either near the top or nowhere. That is why `D61` reports flipped
+  items rather than a moving average: there is no gentle slope here to nudge.
+
+### R4.8 Refusals — and the 15 points that recall does not see
+
+`--refusals` is the half of the score that needs the model to actually answer. Run against the
+same 50 items:
+
+```
+# summary of: uv run python -m rag.score --refusals, 2026-08-20. ENV in
+#   check_runnable: needs Ollama, corpus/chunks.jsonl and Qdrant.
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                3
+    refused — correct               3/3  (100%)
+    answered — FABRICATED           0/3  (0%)
+  answerable items                  47
+    refused — over-refusal          24/47  (51%)
+      with the answer IN the prompt   7   generation defect (the Q18/Q19 class)
+      with the answer absent         17   honest — retrieval never supplied it
+```
+
+**The unanswerable items are a clean pass.** All three were declined, none was answered, and that
+includes `has_table` — the question §R2 proved can never be answered because the string is in
+**zero** of the 3284 chunks. The system says so instead of inventing a signature. That is `D62`
+earning its place: at the retrieval level those three items score `recall = 0` by construction and
+measure nothing at all.
+
+#### The number that is not in the recall table
+
+Put the two halves together for the 47 answerable questions and a third figure falls out that
+neither half reports on its own:
+
+```
+47 answerable questions
+│
+├── 24  the answer WAS retrieved into the prompt      (recall@5 = 0.51)
+│   ├── 17  answered            ✓  the system worked, end to end
+│   └──  7  REFUSED anyway      ✗  generation defect — it had the page and declined
+│
+└── 23  the answer was NOT retrieved
+    ├── 17  refused             ✓  honest — nothing relevant was there to use
+    └──  6  answered anyway     ?  answered without the verified page in the prompt
+```
+
+**17 of 47 is 0.36.** Recall says `0.51`; end to end the system produced an answer with the right
+page in front of it on **36%** of the questions. **Retrieval's 0.51 is a ceiling that generation
+then loses another 15 points of** — and no retrieval metric can see that, because from retrieval's
+side those 7 items are successes. They are the reason `D62` refused to let refusal accuracy be
+folded into recall.
+
+#### Why the split matters more than the total
+
+`24 of 47 refused` on its own is a useless number — it is two unrelated bugs added together:
+
+| | what happened | whose problem | which phase |
+|---|---|---|---|
+| **7 items** | the answer chunk was in the prompt and it declined anyway | **generation** | Phase 4 |
+| **17 items** | nothing relevant was retrieved, so it declined | **retrieval** | Phase 3 |
+
+Hybrid search and a reranker — the whole of Phase 3 — can only move the second row. **If Phase 3
+worked perfectly and fixed all 17, the 7 would still be there**, because those questions already
+had their answer and the model still would not use it. Reporting one "51% refusal rate" would hide
+that completely, and the obvious next move would be to weaken the refusal clause — which `D43`
+already measured as the thing that makes the model invent API signatures.
+
+#### This is bigger than Phase 1 thought
+
+Phase 1 left this open as **two questions**, Q18 and Q19, and called them stubborn: both refuse at
+`k=10` with their chunks in the prompt — Q19 has three of them, at positions 6, 7 and 8 — across
+all four prompt wordings. On the golden set it is **seven**: `g006`, `g008`, `g013`, `g021`,
+`g029`, `g048`, `g049`. All seven were confirmed against the separate retrieval run to have had
+their answer chunk at rank ≤ 5.
+
+**Seven named items is a different kind of evidence from two.** Two questions is an anecdote that
+invites "your prompt is slightly off." Seven, on questions harvested independently of the prompt
+work, is a **measured property of the generation step** — and it is Phase 4's, not Phase 3's.
+
+#### The one cell to keep watching
+
+The **6** that answered *without* the verified page in the prompt are the least understood cell in
+the table, and this file will not pretend otherwise. They may have answered correctly from an
+adjacent page, or partially, or they may have invented. **Retrieval cannot tell you and neither
+can a refusal count** — deciding it means reading six answers against real 2.0.51, which is
+exactly the judgement `D06` reserves for a human and exactly what Phase 4 exists to grade. It is
+recorded here as an open cell rather than quietly averaged into a pass.
+
 ---
 
 ## Vocabulary from this sitting

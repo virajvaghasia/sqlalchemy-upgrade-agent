@@ -39,12 +39,12 @@ Meta, Google, Apple, Anthropic, and startups).
   plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D62`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D63`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 165 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 173 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -339,18 +339,21 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-19):** **Phase 2 is the current phase.** Phase 0 and Phase 1 are COMPLETE and
-merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **165 tests** (160 pass, 5 skip
-without Qdrant), **58/58** `# runnable` blocks, **62** decision entries, **§H empty**, 19 verdicts
-in sync.
+**State (2026-08-20):** **Phase 2 is the current phase, and it is measured.** Phase 0 and Phase 1
+are COMPLETE and merged; `main` is at `19024c2`. Work is on **`phase-2/measure`**. **173 tests**,
+**58/58** `# runnable` blocks, **63** decision entries, **§H empty**, 19 verdicts in sync.
+
+**The golden set is finished: 50 items, all human-verified (`D06`).** The Phase 1 baseline is
+**recall@5 = 0.51 ±0.131**, saved to `deliverables/baseline-phase1.json` and written into
+`ROADMAP.md`'s metrics table.
 
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 152 passed, 5 skipped
+uv run pytest                            # 173 passed (5 of them skip without Qdrant)
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
-uv run python -m rag.score --validate    # what is still unverified in the golden set
+uv run python -m rag.score --validate    # golden set OK: 50 items, 3 unanswerable
 ```
 
 If any disagrees with the numbers above, **the docs are stale and the code is right** — fix the
@@ -362,24 +365,94 @@ docs. That has happened four times and never the other way round.
 |---|---|---|
 | **0** | complete, except the Day 3 tunnel (blocked on Shaili sharing the Tailscale node) | `deliverables/BREAKAGES.md`, 23 entries |
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
-| **2** | **current.** All five decisions settled (`D58`–`D62`), `rag/score.py` built and run for real | `deliverables/golden.json` — **skeleton only, 3 drafts, none verified** |
+| **2** | **current, and its deliverable is done.** Five decisions settled (`D58`–`D62`), `D63` corrects `D60`. Scorer built, run for real, baseline filled | `deliverables/golden.json` — **50 items, 47 answerable, 3 unanswerable, all human-verified** |
 | 3–6 | planned in `phases/ROADMAP.md` §6 | — |
 
-### Phase 2: what is built, and the one thing that is not
+### The baseline, and the number NOT to quote
 
-**Built and tested.** `rag/score.py` — validation, `recall@1/3/5/10/20`, MRR, rank of the first
-containing chunk, duplicate-slot count, per-provenance breakdown, and a paired `--baseline`
-comparison with an exact McNemar p-value. 17 tests, six mutations checked, two end-to-end that
-skip when Qdrant is absent.
+**`recall@5 = 0.51` averages two subsets that behave nothing alike**, and the gap between them is
+larger than anything Phase 3 is expected to buy:
 
-**Not built, and named rather than hidden:** `--refusals`. `D62` puts refusal accuracy in scope;
-it needs generation rather than retrieval and there is only one drafted unanswerable item to test
-it against. The docstring says so.
+| provenance | n | median overlap with top-1 | recall@5 |
+|---|---|---|---|
+| `migration_guide` | 16 | 0.64 | **0.73** |
+| `breakages` | 34 | 0.43 | **0.41** |
 
-**The work that is left is a human's, and no script may do it (`D06`).** 50 questions, *found not
-written*, each with the chunk that answers it, ~15 minutes an item. `rag/score.py` **refuses to
-score any item whose `verified_by` is not `"human"`** and names the ones it dropped — `D06`
-enforced in code, not remembered.
+**Quote 0.41** for a developer typing an error message. `D63` records that `D60` predicted this
+and **attached it to the wrong group** — it quarantined `breakages` as the leaky set, and
+`migration_guide` is leakier (0.64) than the 0.57 `D60` measured on the probe questions. **Phrasing
+leaks, not provenance.** `D60`'s mechanism is untouched and is what made this visible.
+
+The named example, both ends of it: **`g034`** overlaps its top chunk **6/6** and ranks **1**;
+**`g042`** (*"I assigned comment.issue = issue and the Comment never got INSERTed"*) overlaps
+**0/7** and is **not in the top 20** — its answer `c02230` is written in the vocabulary of the
+cause (`cascade_backrefs`), and the developer only has the symptom.
+
+### Refusals: the finding that outgrew Phase 1
+
+`--refusals` ran against the finished set on 2026-08-20:
+
+- **Unanswerable items: 3/3 correctly refused, 0 fabricated.** Includes `has_table`, the question
+  §R2 proved is unanswerable from this corpus. Clean pass.
+- **24 of 47 answerable items were refused**, and the split is the point: **7 with the answer chunk
+  IN the prompt** (`g006`, `g008`, `g013`, `g021`, `g029`, `g048`, `g049`) and **17 with it
+  absent**. Only the second row is Phase 3's to fix.
+- **Phase 1 knew this defect as TWO questions (Q18/Q19). It is seven.** All seven confirmed at
+  rank ≤ 5 against the separate retrieval run. Seven items harvested independently of the prompt
+  work is a measured property of generation, not an anecdote about wording.
+- **The figure in neither table: 17 of 47 = 0.36.** That is how often the system answered with the
+  right page in front of it, against a recall@5 of **0.51**. **Retrieval's number is a ceiling and
+  generation loses another 15 points of it** — invisible to every retrieval metric, because from
+  retrieval's side those 7 items are successes. This is exactly what `D62` refused to average away.
+- **Open cell, named not hidden:** 6 items answered *without* the verified page in the prompt.
+  Right-from-an-adjacent-page, partial, or invented — no retrieval metric or refusal count can
+  say. Reading six answers against real 2.0.51 is a human's call (`D06`) and Phase 4's job.
+
+### The three Phase 3 levers this run named, with the number that sizes each
+
+- **9 of 47 answerable items are not in the top 20 at all** — absent, not ranked low. **A reranker
+  cannot reach them**; only recall-side work can. This is the ceiling on reranking.
+- **20 top-5 slots lost to duplicate chunks** across the 50 items (`D58`). Deduplicating at
+  retrieval time is the cheapest lever here and touches no model.
+- **Median rank when found is 2.5** — when search works it works well. The failure is **binary,
+  not gradual**, which is why `D61` reports flipped items rather than an average.
+
+### Phase 2: what is built
+
+**All of it.** `rag/score.py` — validation, `recall@1/3/5/10/20`, MRR, rank of the first
+containing chunk, duplicate-slot count, per-provenance breakdown, a paired `--baseline`
+comparison with an exact McNemar p-value, and **`--refusals`** (`D62`). **25 tests, six mutations
+checked**, two end-to-end that skip when Qdrant is absent.
+
+**`--refusals` is the one section that needs generation**, so it is behind a flag and costs ~50
+model calls. Three things about it are decisions rather than details, each pinned by a test:
+
+- **It retrieves at `DEFAULT_K = 5`, not the `DEPTH = 20`** everything else slices. Depth is free
+  for recall (`D59`); refusal is a property of *what ships*, and `D54` measured k=10 buying two
+  over-fires and a fabrication.
+- **Over-refusals are split by whether the answer chunk was in the prompt.** Same word, two
+  unrelated defects: refusing with the chunk present is **generation's** fault (the Q18/Q19 class,
+  Phase 4); refusing with it absent is honest and is **retrieval's** (Phase 3). Without the split
+  that boundary disappears into one number.
+- **One detector, `ask.refused()`, beside the prompt clause that mandates the string.**
+  `rag/probe.py` calls it too. It is a **prefix** test, not a substring search — prompt D
+  deliberately produces *"here is the part the sources cover, and here is the part they do not"*,
+  which is an **answer**, and a substring test would score it as a refusal and inflate the number
+  in the flattering direction.
+
+**The golden set is finished and it was a human's work throughout (`D06`).** 50 questions, *found
+not written*, each with the chunk that answers it and a note naming the `.rst` file and line it
+was checked against. `rag/score.py` **refuses to score any item whose `verified_by` is not
+`"human"`** and names the ones it dropped — `D06` enforced in code, not remembered.
+
+**Two properties of the set that bound what it measures.** Neither is a defect; both are the kind
+of thing that is worse discovered in Phase 3 than written down now:
+
+- **62 of the 68 answer chunks are in `changelog/migration_20.rst`**, and the set touches **4 of
+  the 270** corpus files. It grades *finding the migration guide* more than *searching the corpus*.
+- **68 answer chunks, only 33 distinct** — `c01567` answers seven different items. Those seven
+  scores move together, so the effective sample is below 50 and **`D61`'s ±0.131 is optimistic**.
+  The paired comparison `D61` actually relies on is unaffected, because it compares item to item.
 
 ### Do not re-derive these
 
@@ -388,6 +461,10 @@ enforced in code, not remembered.
   one); retrieve top-20 once (depth is free — latency is the ~88 ms query embedding at every `k`);
   the 19 probe questions join only as a labelled subset; 50 items, and Phase 3 reports **flipped
   items** because one recall figure at n=50 carries **±0.131**.
+- **`D60` is right in mechanism and was wrong about which subset leaks — `D63` corrects it.**
+  Measured on the finished set, `migration_guide` overlaps its top-1 chunk **0.64** and scores
+  **0.73**; `breakages` overlaps **0.43** and scores **0.41**. **Phrasing leaks, not provenance.**
+  Do not re-argue this from `D60`'s framing — read `D63` first.
 - **Phrasing alone can push an answer out of the index.** One question, one answer chunk
   `c01542`: **rank 1** in corpus vocabulary, **not in the top 20** when phrased the way a stuck
   developer types it. Pinned by a test. This is why the golden set must be harvested.
@@ -427,36 +504,34 @@ enforced in code, not remembered.
 - **`check_runnable` has no opinion about prose.** Every false claim found by reading lived in a
   sentence, and CI was green across all of them.
 
-**Next work, in order — Phase 2:**
+**Phase 2 is done. Items 1–6 all closed 2026-08-18/20:**
 
-1. ~~**Settle `P2-a`**~~ — **done 2026-08-18, `D58`.** Either half of a duplicate pair counts as
-   a hit, because the **437 same-heading pairs have byte-identical vectors** (437/437 checked) and
-   so score identically against every query — no ranker can prefer one, and penalising it scores
-   the corpus rather than retrieval. Version-strict recall and `slots_lost_to_duplicates` ship
-   beside it; `version_sensitive: true` items are always scored strictly, which is what keeps
-   `D10` intact. **The scorer reads `corpus/chunks.jsonl`, never `FAILURES.md`** — that file
-   truncates chunks at 700 chars, and measuring duplicates off it gives 6 of 19 instead of 2.
-2. ~~**Settle `P2-b`/`P2-c`/`P2-d`**~~ — **done 2026-08-18.** `D59` retrieve top-20 once and
-   report the whole curve (depth is free: latency is the ~88 ms query embedding at every `k`).
-   `D60` the 19 probe questions join as a labelled subset — their overlap with their own top-1
-   chunk is **0.57** against **0.33** for developer phrasing, and 3 of 5 rephrasings returned a
-   different top-1. `D61` 50 items, and Phase 3 reports **flipped items**, because at n=50 one
-   recall figure carries a **±0.131** interval and the paired bar is ~6 clean fixes.
-   `D62` refusal accuracy stays in Phase 2, printed apart from retrieval.
-3. ~~**Build `rag/score.py`**~~ — **built 2026-08-18**, 17 tests, six mutations checked, and run
-   end to end against live Qdrant. The validator runs before any number is printed and **drops
-   items no human verified**, naming them.
-4. **Harvest the golden set — the next real work, and it is Viraj's.** Use `rag/golden.py`
-   (`--status`, `--add`, `--candidates`, `--show`). 50 questions, **found not
-   written** — real GitHub issues and Stack Overflow questions, seeded from `BREAKAGES.md`'s 23
-   entries with `provenance` recorded. ~15 minutes an item, ~12.5 hours, and `D06` means only a
-   human verifies. At least three `answerable: false`, and **`has_table` is the best one
-   available**: zero of 3284 chunks contain it, provable by `grep`.
-   **Claude may draft questions and propose candidate chunks; Claude may not set `verified_by`.**
-5. **Build `--refusals`** (`D62`) once there are verified unanswerable items to test it against.
-   Decided, not built, and named as missing in `rag/score.py`'s docstring.
-6. **Fill the Phase 1 baseline row** of `ROADMAP.md`'s metrics table — the row every Phase 3
-   change is measured against. Needs 4 first.
+1. ~~`P2-a`~~ `D58` — either half of a duplicate pair is a hit (**437/437 byte-identical vectors**).
+2. ~~`P2-b`/`P2-c`/`P2-d`~~ `D59`–`D62` — top-20 once; probe questions as a labelled subset;
+   50 items with **flipped items** reported; refusal accuracy printed apart.
+3. ~~Build `rag/score.py`~~ — **25 tests**, six mutations checked.
+4. ~~Harvest the golden set~~ — **50 items, all human-verified**, 3 unanswerable. `has_table` is
+   one of them.
+5. ~~Build `--refusals`~~ — built and run. **3/3 unanswerable correctly refused; 7 answerable
+   refused with the answer in the prompt.**
+6. ~~Fill the Phase 1 baseline row~~ — `ROADMAP.md`'s metrics table now carries
+   **recall@5 0.51 ±0.131, recall@20 0.81, MRR 0.434**, with the `D63` split beside it.
+
+**What is genuinely next — and the first one is a judgement, not a script:**
+
+1. **Decide whether the golden set's concentration is acceptable before Phase 3 measures against
+   it.** 62 of 68 answer chunks are in `changelog/migration_20.rst`; the set touches 4 of 270
+   files; 68 answer chunks are only 33 distinct, so `D61`'s ±0.131 is optimistic. **This is
+   Viraj's call, not Claude's** — the options are ship it with the limitation stated (it is
+   stated, in `PHASE-2.md` step 4 and the commit), or add items that reach `orm/` and `core/`.
+   Nothing else should start until this is settled, because everything downstream is measured
+   against this ruler.
+2. **Phase 3 has three sized levers**, and they are different work: 9 items absent from the top 20
+   (**reranking cannot reach these**), 20 top-5 slots lost to duplicates (**cheapest, no model**),
+   and the `breakages`/`migration_guide` phrasing gap of 32 points (`D63`).
+3. **Phase 4 now has seven named items**, not two: `g006`, `g008`, `g013`, `g021`, `g029`, `g048`,
+   `g049` refuse with their answer chunk at rank ≤ 5. Plus the 6 that answered without the
+   verified page — unread, and a human has to read them (`D06`).
 
 **Carried over from Phase 1, not urgent and not forgotten:**
 
@@ -908,3 +983,43 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Added “two report cards” opener (retrieval vs generation) so metrics stop blending into one
   grade. R4.2 now shows recall / MRR / rank on the `backref`@6 example before naming them.
 - Softened Round 7 callout into “rank ≠ component”; plain-language R4.4–R4.6 and vocabulary.
+
+### 2026-08-20 (overnight) — Phase 2 finished: the baseline is a number, and it is worse than recall says
+
+- **Started by fixing a red test.** The `13-VERIFICATION.md` rewrite had compressed R5.7's probe
+  verdicts to `10 / 3 / 6`, breaking the test that pins those to `verdicts.json`. Fixed the doc,
+  not the test: R5.7's own contract says each block matches its section's *Say this*, and a slash
+  triple is not sayable in the one section meant to be read aloud.
+- **Verified the 50-item golden set mechanically before letting anything rest on it** — `D06` is
+  the rule a script must not launder. No duplicate ids or questions, all 68 answer-chunk ids
+  resolve, none empty, no unanswerable item carrying chunks. Committed with two limitations
+  stated in the message: **62 of 68 answer chunks are in one file** (`migration_20.rst`, 4 of 270
+  files touched), and **68 chunks are only 33 distinct** — `c01567` answers seven items, so
+  `D61`'s ±0.131 is optimistic.
+- **Ran the scorer for real: `recall@5 = 0.51 ±0.131`.** Filled `ROADMAP.md`'s baseline row and
+  saved `deliverables/baseline-phase1.json` so Phase 3 is a paired comparison.
+- **`D63` — `D60` had the label backwards, and its own metric proves it.** `D60` quarantined the
+  `breakages` items as leaky. Measured: `migration_guide` overlap **0.64** / recall **0.73**;
+  `breakages` **0.43** / **0.41**. The set added to be *realistic* is leakier (0.64) than the
+  probe questions `D60` was worried about (0.57). **Phrasing leaks, not provenance** — `D60`'s own
+  `c01542` evidence already said so. Mechanism kept, label corrected, `D60` points forward to it.
+- **Built `--refusals` (`D62`), the last named gap.** One detector, `ask.refused()`, moved beside
+  the SYSTEM clause that mandates the string; `probe.py` now calls it instead of holding a second
+  copy. **Prefix, not substring** — prompt D deliberately says "here is the part they cover and
+  here is the part they do not", which is an *answer*, and a substring test would score it as a
+  refusal in the flattering direction. Six mutations checked.
+- **The refusal run found more than it was built to find.** 3/3 unanswerable correctly refused,
+  zero fabrications. But **7 answerable items refused with the answer chunk at rank ≤ 5** —
+  Phase 1 knew this as **two** questions (Q18/Q19). And the figure in neither table: of the 24
+  whose answer was retrieved, 7 were refused, so the system answered with the right page in hand
+  on **17 of 47 = 0.36** against a recall of **0.51**. **Retrieval's number is a ceiling that
+  generation loses another 15 points of**, invisible to every retrieval metric.
+- **A fabricated example, caught before it shipped.** Writing R4.7 I invented a side-by-side of
+  two `from_self` questions with overlap figures `0.8` and `0.29`. There is only **one**
+  `from_self` item in the set; the pairing and both numbers were made up. Replaced with the real
+  extremes, derived: `g034` at **6/6, rank 1** and `g042` at **0/7, not in the top 20**. The
+  measurement rule caught it only because I went to verify — nothing would have flagged it.
+- **`# runnable` trap avoided by checking, not by luck.** A block running `rag.score --validate`
+  passed here and would have failed CI: `corpus/chunks.jsonl` is gitignored (`D11`). Classified
+  ENV with the reason, alongside `rag.golden`. Adding 8 tests (165 → 173) broke the three blocks
+  quoting the test count, as it always does.

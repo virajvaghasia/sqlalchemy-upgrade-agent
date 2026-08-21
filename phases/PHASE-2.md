@@ -7,21 +7,26 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 
 | step | state | machine | what exists |
 |---|---|---|---|
-| [1. decide what a question is](#1-decide-what-a-question-is) | **done** 2026-08-18 | Mac | `deliverables/golden.json` — schema, README, 3 draft items |
-| [2. harvest the questions](#2-harvest-the-questions) | **open — yours** | — | 3 of 50 drafted; `BREAKAGES.md` is the seed |
-| [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | **open — yours** | — | `D06`: only a human verifies, and `rag/score.py` enforces it |
-| [4. score it](#4-score-it-with-one-command) | **built** 2026-08-18 | Mac | `rag/score.py`, 15 tests, all mutation-checked |
+| [1. decide what a question is](#1-decide-what-a-question-is) | **done** 2026-08-18 | Mac | `deliverables/golden.json` — schema, README, the item shape |
+| [2. harvest the questions](#2-harvest-the-questions) | **done** 2026-08-20 | Mac | 50 items: 47 answerable, 3 unanswerable; `breakages` 34, `migration_guide` 16 |
+| [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | **done** 2026-08-20 | Mac | 68 answer-chunk ids, all resolving; every item human-verified (`D06`) |
+| [4. score it](#4-score-it-with-one-command) | **done** 2026-08-20 | Mac | `rag/score.py`, 25 tests, six mutations checked; baseline row filled |
+| [5. refusal accuracy](#5-refusal-accuracy-d62) | **built** 2026-08-20 | Mac | `--refusals`, the one section that needs generation |
 
-**All five decisions are settled and the machinery is built.** What is left is the part no script
-may do: 50 questions found and verified by hand. `rag/score.py` **refuses to score any item whose
-`verified_by` is not `"human"`**, and says which ones it dropped — `D06` enforced in code rather
-than remembered.
+**The phase is measured.** The headline is **recall@5 = 0.51 ±0.131** over the 50 hand-verified
+items, saved to `deliverables/baseline-phase1.json` and written into `ROADMAP.md`'s metrics
+table as the row every Phase 3 change is compared against.
+
+**Read it with `D63`.** That 0.51 averages two subsets that behave very differently —
+`migration_guide` at **0.73** and `breakages` at **0.41** — and `D63` records that `D60` had the
+label backwards about which of them leaks. **0.41 is the honest number** for a developer typing
+an error message.
 
 | | decision | settled |
 |---|---|---|
 | `P2-a` | a duplicate under the other version counts as a hit | `D58` |
 | `P2-b` | retrieve top-20 once; report `recall@1/3/5/10/20` | `D59` |
-| `P2-c` | the 19 probe questions join as a labelled subset | `D60` |
+| `P2-c` | the 19 probe questions join as a labelled subset | `D60`, corrected by `D63` |
 | `P2-d` | 50 items, and Phase 3 reports which items flipped | `D61` |
 | `P2-e` | refusal accuracy is in Phase 2, printed separately | `D62` |
 
@@ -225,16 +230,11 @@ always scored strictly, so `D10`'s skew questions are not quietly excused.
 each shown chunk at 700 characters and carries no chunk ids; measuring duplicates off it returns
 6 of 19 instead of 2. A rendered report is not the data.
 
-### Built 2026-08-18 — `rag/score.py`
+### Built 2026-08-18, run for real 2026-08-20 — `rag/score.py`
 
 ```
-# summary of: uv run python -m rag.score --validate, run against the skeleton
-#   golden.json. The exact output tracks that file and changes as items are
-#   verified, so it is summarised rather than pasted.
-golden set has 5 problem(s):
-  - g001: verified_by is None, not 'human' — D06, only a person verifies…
-  - g002: answerable with no answer_chunks
-  …
+# runnable: uv run python -m rag.score --validate
+golden set OK: 50 items, 3 unanswerable
 ```
 
 **The validator runs before any number is printed**, because the golden set is the ruler and a
@@ -244,11 +244,110 @@ every time. It catches: a missing field, a duplicate id, an unknown provenance, 
 like a retrieval failure), an answerable item with no note, and **any item a human has not
 verified**.
 
+**What it does not check, and what was therefore checked by hand** when the set was finished:
+duplicate *questions* (as opposed to duplicate ids), empty chunk text behind a valid id, and how
+concentrated the answers are. The last one found something worth stating: **62 of the 68 answer
+chunks are in `changelog/migration_20.rst`, and the set touches 4 of the 270 corpus files.** The
+set grades *finding the migration guide* more than it grades *searching the corpus*. That is a
+fair description of the product's job, but it bounds what a recall number here means.
+
+**One consequence for `D61`'s arithmetic, stated rather than buried.** There are 68 answer chunks
+but only **33 distinct** ones — `c01567` is the answer to seven different items. Those seven
+scores rise and fall together, so the effective sample is smaller than 50 and the **±0.131**
+interval `D61` computed is optimistic. It is still the right order of magnitude, and the paired
+comparison `D61` actually relies on is unaffected, because that compares item to item.
+
 **`--baseline` does the paired comparison** `D61` requires: which items were fixed, which broke,
-and the exact McNemar p-value — rather than two recall percentages whose intervals overlap.
+and the exact McNemar p-value — rather than two recall percentages whose intervals overlap. The
+Phase 1 run is saved at `deliverables/baseline-phase1.json`.
 
 **Done when:** one command prints a score, and that score is committed as the Phase 1 baseline
-row of `ROADMAP.md`'s metrics table — the row every Phase 3 change is measured against.
+row of `ROADMAP.md`'s metrics table — **done 2026-08-20**, and the three Phase 3 levers it names
+are in that table too: 9 items absent from the top 20, 20 top-5 slots lost to duplicates, and a
+median rank of 2.5 when search works at all.
+
+---
+
+## 5. Refusal accuracy (`D62`)
+
+`--refusals` is the one section of the scorer that needs **generation**. Everything else is
+retrieval — set membership, decidable by a script with no model running. A refusal only exists
+once something has been asked to answer.
+
+```
+uv run python -m rag.score --refusals
+```
+
+**It is printed apart from recall and never averaged into it**, which is the whole of `D62`. A
+combined "accuracy" would count correct refusals and correct answers in the same numerator, so
+**the score would rise as the system became more cautious** — a metric that rewards saying
+nothing. The two columns are supposed to move in opposite directions.
+
+**It retrieves at `DEFAULT_K = 5`, not at the `DEPTH = 20` everything else uses.** Depth is free
+for recall (`D59`), but refusal is a property of *what ships*, and `D54` measured that k=10 buys
+two over-fires and a fabrication. Scoring refusals at 20 would report the behaviour of a system
+nobody is running. A test pins the difference.
+
+**The split that makes the section worth printing.** An over-refusal — declining an answerable
+question — is two unrelated defects wearing the same word, and only one of them is generation's
+fault:
+
+| | the model refused | what it means |
+|---|---|---|
+| answer chunk **was** in the prompt | it had what it needed and declined anyway | **generation defect** — the Q18/Q19 class, Phase 4 |
+| answer chunk **was not** in the prompt | it declined because nothing relevant was there | **honest** — retrieval's failure, Phase 3 |
+
+Phase 1 left exactly this unsolved: Q18 and Q19 refuse at k=10 with their chunks in the prompt —
+Q19 has three, at positions 6, 7 and 8 — across all four prompt wordings. Without the split, both
+rows read as one number and the Phase 3 / Phase 4 boundary disappears.
+
+**One detector, and it lives beside the prompt clause that demands it.** `ask.refused()` is a
+**prefix** test against `ask.REFUSAL_OPENING`, the exact sentence `SYSTEM` asks the model to open
+with. `rag/probe.py` calls the same function. Two copies of that string was the alternative, and
+it is how the two would eventually disagree about the same run. A test asserts the string is
+still inside `SYSTEM`, so rewording the prompt without updating the detector fails loudly instead
+of silently reporting every real refusal as an answer.
+
+It is a **prefix** test rather than a substring search on purpose: prompt D deliberately produces
+*"here is the part the sources cover, and here is the part they do not"*. That is an **answer**.
+A substring test would count it as a refusal and inflate refusal accuracy in the flattering
+direction.
+
+**Run 2026-08-20, against the finished set:**
+
+```
+# summary of: uv run python -m rag.score --refusals. ENV in check_runnable —
+#   needs Ollama, Qdrant and the generated corpus/chunks.jsonl (D11).
+  unanswerable items                3
+    refused — correct               3/3  (100%)
+    answered — FABRICATED           0/3  (0%)
+  answerable items                  47
+    refused — over-refusal          24/47  (51%)
+      with the answer IN the prompt   7   g006, g008, g013, g021, g029, g048, g049
+      with the answer absent         17   honest — retrieval never supplied it
+```
+
+**The unanswerable items pass cleanly** — 3 of 3 declined, nothing invented, `has_table` included.
+
+**And the split immediately paid for itself.** Phase 1 knew the "refuses with the answer in the
+prompt" defect as **two** questions, Q18 and Q19. On the golden set it is **seven**, all confirmed
+against the separate retrieval run to have had their answer chunk at rank ≤ 5. Two questions is an
+anecdote that invites *"your prompt is slightly off"*; seven items harvested independently of the
+prompt work is a measured property of the generation step.
+
+**The figure that is in neither table.** Of the 24 answerable questions whose answer *was*
+retrieved, 7 were refused — so the system answered with the right page in front of it on
+**17 of 47 = 0.36**, against a recall@5 of **0.51**. **Retrieval's number is a ceiling that
+generation loses another 15 points of.** That is the whole argument for `D62`: fold refusals into
+recall and this disappears, because from retrieval's side those 7 are successes.
+
+**Open, and named rather than averaged away:** 6 items answered *without* the verified page in the
+prompt. They may be right from an adjacent page, partial, or invented — no retrieval metric and no
+refusal count can tell, and deciding it means a human reading six answers against real 2.0.51.
+That is Phase 4's job (`D06`).
+
+**Done when:** the refusal section runs against the finished golden set and its numbers are
+recorded here — **done 2026-08-20**.
 
 ---
 

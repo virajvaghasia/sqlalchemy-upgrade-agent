@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D62`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D63`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1468,6 +1468,10 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > different provenance is fine, one that hides it is not.
 > **Asked as** — *"Where did your eval questions come from?"* — and the answer names the weakest
 > subset first, with the number that says how weak.
+> **⚠️ Corrected by `D63` on 2026-08-20.** The mechanism here is right and is what caught this.
+> The *label* is wrong: measured on the finished 50-item set, the leaky subset is
+> `migration_guide` (overlap **0.64**, recall@5 **0.73**), not `breakages` (**0.43** / **0.41**).
+> Phrasing leaks, not provenance. Read `D63` before quoting this entry's framing.
 
 ### D61 — `P2-d`: 50 items, and Phase 3 reports which items flipped, not a recall delta
 
@@ -1498,6 +1502,38 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > over a larger one that never gets finished.
 > **Asked as** — *"Is that improvement significant?"* — and the answer is a paired test with the
 > flipped items named, not two percentages and a hopeful adjective.
+
+### D63 — `D60`'s split is right and its label was backwards: the leaky subset is `migration_guide`
+
+> **Measured 2026-08-20, on the finished 50-item set.** `D60` quarantined the `breakages` items
+> as the ones whose vocabulary leaks — *"the answer names the weakest subset first"* — and the
+> weakest subset turned out to be the other one.
+> **Decided** — keep `D60`'s mechanism exactly as it is (every number reported with and without
+> a provenance group) and **correct which group is the suspect**. `D60` is not reversed; the
+> action it chose is what made this visible.
+> **Because the numbers invert its prediction, on `D60`'s own metric.** Median content-word
+> overlap between a question and the top-1 chunk it retrieves, and recall@5 beside it:
+>
+> | provenance | n | median overlap with top-1 | recall@5 |
+> |---|---|---|---|
+> | `migration_guide` | 16 | **0.64** | **0.73** |
+> | `breakages` | 34 | 0.43 | 0.41 |
+>
+> **0.64 is higher than the 0.57 `D60` measured on the probe questions** — the subset added to
+> be *realistic* is leakier than the one that was quarantined for leaking.
+> **Why it happened, and it is not an error in the harvesting.** `D60` reasoned about the 19
+> probe questions, which were written from `BREAKAGES.md`'s keys and carry the corpus's
+> vocabulary. The 34 `breakages` items in the finished set are seeded from the same 23 entries
+> but **written in developer phrasing** — *"my old query.from_self() call blew up after
+> upgrading, whats the new way"*. **Phrasing leaks, not provenance.** `D60`'s own strongest
+> evidence already said so: `c01542` at **rank 1** in tidy phrasing and **absent from the top 20**
+> in developer phrasing. The label was attached to the wrong axis.
+> **What this changes in practice.** The headline **recall@5 = 0.51** averages a leaky subset
+> with a realistic one. **0.41 is the number to quote** for a developer typing an error message,
+> and the 32-point gap between the two halves is larger than anything Phase 3 is expected to buy.
+> Quoting 0.51 unqualified would overstate the shipped system.
+> **Asked as** — *"Which of your eval questions are too easy, and how do you know?"* — answered
+> with the overlap table, and with the admission that the first answer to it was wrong.
 
 ### D62 — `P2-e`: refusal accuracy stays in Phase 2, reported separately from retrieval
 

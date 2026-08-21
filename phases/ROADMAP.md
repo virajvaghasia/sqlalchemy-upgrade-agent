@@ -343,12 +343,40 @@ Now you fix it — **one change at a time, measuring after each.**
 Each step produces a before/after number. Together they become **the metrics table**, the
 single highest-value object in the whole repo:
 
-| Setup | recall@k | MRR |
-|---|---|---|
-| Meaning-search only (Phase 1 baseline) | ? | ? |
-| \+ hybrid search | ? | ? |
-| \+ reranker | ? | ? |
-| \+ better chunking | ? | ? |
+| Setup | recall@5 | recall@20 | MRR |
+|---|---|---|---|
+| **Meaning-search only (Phase 1 baseline)** | **0.51** ±0.131 | 0.81 | **0.434** |
+| \+ hybrid search | ? | ? | ? |
+| \+ reranker | ? | ? | ? |
+| \+ better chunking | ? | ? | ? |
+
+**The baseline row is measured, not planned** — `uv run python -m rag.score` over the 50
+hand-verified items of `deliverables/golden.json`, 2026-08-20. The rows saved to
+[`../deliverables/baseline-phase1.json`](../deliverables/baseline-phase1.json) are what
+`--baseline` compares against, so every later row is a **paired** comparison rather than two
+percentages (`D61`).
+
+**Read the headline with `D63` in hand.** `0.51` averages two subsets that behave very
+differently, and the gap between them is larger than anything Phase 3 is expected to buy:
+
+| provenance | n | median overlap with top-1 | recall@5 |
+|---|---|---|---|
+| `migration_guide` | 16 | 0.64 | **0.73** |
+| `breakages` | 34 | 0.43 | **0.41** |
+
+**0.41 is the number that describes the shipped system** for somebody typing an error message,
+and `0.73` is what a question phrased like the documentation gets. Quoting `0.51` unqualified
+overstates it.
+
+**Three other numbers from the same run, because they name the Phase 3 levers:**
+
+- **9 of 47 answerable items are not in the top 20 at all.** Not ranked low — absent. Reranking
+  cannot reach them; only recall-side work (hybrid search, chunking) can.
+- **20 slots of the top 5 are lost to duplicate chunks** across the 50 items — a cross-version
+  twin occupying a second slot (`D58`). Dedup at retrieval time is the cheapest lever here and
+  touches no model.
+- **Median rank when found is 2.5**, so when search works it works well. The failure is binary
+  rather than gradual, which is why the flipped-item list matters more than the average.
 
 This table is your proof that every architectural choice was **earned, not cargo-culted**.
 It only exists because you built the dumb version first.

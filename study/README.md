@@ -78,7 +78,7 @@ human verdicts. Plan: [`../phases/PHASE-1.md`](../phases/PHASE-1.md).
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D62`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D63`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
 
 ### Phases 2–6
 
