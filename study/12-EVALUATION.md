@@ -516,6 +516,132 @@ can a refusal count** — deciding it means reading six answers against real 2.0
 exactly the judgement `D06` reserves for a human and exactly what Phase 4 exists to grade. It is
 recorded here as an open cell rather than quietly averaged into a pass.
 
+### R4.9 The three questions with no answer — and what "unanswerable" does not mean
+
+Three of the 50 golden items are marked `answerable: false`. The word invites a wrong reading, so
+start with what it is **not**.
+
+**It does not mean the question is unanswerable.** All three have real, known, verified answers.
+They are in `deliverables/BREAKAGES.md`, they were measured against real SQLAlchemy 2.0.51 in
+Phase 0, and any of them could be answered in one line by somebody who knows the library:
+
+| item | the question | the answer, and where this repo verified it |
+|---|---|---|
+| `g001` | `engine.has_table()` no longer exists, what replaces it? | `inspect(engine).has_table("issues")` — `BREAKAGES.md` #6, marked `fix OK` on 2.0.51 |
+| `g010` | `from sqlalchemy.orm import relation` fails — what replaces `orm.relation`? | `relationship()` — `BREAKAGES.md` #10, "old nickname deleted" |
+| `g023` | `Query.with_labels()` disappeared, what replaces it? | **not recorded here.** `with_labels` is not one of `BREAKAGES.md`'s 23 entries, so this repo has never run it against 2.0.51 |
+
+**The third row is deliberately blank, and the blank is the point.** `g001` and `g010` have
+answers this project *measured*; `g023` has an answer that exists in SQLAlchemy and that nothing
+in this repo has verified. Writing one in from memory would be the exact move `D03` exists to
+forbid — ground truth here is measured, not recalled. It changes nothing about the item's status:
+`with_labels` is in **0 of 3284 chunks** either way, so the system must refuse either way.
+
+**It does not mean something broke, either.** Nothing failed here. No bug, no bad chunk, no
+retrieval mistake.
+
+`answerable: false` means exactly one thing: **the text that would answer it is not in this
+corpus**, so no amount of search can produce it. The answer exists in the world; it does not exist
+on the shelf the system is allowed to read.
+
+#### The check is a `grep`, and it is decisive
+
+This is the rare claim that needs no ranking, no embedding and no model. Either the string is in
+the 3284 chunks or it is not:
+
+```
+# summary of: counted over corpus/chunks.jsonl with rag/probe.py's whole-symbol
+#   matcher. ENV in check_runnable — chunks.jsonl is generated and gitignored (D11).
+has_table        0 of 3284 chunks
+with_labels      0 of 3284 chunks
+orm.relation     0 of 3284 chunks
+
+  control, to prove the counter works:
+from_self        4 of 3284
+backref         80 of 3284
+```
+
+**Zero is a different kind of fact from "ranked low".** `backref` sits at rank 6 — that is a
+retrieval failure, and `DEFAULT_K = 5` is the lever (§R4.3). `has_table` is at no rank at all,
+because there is no chunk to rank. **Phase 3 can move the first and cannot touch the second.**
+That distinction is `D45`, and it is the reason the count is computed rather than eyeballed.
+
+#### So what went wrong? Nothing — and this was chosen on purpose
+
+The absence traces to one decision, `D07`: the corpus is the **narrative** documentation from
+SQLAlchemy's own git tags — `orm/`, `core/`, the tutorial, the FAQ, the error index, the glossary,
+and the 2.0 migration guide. 270 files.
+
+**The API reference is not in it, and it was never excluded — it does not exist as a file.**
+SQLAlchemy generates the API reference from Python **docstrings** when Sphinx builds the site. It
+has no `.rst` source to fetch. So `inspect(engine).has_table()` was never a candidate to retrieve;
+it was never on the shelf to begin with.
+
+That is worth saying carefully, because "we left out the API docs" and "the API docs are not
+files" sound alike and are not:
+
+```
+DELIBERATE EXCLUSION            e.g. BREAKAGES.md (D09)
+  the file exists
+  we chose not to index it
+  reversible: index it tomorrow and the answer appears
+
+STRUCTURAL ABSENCE              the API reference (D07, D50)
+  there is no file
+  Sphinx builds it from docstrings at site-build time
+  NOT reversible by re-indexing — you would have to add a
+  different KIND of source
+```
+
+`g010` and `g023` are the same shape arriving from a different direction. The narrative docs are
+written in the *current* vocabulary: 1.4 and 2.0 prose both say `relationship()`, and neither
+stops to mention that it used to be spelled `relation`. The rename is old enough that the
+narrative simply moved on. Nothing documents the thing the stuck developer typed.
+
+#### `g010` is the one that nearly lied, and it is worth watching
+
+Grep naively for `relation` and the corpus looks full of it:
+
+```
+relation, naive substring                     794 chunks   "answerable!"
+relation, not followed by 'ship'                6 chunks
+orm.relation / relation(                        0 chunks   the truth
+```
+
+**794 of those hits are the word `relationship`.** The remaining six are the English word — *"in
+relation to your particular usage"*, *"the concept of a relation in relational algebra"* — and
+they come in three cross-version pairs (`c00074`/`c01704`, `c00220`/`c01856`, `c00566`/`c02140`),
+which is the duplicate structure `D58` describes.
+
+**This exact bug already cost this repo a verdict.** In Phase 1, `rag/probe.py` matched symbols by
+substring, so `relation` counted inside every `relationship`: **798 recorded, 21 true, 0
+documenting `orm.relation()`**. It flipped Q6's verdict, and it silenced `symbol_missing` on
+precisely the question that signal existed for — a signal can never fire for a symbol that is a
+prefix of a common word. The fix is `probe.py`'s `_contains()`: a symbol ending in an identifier
+character must not be followed by another one.
+
+**So "is it in the corpus?" is not a `grep` for a substring.** It is a grep for a *whole symbol*,
+and the difference between those two is 794 and 0.
+
+#### Why keep questions the system cannot answer
+
+Because they are the only items that measure whether it **says so**.
+
+At the retrieval level an unanswerable item scores `recall = 0` by construction — the chunk does
+not exist, so the zero is arithmetic, not evidence. It tells you nothing about the system. The
+only thing these three can test is generation: does it decline, or does it invent a plausible API
+signature? That is `D62`, and it is why refusal accuracy is printed apart from recall.
+
+**The measured result: 3 of 3 refused, 0 fabricated.** Asked about `has_table`, the system says
+the sources do not answer it and names what it looked for — rather than confidently emitting
+`engine.has_table()`'s replacement from memory, which is the failure a RAG system is supposed to
+prevent and the one `D43` measured the prompt into preventing.
+
+**This is the honest ceiling of the project, stated as a number.** Not "our system sometimes does
+not know things" — *three named questions, each provably absent from all 3284 chunks, each
+correctly declined.* Knowing which questions you cannot answer, and proving your system knows it
+too, is a stronger result than a higher recall figure.
+
 ---
 
 ## Vocabulary from this sitting
