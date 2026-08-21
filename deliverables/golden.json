@@ -16,7 +16,7 @@
     "version_sensitive (optional, true when the VERSION is part of the right answer —",
     "those items are scored version-strict, D58), verified_by, verified_on.",
     "",
-    "Target is 50 items (D61). Everything below is a DRAFT for review."
+    "Target is 50 items (D61). Verified items have verified_by=human; everything else is a DRAFT for review."
   ],
   "items": [
     {
@@ -24,29 +24,614 @@
       "question": "engine.has_table() no longer exists, what is the replacement?",
       "provenance": "breakages",
       "answerable": false,
-      "answer_note": "CANDIDATE — the corpus ceiling. `has_table` appears in ZERO of the 3284 chunks: it is documented only in the API reference, which Sphinx generates from docstrings and which is absent from the .rst source (D07, D50). Correct behaviour is to decline. Check with: grep -c has_table corpus/chunks.jsonl",
-      "verified_by": null,
-      "verified_on": null
+      "answer_note": "Verified unanswerable from this corpus. `grep -c has_table corpus/chunks.jsonl` returns 0 — the string is in none of the 3284 chunks. Real 2.0 fix is inspect(engine).has_table(...), but that lives in the API reference (Sphinx from docstrings), which was never in the .rst tree we fetched (D07, D50, D45 ceiling). Correct system behaviour is to refuse. Viraj agreed 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
     },
     {
       "id": "g002",
       "question": "my old query.from_self() call blew up after upgrading, whats the new way",
       "provenance": "breakages",
       "answerable": true,
-      "answer_chunks": [],
-      "answer_note": "CANDIDATE — developer phrasing of probe question 1. Answer chunks NOT yet chosen; retrieval returns a different top-1 than the tidy phrasing did, which is the point of including it.",
-      "verified_by": null,
-      "verified_on": null
+      "answer_chunks": [
+        "c01598",
+        "c01599"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +1939 (c01598) and the same section continued in c01599. Section \"Selecting from the query itself as a subquery, e.g. from_self()\" shows from_self removed and the aliased(Entity, subquery) replacement in 1.x and 2.0 style. Matches BREAKAGES #12. Viraj opened the .rst and approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
     },
     {
       "id": "g003",
       "question": "cant list tables anymore, engine.table_names() attribute error",
       "provenance": "breakages",
       "answerable": true,
-      "answer_chunks": [],
-      "answer_note": "CANDIDATE — developer phrasing of probe question 3. In Phase 1 the answer ranked 23 of 3284 with the top-5 scoring +0.001 over noise, so this item is the one that should move when hybrid search lands.",
-      "verified_by": null,
-      "verified_on": null
+      "answer_chunks": [
+        "c01934",
+        "c00290"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/core/reflection.rst +354 (c01934) and the 1.4 twin c00290 (+351). Inspector example shows inspect(engine).get_table_names() — the replacement for engine.table_names() (BREAKAGES #5). Chunk shows the fix, not the removal wording. Viraj opened the .rst and approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g004",
+      "question": "AttributeError engine.execute is gone after upgrade, how do I run SQL now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568",
+        "c01573"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +707 (c01567), +732 (c01568), +897 (c01573). engine.execute connectionless removed; use connection.execute / Session.execute; bare strings need text(). BREAKAGES #1. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g005",
+      "question": "connection.execute(\"select 1\") blows up ObjectNotExecutableError what do I wrap it with",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01573"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +897 (c01573). Bare string to connection.execute not supported; wrap with text() or use exec_driver_sql(). BREAKAGES #3. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g006",
+      "question": "session.execute with a raw SQL string raises ArgumentError after 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01573",
+        "c01589"
+      ],
+      "answer_note": "Verified against migration_20.rst +897 (c01573) and +1609 (c01589). Bare string execute out; Session path uses text() via from_statement / statement objects, e.g. select(User).from_statement(text(...)).scalars(). BREAKAGES #4. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g007",
+      "question": "MetaData(bind=engine) TypeError, how do I create_all now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against migration_20.rst +707 (c01567) and +732 (c01568). MetaData(bind=engine) removed; MetaData() then create_all(engine) / reflect(engine). BREAKAGES #7. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g008",
+      "question": "select([User.id, User.name]) list form broke, whats the 2.0 calling style",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against migration_20.rst +1048 (c01577) and +1079 (c01578). select([...]) list form out; pass columns positionally: select(x, y). BREAKAGES #8. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g009",
+      "question": "case([(cond, val)]) ArgumentError after upgrade, how should case be called",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against migration_20.rst +1048 (c01577) and +1079 (c01578). case([(cond, val), ...]) list form out; pass WHEN pairs positionally. BREAKAGES #9. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g010",
+      "question": "from sqlalchemy.orm import relation fails AttributeError what replaces orm.relation",
+      "provenance": "breakages",
+      "answerable": false,
+      "answer_note": "Verified unanswerable. After stripping the word 'relationship', orm.relation / relation( appear in 0 of 3284 chunks (naive grep hits relationship false-positives). Real fix is relationship(); corpus cannot teach the rename. Ceiling like has_table. BREAKAGES #10. Viraj approved remaining drafts 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g011",
+      "question": "Query.join(..., aliased=True) unexpected keyword, how do I alias a join target now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01595",
+        "c01596"
+      ],
+      "answer_note": "Verified migration_20.rst +1825 (c01595) / continuation c01596. join(..., aliased=True) and from_joinpoint removed; use aliased() explicitly. BREAKAGES #13. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g012",
+      "question": "joinedload(\"addresses\") with a string path stopped working",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01593"
+      ],
+      "answer_note": "Verified migration_20.rst +1733 (c01593). Loader/join string paths removed; joinedload(User.addresses) not joinedload('addresses'). BREAKAGES #14. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g013",
+      "question": "subqueryload with a string attribute name AttributeError on 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01593"
+      ],
+      "answer_note": "Verified same section c01593 (+1733): string forms for loader options removed — covers subqueryload string paths with joinedload. BREAKAGES #15. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g014",
+      "question": "session.execute(select(User)) gives Row objects not User, do I need scalars",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "Verified migration_20.rst +1595 (c01588) and +1609 (c01589). Result.scalars() required to get ORM entities from session.execute(select(...)). BREAKAGES #16. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g015",
+      "question": "row['id'] TypeError on result rows after upgrade, how do I get mapping access",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01576"
+      ],
+      "answer_note": "Verified migration_20.rst +1011 (c01576). Row is a named tuple; mapping access via row._mapping / result.mappings() so row['col'] works on the mapping. BREAKAGES #17. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g016",
+      "question": "row.keys() AttributeError, where did keys go on result rows",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01576"
+      ],
+      "answer_note": "Verified migration_20.rst +1011 (c01576). Chunk documents row._mapping as the mapping view (where keys() lives as mapping.keys()); does not literally show .keys() — answer path is still _mapping. BREAKAGES #18. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g017",
+      "question": "joinedload collection query returns duplicate parents, do I need unique()",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01603",
+        "c01589"
+      ],
+      "answer_note": "Verified migration_20.rst +2102 (c01603) and examples in c01589. ORM rows not uniquified by default; joinedload collections need .unique(). BREAKAGES #19. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g018",
+      "question": "Session(autocommit=True) is gone, what replaces autocommit mode",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01608"
+      ],
+      "answer_note": "Verified migration_20.rst +2255 (c01608). Session(autocommit=True) removed; autobegin. BREAKAGES #20. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g019",
+      "question": "session.begin(subtransactions=True) removed, whats the replacement pattern",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01609"
+      ],
+      "answer_note": "Verified migration_20.rst +2306 (c01609). Session subtransaction / begin-when-already-begun pattern removed; migration shows a context-manager replacement. BREAKAGES #21. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g020",
+      "question": "cascade_backrefs feels broken, object on many-to-one side never gets inserted",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02230"
+      ],
+      "answer_note": "Verified corpus/raw/2.0.51/orm/cascades.rst +213 (c02230). cascade_backrefs removed in 2.0; many-to-one assignment no longer enrolls via backref cascade. BREAKAGES #23. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g021",
+      "question": "should I still use relationship(..., backref=...) or is back_populates required now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02179"
+      ],
+      "answer_note": "Verified corpus/raw/2.0.51/orm/backref.rst +3 (c02179). backref legacy; prefer back_populates with explicit relationship() on both sides. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g022",
+      "question": "engine.scalar(\"select 1\") attribute error after upgrading to 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01573"
+      ],
+      "answer_note": "Verified via same connectionless removal as engine.execute: c01567 (+707) and execute strictness c01573 (+897). engine.scalar connectionless gone; use connection/text path. BREAKAGES #2. Viraj approved 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g023",
+      "question": "Query.with_labels() disappeared after upgrading, what replaces it",
+      "provenance": "migration_guide",
+      "answerable": false,
+      "answer_note": "Verified unanswerable. `with_labels` in 0 of 3284 chunks. Ceiling #3 (with has_table, orm.relation). Correct behaviour is refuse. Viraj approved remaining drafts 2026-08-20.",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "query(User).get(1) warns LegacyAPIWarning, where did get move to",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01592"
+      ],
+      "answer_note": "Verified against c01592 (corpus/raw/2.0.51/changelog/migration_20.rst +1697). Query.get moves to Session.get. Open migration_20.rst +1697. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g024",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "do I still need future=True on create_engine when Im already on SQLAlchemy 2.0",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01555"
+      ],
+      "answer_note": "Verified against c01555 (corpus/raw/2.0.51/changelog/migration_20.rst +350). future flag on Engine is the 1.4 bridge; on 2.0 it's native. Open +350. version_sensitive: true Viraj approved remaining drafts 2026-08-20. version_sensitive.",
+      "version_sensitive": true,
+      "id": "g025",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "Session(future=True) what does that do for the 1.4 to 2.0 upgrade",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01556"
+      ],
+      "answer_note": "Verified against c01556 (corpus/raw/2.0.51/changelog/migration_20.rst +388). future flag on Session step five. Open +388. version_sensitive: true Viraj approved remaining drafts 2026-08-20. version_sensitive.",
+      "version_sensitive": true,
+      "id": "g026",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "how do I turn on RemovedIn20Warnings to find what will break",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01549"
+      ],
+      "answer_note": "Verified against c01549 (corpus/raw/2.0.51/changelog/migration_20.rst +196). Migration step two SQLALCHEMY_WARN_20. Open +196. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g027",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "connection.execution_options(isolation_level) vs library autocommit, did autocommit get removed",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01562"
+      ],
+      "answer_note": "Verified against c01562 (corpus/raw/2.0.51/changelog/migration_20.rst +558). library-level autocommit removed from Core and ORM. Open +558. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g028",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "insert().values() keyword constructor style for update/delete broke",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01580"
+      ],
+      "answer_note": "Verified against c01580 (corpus/raw/2.0.51/changelog/migration_20.rst +1133). DML no longer accept keyword constructor arguments. Open +1133. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g029",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "from sqlalchemy.ext.declarative import declarative_base is that still right in 2.0",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01581"
+      ],
+      "answer_note": "Verified against c01581 (corpus/raw/2.0.51/changelog/migration_20.rst +1194). Declarative becomes first class / moves packages. Open +1194. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g030",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "sqlalchemy.orm.mapper() classical mapping what is the 2.0 name",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01582"
+      ],
+      "answer_note": "Verified against c01582 (corpus/raw/2.0.51/changelog/migration_20.rst +1230). mapper renamed into Declarative core. Open +1230. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g031",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "query.join(['orders','items']) list chaining of join paths removed?",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01594"
+      ],
+      "answer_note": "Verified against c01594 (corpus/raw/2.0.51/changelog/migration_20.rst +1787). chaining joins via lists of attributes removed. Open +1787. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g032",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "I want DISTINCT on User but also order by a column not in the entity select",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01597"
+      ],
+      "answer_note": "Verified against c01597 (corpus/raw/2.0.51/changelog/migration_20.rst +1883). DISTINCT with additional columns. Open +1883. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g033",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "Query.select_entity_from removed how do I select an entity from a subquery",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01601",
+        "c01602"
+      ],
+      "answer_note": "Verified against c01601 (corpus/raw/2.0.51/changelog/migration_20.rst +2045), c01602 (corpus/raw/2.0.51/changelog/migration_20.rst +2083). select_entity_from; related to from_self/aliased patterns. Open +2045. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g034",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "baked queries extension still needed in 2.0 or is caching built in now",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01612"
+      ],
+      "answer_note": "Verified against c01612 (corpus/raw/2.0.51/changelog/migration_20.rst +2402). Baked Query superseded by built-in caching. Open +2402. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g035",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "TypeError MetaData got unexpected keyword argument bind",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). rephrase of g007 / BREAKAGES #7. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g036",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "ObjectNotExecutableError when I pass a string to conn.execute",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01573"
+      ],
+      "answer_note": "Verified against c01573 (corpus/raw/2.0.51/changelog/migration_20.rst +897). rephrase of g005 / BREAKAGES #3. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g037",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "how do I replace session.query(User).all() with 2.0 style select",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "Verified against c01588 (corpus/raw/2.0.51/changelog/migration_20.rst +1595), c01589 (corpus/raw/2.0.51/changelog/migration_20.rst +1609). ORM Query unified with Core select + scalars. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g038",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "after execute(select(User)) I get tuples not User instances",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "Verified against c01588 (corpus/raw/2.0.51/changelog/migration_20.rst +1595), c01589 (corpus/raw/2.0.51/changelog/migration_20.rst +1609). rephrase of g014 scalars. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g039",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "duplicate User rows when using joinedload on a collection relationship",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01603"
+      ],
+      "answer_note": "Verified against c01603 (corpus/raw/2.0.51/changelog/migration_20.rst +2102). rephrase of g017 unique(). Viraj approved remaining drafts 2026-08-20.",
+      "id": "g040",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "backref= in relationship is deprecated what should I use instead",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02179"
+      ],
+      "answer_note": "Verified against c02179 (corpus/raw/2.0.51/orm/backref.rst +3). rephrase of g021. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g041",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "I assigned comment.issue = issue and the Comment never got INSERTed silent bug",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02230"
+      ],
+      "answer_note": "Verified against c02230 (corpus/raw/2.0.51/orm/cascades.rst +213). rephrase of g020 cascade_backrefs silent failure. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g042",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "select_from and order_by as keyword args to select() no longer work",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against c01577 (corpus/raw/2.0.51/changelog/migration_20.rst +1048), c01578 (corpus/raw/2.0.51/changelog/migration_20.rst +1079). generative select; related to g008. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g043",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "autoload=True on Table without autoload_with what is the 2.0 way",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). same bound-metadata section; autoload_with=engine. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g044",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "t.select().execute() connectionless style removed how do I run it",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). BREAKAGES-adjacent connectionless Table.execute. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g045",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "Session no longer has autocommit=True, how do transactions start now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01608"
+      ],
+      "answer_note": "Verified against c01608 (corpus/raw/2.0.51/changelog/migration_20.rst +2255). rephrase of g018 autobegin. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g046",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "nested begin on Session while a transaction is open, subtransactions gone",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01609"
+      ],
+      "answer_note": "Verified against c01609 (corpus/raw/2.0.51/changelog/migration_20.rst +2306). rephrase of g019. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g047",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "joinedload with a string relationship name TypeError or removed in 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01593"
+      ],
+      "answer_note": "Verified against c01593 (corpus/raw/2.0.51/changelog/migration_20.rst +1733). rephrase of g012. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g048",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "case statement WHEN list constructor deprecated positional form",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against c01577 (corpus/raw/2.0.51/changelog/migration_20.rst +1048), c01578 (corpus/raw/2.0.51/changelog/migration_20.rst +1079). rephrase of g009. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g049",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "engine.execute select gone AttributeError use connection instead",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01573"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01573 (corpus/raw/2.0.51/changelog/migration_20.rst +897). rephrase of g004. Viraj approved remaining drafts 2026-08-20.",
+      "id": "g050",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
     }
   ]
 }
