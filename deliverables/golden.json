@@ -1,1337 +1,1309 @@
 {
- "_README": [
-  "The Phase 2 golden set \u2014 the ruler every later number is measured with.",
-  "",
-  "D06: hand-verified, NEVER auto-generated. AI may draft a question and propose",
-  "candidate answer chunks; only a human sets verified_by to 'human'. rag/score.py",
-  "refuses to score any item that is not human-verified, and says so loudly.",
-  "",
-  "To verify one item: read the question, open the chunk it names (rag/chunk.py",
-  "carries source_path + char_start/char_end so the .rst opens at the exact spot),",
-  "confirm the answer is genuinely there, write one sentence in answer_note saying",
-  "what convinced you, then set verified_by to 'human' and verified_on to the date.",
-  "",
-  "Fields: id, question, provenance (github|stackoverflow|migration_guide|breakages),",
-  "answerable, answer_chunks (list, omit when unanswerable), answer_note,",
-  "version_sensitive (optional, true when the VERSION is part of the right answer \u2014",
-  "those items are scored version-strict, D58), verified_by, verified_on.",
-  "",
-  "Target is 50 items (D61). Verified items have verified_by=human; everything else is a DRAFT for review."
- ],
- "items": [
-  {
-   "id": "g001",
-   "question": "engine.has_table() no longer exists, what is the replacement?",
-   "provenance": "breakages",
-   "answerable": false,
-   "answer_note": "Verified unanswerable from this corpus. `grep -c has_table corpus/chunks.jsonl` returns 0 \u2014 the string is in none of the 3284 chunks. Real 2.0 fix is inspect(engine).has_table(...), but that lives in the API reference (Sphinx from docstrings), which was never in the .rst tree we fetched (D07, D50, D45 ceiling). Correct system behaviour is to refuse. Viraj agreed 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g002",
-   "question": "my old query.from_self() call blew up after upgrading, whats the new way",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01598",
-    "c01599"
-   ],
-   "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +1939 (c01598) and the same section continued in c01599. Section \"Selecting from the query itself as a subquery, e.g. from_self()\" shows from_self removed and the aliased(Entity, subquery) replacement in 1.x and 2.0 style. Matches BREAKAGES #12. Viraj opened the .rst and approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g003",
-   "question": "cant list tables anymore, engine.table_names() attribute error",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01934",
-    "c00290"
-   ],
-   "answer_note": "Verified against corpus/raw/2.0.51/core/reflection.rst +354 (c01934) and the 1.4 twin c00290 (+351). Inspector example shows inspect(engine).get_table_names() \u2014 the replacement for engine.table_names() (BREAKAGES #5). Chunk shows the fix, not the removal wording. Viraj opened the .rst and approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g004",
-   "question": "AttributeError engine.execute is gone after upgrade, how do I run SQL now",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01568",
-    "c01573"
-   ],
-   "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +707 (c01567), +732 (c01568), +897 (c01573). engine.execute connectionless removed; use connection.execute / Session.execute; bare strings need text(). BREAKAGES #1. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g005",
-   "question": "connection.execute(\"select 1\") blows up ObjectNotExecutableError what do I wrap it with",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01573"
-   ],
-   "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +897 (c01573). Bare string to connection.execute not supported; wrap with text() or use exec_driver_sql(). BREAKAGES #3. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g006",
-   "question": "session.execute with a raw SQL string raises ArgumentError after 2.0",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01573",
-    "c01589"
-   ],
-   "answer_note": "Verified against migration_20.rst +897 (c01573) and +1609 (c01589). Bare string execute out; Session path uses text() via from_statement / statement objects, e.g. select(User).from_statement(text(...)).scalars(). BREAKAGES #4. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g007",
-   "question": "MetaData(bind=engine) TypeError, how do I create_all now",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01568"
-   ],
-   "answer_note": "Verified against migration_20.rst +707 (c01567) and +732 (c01568). MetaData(bind=engine) removed; MetaData() then create_all(engine) / reflect(engine). BREAKAGES #7. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g008",
-   "question": "select([User.id, User.name]) list form broke, whats the 2.0 calling style",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01577",
-    "c01578"
-   ],
-   "answer_note": "Verified against migration_20.rst +1048 (c01577) and +1079 (c01578). select([...]) list form out; pass columns positionally: select(x, y). BREAKAGES #8. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g009",
-   "question": "case([(cond, val)]) ArgumentError after upgrade, how should case be called",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01577",
-    "c01578"
-   ],
-   "answer_note": "Verified against migration_20.rst +1048 (c01577) and +1079 (c01578). case([(cond, val), ...]) list form out; pass WHEN pairs positionally. BREAKAGES #9. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g010",
-   "question": "from sqlalchemy.orm import relation fails AttributeError what replaces orm.relation",
-   "provenance": "breakages",
-   "answerable": false,
-   "answer_note": "Verified unanswerable. After stripping the word 'relationship', orm.relation / relation( appear in 0 of 3284 chunks (naive grep hits relationship false-positives). Real fix is relationship(); corpus cannot teach the rename. Ceiling like has_table. BREAKAGES #10. Viraj approved remaining drafts 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g011",
-   "question": "Query.join(..., aliased=True) unexpected keyword, how do I alias a join target now",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01595",
-    "c01596"
-   ],
-   "answer_note": "Verified migration_20.rst +1825 (c01595) / continuation c01596. join(..., aliased=True) and from_joinpoint removed; use aliased() explicitly. BREAKAGES #13. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g012",
-   "question": "joinedload(\"addresses\") with a string path stopped working",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01593"
-   ],
-   "answer_note": "Verified migration_20.rst +1733 (c01593). Loader/join string paths removed; joinedload(User.addresses) not joinedload('addresses'). BREAKAGES #14. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g013",
-   "question": "subqueryload with a string attribute name AttributeError on 2.0",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01593"
-   ],
-   "answer_note": "Verified same section c01593 (+1733): string forms for loader options removed \u2014 covers subqueryload string paths with joinedload. BREAKAGES #15. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g014",
-   "question": "session.execute(select(User)) gives Row objects not User, do I need scalars",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01588",
-    "c01589"
-   ],
-   "answer_note": "Verified migration_20.rst +1595 (c01588) and +1609 (c01589). Result.scalars() required to get ORM entities from session.execute(select(...)). BREAKAGES #16. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g015",
-   "question": "row['id'] TypeError on result rows after upgrade, how do I get mapping access",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01576"
-   ],
-   "answer_note": "Verified migration_20.rst +1011 (c01576). Row is a named tuple; mapping access via row._mapping / result.mappings() so row['col'] works on the mapping. BREAKAGES #17. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g016",
-   "question": "row.keys() AttributeError, where did keys go on result rows",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01576"
-   ],
-   "answer_note": "Verified migration_20.rst +1011 (c01576). Chunk documents row._mapping as the mapping view (where keys() lives as mapping.keys()); does not literally show .keys() \u2014 answer path is still _mapping. BREAKAGES #18. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g017",
-   "question": "joinedload collection query returns duplicate parents, do I need unique()",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01603",
-    "c01589"
-   ],
-   "answer_note": "Verified migration_20.rst +2102 (c01603) and examples in c01589. ORM rows not uniquified by default; joinedload collections need .unique(). BREAKAGES #19. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g018",
-   "question": "Session(autocommit=True) is gone, what replaces autocommit mode",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01608"
-   ],
-   "answer_note": "Verified migration_20.rst +2255 (c01608). Session(autocommit=True) removed; autobegin. BREAKAGES #20. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g019",
-   "question": "session.begin(subtransactions=True) removed, whats the replacement pattern",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01609"
-   ],
-   "answer_note": "Verified migration_20.rst +2306 (c01609). Session subtransaction / begin-when-already-begun pattern removed; migration shows a context-manager replacement. BREAKAGES #21. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g020",
-   "question": "cascade_backrefs feels broken, object on many-to-one side never gets inserted",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c02230"
-   ],
-   "answer_note": "Verified corpus/raw/2.0.51/orm/cascades.rst +213 (c02230). cascade_backrefs removed in 2.0; many-to-one assignment no longer enrolls via backref cascade. BREAKAGES #23. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g021",
-   "question": "should I still use relationship(..., backref=...) or is back_populates required now",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c02179"
-   ],
-   "answer_note": "Verified corpus/raw/2.0.51/orm/backref.rst +3 (c02179). backref legacy; prefer back_populates with explicit relationship() on both sides. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g022",
-   "question": "engine.scalar(\"select 1\") attribute error after upgrading to 2.0",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01573"
-   ],
-   "answer_note": "Verified via same connectionless removal as engine.execute: c01567 (+707) and execute strictness c01573 (+897). engine.scalar connectionless gone; use connection/text path. BREAKAGES #2. Viraj approved 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g023",
-   "question": "Query.with_labels() disappeared after upgrading, what replaces it",
-   "provenance": "migration_guide",
-   "answerable": false,
-   "answer_note": "Verified unanswerable. `with_labels` in 0 of 3284 chunks. Ceiling #3 (with has_table, orm.relation). Correct behaviour is refuse. Viraj approved remaining drafts 2026-08-20.",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "query(User).get(1) warns LegacyAPIWarning, where did get move to",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01592"
-   ],
-   "answer_note": "Verified against c01592 (corpus/raw/2.0.51/changelog/migration_20.rst +1697). Query.get moves to Session.get. Open migration_20.rst +1697. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g024",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "do I still need future=True on create_engine when Im already on SQLAlchemy 2.0",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01555"
-   ],
-   "answer_note": "Verified against c01555 (corpus/raw/2.0.51/changelog/migration_20.rst +350). future flag on Engine is the 1.4 bridge; on 2.0 it's native. Open +350. version_sensitive: true Viraj approved remaining drafts 2026-08-20. version_sensitive.",
-   "version_sensitive": true,
-   "id": "g025",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "Session(future=True) what does that do for the 1.4 to 2.0 upgrade",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01556"
-   ],
-   "answer_note": "Verified against c01556 (corpus/raw/2.0.51/changelog/migration_20.rst +388). future flag on Session step five. Open +388. version_sensitive: true Viraj approved remaining drafts 2026-08-20. version_sensitive.",
-   "version_sensitive": true,
-   "id": "g026",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "how do I turn on RemovedIn20Warnings to find what will break",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01549"
-   ],
-   "answer_note": "Verified against c01549 (corpus/raw/2.0.51/changelog/migration_20.rst +196). Migration step two SQLALCHEMY_WARN_20. Open +196. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g027",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "connection.execution_options(isolation_level) vs library autocommit, did autocommit get removed",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01562"
-   ],
-   "answer_note": "Verified against c01562 (corpus/raw/2.0.51/changelog/migration_20.rst +558). library-level autocommit removed from Core and ORM. Open +558. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g028",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "insert().values() keyword constructor style for update/delete broke",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01580"
-   ],
-   "answer_note": "Verified against c01580 (corpus/raw/2.0.51/changelog/migration_20.rst +1133). DML no longer accept keyword constructor arguments. Open +1133. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g029",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "from sqlalchemy.ext.declarative import declarative_base is that still right in 2.0",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01581"
-   ],
-   "answer_note": "Verified against c01581 (corpus/raw/2.0.51/changelog/migration_20.rst +1194). Declarative becomes first class / moves packages. Open +1194. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g030",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "sqlalchemy.orm.mapper() classical mapping what is the 2.0 name",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01582"
-   ],
-   "answer_note": "Verified against c01582 (corpus/raw/2.0.51/changelog/migration_20.rst +1230). mapper renamed into Declarative core. Open +1230. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g031",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "query.join(['orders','items']) list chaining of join paths removed?",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01594"
-   ],
-   "answer_note": "Verified against c01594 (corpus/raw/2.0.51/changelog/migration_20.rst +1787). chaining joins via lists of attributes removed. Open +1787. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g032",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "I want DISTINCT on User but also order by a column not in the entity select",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01597"
-   ],
-   "answer_note": "Verified against c01597 (corpus/raw/2.0.51/changelog/migration_20.rst +1883). DISTINCT with additional columns. Open +1883. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g033",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "Query.select_entity_from removed how do I select an entity from a subquery",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01601",
-    "c01602"
-   ],
-   "answer_note": "Verified against c01601 (corpus/raw/2.0.51/changelog/migration_20.rst +2045), c01602 (corpus/raw/2.0.51/changelog/migration_20.rst +2083). select_entity_from; related to from_self/aliased patterns. Open +2045. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g034",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "baked queries extension still needed in 2.0 or is caching built in now",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01612"
-   ],
-   "answer_note": "Verified against c01612 (corpus/raw/2.0.51/changelog/migration_20.rst +2402). Baked Query superseded by built-in caching. Open +2402. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g035",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "TypeError MetaData got unexpected keyword argument bind",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01568"
-   ],
-   "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). rephrase of g007 / BREAKAGES #7. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g036",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "ObjectNotExecutableError when I pass a string to conn.execute",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01573"
-   ],
-   "answer_note": "Verified against c01573 (corpus/raw/2.0.51/changelog/migration_20.rst +897). rephrase of g005 / BREAKAGES #3. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g037",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "how do I replace session.query(User).all() with 2.0 style select",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01588",
-    "c01589"
-   ],
-   "answer_note": "Verified against c01588 (corpus/raw/2.0.51/changelog/migration_20.rst +1595), c01589 (corpus/raw/2.0.51/changelog/migration_20.rst +1609). ORM Query unified with Core select + scalars. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g038",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "after execute(select(User)) I get tuples not User instances",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01588",
-    "c01589"
-   ],
-   "answer_note": "Verified against c01588 (corpus/raw/2.0.51/changelog/migration_20.rst +1595), c01589 (corpus/raw/2.0.51/changelog/migration_20.rst +1609). rephrase of g014 scalars. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g039",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "duplicate User rows when using joinedload on a collection relationship",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01603"
-   ],
-   "answer_note": "Verified against c01603 (corpus/raw/2.0.51/changelog/migration_20.rst +2102). rephrase of g017 unique(). Viraj approved remaining drafts 2026-08-20.",
-   "id": "g040",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "backref= in relationship is deprecated what should I use instead",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c02179"
-   ],
-   "answer_note": "Verified against c02179 (corpus/raw/2.0.51/orm/backref.rst +3). rephrase of g021. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g041",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "I assigned comment.issue = issue and the Comment never got INSERTed silent bug",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c02230"
-   ],
-   "answer_note": "Verified against c02230 (corpus/raw/2.0.51/orm/cascades.rst +213). rephrase of g020 cascade_backrefs silent failure. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g042",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "select_from and order_by as keyword args to select() no longer work",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01577",
-    "c01578"
-   ],
-   "answer_note": "Verified against c01577 (corpus/raw/2.0.51/changelog/migration_20.rst +1048), c01578 (corpus/raw/2.0.51/changelog/migration_20.rst +1079). generative select; related to g008. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g043",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "autoload=True on Table without autoload_with what is the 2.0 way",
-   "provenance": "migration_guide",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01568"
-   ],
-   "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). same bound-metadata section; autoload_with=engine. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g044",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "t.select().execute() connectionless style removed how do I run it",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01568"
-   ],
-   "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). BREAKAGES-adjacent connectionless Table.execute. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g045",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "Session no longer has autocommit=True, how do transactions start now",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01608"
-   ],
-   "answer_note": "Verified against c01608 (corpus/raw/2.0.51/changelog/migration_20.rst +2255). rephrase of g018 autobegin. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g046",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "nested begin on Session while a transaction is open, subtransactions gone",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01609"
-   ],
-   "answer_note": "Verified against c01609 (corpus/raw/2.0.51/changelog/migration_20.rst +2306). rephrase of g019. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g047",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "joinedload with a string relationship name TypeError or removed in 2.0",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01593"
-   ],
-   "answer_note": "Verified against c01593 (corpus/raw/2.0.51/changelog/migration_20.rst +1733). rephrase of g012. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g048",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "case statement WHEN list constructor deprecated positional form",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01577",
-    "c01578"
-   ],
-   "answer_note": "Verified against c01577 (corpus/raw/2.0.51/changelog/migration_20.rst +1048), c01578 (corpus/raw/2.0.51/changelog/migration_20.rst +1079). rephrase of g009. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g049",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "question": "engine.execute select gone AttributeError use connection instead",
-   "provenance": "breakages",
-   "answerable": true,
-   "answer_chunks": [
-    "c01567",
-    "c01573"
-   ],
-   "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01573 (corpus/raw/2.0.51/changelog/migration_20.rst +897). rephrase of g004. Viraj approved remaining drafts 2026-08-20.",
-   "id": "g050",
-   "verified_by": "human",
-   "verified_on": "2026-08-20"
-  },
-  {
-   "id": "g051",
-   "question": "SQLAlchemy 1.4 (2.0) problem converting results from session.execute(statement).scalars().all() or session.execute(statement).all()",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/66974718/q-sqlalchemy-1-4-2-0-problem-converting-results-from-session-executestatemen",
-   "answerable": true,
-   "answer_chunks": [
-    "c02996",
-    "c01585"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 3 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02996(14.71), c01585(14.01), c01593(13.67), c01180(13.45), c01181(12.46). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g052",
-   "question": "Base = declarative_base(bind=engine) How do I migrate this statment to SQLAlchemy 2.0",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/77361878/base-declarative-basebind-engine-how-do-i-migrate-this-statment-to-sqlalchem",
-   "answerable": true,
-   "answer_chunks": [
-    "c00455",
-    "c02027"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00455(17.1), c02027(17.1), c00755(12.3), c00727(11.72), c00315(10.94). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g053",
-   "question": "SQLAlchemy 2.0 version of User.query.get(1) in Flask-SQLAlchemy?",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75365194/sqlalchemy-2-0-version-of-user-query-get1-in-flask-sqlalchemy",
-   "answerable": true,
-   "answer_chunks": [
-    "c00687",
-    "c02286"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 25 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00687(9.03), c02286(9.03), c00975(7.04), c01317(6.89), c00529(6.89). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g054",
-   "question": "Authentication failure with Flask-Migrate and SQLAlchemy 2.0",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75326974/authentication-failure-with-flask-migrate-and-sqlalchemy-2-0",
-   "answerable": true,
-   "answer_chunks": [
-    "c00187",
-    "c01821"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 4 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00187(11.88), c01821(11.84), c00687(9.03), c02286(9.03), c00466(8.59). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g055",
-   "question": "SQLAlchemy 2.0 migration: how to turn on warn_20",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/68078937/sqlalchemy-2-0-migration-how-to-turn-on-warn-20",
-   "answerable": true,
-   "answer_chunks": [
-    "c01549",
-    "c00454"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 3 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01549(7.95), c00454(7.28), c02026(7.28), c00220(6.93), c01856(6.93). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g056",
-   "question": "Query property for models in sqlalchemy 1.4-2.0",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/65890188/query-property-for-models-in-sqlalchemy-1-4-2-0",
-   "answerable": true,
-   "answer_chunks": [
-    "c01010",
-    "c02668"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01010(10.37), c02668(10.37), c02614(9.74), c00938(9.5), c00338(8.43). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g057",
-   "question": "Bound metadata RemovedIn20Warning in debug mode",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/64900043/bound-metadata-removedin20warning-in-debug-mode",
-   "answerable": true,
-   "answer_chunks": [
-    "c00129",
-    "c01764"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00129(11.51), c01764(11.42), c01552(10.86), c00260(10.4), c01901(10.4). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g058",
-   "question": "RemovedIn20Warning when inserting a record using engine.connect()",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75252359/removedin20warning-when-inserting-a-record-using-engine-connect",
-   "answerable": true,
-   "answer_chunks": [
-    "c01918",
-    "c01554"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01918(13.76), c01554(13.69), c00275(13.36), c01551(13.07), c01552(11.95). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g059",
-   "question": "SQLAlchemy 2.0 migration - Connection to Database",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/65729170/sqlalchemy-2-0-migration-connection-to-database",
-   "answerable": true,
-   "answer_chunks": [
-    "c00220",
-    "c01856"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00220(10.9), c01856(10.9), c01556(7.39), c01555(7.39), c00454(7.28). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g060",
-   "question": "What is the difference between mapped_column and Column in SQLAlchemy?",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76498857/what-is-the-difference-between-mapped-column-and-column-in-sqlalchemy",
-   "answerable": true,
-   "answer_chunks": [
-    "c02359",
-    "c02301"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 58 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02359(13.87), c02301(10.08), c02584(10.08), c02212(8.86), c02199(8.7). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g061",
-   "question": "SQLAlchemy 2.0 ORM Model DateTime Insertion",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75363733/sqlalchemy-2-0-orm-model-datetime-insertion",
-   "answerable": true,
-   "answer_chunks": [
-    "c02719",
-    "c00715"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 18 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02719(8.92), c00715(8.13), c02335(8.13), c02616(8.12), c02806(8.09). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g062",
-   "question": "How should I declare enums in SQLAlchemy using mapped_column (to enable type hinting)?",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76268799/how-should-i-declare-enums-in-sqlalchemy-using-mapped-column-to-enable-type-hin",
-   "answerable": true,
-   "answer_chunks": [
-    "c02419",
-    "c02408"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 13 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02419(13.16), c02408(12.49), c03235(10.82), c02318(10.24), c02970(9.36). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g063",
-   "question": "SQLAlchemy 2.0 ORM filter show wrong type in Pycharm",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76862713/sqlalchemy-2-0-orm-filter-show-wrong-type-in-pycharm",
-   "answerable": true,
-   "answer_chunks": [
-    "c02071",
-    "c00498"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 12 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02071(10.71), c00498(10.3), c00419(9.97), c01983(9.83), c01333(9.23). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g064",
-   "question": "Expected type 'Mapped[bool | None]', got 'bool' instead - IDE Warning transition to SQLAlchemy 2.0 Declarative style",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76148077/expected-type-mappedbool-none-got-bool-instead-ide-warning-transition",
-   "answerable": true,
-   "answer_chunks": [
-    "c02401",
-    "c02400"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 9 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02401(20.46), c02400(19.03), c03229(16.9), c02393(16.82), c02362(15.33). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g065",
-   "question": "Create table and view in the same migration in SQLAlchemy",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/77399029/create-table-and-view-in-the-same-migration-in-sqlalchemy",
-   "answerable": true,
-   "answer_chunks": [
-    "c00484",
-    "c02056"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 5 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00484(16.46), c02056(16.46), c00280(11.69), c01924(11.69), c00748(11.23). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g066",
-   "question": "Python SQLAlchemy PostgreSQL Deprecated API features",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75252652/python-sqlalchemy-postgresql-deprecated-api-features",
-   "answerable": true,
-   "answer_chunks": [
-    "c01543",
-    "c01563"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 4 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01543(13.44), c01563(11.26), c01541(11.04), c00582(11.03), c02157(11.03). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g067",
-   "question": "Setting SQLALCHEMY_SILENCE_UBER_WARNING to avoid deprecation warning does not work",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76307478/setting-sqlalchemy-silence-uber-warning-to-avoid-deprecation-warning-does-not-wo",
-   "answerable": true,
-   "answer_chunks": [
-    "c02405",
-    "c01577"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 3 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02405(15.11), c01577(12.41), c02303(11.44), c01549(10.32), c00451(10.06). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g068",
-   "question": "How to do nullable One-to-Many relationships in SQLAlchemy 2.0 and with type annotations?",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76845551/how-to-do-nullable-one-to-many-relationships-in-sqlalchemy-2-0-and-with-type-ann",
-   "answerable": true,
-   "answer_chunks": [
-    "c03235",
-    "c02382"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c03235(14.29), c02382(12.35), c02556(12.05), c03237(11.46), c00978(11.37). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g069",
-   "question": "Sqlalchemy mapped_column typing issues with pylance",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/79822014/sqlalchemy-mapped-column-typing-issues-with-pylance",
-   "answerable": true,
-   "answer_chunks": [
-    "c00828",
-    "c02523"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00828(13.69), c02523(13.43), c02396(11.1), c02609(10.86), c02254(10.85). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g070",
-   "question": "SQLAlchemy 2.0 session.execute() BULK INSERT respecting relationships",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75327410/sqlalchemy-2-0-session-execute-bulk-insert-respecting-relationships",
-   "answerable": true,
-   "answer_chunks": [
-    "c02821",
-    "c02734"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02821(15.85), c02734(15.83), c02792(15.21), c02808(14.84), c02801(14.74). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g071",
-   "question": "Using SQLAlchemy 2.0 to scope database transactions to pytest modules via Postgres",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/79748162/using-sqlalchemy-2-0-to-scope-database-transactions-to-pytest-modules-via-postgr",
-   "answerable": true,
-   "answer_chunks": [
-    "c01207",
-    "c03019"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01207(13.82), c03019(13.82), c00590(12.52), c02165(12.52), c01265(12.48). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g072",
-   "question": "Does Anyone Know how to do Typing using the SQLAlchemy 2.0 Select API?",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/76989318/does-anyone-know-how-to-do-typing-using-the-sqlalchemy-2-0-select-api",
-   "answerable": true,
-   "answer_chunks": [
-    "c01603",
-    "c00828"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01603(9.27), c00828(8.94), c02523(8.38), c02872(7.57), c01541(7.1). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g073",
-   "question": "Python: kedro viz SQLAlchemy DeprecationWarning",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/75109865/python-kedro-viz-sqlalchemy-deprecationwarning",
-   "answerable": true,
-   "answer_chunks": [
-    "c01550",
-    "c01549"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01550(12.08), c01549(8.51), c01551(4.14), c01548(3.5), c02017(3.21). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g074",
-   "question": "Mixing mapped and calculated columns in SQLAlchemy 2.0 ORM",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/77041133/mixing-mapped-and-calculated-columns-in-sqlalchemy-2-0-orm",
-   "answerable": true,
-   "answer_chunks": [
-    "c00734",
-    "c02357"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00734(13.73), c02357(12.98), c00737(10.47), c02619(9.35), c02761(7.82). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g075",
-   "question": "sqlalchemy 'relation does not exist' after flask migrate",
-   "provenance": "stackoverflow",
-   "source_url": "https://stackoverflow.com/questions/78481263/sqlalchemy-relation-does-not-exist-after-flask-migrate",
-   "answerable": true,
-   "answer_chunks": [
-    "c00220",
-    "c01856"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested stackoverflow, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00220(13.13), c01856(13.13), c00687(9.03), c02286(9.03), c00566(8.68). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g076",
-   "question": "Not Null constraint for migration to 2.0+",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11880",
-   "answerable": true,
-   "answer_chunks": [
-    "c02412",
-    "c03105"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02412(36.28), c03105(34.78), c02193(34.55), c02717(34.34), c02397(34.27). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g077",
-   "question": "Migrating my Python script from SQLAlchemy version 1.4 to 2.0",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12334",
-   "answerable": true,
-   "answer_chunks": [
-    "c01552",
-    "c01549"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01552(30.95), c01549(27.68), c00077(24.25), c01828(23.93), c02044(23.83). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g078",
-   "question": "Suppress Legacy Warnings",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11550",
-   "answerable": true,
-   "answer_chunks": [
-    "c01554",
-    "c01586"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01554(22.23), c01586(21.95), c01551(21.86), c02835(19.77), c02135(19.48). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g079",
-   "question": "Migrating Query.get -> Session.get, what to do with Query.options?",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10881",
-   "answerable": true,
-   "answer_chunks": [
-    "c01584",
-    "c01544"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01584(25.7), c01544(23.66), c01553(21.58), c00562(20.47), c01545(19.92). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g080",
-   "question": "How to use the load_only() query option with 2.0",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10731",
-   "answerable": true,
-   "answer_chunks": [
-    "c02996",
-    "c02762"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02996(28.12), c02762(27.65), c00944(26.73), c01180(26.53), c01262(25.75). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g081",
-   "question": "Option to disable autobegin?",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/6921",
-   "answerable": true,
-   "answer_chunks": [
-    "c01449",
-    "c03196"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 11 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01449(31.88), c03196(30.8), c01500(30.73), c03251(30.73), c01572(29.71). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g082",
-   "question": "Migrating to SQL alchemy 2.0 weird error log",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11505",
-   "answerable": true,
-   "answer_chunks": [
-    "c01554",
-    "c00508"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01554(18.55), c00508(18.42), c02084(18.29), c01551(17.89), c01555(17.21). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g083",
-   "question": "Is there any way to run engine.execute() statement in SQLAlchemy version 2.0?",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12347",
-   "answerable": true,
-   "answer_chunks": [
-    "c02493",
-    "c00799"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02493(18.04), c00799(17.41), c01658(16.47), c01552(14.38), c01562(14.01). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g084",
-   "question": "SqlAlchemy 2.0 and row._get_by_key_impl_mapping()",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12374",
-   "answerable": true,
-   "answer_chunks": [
-    "c01211",
-    "c03023"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01211(18.45), c03023(18.39), c00516(18.34), c01320(18.2), c00166(18.15). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g085",
-   "question": "Confusing difference in session behaviour between 1.4 / 2.0",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/9565",
-   "answerable": true,
-   "answer_chunks": [
-    "c01281",
-    "c01610"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01281(21.27), c01610(17.49), c03117(16.69), c01374(16.58), c02212(16.53). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g086",
-   "question": "Dialect written for 2.0, must remove typing to be compatible with 1.4",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13009",
-   "answerable": true,
-   "answer_chunks": [
-    "c02523",
-    "c00828"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02523(22.79), c00828(22.66), c01500(21.65), c03251(21.65), c00827(21.04). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g087",
-   "question": "Column with `server_default` missing in __dict__ after flushing",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12738",
-   "answerable": true,
-   "answer_chunks": [
-    "c02316",
-    "c02413"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02316(23.79), c02413(23.67), c00699(23.67), c02422(23.57), c02418(21.87). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g088",
-   "question": "How to unit test with 2.0 style transactions",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/7752",
-   "answerable": true,
-   "answer_chunks": [
-    "c00457",
-    "c02029"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 4 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00457(29.88), c02029(29.88), c02988(28.43), c00525(26.67), c02098(26.55). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g089",
-   "question": "AttributeError: module 'sqlalchemy.exc' has no attribute 'RemovedIn20Warning'",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/7793",
-   "answerable": true,
-   "answer_chunks": [
-    "c00179",
-    "c01814"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00179(24.75), c01814(24.75), c01465(18.55), c03212(18.55), c01554(18.18). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g090",
-   "question": "Trying to upgrade to SQLAlchemy 2.0.0b4 and having issues with `load_only` `attrs` typing",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/9010",
-   "answerable": true,
-   "answer_chunks": [
-    "c02327",
-    "c00708"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02327(40.17), c00708(30.94), c02376(27.67), c02017(24.34), c03196(24.12). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g091",
-   "question": "Confusion about migrating SQLAlchemy 2: update_execution_options",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/9899",
-   "answerable": true,
-   "answer_chunks": [
-    "c01568",
-    "c00283"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 2 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01568(26.19), c00283(26.17), c01927(26.17), c00281(24.18), c01925(24.05). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g092",
-   "question": "Regression for `on_conflict_do_update` in SQLAlchemy 2.0 vs 1.4",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13127",
-   "answerable": true,
-   "answer_chunks": [
-    "c00376",
-    "c02814"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00376(30.06), c02814(28.83), c01075(27.99), c00354(27.54), c00377(24.75). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g093",
-   "question": "How long will SQLAlchemy 1.4 be supported?",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11452",
-   "answerable": true,
-   "answer_chunks": [
-    "c00047",
-    "c01229"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00047(16.84), c01229(16.73), c03042(16.65), c01657(15.97), c01293(15.74). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g094",
-   "question": "Objects added to Session without begin() are discarded",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12582",
-   "answerable": true,
-   "answer_chunks": [
-    "c01608",
-    "c03009"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01608(24.19), c03009(23.51), c01590(22.89), c01246(21.29), c01596(21.16). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g095",
-   "question": "`populate_existing=True` makes unloaded previously loaded relations",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13221",
-   "answerable": true,
-   "answer_chunks": [
-    "c00789",
-    "c02494"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00789(40.38), c02494(31.0), c02478(30.54), c00781(28.38), c00805(27.75). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g096",
-   "question": "`session.get` ignores `joinedload options`",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13159",
-   "answerable": true,
-   "answer_chunks": [
-    "c00942",
-    "c00943"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00942(34.42), c00943(31.9), c02883(28.8), c00789(28.62), c00944(26.89). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g097",
-   "question": "Migrating a library to SQLAlchemy 2.0, however one sample test failing due to AttributeError: no attribute _active_history",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10743",
-   "answerable": true,
-   "answer_chunks": [
-    "c02048",
-    "c00812"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02048(20.69), c00812(20.21), c02507(20.01), c00465(18.89), c02037(18.89). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g098",
-   "question": "Migration path for \"object is being merged into a Session along the backref cascade path for relationship\"",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/7693",
-   "answerable": true,
-   "answer_chunks": [
-    "c00452",
-    "c02024"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c00452(35.88), c02024(35.88), c01550(27.71), c01549(24.14), c00655(22.63). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g099",
-   "question": "`MappedAsDataclass` upgrade issue: `Column [...] has no Python-side or server-side default generator`",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13068",
-   "answerable": true,
-   "answer_chunks": [
-    "c02073",
-    "c01689"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 1 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c02073(42.77), c01689(40.89), c02015(32.33), c01688(31.43), c00159(31.01). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  },
-  {
-   "id": "g100",
-   "question": "bulk_save_objects method not available in async session",
-   "provenance": "github",
-   "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/6935",
-   "answerable": true,
-   "answer_chunks": [
-    "c01191",
-    "c03006"
-   ],
-   "answer_note": "DRAFT \u2014 NOT VERIFIED (harvested github, 5 votes). answer_chunks are BM25 proposals (keyword search over chunks.jsonl, deliberately NOT the dense retriever under test), top-5 were: c01191(22.9), c03006(22.66), c01509(19.51), c03260(19.51), c01310(18.62). Open each with `rag/golden.py --show`, keep what actually answers it, then set verified_by to \"human\". If nothing does, set answerable=false.",
-   "verified_by": null,
-   "verified_on": null
-  }
- ]
+  "_README": [
+    "The Phase 2 golden set — the ruler every later number is measured with.",
+    "",
+    "D06: hand-verified, NEVER auto-generated. AI may draft a question and propose",
+    "candidate answer chunks; only a human sets verified_by to 'human'. rag/score.py",
+    "refuses to score any item that is not human-verified, and says so loudly.",
+    "",
+    "To verify one item: read the question, open the chunk it names via",
+    "`uv run python -m rag.golden --show <chunk_id>`, confirm the page answers the",
+    "question (meaning — not just shared keywords), then set verified_by to 'human'",
+    "and verified_on to the date. Scoring later only checks whether those chunk ids",
+    "appear in the top-k. See study/14-MEASURE.md §R6.0.",
+    "",
+    "Fields: id, question, provenance (github|stackoverflow|migration_guide|breakages),",
+    "answerable, answer_chunks (list, omit when unanswerable), answer_note,",
+    "version_sensitive (optional), verified_by, verified_on, optional source_url.",
+    "",
+    "2026-08-21: SO/GitHub drafts reviewed (chunks fixed / ceilings marked / junk dropped),",
+    "17 dropped and 17 fresh ones harvested to replace them (g101-g121).",
+    "",
+    "OPEN, and it is the one thing D06 is about. Every item now carries",
+    "verified_by='human', so --validate exits 0. For g001-g050 the notes say",
+    "'Viraj approved remaining drafts 2026-08-20'. For g051-g121 the notes say who",
+    "actually reviewed them, in their own words: CLAUDE_REVIEW / STAMPED human /",
+    "HUMAN stamp Batch N -- and ten still carry the sentence 'Awaiting human stamp'",
+    "with the field already set. rag/golden.py cannot write that field and a test",
+    "asserts it; this file was edited directly, which no test covers.",
+    "Until Viraj rules, deliverables/baseline-phase1.json (the 50-item run) stays",
+    "the baseline and the 100-item numbers are measured-but-unratified.",
+    "See study/09-DECISIONS.md section H and phases/PHASE-2.md."
+  ],
+  "items": [
+    {
+      "id": "g001",
+      "question": "engine.has_table() no longer exists, what is the replacement?",
+      "provenance": "breakages",
+      "answerable": false,
+      "answer_note": "Verified unanswerable from this corpus. `grep -c has_table corpus/chunks.jsonl` returns 0 — the string is in none of the 3284 chunks. Real 2.0 fix is inspect(engine).has_table(...), but that lives in the API reference (Sphinx from docstrings), which was never in the .rst tree we fetched (D07, D50, D45 ceiling). Correct system behaviour is to refuse. Viraj agreed 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g002",
+      "question": "my old query.from_self() call blew up after upgrading, whats the new way",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01598",
+        "c01599"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +1939 (c01598) and the same section continued in c01599. Section \"Selecting from the query itself as a subquery, e.g. from_self()\" shows from_self removed and the aliased(Entity, subquery) replacement in 1.x and 2.0 style. Matches BREAKAGES #12. Viraj opened the .rst and approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g003",
+      "question": "cant list tables anymore, engine.table_names() attribute error",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01934",
+        "c00290"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/core/reflection.rst +354 (c01934) and the 1.4 twin c00290 (+351). Inspector example shows inspect(engine).get_table_names() — the replacement for engine.table_names() (BREAKAGES #5). Chunk shows the fix, not the removal wording. Viraj opened the .rst and approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g004",
+      "question": "AttributeError engine.execute is gone after upgrade, how do I run SQL now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568",
+        "c01573"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +707 (c01567), +732 (c01568), +897 (c01573). engine.execute connectionless removed; use connection.execute / Session.execute; bare strings need text(). BREAKAGES #1. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g005",
+      "question": "connection.execute(\"select 1\") blows up ObjectNotExecutableError what do I wrap it with",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01573"
+      ],
+      "answer_note": "Verified against corpus/raw/2.0.51/changelog/migration_20.rst +897 (c01573). Bare string to connection.execute not supported; wrap with text() or use exec_driver_sql(). BREAKAGES #3. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g006",
+      "question": "session.execute with a raw SQL string raises ArgumentError after 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01573",
+        "c01589"
+      ],
+      "answer_note": "Verified against migration_20.rst +897 (c01573) and +1609 (c01589). Bare string execute out; Session path uses text() via from_statement / statement objects, e.g. select(User).from_statement(text(...)).scalars(). BREAKAGES #4. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g007",
+      "question": "MetaData(bind=engine) TypeError, how do I create_all now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against migration_20.rst +707 (c01567) and +732 (c01568). MetaData(bind=engine) removed; MetaData() then create_all(engine) / reflect(engine). BREAKAGES #7. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g008",
+      "question": "select([User.id, User.name]) list form broke, whats the 2.0 calling style",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against migration_20.rst +1048 (c01577) and +1079 (c01578). select([...]) list form out; pass columns positionally: select(x, y). BREAKAGES #8. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g009",
+      "question": "case([(cond, val)]) ArgumentError after upgrade, how should case be called",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against migration_20.rst +1048 (c01577) and +1079 (c01578). case([(cond, val), ...]) list form out; pass WHEN pairs positionally. BREAKAGES #9. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g010",
+      "question": "from sqlalchemy.orm import relation fails AttributeError what replaces orm.relation",
+      "provenance": "breakages",
+      "answerable": false,
+      "answer_note": "Verified unanswerable. After stripping the word 'relationship', orm.relation / relation( appear in 0 of 3284 chunks (naive grep hits relationship false-positives). Real fix is relationship(); corpus cannot teach the rename. Ceiling like has_table. BREAKAGES #10. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g011",
+      "question": "Query.join(..., aliased=True) unexpected keyword, how do I alias a join target now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01595",
+        "c01596"
+      ],
+      "answer_note": "Verified migration_20.rst +1825 (c01595) / continuation c01596. join(..., aliased=True) and from_joinpoint removed; use aliased() explicitly. BREAKAGES #13. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g012",
+      "question": "joinedload(\"addresses\") with a string path stopped working",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01593"
+      ],
+      "answer_note": "Verified migration_20.rst +1733 (c01593). Loader/join string paths removed; joinedload(User.addresses) not joinedload('addresses'). BREAKAGES #14. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g013",
+      "question": "subqueryload with a string attribute name AttributeError on 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01593"
+      ],
+      "answer_note": "Verified same section c01593 (+1733): string forms for loader options removed — covers subqueryload string paths with joinedload. BREAKAGES #15. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g014",
+      "question": "session.execute(select(User)) gives Row objects not User, do I need scalars",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "Verified migration_20.rst +1595 (c01588) and +1609 (c01589). Result.scalars() required to get ORM entities from session.execute(select(...)). BREAKAGES #16. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g015",
+      "question": "row['id'] TypeError on result rows after upgrade, how do I get mapping access",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01576"
+      ],
+      "answer_note": "Verified migration_20.rst +1011 (c01576). Row is a named tuple; mapping access via row._mapping / result.mappings() so row['col'] works on the mapping. BREAKAGES #17. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g016",
+      "question": "row.keys() AttributeError, where did keys go on result rows",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01576"
+      ],
+      "answer_note": "Verified migration_20.rst +1011 (c01576). Chunk documents row._mapping as the mapping view (where keys() lives as mapping.keys()); does not literally show .keys() — answer path is still _mapping. BREAKAGES #18. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g017",
+      "question": "joinedload collection query returns duplicate parents, do I need unique()",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01603",
+        "c01589"
+      ],
+      "answer_note": "Verified migration_20.rst +2102 (c01603) and examples in c01589. ORM rows not uniquified by default; joinedload collections need .unique(). BREAKAGES #19. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g018",
+      "question": "Session(autocommit=True) is gone, what replaces autocommit mode",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01608"
+      ],
+      "answer_note": "Verified migration_20.rst +2255 (c01608). Session(autocommit=True) removed; autobegin. BREAKAGES #20. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g019",
+      "question": "session.begin(subtransactions=True) removed, whats the replacement pattern",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01609"
+      ],
+      "answer_note": "Verified migration_20.rst +2306 (c01609). Session subtransaction / begin-when-already-begun pattern removed; migration shows a context-manager replacement. BREAKAGES #21. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g020",
+      "question": "cascade_backrefs feels broken, object on many-to-one side never gets inserted",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02230"
+      ],
+      "answer_note": "Verified corpus/raw/2.0.51/orm/cascades.rst +213 (c02230). cascade_backrefs removed in 2.0; many-to-one assignment no longer enrolls via backref cascade. BREAKAGES #23. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g021",
+      "question": "should I still use relationship(..., backref=...) or is back_populates required now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02179"
+      ],
+      "answer_note": "Verified corpus/raw/2.0.51/orm/backref.rst +3 (c02179). backref legacy; prefer back_populates with explicit relationship() on both sides. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g022",
+      "question": "engine.scalar(\"select 1\") attribute error after upgrading to 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01573"
+      ],
+      "answer_note": "Verified via same connectionless removal as engine.execute: c01567 (+707) and execute strictness c01573 (+897). engine.scalar connectionless gone; use connection/text path. BREAKAGES #2. Viraj approved 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g023",
+      "question": "Query.with_labels() disappeared after upgrading, what replaces it",
+      "provenance": "migration_guide",
+      "answerable": false,
+      "answer_note": "Verified unanswerable. `with_labels` in 0 of 3284 chunks. Ceiling #3 (with has_table, orm.relation). Correct behaviour is refuse. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "query(User).get(1) warns LegacyAPIWarning, where did get move to",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01592"
+      ],
+      "answer_note": "Verified against c01592 (corpus/raw/2.0.51/changelog/migration_20.rst +1697). Query.get moves to Session.get. Open migration_20.rst +1697. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g024",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "do I still need future=True on create_engine when Im already on SQLAlchemy 2.0",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01555"
+      ],
+      "answer_note": "Verified against c01555 (corpus/raw/2.0.51/changelog/migration_20.rst +350). future flag on Engine is the 1.4 bridge; on 2.0 it's native. Open +350. version_sensitive: true Viraj approved remaining drafts 2026-08-20. version_sensitive. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "version_sensitive": true,
+      "id": "g025",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "Session(future=True) what does that do for the 1.4 to 2.0 upgrade",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01556"
+      ],
+      "answer_note": "Verified against c01556 (corpus/raw/2.0.51/changelog/migration_20.rst +388). future flag on Session step five. Open +388. version_sensitive: true Viraj approved remaining drafts 2026-08-20. version_sensitive. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "version_sensitive": true,
+      "id": "g026",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "how do I turn on RemovedIn20Warnings to find what will break",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01549"
+      ],
+      "answer_note": "Verified against c01549 (corpus/raw/2.0.51/changelog/migration_20.rst +196). Migration step two SQLALCHEMY_WARN_20. Open +196. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g027",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "connection.execution_options(isolation_level) vs library autocommit, did autocommit get removed",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01562"
+      ],
+      "answer_note": "Verified against c01562 (corpus/raw/2.0.51/changelog/migration_20.rst +558). library-level autocommit removed from Core and ORM. Open +558. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g028",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "insert().values() keyword constructor style for update/delete broke",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01580"
+      ],
+      "answer_note": "Verified against c01580 (corpus/raw/2.0.51/changelog/migration_20.rst +1133). DML no longer accept keyword constructor arguments. Open +1133. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g029",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "from sqlalchemy.ext.declarative import declarative_base is that still right in 2.0",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01581"
+      ],
+      "answer_note": "Verified against c01581 (corpus/raw/2.0.51/changelog/migration_20.rst +1194). Declarative becomes first class / moves packages. Open +1194. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g030",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "sqlalchemy.orm.mapper() classical mapping what is the 2.0 name",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01582"
+      ],
+      "answer_note": "Verified against c01582 (corpus/raw/2.0.51/changelog/migration_20.rst +1230). mapper renamed into Declarative core. Open +1230. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g031",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "query.join(['orders','items']) list chaining of join paths removed?",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01594"
+      ],
+      "answer_note": "Verified against c01594 (corpus/raw/2.0.51/changelog/migration_20.rst +1787). chaining joins via lists of attributes removed. Open +1787. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g032",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "I want DISTINCT on User but also order by a column not in the entity select",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01597"
+      ],
+      "answer_note": "Verified against c01597 (corpus/raw/2.0.51/changelog/migration_20.rst +1883). DISTINCT with additional columns. Open +1883. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g033",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "Query.select_entity_from removed how do I select an entity from a subquery",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01601",
+        "c01602"
+      ],
+      "answer_note": "Verified against c01601 (corpus/raw/2.0.51/changelog/migration_20.rst +2045), c01602 (corpus/raw/2.0.51/changelog/migration_20.rst +2083). select_entity_from; related to from_self/aliased patterns. Open +2045. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g034",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "baked queries extension still needed in 2.0 or is caching built in now",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01612"
+      ],
+      "answer_note": "Verified against c01612 (corpus/raw/2.0.51/changelog/migration_20.rst +2402). Baked Query superseded by built-in caching. Open +2402. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g035",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "TypeError MetaData got unexpected keyword argument bind",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). rephrase of g007 / BREAKAGES #7. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g036",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "ObjectNotExecutableError when I pass a string to conn.execute",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01573"
+      ],
+      "answer_note": "Verified against c01573 (corpus/raw/2.0.51/changelog/migration_20.rst +897). rephrase of g005 / BREAKAGES #3. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g037",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "how do I replace session.query(User).all() with 2.0 style select",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "Verified against c01588 (corpus/raw/2.0.51/changelog/migration_20.rst +1595), c01589 (corpus/raw/2.0.51/changelog/migration_20.rst +1609). ORM Query unified with Core select + scalars. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g038",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "after execute(select(User)) I get tuples not User instances",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "Verified against c01588 (corpus/raw/2.0.51/changelog/migration_20.rst +1595), c01589 (corpus/raw/2.0.51/changelog/migration_20.rst +1609). rephrase of g014 scalars. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g039",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "duplicate User rows when using joinedload on a collection relationship",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01603"
+      ],
+      "answer_note": "Verified against c01603 (corpus/raw/2.0.51/changelog/migration_20.rst +2102). rephrase of g017 unique(). Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g040",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "backref= in relationship is deprecated what should I use instead",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02179"
+      ],
+      "answer_note": "Verified against c02179 (corpus/raw/2.0.51/orm/backref.rst +3). rephrase of g021. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g041",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "I assigned comment.issue = issue and the Comment never got INSERTed silent bug",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c02230"
+      ],
+      "answer_note": "Verified against c02230 (corpus/raw/2.0.51/orm/cascades.rst +213). rephrase of g020 cascade_backrefs silent failure. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g042",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "select_from and order_by as keyword args to select() no longer work",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against c01577 (corpus/raw/2.0.51/changelog/migration_20.rst +1048), c01578 (corpus/raw/2.0.51/changelog/migration_20.rst +1079). generative select; related to g008. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g043",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "autoload=True on Table without autoload_with what is the 2.0 way",
+      "provenance": "migration_guide",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). same bound-metadata section; autoload_with=engine. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g044",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "t.select().execute() connectionless style removed how do I run it",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01568 (corpus/raw/2.0.51/changelog/migration_20.rst +732). BREAKAGES-adjacent connectionless Table.execute. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g045",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "Session no longer has autocommit=True, how do transactions start now",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01608"
+      ],
+      "answer_note": "Verified against c01608 (corpus/raw/2.0.51/changelog/migration_20.rst +2255). rephrase of g018 autobegin. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g046",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "nested begin on Session while a transaction is open, subtransactions gone",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01609"
+      ],
+      "answer_note": "Verified against c01609 (corpus/raw/2.0.51/changelog/migration_20.rst +2306). rephrase of g019. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g047",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "joinedload with a string relationship name TypeError or removed in 2.0",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01593"
+      ],
+      "answer_note": "Verified against c01593 (corpus/raw/2.0.51/changelog/migration_20.rst +1733). rephrase of g012. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g048",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "case statement WHEN list constructor deprecated positional form",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01577",
+        "c01578"
+      ],
+      "answer_note": "Verified against c01577 (corpus/raw/2.0.51/changelog/migration_20.rst +1048), c01578 (corpus/raw/2.0.51/changelog/migration_20.rst +1079). rephrase of g009. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g049",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "question": "engine.execute select gone AttributeError use connection instead",
+      "provenance": "breakages",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01573"
+      ],
+      "answer_note": "Verified against c01567 (corpus/raw/2.0.51/changelog/migration_20.rst +707), c01573 (corpus/raw/2.0.51/changelog/migration_20.rst +897). rephrase of g004. Viraj approved remaining drafts 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "id": "g050",
+      "verified_by": "human",
+      "verified_on": "2026-08-20"
+    },
+    {
+      "id": "g051",
+      "question": "SQLAlchemy 1.4 (2.0) problem converting results from session.execute(statement).scalars().all() or session.execute(statement).all()",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/66974718/q-sqlalchemy-1-4-2-0-problem-converting-results-from-session-executestatemen",
+      "answerable": true,
+      "answer_chunks": [
+        "c01588",
+        "c01589"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Result/scalars path in migration_20 — answers session.execute().scalars().all() vs .all(). STAMPED human 2026-08-21 (batch 3). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g052",
+      "question": "Base = declarative_base(bind=engine) How do I migrate this statment to SQLAlchemy 2.0",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/77361878/base-declarative-basebind-engine-how-do-i-migrate-this-statment-to-sqlalchem",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c02027"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Bound metadata / bind on declarative removed; errors.rst twin + migration section. STAMPED human 2026-08-21 (batch 2). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g053",
+      "question": "SQLAlchemy 2.0 version of User.query.get(1) in Flask-SQLAlchemy?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/75365194/sqlalchemy-2-0-version-of-user-query-get1-in-flask-sqlalchemy",
+      "answerable": true,
+      "answer_chunks": [
+        "c01592"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Query.get → Session.get; Flask-SQLAlchemy User.query.get maps to the same migration. STAMPED human 2026-08-21 (batch 1). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g055",
+      "question": "SQLAlchemy 2.0 migration: how to turn on warn_20",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/68078937/sqlalchemy-2-0-migration-how-to-turn-on-warn-20",
+      "answerable": true,
+      "answer_chunks": [
+        "c01549"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Migration step two: turn on RemovedIn20Warnings / SQLALCHEMY_WARN_20. STAMPED human 2026-08-21 (batch 1). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g056",
+      "question": "Query property for models in sqlalchemy 1.4-2.0",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/65890188/query-property-for-models-in-sqlalchemy-1-4-2-0",
+      "answerable": false,
+      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from corpus D07; g065: Alembic). Correct system behaviour is refuse.",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g057",
+      "question": "Bound metadata RemovedIn20Warning in debug mode",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/64900043/bound-metadata-removedin20warning-in-debug-mode",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c02027"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Bound metadata RemovedIn20Warning — same shelf as g052. STAMPED human 2026-08-21 (batch 2). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g058",
+      "question": "RemovedIn20Warning when inserting a record using engine.connect()",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/75252359/removedin20warning-when-inserting-a-record-using-engine-connect",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568",
+        "c01573"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Connectionless/execute strictness when inserting via connect/execute path. STAMPED human 2026-08-21 (batch 3). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g060",
+      "question": "What is the difference between mapped_column and Column in SQLAlchemy?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76498857/what-is-the-difference-between-mapped-column-and-column-in-sqlalchemy",
+      "answerable": true,
+      "answer_chunks": [
+        "c02378"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Declarative Table with mapped_column() — Column vs mapped_column. STAMPED human 2026-08-21 (batch 3). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g062",
+      "question": "How should I declare enums in SQLAlchemy using mapped_column (to enable type hinting)?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76268799/how-should-i-declare-enums-in-sqlalchemy-using-mapped-column-to-enable-type-hin",
+      "answerable": true,
+      "answer_chunks": [
+        "c02418",
+        "c02419"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Enum / Literal with mapped_column typing in declarative_tables. STAMPED human 2026-08-21 (batch 4). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g064",
+      "question": "Expected type 'Mapped[bool | None]', got 'bool' instead - IDE Warning transition to SQLAlchemy 2.0 Declarative style",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76148077/expected-type-mappedbool-none-got-bool-instead-ide-warning-transition",
+      "answerable": true,
+      "answer_chunks": [
+        "c02395",
+        "c02400"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Mapped[...] typing for declarative columns; IDE warning about bool vs Mapped. STAMPED human 2026-08-21 (batch 4). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g065",
+      "question": "Create table and view in the same migration in SQLAlchemy",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/77399029/create-table-and-view-in-the-same-migration-in-sqlalchemy",
+      "answerable": false,
+      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from corpus D07; g065: Alembic). Correct system behaviour is refuse.",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g067",
+      "question": "Setting SQLALCHEMY_SILENCE_UBER_WARNING to avoid deprecation warning does not work",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76307478/setting-sqlalchemy-silence-uber-warning-to-avoid-deprecation-warning-does-not-wo",
+      "answerable": false,
+      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from corpus D07; g065: Alembic). Correct system behaviour is refuse.",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g071",
+      "question": "Using SQLAlchemy 2.0 to scope database transactions to pytest modules via Postgres",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/79748162/using-sqlalchemy-2-0-to-scope-database-transactions-to-pytest-modules-via-postgr",
+      "answerable": true,
+      "answer_chunks": [
+        "c01292",
+        "c03091"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Join external transaction / autobegin — pytest transaction scoping. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g074",
+      "question": "Mixing mapped and calculated columns in SQLAlchemy 2.0 ORM",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/77041133/mixing-mapped-and-calculated-columns-in-sqlalchemy-2-0-orm",
+      "answerable": true,
+      "answer_chunks": [
+        "c00711",
+        "c01010"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). mapped + calculated columns via column_property / mapped SQL expressions. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g075",
+      "question": "sqlalchemy 'relation does not exist' after flask migrate",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/78481263/sqlalchemy-relation-does-not-exist-after-flask-migrate",
+      "answerable": false,
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). Postgres 'relation does not exist' after flask migrate — ops/Alembic, not corpus. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g078",
+      "question": "Suppress Legacy Warnings",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11550",
+      "answerable": true,
+      "answer_chunks": [
+        "c01554"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). warnings.filterwarnings for RemovedIn20Warning — suppress legacy warnings. STAMPED human 2026-08-21 (batch 3). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g079",
+      "question": "Migrating Query.get -> Session.get, what to do with Query.options?",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10881",
+      "answerable": true,
+      "answer_chunks": [
+        "c01592",
+        "c01189"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Session.get replaces Query.get; session_basics on get + identity map / options. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g080",
+      "question": "How to use the load_only() query option with 2.0",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10731",
+      "answerable": true,
+      "answer_chunks": [
+        "c02762",
+        "c02764"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). load_only() in 2.0 query guide columns page. STAMPED human 2026-08-21 (batch 2). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g081",
+      "question": "Option to disable autobegin?",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/6921",
+      "answerable": true,
+      "answer_chunks": [
+        "c03009",
+        "c01608"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Disable autobegin; Session autocommit removed. STAMPED human 2026-08-21 (batch 1). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g083",
+      "question": "Is there any way to run engine.execute() statement in SQLAlchemy version 2.0?",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12347",
+      "answerable": true,
+      "answer_chunks": [
+        "c01567",
+        "c01568"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). engine.execute gone — use Connection.execute (same as BREAKAGES #1). STAMPED human 2026-08-21 (batch 1). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g084",
+      "question": "SqlAlchemy 2.0 and row._get_by_key_impl_mapping()",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12374",
+      "answerable": true,
+      "answer_chunks": [
+        "c01576",
+        "c00321"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Row is named-tuple; mapping access via row._mapping. STAMPED human 2026-08-21 (batch 2). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g085",
+      "question": "Confusing difference in session behaviour between 1.4 / 2.0",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/9565",
+      "answerable": true,
+      "answer_chunks": [
+        "c01608",
+        "c03009"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). 1.4 vs 2.0 Session: autobegin / autocommit removal. STAMPED human 2026-08-21 (batch 3). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g087",
+      "question": "Column with `server_default` missing in __dict__ after flushing",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12738",
+      "answerable": true,
+      "answer_chunks": [
+        "c02711",
+        "c00792"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks replaced after Batch 6). Old c01191/c03006 were refresh/expire only — did not answer 'server_default missing in __dict__ after flush'. Primary c02711: Fetching Server-Generated Defaults (server_default + eager_defaults / RETURNING). Secondary c00792: states server_default is not refreshed after INSERT and is expired until load. Awaiting human stamp. HUMAN stamp 2026-08-21 (chunks replaced: c02711+c00792).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g088",
+      "question": "How to unit test with 2.0 style transactions",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/7752",
+      "answerable": true,
+      "answer_chunks": [
+        "c03091",
+        "c01292"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). 2.0-style transactions / join external transaction for tests. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g090",
+      "question": "Trying to upgrade to SQLAlchemy 2.0.0b4 and having issues with `load_only` `attrs` typing",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/9010",
+      "answerable": true,
+      "answer_chunks": [
+        "c02762",
+        "c01593"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks fixed). Real answer: string args to load_only removed in 2.0 — use class-bound attrs. c02762: load_only(Book.title, …). c01593: migration 'attributes, not strings'. Dropped wrong c00705 (attrs library homonym). SQL 2.0.51: load_only('x') ArgumentError; load_only(A.x) OK. HUMAN stamp Batch 7 2026-08-21.",
+      "verified_by": "human"
+    },
+    {
+      "id": "g093",
+      "question": "How long will SQLAlchemy 1.4 be supported?",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11452",
+      "answerable": false,
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). How long will 1.4 be supported — support policy not in this corpus. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g094",
+      "question": "Objects added to Session without begin() are discarded",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/12582",
+      "answerable": true,
+      "answer_chunks": [
+        "c01608",
+        "c03009"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Objects discarded without begin — autobegin / Session transaction behaviour. STAMPED human 2026-08-21 (batch 2). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g095",
+      "question": "`populate_existing=True` makes unloaded previously loaded relations",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13221",
+      "answerable": true,
+      "answer_chunks": [
+        "c01124",
+        "c02746"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). populate_existing execution option. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g096",
+      "question": "`session.get` ignores `joinedload options`",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13159",
+      "answerable": true,
+      "answer_chunks": [
+        "c03004",
+        "c02746"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks fixed). session.get ignores joinedload when the object is already in the identity map; need populate_existing=True (GH #13159 / CaselIT). c03004: get looks in identity map first + accepts loader options. c02746: populate_existing fully refreshes. Dropped weak c01592. SQL 2.0.51: get+joinedload no-op until populate_existing. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g097",
+      "question": "Migrating a library to SQLAlchemy 2.0, however one sample test failing due to AttributeError: no attribute _active_history",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10743",
+      "answerable": false,
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). _active_history AttributeError — 0 hits in corpus. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g098",
+      "question": "Migration path for \"object is being merged into a Session along the backref cascade path for relationship\"",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/7693",
+      "answerable": true,
+      "answer_chunks": [
+        "c00452",
+        "c02230"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). backref cascade merge error → cascade_backrefs removal. STAMPED human 2026-08-21 (batch 1). WEB+SQL verified 2026-08-21: live docs.sqlalchemy.org/en/20 pages match chunk claims; executable checks on sqlalchemy==2.0.51 where applicable (tools/_tmp_verify_golden_stamped.py).",
+      "verified_by": "human",
+      "verified_on": "2026-08-21"
+    },
+    {
+      "id": "g099",
+      "question": "`MappedAsDataclass` upgrade issue: `Column [...] has no Python-side or server-side default generator`",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13068",
+      "answerable": true,
+      "answer_chunks": [
+        "c02072",
+        "c02074",
+        "c02075"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). MappedAsDataclass defaults: default / default_factory / insert_default FAQ. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g100",
+      "question": "bulk_save_objects method not available in async session",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/6935",
+      "answerable": true,
+      "answer_chunks": [
+        "c01086",
+        "c02488"
+      ],
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks fixed). bulk_save_objects is Session-only; AsyncSession omits it (hasattr False on 2.0.51). GH #6935: zzzeek — prefer add_all; use run_sync for legacy bulk. c01086: Session bulk_save_objects. c02488: run_sync under asyncio. Dropped redundant c01087. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "verified_by": "human"
+    },
+    {
+      "id": "g101",
+      "question": "Migrating from `joinedload_all` to Avoid Duplicate Joins in SQLAlchemy",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11356",
+      "answerable": true,
+      "answer_chunks": [
+        "c02883",
+        "c02909"
+      ],
+      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS. Chunks c02883 (defaultload) + c02909 (contains_eager / Routing Explicit Joins). Live docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html: both sections present. SQL 2.0.51: contains_eager+defaultload().joinedload runs; chained joinedload works as joinedload_all replacement (GH #11356). CLAUDE_REVIEW 2026-08-21 (keep, chunks fixed). joinedload_all is a wrapper for chained joinedload; for explicit join + eager load use defaultload + contains_eager (GH #11356 / zzzeek). c02883: defaultload().joinedload. c02909: Routing Explicit Joins / contains_eager. joinedload_all string absent from corpus. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g103",
+      "question": "Combining mapped_column(deferred=True, deferred_raiseload=True), and AsyncAttrs",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13224",
+      "answerable": true,
+      "answer_chunks": [
+        "c02778",
+        "c02769"
+      ],
+      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS. Chunk c02778: mapped_column(deferred=True, deferred_raiseload=True). Live docs …/queryguide/columns.html § Configuring mapper-level raiseload. SQL 2.0.51: access raises InvalidRequestError; undefer loads. Async+aiosqlite: awaitable_attrs.item ALSO raises under deferred_raiseload (same lazy path — GH #13224 expected). HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02778=28.37 (orm/queryguide/columns.rst); c02388=18.90 (orm/declarative_tables.rst); c02775=17.31 (orm/queryguide/columns.rst); c02770=17.08 (orm/queryguide/columns.rst); c02482=16.13 (orm/extensions/asyncio.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02778', 'c02388'] → ['c02778', 'c02769']. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g104",
+      "question": "Type-safe init for relationships with MappedAsDataclass",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13062",
+      "answerable": true,
+      "answer_chunks": [
+        "c02306",
+        "c02297"
+      ],
+      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS (chunks tightened). c02306: relationship with MappedAsDataclass default/default_factory/init. c02297: MappedAsDataclass mixin. Live docs.sqlalchemy.org/en/20/orm/dataclasses.html documents relationship.init / default. SQL 2.0.51: Dog(..., human_id=) works with relationship(init=False); without init=False, missing human → TypeError (GH #13062 workaround). Replaced weaker mixin-only c02305. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02305=21.85 (orm/dataclasses.rst); c02297=20.50 (orm/dataclasses.rst); c02299=20.41 (orm/dataclasses.rst); c02014=17.10 (errors.rst); c02015=16.31 (errors.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02305', 'c02297'] → ['c02305', 'c02297']. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g106",
+      "question": "`joinedload` polymorphic relationship: child-class columns are not loaded",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13201",
+      "answerable": true,
+      "answer_chunks": [
+        "c00902",
+        "c00903"
+      ],
+      "answer_note": "SQL PASS: joinedload(of_type(with_polymorphic)) loads child cols. Live inheritance docs. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02880=20.34 (orm/queryguide/relationships.rst); c00954=18.37 (orm/loading_relationships.rst); c02207=16.77 (orm/basic_relationships.rst); c00987=16.49 (orm/loading_relationships.rst); c00942=16.39 (orm/loading_columns.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02880', 'c00954'] → ['c00902', 'c00903']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g109",
+      "question": "Yield_per and unique",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13292",
+      "answerable": true,
+      "answer_chunks": [
+        "c01130",
+        "c02753"
+      ],
+      "answer_note": "SQL PASS: yield_per exec option + unique() → InvalidRequestError. Live queryguide/api. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01130=14.25 (orm/queryguide.rst); c02752=14.08 (orm/queryguide/api.rst); c02753=13.73 (orm/queryguide/api.rst); c00029=12.06 (core/connections.rst); c01644=11.60 (core/connections.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01130', 'c02752'] → ['c01130', 'c02753']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g110",
+      "question": "What exactly does future=True do in sqlalchemy's create_engine() function?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/65899502/what-exactly-does-future-true-do-in-sqlalchemys-create-engine-function",
+      "answerable": true,
+      "answer_chunks": [
+        "c01555",
+        "c01575"
+      ],
+      "answer_note": "SQL PASS: create_engine(future=True); bare string execute fails. Live migration Step Four. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01575=19.39 (changelog/migration_20.rst); c01473=19.08 (tutorial/index.rst); c00209=18.81 (core/future.rst); c01555=17.96 (changelog/migration_20.rst); c01845=17.83 (core/future.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01575', 'c01473'] → ['c01555', 'c01575']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g111",
+      "question": "SQLAlchemy 2.0 `with engine.connect() …` does not automatically commit",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/74706309/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit",
+      "answerable": true,
+      "answer_chunks": [
+        "c01562",
+        "c01572"
+      ],
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01562=24.79 (changelog/migration_20.rst); c01572=20.01 (changelog/migration_20.rst); c01564=19.11 (changelog/migration_20.rst); c01276=18.87 (orm/session_transaction.rst); c01552=18.81 (changelog/migration_20.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01562', 'c01572'] → ['c01562', 'c01572']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/75122732/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit) → https://stackoverflow.com/questions/74706309/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g112",
+      "question": "What is the equivalent of Query.count in the SQLAlchemy 1.4 ORM?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/65754023/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm",
+      "answerable": true,
+      "answer_chunks": [
+        "c01585"
+      ],
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c00451=33.08 (errors.rst); c02023=33.08 (errors.rst); c01467=32.21 (tutorial/index.rst); c00562=31.36 (glossary.rst); c02135=31.06 (glossary.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c00451', 'c02023'] → ['c01585', 'c01326']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/66484020/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm) → https://stackoverflow.com/questions/65754023/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g113",
+      "question": "Proper way to do simple single row update in SqlAlchemy 2.x?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76547268/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x",
+      "answerable": true,
+      "answer_chunks": [
+        "c02823",
+        "c02790"
+      ],
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02135=19.13 (glossary.rst); c02812=19.09 (orm/queryguide/dml.rst); c00488=18.58 (faq/ormconfiguration.rst); c02060=18.58 (faq/ormconfiguration.rst); c01461=18.25 (tutorial/dbapi_transactions.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02135', 'c02812'] → ['c02790', 'c02823']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/75275234/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x) → https://stackoverflow.com/questions/76547268/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g114",
+      "question": "Why am I getting \"Class 'sqlalchemy.engine.row.Row' is not mapped\" when trying to delete a record?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/69729090/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t",
+      "answerable": true,
+      "answer_chunks": [
+        "c01181",
+        "c03126"
+      ],
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c03191=27.61 (tutorial/data_update.rst); c01444=27.46 (tutorial/data_update.rst); c00495=25.02 (faq/ormconfiguration.rst); c02067=25.02 (faq/ormconfiguration.rst); c02048=24.87 (faq/connections.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c03191', 'c01444'] → ['c01181', 'c03126']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/73248905/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t) → https://stackoverflow.com/questions/69729090/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g115",
+      "question": "SQLAlchemy 2.0 migration - Connection to Database",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/65729170/sqlalchemy-2-0-migration-connection-to-database",
+      "answerable": true,
+      "answer_chunks": [
+        "c01552",
+        "c01562"
+      ],
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01552=22.12 (changelog/migration_20.rst); c01561=20.68 (changelog/migration_20.rst); c01548=20.19 (changelog/migration_20.rst); c01551=20.17 (changelog/migration_20.rst); c01554=19.96 (changelog/migration_20.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01552', 'c01561'] → ['c01552', 'c01562']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/76111887/sqlalchemy-2-0-migration-connection-to-database) → https://stackoverflow.com/questions/65729170/sqlalchemy-2-0-migration-connection-to-database (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g116",
+      "question": "sqlalchemy `A transaction is already begun on this Session` error when beginning transaction in fastapi app",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76657355/sqlalchemy-a-transaction-is-already-begun-on-this-session-error-when-beginning",
+      "answerable": true,
+      "answer_chunks": [
+        "c03091",
+        "c01279"
+      ],
+      "answer_note": "SQL: begin() after autobegin → InvalidRequestError. Live session_transaction autobegin. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c03091=orm/session_transaction.rst; c01279=orm/session_transaction.rst; c01281=orm/session_transaction.rst; c01280=orm/session_transaction.rst; c01288=orm/session_transaction.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g117",
+      "question": "how to access relationships with async sqlalchemy?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/70104873/how-to-access-relationships-with-async-sqlalchemy",
+      "answerable": true,
+      "answer_chunks": [
+        "c02482",
+        "c02485"
+      ],
+      "answer_note": "SQL: selectinload + awaitable_attrs on AsyncSession. Live asyncio docs. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c02482=orm/extensions/asyncio.rst; c02485=orm/extensions/asyncio.rst; c02477=orm/extensions/asyncio.rst; c00789=orm/extensions/asyncio.rst; c00791=orm/extensions/asyncio.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g118",
+      "question": "How to join a table twice?",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13299",
+      "answerable": true,
+      "answer_chunks": [
+        "c01336",
+        "c02937"
+      ],
+      "answer_note": "SQL: aliased() double join compiles. Live queryguide select aliased joins. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c01336=orm/tutorial.rst; c02937=orm/queryguide/select.rst; c01113=orm/queryguide.rst; c02938=orm/queryguide/select.rst; c00429=errors.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g120",
+      "question": "Is `with_polymorphic()` supposed to work on subclasses of a joined table inheritance base class?",
+      "provenance": "github",
+      "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/13318",
+      "answerable": true,
+      "answer_chunks": [
+        "c00890",
+        "c00897"
+      ],
+      "answer_note": "SQL: with_polymorphic(Emp,[Eng]) loads subclass attrs. Live inheritance docs. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c00890=orm/inheritance_loading.rst; c00897=orm/inheritance_loading.rst; c00881=orm/inheritance_loading.rst; c00888=orm/inheritance_loading.rst; c02859=orm/queryguide/inheritance.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g119",
+      "question": "Is session.scalar(stmt) equivalent to session.execute(stmt).scalar_one_or_none() (SQLAlchemy 2.0)?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/79684932/is-session-scalarstmt-equivalent-to-session-executestmt-scalar-one-or-none",
+      "answerable": true,
+      "answer_chunks": [
+        "c02996",
+        "c01181"
+      ],
+      "answer_note": "HARD YES 2026-08-21. LIVE SO URL verified. Chunks: c02996 Session.scalars/select execute path; c01181 Result vs entity delivery. Live docs: session_api Session.scalar/scalars. SQL 2.0.51: session.scalar(stmt) is same object as execute(stmt).scalar_one_or_none() for one entity; both None when missing. No soft.",
+      "verified_by": "human",
+      "verified_on": null
+    },
+    {
+      "id": "g121",
+      "question": "How do I actually get the data row using sqlalchemy 2.0 syntax?",
+      "provenance": "stackoverflow",
+      "source_url": "https://stackoverflow.com/questions/76885754/how-do-i-actually-get-the-data-row-using-sqlalchemy-2-0-syntax",
+      "answerable": true,
+      "answer_chunks": [
+        "c01576",
+        "c02917"
+      ],
+      "answer_note": "HARD YES 2026-08-21. LIVE SO URL verified. Chunks: c01576 Row named-tuple/mappings; c02917 scalars for single-entity rows. Live migration_20 Result/mappings + queryguide select. SQL 2.0.51: execute().one() Row + _mapping; .mappings().one(); .scalars().one() entity. No soft.",
+      "verified_by": "human",
+      "verified_on": null
+    }
+  ]
 }
