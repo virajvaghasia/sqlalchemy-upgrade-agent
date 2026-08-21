@@ -256,3 +256,149 @@ def test_phrasing_alone_can_push_the_answer_out_of_the_index():
     rows = score.score_items([tidy, rough], chunks)
     assert rows[0]["rank"] == 1
     assert rows[1]["rank"] is None or rows[1]["rank"] > rows[0]["rank"]
+
+
+# --- refusals (D62) --------------------------------------------------------
+#
+# The refusal section is the one that needs generation, so it is also the one
+# most easily faked into looking right. These inject both collaborators.
+
+class _FakeHit:
+    def __init__(self, cid):
+        self.payload = {
+            "chunk_id": cid,
+            "heading_path": CHUNKS[cid]["heading_path"],
+            "text": CHUNKS[cid]["text"],
+            "source_path": "doc/build/x.rst",
+            "sqlalchemy_version": "2.0.51",
+        }
+        self.score = 0.5
+
+
+def _refusal_rows(items, answers, hits_for):
+    """Run refusal_rows with canned retrieval and canned generation."""
+    return score.refusal_rows(
+        items, CHUNKS,
+        generate=lambda prompt: answers.pop(0),
+        retrieve=lambda q: [_FakeHit(c) for c in hits_for(q)],
+    )
+
+
+REFUSAL = "The sources do not answer this. I looked for has_table."
+
+
+def test_a_refusal_is_detected_by_the_opening_the_prompt_mandates():
+    """The detector must be the SAME string the SYSTEM clause demands. If the
+    prompt is reworded and this is not, every real refusal reads as an answer."""
+    from rag import ask
+    assert ask.REFUSAL_OPENING in ask.SYSTEM, (
+        "the refusal detector no longer matches the sentence the prompt asks for")
+    assert ask.refused(REFUSAL)
+    assert ask.refused("  " + REFUSAL)          # leading whitespace is not an answer
+    assert not ask.refused("Use inspect(engine).has_table() [1].")
+
+
+def test_mentioning_the_sources_mid_answer_is_not_a_refusal():
+    """Prompt D deliberately produces 'here is the part they cover, and here is
+    the part they do not'. That is an ANSWER. A substring test would count it as
+    a refusal and silently inflate refusal accuracy."""
+    from rag import ask
+    partial = ("Use connection.execute() [1]. The sources do not answer the "
+               "second half of your question about pooling.")
+    assert not ask.refused(partial)
+
+
+def test_an_unanswerable_item_that_gets_answered_is_counted_as_fabricated():
+    items = [{"id": "g001", "question": "has_table?", "answerable": False}]
+    rows = _refusal_rows(items, ["Use inspect(engine).has_table() [1]."],
+                         lambda q: ["c02000"])
+    assert rows[0]["refused"] is False
+    assert rows[0]["answerable"] is False
+
+
+def test_an_over_refusal_is_split_by_whether_the_answer_was_in_the_prompt():
+    """The distinction the whole section exists for. Same word, two defects:
+    refusing with the chunk present is generation's fault (Q18/Q19); refusing
+    with it absent is honest, and retrieval's fault."""
+    got = {"id": "g010", "question": "pool timeout?", "answerable": True,
+           "answer_chunks": ["c00001"]}
+    missed = {"id": "g011", "question": "pool timeout?", "answerable": True,
+              "answer_chunks": ["c00001"]}
+
+    with_answer = _refusal_rows([got], [REFUSAL], lambda q: ["c00001", "c02000"])
+    assert with_answer[0]["refused"] and with_answer[0]["answer_in_prompt"] is True
+
+    without = _refusal_rows([missed], [REFUSAL], lambda q: ["c02000"])
+    assert without[0]["refused"] and without[0]["answer_in_prompt"] is False
+
+
+def test_answer_in_prompt_honours_the_duplicate_rule():
+    """D58 applies here too: the cross-version twin is the same vector, so a
+    refusal with the twin in the prompt is still a refusal with the answer in
+    the prompt. Scoring it strictly would blame retrieval for generation's bug."""
+    item = {"id": "g012", "question": "pool timeout?", "answerable": True,
+            "answer_chunks": ["c00001"]}
+    rows = _refusal_rows([item], [REFUSAL], lambda q: ["c09001"])  # the twin
+    assert rows[0]["answer_in_prompt"] is True
+
+
+def test_refusals_are_never_folded_into_recall():
+    """D62's actual requirement. If the two were averaged, a system that refused
+    everything would score better as it got more useless."""
+    out = io.StringIO()
+    rows = [
+        {"id": "g001", "answerable": False, "refused": True, "answer_in_prompt": False},
+        {"id": "g002", "answerable": True, "refused": True, "answer_in_prompt": True},
+        {"id": "g003", "answerable": True, "refused": False, "answer_in_prompt": True},
+    ]
+    with contextlib.redirect_stdout(out):
+        score.report_refusals(rows)
+    text = out.getvalue()
+    assert "REFUSALS" in text
+    # Not "the word recall is absent" -- the header says "not averaged into
+    # recall" on purpose. The requirement is that no recall FIGURE is printed
+    # here, so the two can never be read as one score.
+    assert "recall@" not in text, "refusal section must not print a recall figure"
+    assert "MRR" not in text
+    assert "g002" in text, "the generation-defect item must be named, not just counted"
+    assert "1/1" in text, "correct refusal on the one unanswerable item"
+
+
+def test_the_refusal_section_names_fabrications():
+    """A fabrication on an unanswerable item is the worst cell in the table and
+    must be named, because it is the one that needs a person to look."""
+    out = io.StringIO()
+    rows = [{"id": "g001", "answerable": False, "refused": False,
+             "answer_in_prompt": False}]
+    with contextlib.redirect_stdout(out):
+        score.report_refusals(rows)
+    assert "g001" in out.getvalue()
+    assert "FABRICATED" in out.getvalue()
+
+
+def test_refusals_are_scored_at_the_k_that_ships_not_at_the_retrieval_depth(monkeypatch):
+    """Everything else here takes DEPTH=20 and slices it, because depth is free
+    (D59). Refusal is different: it is a property of the system as configured,
+    and D54 measured that k=10 buys two over-fires and a fabrication. Scoring
+    refusals at 20 would report the behaviour of a system nobody runs.
+
+    This drives the REAL default path -- retrieve=None -- because that is the
+    one that ships. Passing a fake retriever would prove nothing about it.
+    """
+    from rag import ask, index
+
+    limits = []
+
+    def fake_retrieve(q, limit=None, **kw):
+        limits.append(limit)
+        return []
+
+    monkeypatch.setattr(index, "retrieve", fake_retrieve)
+    score.refusal_rows(
+        [{"id": "g001", "question": "q", "answerable": False}],
+        CHUNKS,
+        generate=lambda prompt: REFUSAL,
+    )
+    assert limits == [ask.DEFAULT_K]
+    assert ask.DEFAULT_K != score.DEPTH, (
+        "if these ever coincide this test stops proving anything")

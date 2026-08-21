@@ -6,9 +6,12 @@ Phase 2, Step 4 — one command, one score, and the parts of it that flatter us.
     uv run python -m rag.score --baseline f    # paired comparison against an earlier run
     uv run python -m rag.score --save f        # write rows, to be a later run's baseline
 
-Refusal accuracy on the unanswerable items is decided (D62) and NOT YET BUILT.
-It needs generation rather than retrieval; the flag will be `--refusals`. It is
-named here as missing rather than left to be discovered.
+    uv run python -m rag.score --refusals      # D62, generation, printed apart
+
+Refusal accuracy on the unanswerable items (D62) is the one section that needs
+generation rather than retrieval, so it is behind `--refusals` and costs ~50
+model calls. It is never averaged into recall: a combined figure would rise as
+the system got more cautious.
 
 WHAT THIS MEASURES, AND WHAT IT REFUSES TO
 
@@ -259,6 +262,95 @@ def report(rows: list[dict]) -> None:
         block(f"provenance={prov}", by[prov])
 
 
+# --- refusals (D62) --------------------------------------------------------
+#
+# This is the ONE section that needs generation. Everything above is retrieval:
+# set membership, decidable by a script with no model running. A refusal only
+# exists once something has been asked to answer.
+#
+# It retrieves at DEFAULT_K, not at DEPTH. The rest of this file takes 20 and
+# slices it, because depth is free (D59) -- but refusal is a property of what
+# SHIPS, and what ships is 5 (D54, which measured k=10 buying two over-fires
+# and a fabrication). Scoring refusals at 20 would report the behaviour of a
+# system nobody is running.
+
+def refusal_rows(items: list[dict], chunks: dict[str, dict],
+                 generate=None, retrieve=None, k: int | None = None) -> list[dict]:
+    """Ask each question for real, and record whether the model declined.
+
+    Both collaborators are injected so the tests need neither Qdrant nor Ollama.
+    `k` defaults to what SHIPS -- see the note above; it is deliberately not
+    DEPTH, and a test pins the difference.
+    """
+    from rag import ask as ask_mod
+
+    if k is None:
+        k = ask_mod.DEFAULT_K
+    if retrieve is None:
+        from rag import index
+        retrieve = lambda q: index.retrieve(q, limit=k)
+    if generate is None:
+        generate = lambda prompt: ask_mod.generate(prompt)[0]
+
+    rows = []
+    for it in items:
+        hits = retrieve(it["question"])
+        hit_ids = [h.payload["chunk_id"] for h in hits]
+        answer = generate(ask_mod.build_prompt(it["question"], hits))
+        rows.append({
+            "id": it["id"],
+            "answerable": bool(it.get("answerable")),
+            "refused": ask_mod.refused(answer),
+            # Was the answer actually in front of the model when it declined?
+            # This is the whole reason the section is worth printing: the same
+            # word covers two unrelated defects, and only one of them is
+            # generation's fault.
+            "answer_in_prompt": (
+                rank_of_first_hit(hit_ids, it, chunks) is not None
+                if it.get("answerable") else False),
+        })
+    return rows
+
+
+def report_refusals(rows: list[dict]) -> None:
+    """Printed apart from retrieval and never averaged into it (D62).
+
+    A combined 'accuracy' would go UP as the system got more cautious, because
+    correct refusals and correct answers would land in the same numerator. The
+    two columns move in opposite directions on purpose.
+    """
+    unanswerable = [r for r in rows if not r["answerable"]]
+    answerable = [r for r in rows if r["answerable"]]
+
+    correct = [r for r in unanswerable if r["refused"]]
+    fabricated = [r for r in unanswerable if not r["refused"]]
+    over = [r for r in answerable if r["refused"]]
+    # The Q18/Q19 class: it refused with the answer sitting in the prompt.
+    over_with = [r for r in over if r["answer_in_prompt"]]
+    over_without = [r for r in over if not r["answer_in_prompt"]]
+
+    def pct(n, d):
+        return f"{n}/{d}" + (f"  ({n / d:.0%})" if d else "")
+
+    print(f"\nREFUSALS  —  generation, at k={_ship_k()} (D62; not averaged into recall)")
+    print(f"  unanswerable items                {len(unanswerable)}")
+    print(f"    refused — correct               {pct(len(correct), len(unanswerable))}")
+    print(f"    answered — FABRICATED           {pct(len(fabricated), len(unanswerable))}"
+          + (f"   {', '.join(r['id'] for r in fabricated)}" if fabricated else ""))
+    print(f"  answerable items                  {len(answerable)}")
+    print(f"    refused — over-refusal          {pct(len(over), len(answerable))}")
+    print(f"      with the answer IN the prompt {len(over_with):>3}"
+          f"   generation defect (the Q18/Q19 class)"
+          + (f"   {', '.join(r['id'] for r in over_with)}" if over_with else ""))
+    print(f"      with the answer absent        {len(over_without):>3}"
+          f"   honest — retrieval never supplied it")
+
+
+def _ship_k() -> int:
+    from rag import ask as ask_mod
+    return ask_mod.DEFAULT_K
+
+
 def compare(rows: list[dict], baseline: list[dict]) -> None:
     """Paired comparison: which items flipped, and whether that is a result.
 
@@ -306,6 +398,11 @@ def main() -> None:
         return
     if not items:
         sys.exit("nothing verified to score — D06 says a human writes the verdicts.")
+
+    if "--refusals" in argv:
+        # D62: its own section, its own retrieval depth, its own run. Done first
+        # so a missing Ollama fails before 50 retrievals have been paid for.
+        report_refusals(refusal_rows(items, chunks))
 
     rows = score_items(items, chunks)
     report(rows)

@@ -178,7 +178,7 @@ def signals(question: str, symbol: str | None, hits, answer: str) -> dict:
     in_corpus = corpus_chunk_count(symbol) if symbol else None
 
     return {
-        "refused": answer.strip().startswith("The sources do not answer"),
+        "refused": ask.refused(answer),   # the one detector, beside the prompt clause
         "uncited": not citations and len(answer.split()) > 15,
         "duplicate_slots": len(texts) - len(set(texts)),
         "version_mixed": len(versions) > 1,
