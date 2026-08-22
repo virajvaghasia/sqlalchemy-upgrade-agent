@@ -38,7 +38,7 @@ def _role_inner(inner: str) -> str:
     return inner
 
 
-def strip_sphinx(text: str) -> str:
+def for_retrieval(text: str) -> str:
     """Remove role wrappers and double-backtick literals. Not used in production (`D69`)."""
     text = _ROLE.sub(lambda m: _role_inner(m.group(1)), text)
     return _LITERAL.sub(r"\1", text)
