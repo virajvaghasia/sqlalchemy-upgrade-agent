@@ -15,13 +15,13 @@
   },
   "run": {
     "device": "mps",
-    "batch_size": 8,
-    "load_seconds": 4.7,
-    "encode_seconds": 627.1,
-    "chunks_per_second": 5.2,
+    "batch_size": 16,
+    "load_seconds": 6.9,
+    "encode_seconds": 566.1,
+    "chunks_per_second": 5.8,
     "peak_memory": {
       "torch_allocated_mib": 2165.9,
-      "process_peak_rss_mib": 944.1
+      "process_peak_rss_mib": 916.3
     },
     "complete": true
   }

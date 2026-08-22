@@ -104,7 +104,7 @@ experiments/           the code under study: the 1.4 app and the measurement har
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 191 tests pinning what the docs claim
+tests/                 196 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -117,7 +117,7 @@ to "§18" is unambiguous in either file.
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
 | [`phases/PHASE-2.md`](phases/PHASE-2.md) | **Phase 2 (complete)** — golden set of **100**, audited, scored, signature closed; baseline artifact still the 50 (`D65`) |
-| [`phases/PHASE-3.md`](phases/PHASE-3.md) | **the current phase** — `D66`/`D67`/`D68` done; chunking next |
+| [`phases/PHASE-3.md`](phases/PHASE-3.md) | **the current phase** — `D66`–`D68` done; `D69` Sphinx strip rejected; boundary chunking still open |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the three § numbering families, and carries a **by-phase view** (`01`–`08` Phase 0, `10`–`13` Phase 1, `09` all of them) for reading it phase by phase instead |
@@ -174,11 +174,11 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-191 tests collected in 12.13s
+196 tests collected in 10.91s
 ```
 
-Three of them skip when Qdrant is not running, so a run reports 114 passed with it up and 111
-passed / 3 skipped without. The block counts what is *collected* because that does not depend on
+Five of them skip when Qdrant is not running, so a run reports 196 passed with it up and 191
+passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
 They pin what the docs claim, not what SQLAlchemy does: the row counts in `study/03-PRACTICE-APP.md`,

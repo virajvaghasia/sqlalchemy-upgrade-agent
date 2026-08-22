@@ -107,7 +107,8 @@ class Bm25Index:
 
 def _doc_text(chunk: dict) -> str:
     # Heading path is part of what `rag/embed.py` prepends before embedding.
-    # BM25 should see the same words a human sees in the section title.
+    # BM25 sees the same raw words as dense (`D69` rejected stripping roles —
+    # cleaning BM25 alone also failed to move absents without hurting fusion).
     head = " ".join(chunk.get("heading_path") or [])
     return f"{head} {chunk['text']}"
 

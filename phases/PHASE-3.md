@@ -21,11 +21,11 @@ per phase). Lab Round 12 closed — Phase 2 confirmed on the 3060; continue here
 | **1. Twin collapse at retrieve** | **31** top-5 seats lost to cross-version duplicates on the 100 | **done 2026-08-21 — `D66`** |
 | **2. Recall-side (BM25 + hybrid RRF)** | **22** answerable items absent from top-20 | **done 2026-08-21 — `D67`** |
 | **3. Reranker** | helps ranks like 8–12, not pages still absent | **done 2026-08-21 — `D68`** |
-| **4. Chunking** | `D56`: 10.7% / 6.3% audit rates | next |
+| **4. Chunking / text prep** | `D56` rates; also Sphinx strip | **`D69` strip rejected**; boundary repair still open |
 
 Do not start with a reranker before lever 2: it cannot invent a page that never entered the
-candidate set. Lever 2 cut absents **22 → 17**; the remaining 17 are still out of reach of any
-reorder. Lever 3 (`D68`) is a **seat-5 promotion**, not a full CE sort — full reorder broke ten.
+candidate set. Lever 3 is a **seat-5 promotion**, not a full CE sort. Lever 4’s first attempt
+(Sphinx strip) is a recorded rejection — absents are mostly phrasing, not `D56` cuts.
 
 ---
 
@@ -123,10 +123,18 @@ the average and would have been the wrong interview story. Re-measure with `--no
 
 ---
 
-## Step 4 — next sitting
+## Step 4 — Sphinx strip tried (`D69`) — rejected; chunk boundary repair still open
 
-Chunking (`D56` rates). Absents still **17** — only recall-side work past hybrid can cut them,
-and re-chunking is the remaining recall lever on the ROADMAP.
+**Tried overnight 2026-08-22.** Strip `:role:`…`` before embed + BM25 so developer vocabulary
+matches docs vocabulary. Code path: `rag/textnorm.py`.
+
+**Result.** Full re-embed: recall@5 **0.64 → 0.58**, **2 broken** vs baseline. Reverted;
+vectors restored to raw-text embed. **Ship nothing that changes the index.**
+
+**Implication for “chunking”.** The 17 absents’ answer chunks are **not** `D56` ends-open /
+opens-ref failures. Re-cutting prose boundaries may still help citation quality; it is not the
+absent lever this scorecard is asking for. Next retrieval work needs a different hypothesis
+(query rewrite, corpus add, or accept the ceiling and move to Phase 4 generation).
 
 ---
 

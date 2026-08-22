@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D64`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D69`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1704,6 +1704,25 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > (unreachable). The shipped rule: **1 fixed** (`g017`), **0 broken**, recall@5 **0.63 → 0.64**.
 > Vs the 50-item baseline: **7↑ 0↓** (was 6), McNemar **p = 0.016**. Absents stay **17**.
 > **Asked as** — *"You added a reranker. Why doesn't it just sort the top-20 by the new model?"*
+
+### D69 — Sphinx-role strip at embed/BM25 time: measured and rejected
+
+> **Decided 2026-08-22** — do **not** strip `:class:`_orm.Session`` → `Session` (or unwrap
+> ``literals``) before embedding or BM25. `chunks.jsonl` and the Qdrant payload stay raw.
+> **Instead of** — the Phase 1 deferral in `rag/chunk.py` ("if Step 5 shows markup hurting,
+> strip in Phase 3"), which looked like the obvious next lever for the **17** absents.
+> **Measured on the 100 after `D68`.** BM25-only strip: headline stayed ~0.63, absents still 17.
+> Full re-embed with strip: recall@5 **0.64 → 0.58**, vs baseline **5↑ 2↓** (`g008`, `g013`
+> broken), McNemar noise. Absents only **17 → 15** — two pages entered the top-20 while the
+> top-5 fell apart. Mean tokens dropped 363 → 314; the model was not starving for room.
+> **Why it failed (best current read).** Role markup is ugly to humans, but BGE-M3 already
+> embeds the inner identifiers; stripping also deletes path cues (`_orm`, `_engine`) the dense
+> space had been using. Cleaning for BM25 alone desynchronised the two hybrid channels.
+> **What remains.** `rag/textnorm.py` and its tests stay as the rejected experiment — so the
+> next sitting does not re-derive a worse embed. Boundary repair (`D56` 10.7%/6.3%) is still
+> open, but the 17 absents' answer chunks show **zero** ends-open/opens-ref on audit shapes —
+> so fixing `D56` is unlikely to be the absent fix. Phrasing / corpus ceiling owns most of them.
+> **Asked as** — *"Did you clean the Sphinx markup before embedding?"* — yes, measured, reverted.
 
 ## Using this in an interview
 

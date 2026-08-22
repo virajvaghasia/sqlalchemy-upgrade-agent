@@ -41,12 +41,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R6 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D65`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D69`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 191 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 196 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -341,18 +341,18 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-21 late):** **Phase 2 complete** (lab Round 12 CLOSED). **Phase 3 current** —
-levers 1–3 done (`D66`/`D67`/`D68`); **chunking next**. Still on **`phase-2/measure`**.
-**191 tests**, **58/58** `# runnable`, **68** decisions, **§H empty**.
+**State (2026-08-22):** **Phase 2 complete** (lab Round 12 CLOSED). **Phase 3 current** —
+`D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted). Still on
+**`phase-2/measure`**. **196 tests**, **58/58** `# runnable`, **69** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
-(hybrid+seat-5 CE): **recall@5 = 0.64 ±0.097**, **0** duplicate seats, absents **17**,
-**7↑ 0↓** vs the 50 (McNemar p = 0.016). Mac ≡ lab on hybrid; quote **0.64** after `D68`.
+(hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
+(p = 0.016). Quote **0.64**.
 
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 191 passed with Qdrant up; 186 + 5 skipped without
+uv run pytest                            # 196 passed with Qdrant up; 191 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -380,7 +380,7 @@ docs. That has happened four times and never the other way round.
 | **0** | complete, except the Day 3 tunnel (blocked on Shaili sharing the Tailscale node) | `deliverables/BREAKAGES.md`, 23 entries |
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
 | **2** | **complete** — 100 golden, signature closed, audit 100 PASS | `deliverables/golden.json`, `GOLDEN-FULLBAR-AUDIT.md` |
-| **3** | **current.** `D66`/`D67`/`D68` done; chunking next | [`phases/PHASE-3.md`](phases/PHASE-3.md) |
+| **3** | **current.** `D66`–`D68` done; `D69` strip rejected; boundary chunking still open | [`phases/PHASE-3.md`](phases/PHASE-3.md) |
 | 4–6 | planned in `phases/ROADMAP.md` | — |
 
 ### The baseline, and the number NOT to quote
@@ -619,7 +619,8 @@ of thing that is worse discovered in Phase 3 than written down now:
    vs baseline (p = 0.031).
 3. ~~Reranker (`D68`)~~ done — seat-5 CE promotion only; **0.63 → 0.64**, **7↑ 0↓** (p = 0.016).
    Full CE reorder rejected (10 broken).
-4. **Phase 3 lever 4 — chunking** (`D56`). Absents still **17**.
+4. ~~`D69` Sphinx strip~~ **rejected** (0.64→0.58; index restored). Absents are mostly phrasing,
+   not `D56` cuts — boundary chunking only if a named absent shows a severed answer.
 5. **Phase 4:** over-refusals with the answer already in the prompt (list in §R6.2; ±2 under
    `D54`). Plus fabrications `g056`/`g065` to explain.
 
@@ -1263,3 +1264,12 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Shipped: promote into seat 5 from ranks 6–10 when margin ≥ 0.8 (`BAAI/bge-reranker-base`).
 - Measured: recall@5 **0.63 → 0.64**, vs baseline **7↑ 0↓** (`g017`), p=0.016. Absents still 17.
 - Lab Round 12 closed in docs; **191** tests.
+
+### 2026-08-22 (overnight) — Phase 3 lever 4 attempt: Sphinx strip (`D69`) rejected
+
+- Surveyed 17 absents vs `D56` shapes: answer chunks are **not** ends-open/opens-ref failures —
+  mostly phrasing / vocabulary mismatch.
+- Built `rag/textnorm.py` (strip Sphinx roles). BM25-only strip: no gain. Full re-embed with
+  strip: recall@5 **0.64 → 0.58**, baseline **5↑ 2↓** (`g008`, `g013`) — **rejected**.
+- Reverted embed+BM25 to raw text; re-indexed; score restored **0.64**, **7↑ 0↓**.
+- Module + tests kept as the rejected experiment. **196** tests. Docs: `D69`, `PHASE-3.md`.
