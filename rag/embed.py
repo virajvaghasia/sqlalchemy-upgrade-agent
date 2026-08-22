@@ -130,6 +130,9 @@ def embedding_input(chunk: dict) -> str:
     "this was removed in 2.0" is meaningless without the heading naming what
     "this" is. The chunker already carries the ancestry; this is where it earns
     its keep. Without it the embedding represents an orphaned paragraph.
+
+    Sphinx roles stay raw. Stripping them for embed was measured 2026-08-22 and
+    **rejected** (`D69`): recall@5 fell 0.64 → 0.58 and broke two baseline hits.
     """
     path = " > ".join(chunk["heading_path"])
     return f"{path}\n\n{chunk['text']}" if path else chunk["text"]
