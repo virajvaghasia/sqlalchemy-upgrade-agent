@@ -1529,7 +1529,60 @@ If your tip already includes later commits, paste `git log -1` anyway — the RE
 ### REPLY 12.1
 
 ```
-(paste here)
+# lab PC, 2026-08-21. phase-2/measure @ f502a9d
+# tip already includes twin-collapse + hybrid BM25 (not the pre-hybrid ~0.49 tip)
+
+git log -1 --oneline
+f502a9d feat(phase-2/3): close golden signature; twin collapse + hybrid BM25
+git status -sb
+## phase-2/measure...origin/phase-2/measure
+
+uv sync --frozen --extra embed
+Checked 77 packages in 1.03s
+
+docker compose up -d qdrant
+Container sqlalchemy-upgrade-agent-qdrant-1 Running
+qdrant: healthy
+collection sqlalchemy-upgrade-agent-bge-m3-5617a9f6 points 3284
+
+uv run pytest -q
+........................................................................ [ 38%]
+........................................................................ [ 77%]
+..........................................                               [100%]
+# 186 passed, 1 warning (MovedIn20Warning on models.py — expected)
+
+uv run python -m rag.golden --status
+golden set: 100 items, 100 verified by a human, target 50 (D61)
+  unanswerable: 9  (at least 3 wanted — they are the only way to measure whether the system declines when it should)
+  provenance: breakages=34, github=25, migration_guide=16, stackoverflow=25
+
+uv run python -m rag.score
+ALL ITEMS  —  100 items, 91 answerable
+  recall@k   @1=0.31  @3=0.48  @5=0.63  @10=0.71  @20=0.81
+  strict     @1=0.31  @3=0.48  @5=0.63  @10=0.71  @20=0.81
+  MRR        0.436
+  recall@5    0.63  ±0.097  (95%, Wilson)
+  median rank when found  2.0   not in top-20: 17
+  slots lost to duplicates in top-5: 0
+
+EXCLUDING provenance=breakages  —  66 items, 59 answerable
+  recall@5    0.69  ±0.114  (95%, Wilson)
+  not in top-20: 10
+  slots lost to duplicates in top-5: 0
+
+provenance=breakages       recall@5 0.50  ±0.164   not-in-top-20: 7
+provenance=github          recall@5 0.74  ±0.170   not-in-top-20: 2
+provenance=migration_guide recall@5 0.93  ±0.143   not-in-top-20: 0
+provenance=stackoverflow   recall@5 0.48  ±0.196   not-in-top-20: 8
+
+uv run python -m rag.score --baseline deliverables/baseline-phase1.json
+PAIRED against baseline  (recall@5)
+  fixed    6  g024, g038, g044, g046, g047, g050
+  broken   0  —
+  exact McNemar p = 0.031  — significant
+
+# Matches Mac hybrid (~0.63), not the ASK's pre-hybrid ~0.49 checklist.
+# Duplicate seats in top-5: 0 (twin collapse live). Baseline: 6 fixed / 0 broken.
 ```
 
 ## ASK 12.2 — optional: `--refusals` on the 3060 (generation)
@@ -1551,5 +1604,27 @@ Expect small drift (`D54` narrowed) — paste the full refusal section, do not s
 ### REPLY 12.2
 
 ```
-(paste here — or write SKIPPED with reason)
+# lab PC, 2026-08-21. same tip f502a9d. After 12.1.
+
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+NVIDIA GeForce RTX 3060, 597 MiB, 12288 MiB
+
+ollama list | grep qwen
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    8 days ago
+
+uv run python -m rag.score --refusals
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               7/9  (78%)
+    answered — FABRICATED           2/9  (22%)   g056, g065
+  answerable items                  91
+    refused — over-refusal          46/91  (51%)
+      with the answer IN the prompt  20   generation defect (the Q18/Q19 class)   g006, g008, g013, g021, g029, g044, g048, g049, g050, g051, g064, g084, g087, g090, g095, g099, g100, g103, g106, g116
+      with the answer absent         26   honest — retrieval never supplied it
+
+ALL ITEMS recall@5    0.63  ±0.097  (same as 12.1; retrieval half unchanged)
+
+# vs Mac 2026-08-21 (100-item): unanswerable 7/9 refused + g056/g065 FABRICATED — identical IDs.
+# answerable-in-prompt over-refusals: Mac 13, lab 20. Same defect class, more IDs here.
+# Do not summarise the list away — full ID list is above.
 ```
