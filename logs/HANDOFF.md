@@ -1480,3 +1480,76 @@ valid — including conclusions in `D52`, `D53` and `D54`.
 **The last row is the one to hope against and the most useful if true.** It would mean the method
 was wrong, not just the answer — and it would be better to learn that now than after Phase 3 is
 built on it.
+
+---
+
+# Round 12 — Phase 2 lab confirmation (before more Phase 3)
+
+**Status: OPEN.** Viraj asked to finish Phase 2 on the lab PC before continuing Phase 3.
+Phase 2’s Mac checklist is already closed; this round is **parity** — same golden set, same
+scorer, on the 3060 box — plus an optional GPU `--refusals` so Phase 4 has a same-machine
+baseline (`D54`: re-run baseline in the same sitting as a prompt change).
+
+**Branch: `phase-2/measure`.** Not `lab/handoff` (deleted). Not `main`.
+**Do not pull uncommitted Mac Phase 3 hybrid work** — that is still dirty locally. Lab should
+match the last **pushed** tip so numbers compare to Mac Phase 2 (dense retrieval, ~0.49 on 100).
+
+## ASK 12.1 — sync + stack + retrieval score
+
+Paste every block’s raw output into REPLY 12.1.
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent   # or wherever the clone lives
+git fetch origin
+git checkout phase-2/measure
+git pull --ff-only
+git log -1 --oneline
+git status -sb
+
+uv sync --frozen --extra embed
+docker compose up -d qdrant
+# if collection empty / missing after pull:
+#   uv run python -m rag.corpus    # only if corpus/raw missing
+#   uv run python -m rag.chunk && uv run python -m rag.embed && uv run python -m rag.index
+
+uv run pytest -q
+uv run python -m rag.golden --status
+uv run python -m rag.score
+uv run python -m rag.score --baseline deliverables/baseline-phase1.json
+```
+
+**What “pass” looks like (Mac Phase 2, pre-hybrid):**
+- `golden --status`: 100 verified, 9 unanswerable
+- `rag.score` on 100: recall@5 around **0.49 ±0.101**, not-in-top-20 around **22**,
+  duplicate seats in top-5 around **31** (this tip is *before* twin-collapse/`D66`)
+- `--baseline`: **0 fixed, 0 broken**, p = 1.000
+
+If your tip already includes later commits, paste `git log -1` anyway — the REPLY is the truth.
+
+### REPLY 12.1
+
+```
+(paste here)
+```
+
+## ASK 12.2 — optional: `--refusals` on the 3060 (generation)
+
+Only after 12.1 looks sane. ~100 Ollama calls; on the 3060 this is a sitting, not a day.
+Needs `ollama` up with `qwen2.5-coder:7b`.
+
+```bash
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+ollama list | grep qwen
+uv run python -m rag.score --refusals 2>&1 | tee /tmp/phase2-refusals-lab.txt
+tail -80 /tmp/phase2-refusals-lab.txt
+```
+
+**Compare to Mac 2026-08-21 (100-item):** unanswerable **7/9** refused, **2 FABRICATED**
+(`g056`, `g065`); **13** answerable refused with the answer in the prompt; end-to-end ~**0.35**.
+Expect small drift (`D54` narrowed) — paste the full refusal section, do not summarise away flips.
+
+### REPLY 12.2
+
+```
+(paste here — or write SKIPPED with reason)
+```

@@ -6,8 +6,9 @@ closed Phase 1 at §R5. The `R` is for RAG, not Retrieval (`09-DECISIONS.md` **D
 
 **Why this is a fifth file.** §R4 in [`12-EVALUATION.md`](12-EVALUATION.md) teaches *how* to
 measure — two report cards, recall vs rank, why a human fills the answer key, the pin trap.
-**§R6 is the Phase 2 result of that measurement:** the 50-item golden score, the refusal run,
-and the three questions that have no answer in the corpus. That is a different subject from
+**§R6 is the Phase 2 result of that measurement:** the 50-item golden baseline, the 100-item
+run (and the provenance split), the refusal runs, and the nine questions marked
+`answerable: false`. That is a different subject from
 Sitting 4 (still on the 19 probe answers) and a different skill from Sitting 5 (defending out
 loud). Stuffing it into `12` made Phase 1 look unfinished; stuffing it into `13` would mix
 interview rehearsal with a scorecard. The split rule's condition is met (`D64`).
@@ -24,18 +25,21 @@ interview rehearsal with a scorecard. The split rule's condition is met (`D64`).
 Forget the section titles for half a page. Phase 2 produced three facts that must stay apart:
 
 ```
-  1. Did the right page reach the prompt?     recall@5 = 0.51 overall
-                                              …but 0.73 on migration_guide
-                                              and 0.41 on breakages   ← quote the split
-  2. Did the model refuse when it should?     3/3 unanswerable declined
-                                              7 answerable refused WITH the page in hand
-  3. Is the answer even on the shelf?         has_table / orm.relation / with_labels
-                                              = 0 of 3284 chunks each
+                                       50-item set (the baseline)   100-item set (2026-08-21)
+  1. Did the right page reach          recall@5 = 0.51              recall@5 = 0.49
+     the prompt?                       0.73 migration_guide         0.73 migration_guide
+                                       0.41 breakages               0.38 stackoverflow ← quote this
+  2. Did the model refuse when         3/3 unanswerable declined    7/9 declined, 2 FABRICATED
+     it should?                        7 refused WITH the page      13 refused WITH the page
+  3. Is the answer even on             has_table / orm.relation /   9 items; g065 reason was
+     the shelf?                        with_labels = 0 of 3284      wrong, ceiling kept (spot-check)
 ```
 
-**What did *not* happen.** Nobody said “the system is 51% good.” That figure averages two
-provenance groups that behave nothing alike (`D63`), and it ignores the seven generation
-defects that look like retrieval successes on report card A.
+**What did *not* happen.** Nobody said “the system is 51% good.” That figure averages
+provenance groups that behave nothing alike (`D63`), and it ignores the generation defects that
+look like retrieval successes on report card A. **And do not quote the 50-item refusal row as a
+clean pass** — it read `0/3 fabricated` because three unanswerable items cannot measure a
+fabrication rate; nine of them found two.
 
 **The rest of §R6 in one breath:**
 
@@ -43,7 +47,7 @@ defects that look like retrieval successes on report card A.
 |---|---|
 | **R6.0** | two jobs people mix up — verifying the key vs scoring search |
 | **R6.1** | the baseline — and why not to quote `0.51` alone |
-| **R6.2** | refusals — the 15 points recall cannot see |
+| **R6.2** | refusals — the 15 points recall cannot see, two fabrications, and a determinism claim that did not hold |
 | **R6.3** | the 9 `answerable: false` items — what that word does not mean, and the one that looks mislabelled |
 
 ---
@@ -100,13 +104,14 @@ them**, so “I see the word” is circular. The minimum bar is: open `--show`, 
 **You do not need to memorise all 100 for interviews.** You need a once-per-draft pass at that
 minimum bar (or delete the draft). Defend the *rule* later, not every `g0xx`.
 
-**And this is exactly what is open right now.** Every item in `golden.json` carries
-`verified_by: "human"`, but the notes on `g051`–`g121` record that a Claude session did the
-reviewing and wrote the stamps. The mechanical half was checked hard —
+**And this is what closed on 2026-08-21.** Every item in `golden.json` carries
+`verified_by: "human"`. The notes on `g051`–`g121` had recorded Claude batch stamps; Viraj
+closed §H by **spot-checking ten, then verified** (sheet in `PHASE-2.md` / §H CLOSED). The mechanical
+half was already checked hard —
 `tools/audit_golden_fullbar.py` resolves every chunk, fetches every source page live, and runs
 the executable claims on real 2.0.51, 100 PASS. **The half in the picture above — "is this page
-about THIS question?" — is the half an audit cannot do.** §H of `09-DECISIONS.md` holds it and
-`PHASE-2.md` lists the three ways to close it.
+about THIS question?" — is what the spot-check sampled.** It does not claim he read all 50 of
+the second tranche; it claims ten held (one note fixed) and he verified.
 
 **Named example.** For `g002` (*from_self blew up*), the key was already BREAKAGES #12. Checking
 meant confirming `c01598`/`c01599` are the migration section for `from_self` — light, because
@@ -176,25 +181,25 @@ once from the 1.4 docs and once from the 2.0 docs (`D38`, `D58`). Vectors for th
 byte-identical, so no ranker can prefer one; both look equally “close.”
 
 ```
-WITHOUT dedupe (what ships today)          WITH dedupe (cheap fix, no new model)
-  seat 1: page A (2.0 copy)                  seat 1: page A
+WITHOUT dedupe (Phase 1–2)                 WITH dedupe (`D66`, ships now)
+  seat 1: page A (2.0 copy)                  seat 1: page A (prefer 2.0.51)
   seat 2: page A again (1.4 twin)  ← waste   seat 2: page B   ← was crowded out before
   seat 3: page B                             seat 3: page C
   seat 4: page C                             seat 4: page D
   seat 5: page D                             seat 5: page E
 ```
 
-**“20”** is the count of those wasted seats across the whole golden run — not “20 questions
-failed,” and not “20% of the index.” Twenty times, a top-5 slot held a duplicate instead of a
-new page.
+**“20”** (50-item) / **“31”** (100-item) counted those wasted seats. **`D66` collected the free
+win on 2026-08-21:** seats **31 → 0**, recall@5 **0.495 → 0.516**, **2 fixed / 0 broken** vs the
+50-item baseline. Absents from top-20 stayed **22** — dedupe cannot invent a page.
 
-**“Free win”** means: fixing it is **cheap compared to the other levers**. You drop one twin
-when you retrieve (or when you index). You do **not** need a new embedding model, a GPU sitting,
-or a reranker. Hybrid search and reranking cost real work; dedupe is a bookkeeping filter. It
-will not fix the 9 questions that never appear in the top 20 — those need different tools — but
-it can give some questions an extra useful page in the five they already get, for almost no
-engineering cost. That is all “free” means here: **cheap relative to Phase 3’s other fixes**,
-not “improves recall for free with zero effort forever.”
+**“Free win”** meant: cheap relative to hybrid/reranker — a bookkeeping filter, not a new model.
+It is no longer a future lever; it is the first Phase 3 row in `ROADMAP.md` / `PHASE-3.md`.
+
+**Hybrid (`D67`) is the second row.** Dense + BM25 fused with dense-heavy RRF (`kd=25`, `kb=90`):
+recall@5 **0.52 → 0.63**, absents **22 → 17**, stackoverflow **0.38 → 0.48**, and the first
+paired result that clears `D61` — **6 fixed / 0 broken**, McNemar p = 0.031 against the saved
+50. Equal-k fusion was measured and rejected (broke five). Details in `PHASE-3.md` Step 2.
 
 **Read the headline as a sentence.** For half the questions, the page holding the answer never
 reached the prompt. `DEFAULT_K = 5`, so the model was handed five pages, and for 23 of 47
@@ -450,12 +455,124 @@ work, is a **measured property of the generation step** — and it is Phase 4's,
 
 #### The one cell to keep watching
 
-The **6** that answered *without* the verified page in the prompt are the least understood cell in
-the table, and this file will not pretend otherwise. They may have answered correctly from an
+The **6** that answered *without* the verified page in the prompt (**11** on the 100-item run
+below) are the least understood cell in the table, and this file will not pretend otherwise. They may have answered correctly from an
 adjacent page, or partially, or they may have invented. **Retrieval cannot tell you and neither
 can a refusal count** — deciding it means reading six answers against real 2.0.51, which is
 exactly the judgement `D06` reserves for a human and exactly what Phase 4 exists to grade. It is
 recorded here as an open cell rather than quietly averaged into a pass.
+
+#### The same run on 100 items — and the clean pass stopped being clean
+
+`--refusals` was re-run against the finished 100 on 2026-08-21. **Two things changed, and the
+first one is the serious one.**
+
+```
+# summary of: uv run python -m rag.score --refusals, 2026-08-21, 100-item set.
+#   ENV in check_runnable: needs Ollama, corpus/chunks.jsonl and Qdrant.
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               7/9  (78%)
+    answered — FABRICATED           2/9  (22%)   g056, g065
+  answerable items                  91
+    refused — over-refusal          48/91  (53%)
+      with the answer IN the prompt  13   generation defect (the Q18/Q19 class)
+      with the answer absent         35   honest — retrieval never supplied it
+```
+
+**On 50 items this cell read `0/3 fabricated` and was quoted as a clean pass. It is now `2/9`.**
+Nothing about the model or the prompt changed; the questions got harder. **Three unanswerable
+items were never enough to measure a fabrication rate** — `D62` asked for at least three, and
+nine is not many either.
+
+**Look at what it invented, because "fabrication" is a word that needs an artifact.** `g065`
+asked how to create a table and a view in one migration. The system answered with a confident
+Alembic script:
+
+```python
+def upgrade():
+    op.create_table('new_table', sa.Column('id', sa.Integer, primary_key=True), …)
+    op.create_view('new_view', 'SELECT id, name FROM new_table')   # <- does not exist
+
+def downgrade():
+    op.drop_view('new_view')                                        # <- does not exist
+    op.drop_table('new_table')
+```
+
+Checked rather than assumed, against real Alembic:
+
+```
+# summary of: uv run --no-project --with alembic python -c "…hasattr(Operations, …)"
+alembic 1.19.1
+create_view exists: False
+drop_view exists: False
+create_table exists: True
+```
+
+**Two of the four operations in that answer are invented, and they sit next to two real ones.**
+That is the shape fabrication actually takes here — not gibberish, a plausible script where the
+made-up lines are indistinguishable from the working ones unless you already know the API. It
+cited no source for the code block, which is the tell a reader could have caught.
+
+`g056` is the milder kind. The developer asked about the **`Query` property** — Flask-SQLAlchemy's
+`Model.query`, from `scoped_session.query_property()`. The system answered with an unrelated
+Python `@property` that runs a query inside it, and hedged at the end: *"The sources do not cover
+how to migrate this property to SQLAlchemy 2.0."* **That hedge is why the detector is a prefix
+test and not a substring search** — the sentence contains the refusal string, the answer is not a
+refusal, and a substring test would have scored this fabrication as a correct decline.
+
+**And `g065` is the item §R6.3 says may be mislabelled — both things are true at once.** Its
+stated reason ("0 narrative chunks") is measurably wrong; its verdict (the system should have
+refused) is vindicated by the invented `op.create_view`. **The label decides whether an answer
+counts as a fabrication**, which is the sharpest argument for `D06` in the file: get the label
+wrong and this number moves without the system changing at all.
+
+#### The end-to-end figure, recomputed on 91 answerable items
+
+```
+91 answerable questions
+│
+├── 45  the answer WAS retrieved into the prompt      (recall@5 = 0.49)
+│   ├── 32  answered            ✓  the system worked, end to end
+│   └── 13  REFUSED anyway      ✗  generation defect — it had the page and declined
+│
+└── 46  the answer was NOT retrieved
+    ├── 35  refused             ✓  honest
+    └── 11  answered anyway     ?  answered without the verified page in the prompt
+```
+
+**32 of 91 is 0.35**, against a recall of `0.49`. The same ~15-point gap the 50-item run found,
+holding at twice the size: **retrieval's number is a ceiling and generation loses a chunk of it**,
+invisible to every retrieval metric. The open cell grew from 6 items to **11** — still unread,
+still a human's call (`D06`), still Phase 4's.
+
+#### `D54` said refusal behaviour is deterministic. Across days, it is not
+
+The 08-20 run named seven items that refused with the answer in the prompt: `g006`, `g008`,
+`g013`, `g021`, **`g029`**, `g048`, `g049`. The 08-21 run names, from the same fifty: `g006`,
+`g008`, `g013`, **`g015`**, `g021`, `g048`, `g049`. **Two flipped, in opposite directions.**
+
+Re-asked directly, today, both reproduce today's answer:
+
+```
+# summary of: uv run python -m rag.ask "<the g029 question>", then the g015 question, 2026-08-21
+g029  "insert().values() keyword constructor style for update/delete broke"
+      -> "The keyword constructor style for `insert().values()` was broken in the migration…"  ANSWERED
+g015  "row['id'] TypeError on result rows after upgrade, how do I get mapping access"
+      -> "The sources do not answer this."                                                     REFUSED
+```
+
+**What was ruled out.** `TEMPERATURE = 0.0` in `rag/ask.py`, and `git log` says that file has not
+changed since `b6320c4` — the commit that introduced `--refusals` and produced the 08-20 run. The
+index did not move either: the paired recall comparison is `0 fixed, 0 broken`. Same prompt, same
+sources, same greedy decoding.
+
+**What was not ruled out:** the model server. Greedy decoding is reproducible *within* a process,
+and today's two runs agree with each other — it is across days and across processes that two of
+seven moved. **So `D54`'s claim needs its scope stated: five runs in one sitting were unanimous,
+which is a weaker statement than "deterministic."** It matters because a Phase 4 fix will be
+judged by whether these items stop refusing, and a two-item drift is most of the effect anyone
+would be looking for.
 
 ### R6.3 The questions with no answer — and what "unanswerable" does not mean
 
@@ -503,10 +620,10 @@ ceilings — questions about tooling next to SQLAlchemy rather than SQLAlchemy i
 | `g097` | GitHub | `AttributeError: no attribute _active_history` | `_active_history` → **0** |
 | **`g065`** | Stack Overflow | *"Alembic"* — creating a table and a view in one migration | **see below** |
 
-**`g065` does not hold up as written, and this is worth walking through** because it is the
-failure mode an automated audit cannot catch. Its note says *"Unanswerable from THIS corpus
-(0 narrative chunks)"*. Grep the corpus for `CREATE VIEW` and you get **2** — a duplicate pair,
-`c00484` (1.4) and `c02056` (2.0), and their heading is not incidental:
+**`g065` did not hold up as written — and the spot-check fixed the note, not the ceiling.**
+Its note said *"Unanswerable from THIS corpus (0 narrative chunks)"*. Grep the corpus for
+`CREATE VIEW` and you get **2** — a duplicate pair, `c00484` (1.4) and `c02056` (2.0), and their
+heading is not incidental:
 
 ```
 doc/build/faq/metadata_schema.rst
@@ -521,15 +638,15 @@ doc/build/faq/metadata_schema.rst
 
 **That is an FAQ entry whose title is the question.** Whether it *answers* the developer — who
 wanted a table and a view in one Alembic migration — is a judgement: it says SQLAlchemy does not
-do this directly, names `DDL` as the tool, and points at the section. It may well be the right
-call to refuse. But **"0 narrative chunks" is not a judgement, it is a measurement, and the
-measurement is wrong.**
+do this directly, names `DDL` as the tool, and points at Alembic. On 2026-08-21 Viraj's
+spot-check **kept `answerable: false`** (those chunks do not teach same-migration steps) and
+**rewrote the reason** so it no longer claims zero chunks. §H CLOSED records the sheet.
 
-**Why this matters more than one item.** `g065` is marked `answerable: false`, so
+**Why this mattered more than one item.** `g065` is marked `answerable: false`, so
 `tools/audit_golden_fullbar.py` reports it `N/A` on both the docs and SQL checks and it lands in
 the 100 PASS rollup **without anything being checked**. An unanswerable label is the one label an
-audit cannot test, because the audit has nothing to run. It is exactly why `D06` puts a human on
-the signature — and it is the first item to open if a spot-check happens (§H).
+audit cannot test — which is why `D06` put a human on the signature, and why this item was
+spot-check #1.
 
 **The cost of getting this wrong runs both ways.** Mark an answerable item unanswerable and you
 have removed a question retrieval was supposed to pass; mark an unanswerable one answerable and
@@ -661,5 +778,5 @@ too, is a stronger result than a higher recall figure.
 | [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | the phase plan; this file is the teaching write-up of its score |
 | [`12-EVALUATION.md`](12-EVALUATION.md) | §R4 — *how* to measure (Sitting 4, still the 19 probe answers) |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | §R5 — defend Phase 1 cold; Phase 1's last gate |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | **D06, D45, D58–D65**, plus §H's open question about who signed `verified_by` |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | **D06, D45, D58–D65**, plus §H CLOSED (spot-check of ten, then verified, 2026-08-21) |
 

@@ -212,28 +212,109 @@ def query_vector(query: str) -> list[float]:
     )[0].tolist()
 
 
-def retrieve(query: str, limit: int = 5, version: str | None = None):
-    """Top-`limit` hits, newest-first by score. Shared by --search and rag.ask."""
-    from qdrant_client import models
+def retrieve(
+    query: str,
+    limit: int = 5,
+    version: str | None = None,
+    *,
+    dedupe: bool = True,
+    hybrid: bool = True,
+):
+    """Top-`limit` hits. Shared by --search, rag.ask, and rag.score.
 
-    _, _, stats, _ = load_inputs()
+    Defaults (Phase 3):
+      - `hybrid=True` — dense (Qdrant) + BM25 fused with dense-heavy RRF (`D67`)
+      - `dedupe=True` — collapse cross-version twins, prefer 2.0.51 (`D66`)
+
+    Pass `hybrid=False` / `dedupe=False` only to re-measure the earlier tax.
+    """
+    from qdrant_client import models
+    from rag import dedup as dedup_mod
+
+    _, _, stats, chunks = load_inputs()
     flt = (
         models.Filter(must=[models.FieldCondition(
             key="sqlalchemy_version", match=models.MatchValue(value=version))])
         if version else None
     )
-    return client().query_points(
+
+    if hybrid:
+        from rag import bm25 as bm25_mod
+        from rag import hybrid as hybrid_mod
+
+        # Each channel contributes CHANNEL_DEPTH; fusion + dedupe then cut to
+        # `limit`. Over-fetch on dense still needed so twins can collapse.
+        channel = hybrid_mod.CHANNEL_DEPTH
+        dense_fetch = (
+            channel if (version or not dedupe)
+            else dedup_mod.overfetch_limit(channel)
+        )
+        dense_points = client().query_points(
+            collection_name=collection_name(stats),
+            query=query_vector(query),
+            limit=dense_fetch,
+            query_filter=flt,
+            with_payload=True,
+        ).points
+        if dedupe and not version:
+            dense_points = dedup_mod.dedupe_points(dense_points, channel)
+        else:
+            dense_points = dense_points[:channel]
+
+        sparse_hits = bm25_mod.get_index().search(
+            query, limit=channel, version=version
+        )
+        dense_ids = [p.payload["chunk_id"] for p in dense_points]
+        sparse_ids = [h.chunk_id for h in sparse_hits]
+        # Fuse to more than `limit` when dedupe still has to run on the merged
+        # list — BM25 can re-introduce a twin the dense pass already dropped.
+        fuse_n = (
+            limit if (version or not dedupe)
+            else dedup_mod.overfetch_limit(limit)
+        )
+        rrf_map = hybrid_mod.rrf_scores_map(dense_ids, sparse_ids)
+        ordered = hybrid_mod.rrf_fuse(
+            dense_ids, sparse_ids, limit=fuse_n
+        )
+        dense_by_id = {p.payload["chunk_id"]: p for p in dense_points}
+        points = hybrid_mod.materialize_hits(
+            ordered,
+            dense_by_id=dense_by_id,
+            chunks_by_id=chunks,
+            rrf_scores=rrf_map,
+        )
+        if dedupe and not version:
+            points = dedup_mod.dedupe_points(points, limit)
+        else:
+            points = points[:limit]
+        return points
+
+    # Dense-only path (Phase 1–2 measurement).
+    fetch = limit if (version or not dedupe) else dedup_mod.overfetch_limit(limit)
+    points = client().query_points(
         collection_name=collection_name(stats),
         query=query_vector(query),
-        limit=limit,
+        limit=fetch,
         query_filter=flt,
         with_payload=True,
     ).points
+    if dedupe and not version:
+        points = dedup_mod.dedupe_points(points, limit)
+    else:
+        points = points[:limit]
+    return points
 
 
-def search(query: str, limit: int = 5, version: str | None = None) -> None:
-    hits = retrieve(query, limit=limit, version=version)
-    print(f"\n=== {query}" + (f"   [version={version}]" if version else ""))
+def search(
+    query: str,
+    limit: int = 5,
+    version: str | None = None,
+    *,
+    hybrid: bool = True,
+) -> None:
+    hits = retrieve(query, limit=limit, version=version, hybrid=hybrid)
+    mode = "hybrid" if hybrid else "dense"
+    print(f"\n=== {query}" + (f"   [version={version}]" if version else "") + f"   [{mode}]")
     for rank, hit in enumerate(hits, 1):
         p = hit.payload
         head = " > ".join(p["heading_path"]) or "(none)"
@@ -247,7 +328,8 @@ def main() -> None:
     if "--search" in argv:
         query = argv[argv.index("--search") + 1]
         version = argv[argv.index("--version") + 1] if "--version" in argv else None
-        search(query, version=version)
+        hybrid = "--dense-only" not in argv
+        search(query, version=version, hybrid=hybrid)
     else:
         build(recreate="--recreate" in argv)
 

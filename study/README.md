@@ -22,7 +22,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`11-GENERATION.md`](11-GENERATION.md) | what happens *after* search: the prompt as a component. Three wordings of one sentence; C fabricates, A over-refused once, B ships (§R3) | §R3– |
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
-| [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — the 50-item golden baseline, the refusal run, and the three ceiling questions (`answerable: false`). Continues the `R` run after Phase 1 closed (§R6) | §R6 |
+| [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
 
 ## By phase — which file belongs to what
 
@@ -85,7 +85,7 @@ re-checks all 100 against `chunks.jsonl`, live docs, and real `sqlalchemy==2.0.5
 
 | file | § | what it was for |
 |---|---|---|
-| [`14-MEASURE.md`](14-MEASURE.md) | §R6 | the measured baseline, refusals, and three ceiling items — written after the score existed |
+| [`14-MEASURE.md`](14-MEASURE.md) | §R6 | baseline + 100-item run + refusals + ceilings — written after the scores existed |
 
 **Phase 1's evaluation teaching stays in `12`.** How to score (two report cards, rank table,
 `D06`) is Sitting 4. What the finished golden set scored is Sitting-adjacent Phase 2 material in

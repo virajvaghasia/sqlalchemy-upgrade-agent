@@ -11,10 +11,11 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 | [2. harvest the questions](#2-harvest-the-questions) | **done** 2026-08-20 | Mac | 50 items: 47 answerable, 3 unanswerable; `breakages` 34, `migration_guide` 16 |
 | [3. record the answer chunk](#3-record-which-chunk-holds-the-answer) | **done** 2026-08-20 | Mac | 68 answer-chunk ids, all resolving; every item human-verified (`D06`) |
 | [4. score it](#4-score-it-with-one-command) | **done** 2026-08-20 | Mac | `rag/score.py`, 25 tests, six mutations checked; baseline row filled |
-| [5. refusal accuracy](#5-refusal-accuracy-d62) | **built** 2026-08-20 | Mac | `--refusals`, the one section that needs generation |
-| [6. the second 50](#6-the-second-50--real-questions-harvested) | **harvested, reviewed, culled, audited — one open question** | Mac | 50 real questions from Stack Overflow (25) and GitHub discussions (25); 17 dropped and backfilled; `deliverables/GOLDEN-FULLBAR-AUDIT.md` = 100 PASS. **Open: who signed `verified_by` on `g051`+** |
+| [5. refusal accuracy](#5-refusal-accuracy-d62) | **built** 2026-08-20, **re-run on 100** 2026-08-21 | Mac | `--refusals`; on the 100-item set **2 fabrications** (`g056`, `g065`) and **13** refusals with the answer in the prompt |
+| [6. the second 50](#6-the-second-50--real-questions-harvested) | **harvested, reviewed, culled, audited, signature closed** | Mac | 50 real questions from Stack Overflow (25) and GitHub discussions (25); 17 dropped and backfilled; `deliverables/GOLDEN-FULLBAR-AUDIT.md` = 100 PASS. **§H closed 2026-08-21: spot-check of ten, then verified** |
+| [7. lab confirmation](#7-lab-confirmation-before-phase-3) | **OPEN** 2026-08-21 | lab PC | Same golden + score on the 3060; optional GPU `--refusals`. Not a Mac gate — Viraj asked for it before more Phase 3. See `logs/HANDOFF.md` Round 12. |
 
-**The phase is measured.** The teaching write-up of the score — baseline, refusals, three
+**The phase is measured on the Mac.** Lab confirmation (step 7) is parity, not a second harvest. The teaching write-up of the score — baseline, refusals, three
 ceilings — is [`../study/14-MEASURE.md`](../study/14-MEASURE.md) §R6. The headline is
 **recall@5 = 0.51 ±0.137** over the 50 hand-verified items, saved to
 `deliverables/baseline-phase1.json` and written into `ROADMAP.md`'s metrics table as the row
@@ -359,8 +360,39 @@ prompt. They may be right from an adjacent page, partial, or invented — no ret
 refusal count can tell, and deciding it means a human reading six answers against real 2.0.51.
 That is Phase 4's job (`D06`).
 
+**Re-run on the finished 100, 2026-08-21 — and the clean pass stopped being clean:**
+
+```
+# summary of: uv run python -m rag.score --refusals, 100-item set, 2026-08-21.
+#   ENV in check_runnable — needs Ollama, Qdrant and corpus/chunks.jsonl (D11).
+  unanswerable items                9
+    refused — correct               7/9  (78%)
+    answered — FABRICATED           2/9  (22%)   g056, g065
+  answerable items                  91
+    refused — over-refusal          48/91  (53%)
+      with the answer IN the prompt  13   g006 g008 g013 g015 g021 g048 g049 g084 g087 g090 g095 g100 g116
+      with the answer absent         35   honest — retrieval never supplied it
+```
+
+**`0/3 fabricated` became `2/9`, and nothing about the system changed.** Three unanswerable items
+were never enough to measure a fabrication rate. `g065` answered with an Alembic script calling
+**`op.create_view`** and **`op.drop_view`** — neither exists (`hasattr(Operations, "create_view")`
+is `False` on alembic 1.19.1), sitting beside a real `op.create_table`. `g056` answered a
+different question entirely and hedged with *"The sources do not cover…"* — **the refusal string
+inside an answer, which is why `ask.refused()` is a prefix test and not a substring search.**
+
+**End to end: 32 of 91 = 0.35** against a recall of `0.49`. The ~15-point generation loss held at
+twice the sample. The open cell — answered without the verified page — grew from **6 to 11**.
+
+**And `D54`'s determinism claim did not survive the re-run.** Two of the seven first-50 items
+flipped: `g029` refused on 08-20 and answers now, `g015` the reverse — with `TEMPERATURE = 0.0`,
+`rag/ask.py` unchanged since `b6320c4`, and the index unchanged (`0 fixed, 0 broken`). Both
+reproduce today when re-asked, so it is stable *within* a sitting. `D54` now carries the narrowed
+scope; the practical consequence is that a Phase 4 before/after must re-run its baseline in the
+same sitting as the change. `14-MEASURE.md` §R6.2 walks all of it.
+
 **Done when:** the refusal section runs against the finished golden set and its numbers are
-recorded here — **done 2026-08-20**.
+recorded here — **done 2026-08-20 on 50, re-run 2026-08-21 on 100**.
 
 ---
 
@@ -509,46 +541,27 @@ answerable items**, not over all 50. A number nobody derived, typed once, repeat
 exactly the failure mode `CLAUDE.md`'s measurement rule exists for, and prose is still where it
 hides.
 
-### Open, and it is Viraj's call: who set `verified_by`
+### Closed 2026-08-21: who set `verified_by` — spot-check of ten, then verified
 
-`--status` now says **100 verified by a human**, and the item notes do not fully support that
-sentence. **All fifty of the first tranche name him** — 47 read *"Viraj approved remaining
-drafts 2026-08-20"*, and `g001`–`g003` are more specific (*"Viraj opened the .rst and
-approved"*). The other fifty were
-stamped by a Claude session on 2026-08-21 — the notes say so in their own words:
-`CLAUDE_REVIEW 2026-08-21 (keep)`, `STAMPED human 2026-08-21 (batch 3)`, `HUMAN stamp Batch 7`.
-**Ten of them still contain the sentence they were supposed to be replaced by**:
+`--status` said **100 verified by a human** while notes on `g051`–`g121` still named Claude
+batch stamps, and ten still contained *"Awaiting human stamp … (D06)"* with the field already
+set. **`D06` is about who signs.** Viraj closed it by approving a risk-weighted spot-check of
+ten (start `g065`), then verified:
 
-> `g093`: *"Awaiting human stamp: set verified_by to 'human' after a one-minute `--show` check
-> (D06)."* — with `verified_by` already set to `"human"`.
+`g065`, `g097`, `g093`, `g075`, `g099`, `g095`, `g088`, `g087`, `g079`, `g074`.
 
-`rag/golden.py` cannot write that field and a test asserts it; the file was edited directly, which
-the test does not cover. **This is not a claim that the reviewing was bad** — the full-bar audit
-says the chunks resolve, the pages are live, and the SQL behaves. It is a claim that
-**`D06` is about who signs, not about how carefully it was checked**, and the signature is
-currently unverifiable from inside the repo.
+| item | outcome |
+|---|---|
+| **g065** | KEEP `answerable: false`; **FIX note** — not "0 narrative chunks"; `c00484`/`c02056` exist (FAQ → Alembic) but do not teach same-migration CREATE TABLE+VIEW |
+| **g097, g093, g075** | KEEP unanswerable |
+| **g099, g095, g088, g087, g074** | KEEP answerable |
+| **g079** | KEEP; swapped `c01189` → `c03004` (2.0.51 twin) |
 
-Three ways out, and only one of them is Claude's to do:
-
-| option | what it costs | what it buys |
-|---|---|---|
-| **ratify** — you confirm you authorised the batch stamps | minutes | the 100-item scorecard becomes the baseline |
-| **spot-check** — pick 10 of the 50 at random, `--show` each, then ratify | ~1 hour | a sampled defence: "I read ten, all held" |
-| **revert** — set `g051+` back to `verified_by: null` | the 100-item numbers become provisional | `D06` clean, baseline stays `0.51` on 50 |
-
-**And there is already one item to start the spot-check with.** `g065` (*"Create table and view
-in the same migration in SQLAlchemy"*) is marked `answerable: false` with the note *"Unanswerable
-from THIS corpus (0 narrative chunks)"*. The corpus has **2** chunks — `c00484` and `c02056`, a
-cross-version pair — whose heading is *"Does SQLAlchemy support ALTER TABLE, **CREATE VIEW**,
-CREATE TRIGGER, Schema Upgrade Functionality?"*. The verdict may still be right; the stated reason
-is measurably wrong. **And the audit cannot see it**: an `answerable: false` item is reported
-`N/A` on both the docs and SQL checks and passes the rollup without anything being run. That is
-the one label an audit structurally cannot test — which is the argument for `D06` in one item.
-`14-MEASURE.md` §R6.3 walks it.
-
-**Until you rule, the committed baseline artifact is untouched.** `deliverables/baseline-phase1.json`
-still holds the 50-item run, `ROADMAP.md`'s metrics row still quotes it, and the 100-item numbers
-above are recorded as measured-but-unratified.
+Full write-up: §H CLOSED in `09-DECISIONS.md`. **"Awaiting human stamp"** stripped from notes.
+The 100-item scorecard is **measured and verified**. The committed **baseline artifact** is
+still `deliverables/baseline-phase1.json` (50 items) — `D65` / `D61`, not reversed. Phase 3
+still compares against that saved 50-row file for the paired McNemar; the 100-item numbers are
+the verified scorecard for everything else.
 
 ### What the harvest already fixes
 
@@ -618,6 +631,23 @@ time, because a metric chosen after seeing the numbers is the flattering one.
 
 Each gets an entry in [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) when settled, with
 what was rejected.
+
+## 7. Lab confirmation (before Phase 3)
+
+**Why this exists.** Every Phase 2 step above ran on the Mac. That is enough to *close* the
+measurement: retrieval does not need the 3060. Viraj still wants the **same commands on the lab
+PC** before spending more time on Phase 3 — stack parity, and a GPU refusal run if generation
+is going to be judged later (`D54`).
+
+**What it is not.** Not a re-harvest. Not a new golden set. Not the Day 3 tunnel (still Phase 0 /
+Shaili). Not Round 7’s `k` sweep (Phase 1 leftover; `D54` already kept `DEFAULT_K = 5`).
+
+**How to run it.** [`../logs/HANDOFF.md`](../logs/HANDOFF.md) **Round 12** — ASK 12.1 (score +
+baseline), ASK 12.2 (optional `--refusals`). Paste raw REPLY output; Mac session reads it on
+the next pull.
+
+**Phase 3 pause.** Twin collapse / hybrid may already exist as *uncommitted* Mac work. Do not
+treat that as Phase 2 lab truth — lab confirms the **pushed** `phase-2/measure` tip first.
 
 ## Verification
 

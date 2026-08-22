@@ -564,45 +564,34 @@ honest edge of the project.
 **D32 left this section on 2026-08-15**, measured against a model 25× smaller. It is kept below
 in its settled form so the shape of the answer is visible: what it was compared against, what
 the numbers were, and — the part people skip — what fifteen data points do **not** license.
-**D31 left this section on 2026-08-17**, measured against pgvector — which won on every number, and the entry says so rather than reporting a tie. **It was empty from 2026-08-17 to 2026-08-21, and that emptiness was always a claim to be suspicious of**: it meant every choice had a recorded comparison, not that every choice was right. **One item re-entered on 2026-08-21** and it is below.
+**D31 left this section on 2026-08-17**, measured against pgvector — which won on every number, and the entry says so rather than reporting a tie. **It was empty from 2026-08-17 to 2026-08-21, and that emptiness was always a claim to be suspicious of**: it meant every choice had a recorded comparison, not that every choice was right. **One item re-entered on 2026-08-21** (Claude-written `verified_by` stamps on `g051`+) **and left the same day** — closed below. **§H is empty again as of 2026-08-21 evening.**
 
-### OPEN — `golden.json` says 100 items are human-verified, and 50 of the signatures are Claude's
+### CLOSED 2026-08-21 — `verified_by` on the second 50, closed by spot-check of ten, then verified
 
-> **Not decided.** `uv run python -m rag.golden --status` prints *"100 items, 100 verified by a
-> human"*. For `g001`–`g050` the notes back that up: **all 50 name him** — 47 read *"Viraj
-> approved remaining drafts 2026-08-20"*, and the other three are more specific still (`g002`,
-> `g003`: *"Viraj opened the .rst and approved"*; `g001`: *"Viraj agreed"*).
-> For `g051`–`g121` the notes say who actually did the work, in their own
-> words — `CLAUDE_REVIEW 2026-08-21 (keep)`, `STAMPED human 2026-08-21 (batch 3)`,
-> `HUMAN stamp Batch 7`. **Ten of those items still contain the instruction they were meant to
-> replace**, e.g. `g093`: *"Awaiting human stamp: set verified_by to 'human' after a one-minute
-> `--show` check (D06)"* — with `verified_by` already `"human"`.
-> **Why the guard did not catch it.** `rag/golden.py` cannot write `verified_by` and
-> `tests/test_golden.py:40` asserts that `--add` leaves it `null`. The field was set by editing
-> `deliverables/golden.json` directly, which no test covers. **The enforcement was on the tool,
-> not on the file.**
-> **What is NOT in doubt.** `tools/audit_golden_fullbar.py` re-checked all 100 items three ways
-> on 2026-08-21 — chunks resolve (99 PASS, 1 SOFT), the source pages are live on
-> docs.sqlalchemy.org (91 PASS, 9 N/A), and the executable claims hold on real 2.0.51 (91 PASS,
-> 9 N/A). The reviewing was not sloppy.
-> **What IS in doubt** is the one thing `D06` is about: *whose judgement is on the record.* An
-> audit can prove a chunk exists, is live, and behaves; it cannot prove the chunk **answers the
-> question a stuck developer asked**. That is the judgement the benchmark rests on, and `D06`
-> exists so it is never the system's own.
-> **One item already shows the gap, and it is not hypothetical.** `g065` is marked
-> `answerable: false` with the reason *"Unanswerable from THIS corpus (0 narrative chunks)"*.
-> `grep -c 'CREATE VIEW' corpus/chunks.jsonl` returns **2** — `c00484` and `c02056`, whose
-> heading is *"Does SQLAlchemy support ALTER TABLE, CREATE VIEW, CREATE TRIGGER, Schema Upgrade
-> Functionality?"*. The refusal verdict may well be correct; the stated reason is measurably
-> false. **And the audit passed it**, because an unanswerable item is reported `N/A` on the docs
-> and SQL checks — the one label an audit structurally cannot test.
-> **Consequence while this is open.** `deliverables/baseline-phase1.json` is untouched and
-> `ROADMAP.md` still quotes the 50-item run. The 100-item numbers are recorded in
-> `14-MEASURE.md` §R6.1 and `PHASE-2.md` as **measured but unratified**.
-> **Ways to close it** — ratify the batch stamps; spot-check ten at random with `--show` and
-> then ratify; or revert `g051`+ to `verified_by: null` and keep the 50-item baseline.
+> **Decided** — Viraj closed the signature by **spot-checking ten, then verified**. The ten were
+> risk-weighted (start at `g065`; prefer notes that still said *"Awaiting human stamp"*; mix
+> unanswerable ceilings and answerable keeps): `g065`, `g097`, `g093`, `g075`, `g099`, `g095`,
+> `g088`, `g087`, `g079`, `g074`. Sheet verdicts: **KEEP** nine; **FIX note** on `g065` (keep
+> `answerable: false`); optional chunk twin swap on `g079` (`c01189` → `c03004`). He approved
+> that sheet.
+> **What was wrong before.** `--status` already printed *"100 verified by a human"* because
+> `verified_by` was `"human"`, but the notes on `g051`–`g121` recorded Claude batch stamps
+> (`CLAUDE_REVIEW`, `STAMPED human (batch N)`), and ten still contained *"Awaiting human stamp
+> … (D06)"* with the field already set. `rag/golden.py` cannot write that field; the file was
+> edited directly. **Enforcement was on the tool, not on the file.**
+> **What the spot-check changed on `g065`.** The old reason *"0 narrative chunks"* was false —
+> `c00484` / `c02056` exist (FAQ: CREATE VIEW / schema upgrade → use Alembic). **The ceiling
+> still holds**: those chunks redirect to Alembic; they do not teach putting CREATE TABLE and
+> CREATE VIEW in the same migration. Note rewritten; still no `answer_chunks`.
+> **What this does NOT claim.** It does not claim Viraj `--show`'d all 50 of the second tranche.
+> It claims a sampled defence under `D06`: ten held (one note fixed), so the batch stamps stand.
+> The full-bar audit (chunks / live docs / 2.0.51 SQL, 100 PASS) remains the mechanical half.
+> **Baseline.** `deliverables/baseline-phase1.json` stays the 50-item Phase 1 ruler (`D65` /
+> `D61`). The 100-item scorecard is now **measured and verified** for Phase 3 paired work on
+> those 100 ids — not a replacement of the saved 50-row artifact.
 > **Asked as** — *"Your benchmark says a human verified it. How would anyone know that is
-> true?"*
+> true?"* → *"I spot-checked ten, including the one whose reason was already wrong; here is the
+> sheet; I verified."*
 
 ### D31 — Qdrant, measured against pgvector 2026-08-17 — and pgvector won on every number
 
@@ -1303,6 +1292,21 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Practical consequence:** prompt comparisons on this question set can be run once, provided
 > the determinism is re-checked whenever the model, temperature or sources change — any of which
 > could reintroduce variance without warning.
+>
+> ⚠️ **SCOPE NARROWED 2026-08-21 — "deterministic" was measured within one sitting and does not
+> hold across days.** `--refusals` was re-run on the golden set. Of the seven items that refused
+> with their answer chunk in the prompt on 08-20, **two flipped**: `g029` refused then and answers
+> now; `g015` answered then and refuses now. Re-asked directly on 08-21, both reproduce the 08-21
+> result, so it is stable *within* a sitting — exactly what Round 11 measured.
+> **What was ruled out:** `TEMPERATURE = 0.0` unchanged, `rag/ask.py` unchanged since `b6320c4`
+> (the commit that produced the 08-20 run), and the index unchanged — the paired recall comparison
+> is `0 fixed, 0 broken`. Same prompt, same sources, same greedy decoding.
+> **What was not:** the model server across processes. The honest claim is **"five runs in one
+> sitting were unanimous"**, not "deterministic".
+> **Why it matters rather than being trivia:** Phase 4 will be judged on whether those items stop
+> refusing, and a two-item drift is most of the effect anyone would be looking for. A Phase 4
+> before/after therefore needs the baseline re-run in the same sitting as the change, not read off
+> a number from a previous day. `14-MEASURE.md` §R6.2 carries the measurement.
 
 
 ---
@@ -1644,10 +1648,49 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > in `changelog/migration_20.rst` (was 62 of 68), and `c01567` alone answers **11** items, so
 > those eleven scores still move together and the Wilson band is still slightly optimistic. It
 > reaches **24** of 270 corpus files, up from 4.
-> **Blocked on** — the `verified_by` signature question in §H. The numbers above are measured;
-> whether they are the *ruler* is not yet ruled on.
+> **Signature.** Closed 2026-08-21 by spot-check of ten, then verified (see §H CLOSED). The 100-item
+> numbers are **measured and verified**; the Phase 1 **baseline artifact** remains the saved
+> 50-row file so Phase 3 stays a paired comparison (`D61`).
 > **Asked as** — *"You added 50 questions to your benchmark. Why is your old score still the one
 > you compare against?"*
+
+### D66 — collapse cross-version twins at retrieve time, prefer 2.0.51
+
+> **Decided 2026-08-21** — `rag/index.retrieve` over-fetches and keeps one hit per
+> `(heading_path, text)`, preferring the **2.0.51** half. Default on; `dedupe=False` only to
+> re-measure the Phase 2 tax.
+> **Instead of** — leaving both twins in the prompt (Phase 1–2 default), or deleting 1.4 from the
+> index (would erase the version-skew failures `D10` exists to study), or waiting for a reranker
+> (identical vectors → no ranker can prefer either copy — `D58`).
+> **Sized by Phase 2, not by taste.** On the 100-item set, **31** top-5 seats were lost to
+> duplicates. After collapse: **0**. recall@5 moved **0.495 → 0.516**; vs the 50-item baseline
+> **2 fixed / 0 broken** (`g046`, `g047`), McNemar p = 0.500 — not a significant recall claim,
+> a significant *waste* claim. Absents from top-20 stayed **22** (dedupe cannot invent a page).
+> **Why prefer 2.0.51.** The product answers 1.4 → 2.0 upgrades. Scores are identical; the
+> product is not. Preferring 1.4 would put the migration-target page *out* of the prompt for no
+> retrieval gain.
+> **Asked as** — *"Your top-5 had the same paragraph twice. What did you do, and how do you know
+> it helped?"*
+
+### D67 — BM25 + dense-heavy RRF; ship the zero-regression fusion point
+
+> **Decided 2026-08-21** — `rag/index.retrieve` defaults to hybrid: Okapi BM25 over
+> `chunks.jsonl` fused with dense Qdrant hits by Reciprocal Rank Fusion, with **dense weighted
+> heavier** (`kd=25`, `kb=90`). `hybrid=False` / `--dense-only` re-measures the pre-hybrid path.
+> **Instead of** — equal-k RRF (`k=60`/`k=60`), which lifted the average but **broke five** items
+> dense already had; or sparse vectors from BGE-M3 (would need a re-embed and a different
+> failure story); or raising `DEFAULT_K` (already rejected by `D54`).
+> **Sized by a sweep on the 100, after `D66`.** Equal fusion and aggressive BM25 weight both
+> bought broken flips. The densest *zero-regression* point was `kd=25`/`kb=90` (probe: +9 at
+> recall@5, 0 broken). End-to-end score: **0.52 → 0.63** recall@5, absents **22 → 17**,
+> stackoverflow **0.38 → 0.48**. Vs the 50-item baseline: **6 fixed / 0 broken**, McNemar
+> **p = 0.031** — the first Phase 3 change that clears the paired bar (`D61`).
+> **Tokenisation is part of the decision.** `engine.table_names()` splits to `engine` +
+> `table_names`, not one dotted token (dotted compounds never appear in the docs). Further
+> splitting snake_case into `table`+`names` was measured and rejected — common parts drown the
+> rare symbol and dropped recall@5.
+> **Asked as** — *"You added keyword search. How did you combine it with vectors, and why those
+> constants?"*
 
 ## Using this in an interview
 

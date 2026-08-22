@@ -1,8 +1,8 @@
 # Roadmap — the six-phase arc
 
 The long view for [`sqlalchemy-upgrade-agent`](../README.md): what gets built, in what order,
-and why each phase exists. Start at [`../README.md`](../README.md); the current phase (**Phase 2**) is detailed
-in [`../phases/PHASE-0.md`](../phases/PHASE-0.md).
+and why each phase exists. Start at [`../README.md`](../README.md); the current phase (**Phase 3**)
+is detailed in [`PHASE-3.md`](PHASE-3.md). Phase 2's record is [`PHASE-2.md`](PHASE-2.md).
 
 ---
 
@@ -346,9 +346,18 @@ single highest-value object in the whole repo:
 | Setup | recall@5 | recall@20 | MRR |
 |---|---|---|---|
 | **Meaning-search only (Phase 1 baseline)** | **0.51** ±0.137 | 0.81 | **0.434** |
-| \+ hybrid search | ? | ? | ? |
+| \+ twin collapse at retrieve (`D66`, 100-item) | **0.52** ±0.101 · 2↑ 0↓ vs 50 | 0.76 | **0.376** |
+| \+ hybrid search (`D67`, 100-item) | **0.63** ±0.097 · **6↑ 0↓** vs 50 · p=0.031 | **0.81** | **0.436** |
 | \+ reranker | ? | ? | ? |
 | \+ better chunking | ? | ? | ? |
+
+**`D67` row is measured 2026-08-21.** Dense-heavy RRF (`kd=25`, `kb=90`) — the densest fusion
+point with **zero regressions**. Absents from top-20: **22 → 17**. Stack Overflow recall@5:
+**0.38 → 0.48**. See [`PHASE-3.md`](PHASE-3.md) Step 2.
+
+**`D66` row is measured 2026-08-21.** Duplicate seats in top-5: **31 → 0**. Paired against the
+50-item baseline: **2 fixed** (`g046`, `g047`), **0 broken**, McNemar p = 0.500 — ship it for
+the waste, not for a significant recall claim. See [`PHASE-3.md`](PHASE-3.md).
 
 **The baseline row is measured, not planned** — `uv run python -m rag.score` over the 50
 hand-verified items of `deliverables/golden.json`, 2026-08-20. The rows saved to
@@ -362,11 +371,10 @@ answer page to hit and are excluded from recall by construction. The scorer alwa
 ±0.137. The wrong figure was hand-typed and lived in prose, where `check_runnable` has no
 opinion.
 
-**The set is now 100 items and this row is deliberately still the 50** (`D65`). The 100-item run
-scores `recall@5 = 0.49 ±0.101`, and comparing it against the saved rows gives **0 fixed,
-0 broken** — nothing regressed, the average fell because harder questions were added. Swapping
-the baseline artifact would turn every later row from a paired comparison into two unpaired
-averages. See `study/14-MEASURE.md` §R6.1.
+**The set is now 100 items and this baseline row is deliberately still the 50** (`D65`). The
+100-item run *before* twin collapse scored `recall@5 = 0.49 ±0.101`. After `D66` it is
+**0.52 ±0.101** with **0** duplicate seats. Swapping the baseline artifact would still turn
+every later row into two unpaired averages — so the saved 50-row file stays the paired ruler.
 
 **Read the headline with `D63` in hand.** `0.51` averages two subsets that behave very
 differently, and the gap between them is larger than anything Phase 3 is expected to buy:
@@ -389,10 +397,11 @@ search engine.**
 **Three other numbers from the same run, because they name the Phase 3 levers:**
 
 - **9 of 47 answerable items are not in the top 20 at all.** Not ranked low — absent. Reranking
-  cannot reach them; only recall-side work (hybrid search, chunking) can.
+  cannot reach them; only recall-side work (hybrid search, chunking) can. (On the 100: **22**,
+  cut to **17** by `D67`.)
 - **20 slots of the top 5 are lost to duplicate chunks** across the 50 items — a cross-version
-  twin occupying a second slot (`D58`). Dedup at retrieval time is the cheapest lever here and
-  touches no model.
+  twin occupying a second slot (`D58`). **Closed by `D66`:** on the 100, **31 → 0** after
+  retrieve collapses twins (prefer 2.0.51). See [`PHASE-3.md`](PHASE-3.md).
 - **Median rank when found is 2.5**, so when search works it works well. The failure is binary
   rather than gradual, which is why the flipped-item list matters more than the average.
 

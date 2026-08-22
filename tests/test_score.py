@@ -226,7 +226,7 @@ def test_end_to_end_against_live_retrieval():
               "provenance": "breakages", "answerable": False, "verified_by": "human"}]
     assert score.validate(items, chunks) == []
 
-    rows = score.score_items(items, chunks)
+    rows = score.score_items(items, chunks, hybrid=False)
     assert len(rows) == 2
     assert len(rows[0]["hits"]) == score.DEPTH
     assert rows[0]["rank"] == 1, "the tidy phrasing should still put c01542 first"
@@ -242,10 +242,12 @@ def test_end_to_end_against_live_retrieval():
 def test_phrasing_alone_can_push_the_answer_out_of_the_index():
     """D60's hardest evidence, pinned so it cannot quietly stop being true.
 
-    Two phrasings of one question, one answer chunk. The corpus-vocabulary
-    version retrieves it at rank 1; the way a stuck developer would type it does
-    not retrieve it in twenty. This is why the probe questions are a labelled
-    subset and never the benchmark.
+    Two phrasings of one question, one answer chunk. Under **dense-only** search
+    the corpus-vocabulary version retrieves it at rank 1; the way a stuck
+    developer would type it does not retrieve it in twenty. That gap is why the
+    probe questions are a labelled subset and never the benchmark — and why
+    Phase 3 added BM25 (`D67`). This test keeps `hybrid=False` so the original
+    failure mode stays visible after hybrid ships as the default.
     """
     chunks = score.load_chunks()
     tidy = {"id": "t", "question": "what replaces Query.from_self() in SQLAlchemy 2.0?",
@@ -253,7 +255,7 @@ def test_phrasing_alone_can_push_the_answer_out_of_the_index():
             "answer_note": "n", "verified_by": "human"}
     rough = dict(tidy, id="r", provenance="github",
                  question="my old query.from_self() call blew up after upgrading, whats the new way")
-    rows = score.score_items([tidy, rough], chunks)
+    rows = score.score_items([tidy, rough], chunks, hybrid=False)
     assert rows[0]["rank"] == 1
     assert rows[1]["rank"] is None or rows[1]["rank"] > rows[0]["rank"]
 

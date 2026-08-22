@@ -51,6 +51,7 @@ import statistics
 import sys
 
 from rag import corpus
+from rag.dedup import dedup_key
 
 GOLDEN_PATH = corpus.REPO_ROOT / "deliverables" / "golden.json"
 CHUNKS_PATH = corpus.CORPUS_DIR / "chunks.jsonl"
@@ -66,17 +67,6 @@ HEADLINE_K = 5
 
 def load_chunks() -> dict[str, dict]:
     return {r["id"]: r for r in map(json.loads, CHUNKS_PATH.read_text().splitlines()) if r}
-
-
-def dedup_key(chunk: dict) -> tuple:
-    """The unit that decides a vector, and therefore the unit of a 'hit'.
-
-    `rag/embed.py` prepends the heading path before embedding, so two chunks
-    match iff BOTH their heading path and text match -- measured: 437 such
-    pairs, 437 of 437 with byte-identical vectors, against 31 same-text
-    different-heading pairs of which 0 of 31 are identical (D58).
-    """
-    return (tuple(chunk["heading_path"]), chunk["text"])
 
 
 def load_golden(path: pathlib.Path = GOLDEN_PATH) -> list[dict]:
@@ -214,11 +204,20 @@ def mcnemar_exact(fixed: int, broken: int) -> float:
 
 # --- running ---------------------------------------------------------------
 
-def score_items(items: list[dict], chunks: dict[str, dict], retrieve=None) -> list[dict]:
+def score_items(
+    items: list[dict],
+    chunks: dict[str, dict],
+    retrieve=None,
+    *,
+    hybrid: bool = True,
+) -> list[dict]:
     """One row per item. `retrieve` is injected so tests need no Qdrant."""
     if retrieve is None:
         from rag import index
-        retrieve = lambda q: [h.payload["chunk_id"] for h in index.retrieve(q, limit=DEPTH)]
+        retrieve = lambda q: [
+            h.payload["chunk_id"]
+            for h in index.retrieve(q, limit=DEPTH, hybrid=hybrid)
+        ]
 
     rows = []
     for it in items:
@@ -404,7 +403,13 @@ def main() -> None:
         # so a missing Ollama fails before 50 retrievals have been paid for.
         report_refusals(refusal_rows(items, chunks))
 
-    rows = score_items(items, chunks)
+    # Default is hybrid (`D67`). `--dense-only` re-measures the Phase 1–2 path
+    # so a paired comparison can name what BM25 bought rather than averaging it
+    # into an already-moved number.
+    hybrid = "--dense-only" not in argv
+    if not hybrid:
+        print("mode: dense-only (hybrid off)\n")
+    rows = score_items(items, chunks, hybrid=hybrid)
     report(rows)
     if "--baseline" in argv:
         path = pathlib.Path(argv[argv.index("--baseline") + 1])
