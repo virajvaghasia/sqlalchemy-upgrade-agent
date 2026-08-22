@@ -13,9 +13,9 @@ The current phase. [`ROADMAP.md`](ROADMAP.md) §6 defines it; this file plans it
 | [4. score it](#4-score-it-with-one-command) | **done** 2026-08-20 | Mac | `rag/score.py`, 25 tests, six mutations checked; baseline row filled |
 | [5. refusal accuracy](#5-refusal-accuracy-d62) | **built** 2026-08-20, **re-run on 100** 2026-08-21 | Mac | `--refusals`; on the 100-item set **2 fabrications** (`g056`, `g065`) and **13** refusals with the answer in the prompt |
 | [6. the second 50](#6-the-second-50--real-questions-harvested) | **harvested, reviewed, culled, audited, signature closed** | Mac | 50 real questions from Stack Overflow (25) and GitHub discussions (25); 17 dropped and backfilled; `deliverables/GOLDEN-FULLBAR-AUDIT.md` = 100 PASS. **§H closed 2026-08-21: spot-check of ten, then verified** |
-| [7. lab confirmation](#7-lab-confirmation-before-phase-3) | **OPEN** 2026-08-21 | lab PC | Same golden + score on the 3060; optional GPU `--refusals`. Not a Mac gate — Viraj asked for it before more Phase 3. See `logs/HANDOFF.md` Round 12. |
+| [7. lab confirmation](#7-lab-confirmation-before-phase-3) | **done** 2026-08-21 | lab PC | Round 12 CLOSED — matched Mac hybrid **0.63**; same refusal fabrications. See `logs/HANDOFF.md`. |
 
-**The phase is measured on the Mac.** Lab confirmation (step 7) is parity, not a second harvest. The teaching write-up of the score — baseline, refusals, three
+**The phase is measured on the Mac; lab confirmed the same numbers.** The teaching write-up of the score — baseline, refusals, three
 ceilings — is [`../study/14-MEASURE.md`](../study/14-MEASURE.md) §R6. The headline is
 **recall@5 = 0.51 ±0.137** over the 50 hand-verified items, saved to
 `deliverables/baseline-phase1.json` and written into `ROADMAP.md`'s metrics table as the row
@@ -646,8 +646,9 @@ Shaili). Not Round 7’s `k` sweep (Phase 1 leftover; `D54` already kept `DEFAUL
 baseline), ASK 12.2 (optional `--refusals`). Paste raw REPLY output; Mac session reads it on
 the next pull.
 
-**Phase 3 pause.** Twin collapse / hybrid may already exist as *uncommitted* Mac work. Do not
-treat that as Phase 2 lab truth — lab confirms the **pushed** `phase-2/measure` tip first.
+**Phase 3 pause.** ~~Twin collapse / hybrid may already exist as *uncommitted* Mac work.~~
+**Lifted 2026-08-21:** Round 12 closed; lab matched hybrid tip. Next Phase 3 lever is the
+reranker (`PHASE-3.md` Step 3).
 
 ## Verification
 

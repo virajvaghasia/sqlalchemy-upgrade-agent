@@ -1692,6 +1692,19 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"You added keyword search. How did you combine it with vectors, and why those
 > constants?"*
 
+### D68 — seat-5 CE promotion; reject full cross-encoder reorder
+
+> **Decided 2026-08-21** — after hybrid, run `BAAI/bge-reranker-base` over the top-20 and
+> **replace only seat 5** with the best-scoring chunk from ranks **6..10** when the CE logit
+> gap is ≥ **0.8**. Default on; `--no-rerank` / `rerank=False` re-measures without it.
+> **Instead of** — a full CE reorder of the hybrid list (recall@5 0.63 → 0.66 but **10 broken**);
+> hybrid-heavy RRF of hybrid+CE ranks (safe weights → **0 fixed**); freeze-head CE fill (always
+> broken > 0 until head=5 = identity); or skipping the lever without a measurement.
+> **Sized on the 100 after `D67`.** 17 items sit in ranks 6–20 (reranker reach); 17 are absent
+> (unreachable). The shipped rule: **1 fixed** (`g017`), **0 broken**, recall@5 **0.63 → 0.64**.
+> Vs the 50-item baseline: **7↑ 0↓** (was 6), McNemar **p = 0.016**. Absents stay **17**.
+> **Asked as** — *"You added a reranker. Why doesn't it just sort the top-20 by the new model?"*
+
 ## Using this in an interview
 
 **Three entries carry the project**, and they are the ones nobody else will have:

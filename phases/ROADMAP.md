@@ -348,8 +348,11 @@ single highest-value object in the whole repo:
 | **Meaning-search only (Phase 1 baseline)** | **0.51** ±0.137 | 0.81 | **0.434** |
 | \+ twin collapse at retrieve (`D66`, 100-item) | **0.52** ±0.101 · 2↑ 0↓ vs 50 | 0.76 | **0.376** |
 | \+ hybrid search (`D67`, 100-item) | **0.63** ±0.097 · **6↑ 0↓** vs 50 · p=0.031 | **0.81** | **0.436** |
-| \+ reranker | ? | ? | ? |
+| \+ reranker seat-5 CE (`D68`, 100-item) | **0.64** ±0.097 · **7↑ 0↓** vs 50 · p=0.016 | 0.81 | **0.436** |
 | \+ better chunking | ? | ? | ? |
+
+**`D68` row is measured 2026-08-21.** Full CE reorder rejected (10 broken). Shipped: seat-5
+promotion only (`g017`). Absents still **17**. See [`PHASE-3.md`](PHASE-3.md) Step 3.
 
 **`D67` row is measured 2026-08-21.** Dense-heavy RRF (`kd=25`, `kb=90`) — the densest fusion
 point with **zero regressions**. Absents from top-20: **22 → 17**. Stack Overflow recall@5:

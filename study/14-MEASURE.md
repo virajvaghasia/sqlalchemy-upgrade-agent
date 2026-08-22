@@ -201,6 +201,10 @@ recall@5 **0.52 → 0.63**, absents **22 → 17**, stackoverflow **0.38 → 0.48
 paired result that clears `D61` — **6 fixed / 0 broken**, McNemar p = 0.031 against the saved
 50. Equal-k fusion was measured and rejected (broke five). Details in `PHASE-3.md` Step 2.
 
+**Reranker (`D68`) is the third.** Full CE reorder of the top-20 looked good on the average and
+**broke ten**. What ships is seat-5 promotion only: **0.63 → 0.64**, **7↑ 0↓** (p = 0.016).
+Absents stay **17**.
+
 **Read the headline as a sentence.** For half the questions, the page holding the answer never
 reached the prompt. `DEFAULT_K = 5`, so the model was handed five pages, and for 23 of 47
 answerable questions none of them was the right one. The model was not being stupid on those —

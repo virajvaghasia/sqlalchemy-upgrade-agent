@@ -46,7 +46,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 186 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 191 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -341,25 +341,24 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-21 evening):** **Phase 2 lab confirmation is OPEN** (HANDOFF Round 12) before
-more Phase 3. Mac Phase 2 checklist is done; Phase 3 levers 1–2 (`D66`/`D67`) exist as
-**uncommitted** Mac work — do not treat them as lab truth until Round 12 closes. Still on
-**`phase-2/measure`**. **186 tests** (local dirty tree), **58/58** `# runnable`, **67**
-decisions, **§H empty**.
+**State (2026-08-21 late):** **Phase 2 complete** (lab Round 12 CLOSED). **Phase 3 current** —
+levers 1–3 done (`D66`/`D67`/`D68`); **chunking next**. Still on **`phase-2/measure`**.
+**191 tests**, **58/58** `# runnable`, **68** decisions, **§H empty**.
 
-**Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. *Pushed* tip is
-still pre-hybrid (~**0.49** on 100). Local hybrid (if present): **0.63 ±0.097** — lab Round 12
-is meant to confirm Phase 2 first.
+**Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
+(hybrid+seat-5 CE): **recall@5 = 0.64 ±0.097**, **0** duplicate seats, absents **17**,
+**7↑ 0↓** vs the 50 (McNemar p = 0.016). Mac ≡ lab on hybrid; quote **0.64** after `D68`.
 
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 186 passed with Qdrant up; 181 + 5 skipped without
+uv run pytest                            # 191 passed with Qdrant up; 186 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
-uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.63 ±0.097 (hybrid on)
-uv run python -m rag.score --baseline deliverables/baseline-phase1.json   # 6 fixed, 0 broken (D67)
+uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
+uv run python -m rag.score --baseline deliverables/baseline-phase1.json   # 7 fixed, 0 broken
+uv run python -m rag.score --no-rerank   # hybrid only (pre-D68)
 uv run python -m rag.score --dense-only  # re-measure without BM25
 ```
 
@@ -381,7 +380,7 @@ docs. That has happened four times and never the other way round.
 | **0** | complete, except the Day 3 tunnel (blocked on Shaili sharing the Tailscale node) | `deliverables/BREAKAGES.md`, 23 entries |
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
 | **2** | **complete** — 100 golden, signature closed, audit 100 PASS | `deliverables/golden.json`, `GOLDEN-FULLBAR-AUDIT.md` |
-| **3** | **current.** Twin collapse (`D66`) + hybrid (`D67`) done; reranker next | [`phases/PHASE-3.md`](phases/PHASE-3.md) |
+| **3** | **current.** `D66`/`D67`/`D68` done; chunking next | [`phases/PHASE-3.md`](phases/PHASE-3.md) |
 | 4–6 | planned in `phases/ROADMAP.md` | — |
 
 ### The baseline, and the number NOT to quote
@@ -618,10 +617,11 @@ of thing that is worse discovered in Phase 3 than written down now:
 1. ~~Signature~~ closed. ~~Twin collapse (`D66`)~~ done — **31 → 0** duplicate seats.
 2. ~~Hybrid/BM25 (`D67`)~~ done — recall@5 **0.52 → 0.63**, absents **22 → 17**, **6↑ 0↓**
    vs baseline (p = 0.031).
-3. **Phase 3 lever 3 — reranker** for the 8–12 rank band. Absents at **17** are out of its reach.
-4. **Phase 4:** over-refusals with the answer already in the prompt (list in §R6.2; ±2 under
+3. ~~Reranker (`D68`)~~ done — seat-5 CE promotion only; **0.63 → 0.64**, **7↑ 0↓** (p = 0.016).
+   Full CE reorder rejected (10 broken).
+4. **Phase 3 lever 4 — chunking** (`D56`). Absents still **17**.
+5. **Phase 4:** over-refusals with the answer already in the prompt (list in §R6.2; ±2 under
    `D54`). Plus fabrications `g056`/`g065` to explain.
-5. **Optional:** commit dirty Phase 2 signature + Phase 3 `D66`/`D67` when you say so.
 
 **Carried over from Phase 1, not urgent and not forgotten:**
 
@@ -1256,3 +1256,10 @@ Append a dated entry each session; keep each entry to a few bullets.
   baseline **6↑ 0↓** (`g024`,`g038`,`g044`,`g046`,`g047`,`g050`), McNemar **p=0.031**.
 - `--dense-only` on score/search keeps the pre-hybrid path measurable. **186** tests.
 - Still uncommitted — ask before commit.
+
+### 2026-08-21 (late) — Phase 3 lever 3: seat-5 CE rerank (`D68`)
+
+- Full CE reorder of hybrid top-20: +3 @5, **10 broken** — rejected.
+- Shipped: promote into seat 5 from ranks 6–10 when margin ≥ 0.8 (`BAAI/bge-reranker-base`).
+- Measured: recall@5 **0.63 → 0.64**, vs baseline **7↑ 0↓** (`g017`), p=0.016. Absents still 17.
+- Lab Round 12 closed in docs; **191** tests.

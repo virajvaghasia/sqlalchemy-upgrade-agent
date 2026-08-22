@@ -226,7 +226,7 @@ def test_end_to_end_against_live_retrieval():
               "provenance": "breakages", "answerable": False, "verified_by": "human"}]
     assert score.validate(items, chunks) == []
 
-    rows = score.score_items(items, chunks, hybrid=False)
+    rows = score.score_items(items, chunks, hybrid=False, rerank=False)
     assert len(rows) == 2
     assert len(rows[0]["hits"]) == score.DEPTH
     assert rows[0]["rank"] == 1, "the tidy phrasing should still put c01542 first"
@@ -255,7 +255,7 @@ def test_phrasing_alone_can_push_the_answer_out_of_the_index():
             "answer_note": "n", "verified_by": "human"}
     rough = dict(tidy, id="r", provenance="github",
                  question="my old query.from_self() call blew up after upgrading, whats the new way")
-    rows = score.score_items([tidy, rough], chunks, hybrid=False)
+    rows = score.score_items([tidy, rough], chunks, hybrid=False, rerank=False)
     assert rows[0]["rank"] == 1
     assert rows[1]["rank"] is None or rows[1]["rank"] > rows[0]["rank"]
 

@@ -1485,14 +1485,13 @@ built on it.
 
 # Round 12 — Phase 2 lab confirmation (before more Phase 3)
 
-**Status: OPEN.** Viraj asked to finish Phase 2 on the lab PC before continuing Phase 3.
-Phase 2’s Mac checklist is already closed; this round is **parity** — same golden set, same
-scorer, on the 3060 box — plus an optional GPU `--refusals` so Phase 4 has a same-machine
-baseline (`D54`: re-run baseline in the same sitting as a prompt change).
+**Status: CLOSED 2026-08-21.** Lab @ `f502a9d` matched Mac: recall@5 **0.63 ±0.097**,
+**6↑ 0↓** vs baseline, refusals **g056/g065 FABRICATED** (same IDs). One scorecard — not two.
+Phase 2 lab confirmation done; Phase 3 may continue (reranker next).
 
 **Branch: `phase-2/measure`.** Not `lab/handoff` (deleted). Not `main`.
-**Do not pull uncommitted Mac Phase 3 hybrid work** — that is still dirty locally. Lab should
-match the last **pushed** tip so numbers compare to Mac Phase 2 (dense retrieval, ~0.49 on 100).
+Pushed tip already included twin-collapse + hybrid (`D66`/`D67`); lab measured that, not the
+pre-hybrid ~0.49 tip the ASK originally described.
 
 ## ASK 12.1 — sync + stack + retrieval score
 

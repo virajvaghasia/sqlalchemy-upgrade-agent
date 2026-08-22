@@ -4,8 +4,8 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). Continues from [`PHASE-2.md`
 (complete: golden set of 100, signature closed, baseline artifact still the 50). The arc is in
 [`ROADMAP.md`](ROADMAP.md) § Phase 3.
 
-**Branch:** stay on `phase-2/measure` until Phase 2's signature commit lands, then
-`phase-3/improve` (one long-lived branch per phase).
+**Branch:** stay on `phase-2/measure` until you cut `phase-3/improve` (one long-lived branch
+per phase). Lab Round 12 closed — Phase 2 confirmed on the 3060; continue here.
 
 **Rule:** one change at a time, measure after each (`D61` paired comparison against
 `deliverables/baseline-phase1.json`).
@@ -20,12 +20,12 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). Continues from [`PHASE-2.md`
 |---|---|---|
 | **1. Twin collapse at retrieve** | **31** top-5 seats lost to cross-version duplicates on the 100 | **done 2026-08-21 — `D66`** |
 | **2. Recall-side (BM25 + hybrid RRF)** | **22** answerable items absent from top-20 | **done 2026-08-21 — `D67`** |
-| **3. Reranker** | helps ranks like 8–12, not pages still absent | next |
-| **4. Chunking** | `D56`: 10.7% / 6.3% audit rates | later |
+| **3. Reranker** | helps ranks like 8–12, not pages still absent | **done 2026-08-21 — `D68`** |
+| **4. Chunking** | `D56`: 10.7% / 6.3% audit rates | next |
 
 Do not start with a reranker before lever 2: it cannot invent a page that never entered the
 candidate set. Lever 2 cut absents **22 → 17**; the remaining 17 are still out of reach of any
-reorder.
+reorder. Lever 3 (`D68`) is a **seat-5 promotion**, not a full CE sort — full reorder broke ten.
 
 ---
 
@@ -100,10 +100,33 @@ autobegin, …). Re-measure with `--dense-only` anytime.
 
 ---
 
-## Step 3 — next sitting
+## Step 3 — seat-5 CE promotion (`D68`) — closed
 
-Reranker over a wider candidate list (the 8–12 rank band). Measure with `--baseline` before
-claiming a gain. Absents still at **17** are out of scope for a reranker.
+**What.** `BAAI/bge-reranker-base` scores the hybrid top-20. **Only seat 5** may change: if the
+best CE score among ranks **6..10** beats seat 5 by ≥ **0.8** logits, that chunk takes seat 5.
+
+**What was rejected (measured).** Full CE reorder: +3 at recall@5 and **10 broken**. Hybrid-heavy
+RRF of the two lists: **0 fixed** once safe. Freeze-head fill: always broken until identity.
+
+**Measured end-to-end:**
+
+| | hybrid (`D67`) | + seat-5 CE (`D68`) |
+|---|---|---|
+| recall@5 (100 / 91) | 0.63 ±0.097 | **0.64 ±0.097** |
+| not in top-20 | 17 | **17** |
+| vs 50-item baseline | 6↑ 0↓ | **7↑ 0↓** (`g017` added), McNemar **p = 0.016** |
+
+**Honest read.** One clean flip. Worth shipping because the unsafe alternative looked better on
+the average and would have been the wrong interview story. Re-measure with `--no-rerank`.
+
+**Code.** `rag/rerank.py`, wired as `retrieve(..., rerank=True)`. Tests: `tests/test_rerank.py`.
+
+---
+
+## Step 4 — next sitting
+
+Chunking (`D56` rates). Absents still **17** — only recall-side work past hybrid can cut them,
+and re-chunking is the remaining recall lever on the ROADMAP.
 
 ---
 
