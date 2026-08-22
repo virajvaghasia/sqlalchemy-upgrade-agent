@@ -23,12 +23,13 @@
     "verified_by='human', so --validate exits 0. For g001-g050 the notes say",
     "'Viraj approved remaining drafts 2026-08-20'. For g051-g121 the notes say who",
     "actually reviewed them, in their own words: CLAUDE_REVIEW / STAMPED human /",
-    "HUMAN stamp Batch N -- and ten still carry the sentence 'Awaiting human stamp'",
     "with the field already set. rag/golden.py cannot write that field and a test",
     "asserts it; this file was edited directly, which no test covers.",
     "Until Viraj rules, deliverables/baseline-phase1.json (the 50-item run) stays",
-    "the baseline and the 100-item numbers are measured-but-unratified.",
-    "See study/09-DECISIONS.md section H and phases/PHASE-2.md."
+    "the baseline and the 100-item numbers are measured; signature was open until spot-check verified.",
+    "See study/09-DECISIONS.md section H and phases/PHASE-2.md.",
+    "",
+    "Signature CLOSED 2026-08-21 — Viraj spot-check of ten, then verified (g065, g097, g093, g075, g099, g095, g088, g087, g079, g074). g065 note corrected (CREATE VIEW chunks exist; still unanswerable for same-migration). See study/09-DECISIONS.md §H CLOSED and D65."
   ],
   "items": [
     {
@@ -785,7 +786,7 @@
       "provenance": "stackoverflow",
       "source_url": "https://stackoverflow.com/questions/77399029/create-table-and-view-in-the-same-migration-in-sqlalchemy",
       "answerable": false,
-      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from corpus D07; g065: Alembic). Correct system behaviour is refuse.",
+      "answer_note": "VERIFIED 2026-08-21 (spot-check #1). answerable=false KEPT. Reason FIXED: corpus has c00484/c02056 (FAQ: CREATE VIEW / schema upgrade not in SQLAlchemy; use Alembic) — NOT '0 narrative chunks'. Those chunks redirect to Alembic; they do not teach putting CREATE TABLE and CREATE VIEW in the same migration, so this corpus still cannot answer the SO question. No answer_chunks (ceiling).",
       "verified_by": "human",
       "verified_on": "2026-08-21"
     },
@@ -809,7 +810,7 @@
         "c01292",
         "c03091"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Join external transaction / autobegin — pytest transaction scoping. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Join external transaction / autobegin — pytest transaction scoping. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
       "verified_by": "human"
     },
     {
@@ -822,7 +823,7 @@
         "c00711",
         "c01010"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). mapped + calculated columns via column_property / mapped SQL expressions. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). mapped + calculated columns via column_property / mapped SQL expressions. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -831,7 +832,7 @@
       "provenance": "stackoverflow",
       "source_url": "https://stackoverflow.com/questions/78481263/sqlalchemy-relation-does-not-exist-after-flask-migrate",
       "answerable": false,
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). Postgres 'relation does not exist' after flask migrate — ops/Alembic, not corpus. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). Postgres 'relation does not exist' after flask migrate — ops/Alembic, not corpus. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -855,9 +856,9 @@
       "answerable": true,
       "answer_chunks": [
         "c01592",
-        "c01189"
+        "c03004"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Session.get replaces Query.get; session_basics on get + identity map / options. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Session.get replaces Query.get; session_basics on get + identity map / options. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). Spot-check: swapped c01189→c03004 (2.0.51 twin, same Session.get + options text). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -940,7 +941,7 @@
         "c02711",
         "c00792"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks replaced after Batch 6). Old c01191/c03006 were refresh/expire only — did not answer 'server_default missing in __dict__ after flush'. Primary c02711: Fetching Server-Generated Defaults (server_default + eager_defaults / RETURNING). Secondary c00792: states server_default is not refreshed after INSERT and is expired until load. Awaiting human stamp. HUMAN stamp 2026-08-21 (chunks replaced: c02711+c00792).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks replaced after Batch 6). Old c01191/c03006 were refresh/expire only — did not answer 'server_default missing in __dict__ after flush'. Primary c02711: Fetching Server-Generated Defaults (server_default + eager_defaults / RETURNING). Secondary c00792: states server_default is not refreshed after INSERT and is expired until load.HUMAN stamp 2026-08-21 (chunks replaced: c02711+c00792). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -953,7 +954,7 @@
         "c03091",
         "c01292"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). 2.0-style transactions / join external transaction for tests. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). 2.0-style transactions / join external transaction for tests. HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -975,7 +976,7 @@
       "provenance": "github",
       "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11452",
       "answerable": false,
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). How long will 1.4 be supported — support policy not in this corpus. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). How long will 1.4 be supported — support policy not in this corpus. HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -1002,7 +1003,7 @@
         "c01124",
         "c02746"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). populate_existing execution option. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). populate_existing execution option. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -1024,7 +1025,7 @@
       "provenance": "github",
       "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10743",
       "answerable": false,
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). _active_history AttributeError — 0 hits in corpus. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). _active_history AttributeError — 0 hits in corpus. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -1052,7 +1053,7 @@
         "c02074",
         "c02075"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). MappedAsDataclass defaults: default / default_factory / insert_default FAQ. Awaiting human stamp: set verified_by to 'human' after a one-minute --show check (D06). HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm).",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). MappedAsDataclass defaults: default / default_factory / insert_default FAQ. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
       "verified_by": "human"
     },
     {
@@ -1231,7 +1232,7 @@
         "c03091",
         "c01279"
       ],
-      "answer_note": "SQL: begin() after autobegin → InvalidRequestError. Live session_transaction autobegin. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c03091=orm/session_transaction.rst; c01279=orm/session_transaction.rst; c01281=orm/session_transaction.rst; c01280=orm/session_transaction.rst; c01288=orm/session_transaction.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL: begin() after autobegin → InvalidRequestError. Live session_transaction autobegin. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c03091=orm/session_transaction.rst; c01279=orm/session_transaction.rst; c01281=orm/session_transaction.rst; c01280=orm/session_transaction.rst; c01288=orm/session_transaction.rst. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1245,7 +1246,7 @@
         "c02482",
         "c02485"
       ],
-      "answer_note": "SQL: selectinload + awaitable_attrs on AsyncSession. Live asyncio docs. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c02482=orm/extensions/asyncio.rst; c02485=orm/extensions/asyncio.rst; c02477=orm/extensions/asyncio.rst; c00789=orm/extensions/asyncio.rst; c00791=orm/extensions/asyncio.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL: selectinload + awaitable_attrs on AsyncSession. Live asyncio docs. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c02482=orm/extensions/asyncio.rst; c02485=orm/extensions/asyncio.rst; c02477=orm/extensions/asyncio.rst; c00789=orm/extensions/asyncio.rst; c00791=orm/extensions/asyncio.rst. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1259,7 +1260,7 @@
         "c01336",
         "c02937"
       ],
-      "answer_note": "SQL: aliased() double join compiles. Live queryguide select aliased joins. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c01336=orm/tutorial.rst; c02937=orm/queryguide/select.rst; c01113=orm/queryguide.rst; c02938=orm/queryguide/select.rst; c00429=errors.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL: aliased() double join compiles. Live queryguide select aliased joins. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c01336=orm/tutorial.rst; c02937=orm/queryguide/select.rst; c01113=orm/queryguide.rst; c02938=orm/queryguide/select.rst; c00429=errors.rst. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1273,7 +1274,7 @@
         "c00890",
         "c00897"
       ],
-      "answer_note": "SQL: with_polymorphic(Emp,[Eng]) loads subclass attrs. Live inheritance docs. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c00890=orm/inheritance_loading.rst; c00897=orm/inheritance_loading.rst; c00881=orm/inheritance_loading.rst; c00888=orm/inheritance_loading.rst; c02859=orm/queryguide/inheritance.rst. Awaiting full-bar stamp. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL: with_polymorphic(Emp,[Eng]) loads subclass attrs. Live inheritance docs. HARVEST 2026-08-21 (pad → 100). LIVE URL verified. BM25: c00890=orm/inheritance_loading.rst; c00897=orm/inheritance_loading.rst; c00881=orm/inheritance_loading.rst; c00888=orm/inheritance_loading.rst; c02859=orm/queryguide/inheritance.rst. HUMAN stamp 2026-08-21 pad→100 FULL BAR (live URL + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },

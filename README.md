@@ -104,7 +104,7 @@ experiments/           the code under study: the 1.4 app and the measurement har
 rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 173 tests pinning what the docs claim
+tests/                 186 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -116,7 +116,8 @@ to "§18" is unambiguous in either file.
 | file | what it is |
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
-| [`phases/PHASE-2.md`](phases/PHASE-2.md) | **the current phase** — turn "it seems okay" into a number. The golden set is **100 items**, audited three ways, and scored; the committed baseline is deliberately still the 50-item run (`D65`); `--refusals` covers `D62`'s generation half. **One open item: who signed `verified_by` on `g051`+** |
+| [`phases/PHASE-2.md`](phases/PHASE-2.md) | **Phase 2 (complete)** — golden set of **100**, audited, scored, signature closed; baseline artifact still the 50 (`D65`) |
+| [`phases/PHASE-3.md`](phases/PHASE-3.md) | **the current phase** — make retrieval better one measured lever at a time. Twin collapse (`D66`) and hybrid/BM25 (`D67`) are done; reranker is next |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the three § numbering families, and carries a **by-phase view** (`01`–`08` Phase 0, `10`–`13` Phase 1, `09` all of them) for reading it phase by phase instead |
@@ -137,8 +138,8 @@ to "§18" is unambiguous in either file.
 | [`study/11-GENERATION.md`](study/11-GENERATION.md) | **§R3 — after search.** The prompt as a component: three wordings of one sentence (C fabricates 3/3, A over-refused 1/3, B ships), how the cause was found by removing search, and why fixing it did not violate "build the naive version first". The `R` run continues here — it stands for RAG, not retrieval (**D47**) |
 | [`study/12-EVALUATION.md`](study/12-EVALUATION.md) | **§R4 — measuring a thing with no right answer.** What a script can score and what it cannot, why the golden set is hand-verified, and the rank measurement that split one planned Phase 3 fix into four different problems |
 | [`study/13-VERIFICATION.md`](study/13-VERIFICATION.md) | **§R5 — defending it without notes.** The five questions Phase 1 closes on, answered four ways each: plain words, mechanism, the measurement that makes it checkable, and the spoken version. Includes the wrong answer each question attracts, the follow-up that kills it, and **§R5.7** — all five said end to end, for rehearsing as one piece |
-| [`study/14-MEASURE.md`](study/14-MEASURE.md) | **§R6 — Phase 2's scorecard.** The golden baseline (and why not to quote `0.51` alone), the 100-item run where **real questions score worst** (Stack Overflow 0.38 against migration-guide 0.73), the refusal run (seven generation defects with the page in hand), and the three ceiling questions |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 65 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project, and **not empty**: it carries the open question of who signed `verified_by` on the second fifty golden items |
+| [`study/14-MEASURE.md`](study/14-MEASURE.md) | **§R6 — Phase 2's scorecard.** The golden baseline (and why not to quote `0.51` alone), the 100-item run where **real questions score worst** (Stack Overflow 0.38 against migration-guide 0.73), the refusal run (**thirteen** generation defects with the page in hand, and two fabrications), and the ceiling questions — including one whose `answerable: false` label looks wrong |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 66 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -173,7 +174,7 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-173 tests collected in 0.37s
+186 tests collected in 7.35s
 ```
 
 Three of them skip when Qdrant is not running, so a run reports 114 passed with it up and 111
