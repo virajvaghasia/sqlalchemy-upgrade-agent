@@ -210,13 +210,14 @@ def score_items(
     retrieve=None,
     *,
     hybrid: bool = True,
+    rerank: bool = True,
 ) -> list[dict]:
     """One row per item. `retrieve` is injected so tests need no Qdrant."""
     if retrieve is None:
         from rag import index
         retrieve = lambda q: [
             h.payload["chunk_id"]
-            for h in index.retrieve(q, limit=DEPTH, hybrid=hybrid)
+            for h in index.retrieve(q, limit=DEPTH, hybrid=hybrid, rerank=rerank)
         ]
 
     rows = []
@@ -403,13 +404,17 @@ def main() -> None:
         # so a missing Ollama fails before 50 retrievals have been paid for.
         report_refusals(refusal_rows(items, chunks))
 
-    # Default is hybrid (`D67`). `--dense-only` re-measures the Phase 1–2 path
-    # so a paired comparison can name what BM25 bought rather than averaging it
-    # into an already-moved number.
+    # Default is hybrid+rerank (`D67`/`D68`). Flags re-measure earlier rows.
     hybrid = "--dense-only" not in argv
+    rerank = "--no-rerank" not in argv
+    modes = []
     if not hybrid:
-        print("mode: dense-only (hybrid off)\n")
-    rows = score_items(items, chunks, hybrid=hybrid)
+        modes.append("dense-only")
+    if not rerank:
+        modes.append("no-rerank")
+    if modes:
+        print(f"mode: {', '.join(modes)}\n")
+    rows = score_items(items, chunks, hybrid=hybrid, rerank=rerank)
     report(rows)
     if "--baseline" in argv:
         path = pathlib.Path(argv[argv.index("--baseline") + 1])
