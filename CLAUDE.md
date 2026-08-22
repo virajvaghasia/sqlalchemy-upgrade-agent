@@ -18,12 +18,13 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`deliverables/BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
-- **The five teaching files for the RAG system:** `10-RETRIEVAL.md` §R1–§R2 (retrieval),
+- **The six teaching files for the RAG system:** `10-RETRIEVAL.md` §R1–§R2 (retrieval),
   `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation — how to measure),
   `13-VERIFICATION.md` §R5 (defending it under questioning; Phase 1's last gate),
-  `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard). One `R` run across all five — it stands
+  `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard), `15-IMPROVE.md` §R7 (Phase 3 retrieval
+  levers — what shipped and what was rejected). One `R` run across all six — it stands
   for RAG, not Retrieval (`D47`). Phase 1 ends at §R5; §R6 is Phase 2's measured result
-  (`D64`).
+  (`D64`); §R7 is Phase 3's.
 - **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,
   `--candidates` (chunk ids **and** char offsets, which `index --search` omits), `--show`
   (the chunk in full plus the `file +line` to open). **It cannot mark anything verified**, and a
@@ -38,7 +39,7 @@ Meta, Google, Apple, Anthropic, and startups).
   `cache/` and the machine-specific `.graphify_*` paths are not.
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
   index and explains the three § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure,
-  §R1–§R6 RAG) plus the two runbooks (`03`, `08`).
+  §R1–§R7 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
 - **`study/09-DECISIONS.md`** — the decision register, `D01`…`D69`: what was decided, what was
@@ -622,7 +623,8 @@ of thing that is worse discovered in Phase 3 than written down now:
 4. ~~`D69` Sphinx strip~~ **rejected** (0.64→0.58; index restored). Absents are mostly phrasing,
    not `D56` cuts — boundary chunking only if a named absent shows a severed answer.
 5. **Phase 4:** over-refusals with the answer already in the prompt (list in §R6.2; ±2 under
-   `D54`). Plus fabrications `g056`/`g065` to explain.
+   `D54`). Plus fabrications `g056`/`g065` to explain. **Lab start:** `logs/HANDOFF.md`
+   Round 13. Teaching write-up of Phase 3: [`study/15-IMPROVE.md`](study/15-IMPROVE.md).
 
 **Carried over from Phase 1, not urgent and not forgotten:**
 
@@ -1273,3 +1275,10 @@ Append a dated entry each session; keep each entry to a few bullets.
   strip: recall@5 **0.64 → 0.58**, baseline **5↑ 2↓** (`g008`, `g013`) — **rejected**.
 - Reverted embed+BM25 to raw text; re-indexed; score restored **0.64**, **7↑ 0↓**.
 - Module + tests kept as the rejected experiment. **196** tests. Docs: `D69`, `PHASE-3.md`.
+
+### 2026-08-22 (morning) — Phase 3 study file + lab Round 13
+
+- **`study/15-IMPROVE.md` §R7** — plain read of what Phase 3 changed (`D66`–`D69`).
+- Indexes: `study/README.md`, root `README.md`, CLAUDE teaching-files line, `PHASE-3.md`.
+- **`logs/HANDOFF.md` Round 13 OPEN** — lab PC: confirm 0.64, then `--refusals` baseline for
+  Phase 4 (same sitting, `D54`).

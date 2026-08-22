@@ -1627,3 +1627,81 @@ ALL ITEMS recall@5    0.63  ±0.097  (same as 12.1; retrieval half unchanged)
 # answerable-in-prompt over-refusals: Mac 13, lab 20. Same defect class, more IDs here.
 # Do not summarise the list away — full ID list is above.
 ```
+
+---
+
+# Round 13 — Phase 4 start: refusal baseline on the 3060 (after D68)
+
+**Status: OPEN.** Phase 3 retrieval (`D66`–`D68` shipped, `D69` strip rejected) is on
+`phase-2/measure`. Read [`study/15-IMPROVE.md`](../study/15-IMPROVE.md) §R7 on the Mac first.
+This round is **generation**, not another embed experiment.
+
+**Why the lab.** Full `--refusals` is ~100 Ollama calls. Mac ~18 tok/s; 3060 ~62 tok/s.
+`D54`: re-baseline refusals **in the same sitting** as any prompt change — do not compare
+cells across days.
+
+**Branch: `phase-2/measure`.** Pull tip that includes `D68`/`D69` (at least `857797e` or later).
+
+## ASK 13.1 — sync + confirm retrieval still 0.64
+
+Paste raw output into REPLY 13.1.
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent   # or wherever the clone lives
+git fetch origin
+git checkout phase-2/measure
+git pull --ff-only
+git log -1 --oneline
+git status -sb
+
+uv sync --frozen --extra embed
+docker compose up -d qdrant
+# Collection should already exist. If score fails on missing collection:
+#   uv run python -m rag.embed && uv run python -m rag.index --recreate
+# Do NOT re-embed with textnorm — D69 rejected; vectors stay raw.
+
+uv run pytest -q
+uv run python -m rag.score
+uv run python -m rag.score --baseline deliverables/baseline-phase1.json
+```
+
+**What “pass” looks like (Mac after D68):**
+- `git log -1` at or after `857797e` (or a later tip that still has D66–D69)
+- recall@5 ≈ **0.64 ±0.097**, not-in-top-20 **17**, duplicate seats **0**
+- `--baseline`: **7 fixed, 0 broken**, McNemar p ≈ **0.016**
+  (fixed set includes `g017` plus the six hybrid fixes)
+
+### REPLY 13.1
+
+```
+(paste here)
+```
+
+## ASK 13.2 — `--refusals` baseline for Phase 4 (same sitting as 13.1)
+
+Only after 13.1 matches. Needs `ollama` + `qwen2.5-coder:7b` on GPU. ~30–40 min on the 3060.
+
+```bash
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+ollama list | grep qwen
+uv run python -m rag.score --refusals 2>&1 | tee /tmp/phase4-refusals-baseline.txt
+tail -100 /tmp/phase4-refusals-baseline.txt
+```
+
+**Compare to Round 12.2 (pre-D68 tip, recall 0.63):** unanswerable **7/9** refused,
+**2 FABRICATED** (`g056`, `g065`); answerable-in-prompt over-refusals were **20** on lab
+(Mac had listed **13** — same defect class, count drifts under `D54`).
+
+**What Phase 4 will use this for:** a same-sitting before/after when the prompt changes.
+Paste the full ID lists — do not summarise them away.
+
+### REPLY 13.2
+
+```
+(paste here)
+```
+
+## After Round 13
+
+Mac reads the REPLY, then Phase 4 work starts (prompt / over-refusal / fabrication). No more
+Sphinx-strip or “try chunking for absents” until a *named* absent shows a severed answer.

@@ -23,6 +23,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
 | [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
+| [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip measured and rejected. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
 
 ## By phase — which file belongs to what
 
@@ -91,19 +92,27 @@ re-checks all 100 against `chunks.jsonl`, live docs, and real `sqlalchemy==2.0.5
 `D06`) is Sitting 4. What the finished golden set scored is Sitting-adjacent Phase 2 material in
 `14`, so Phase 1's last gate (`13`) stays the end of that phase.
 
+### Phase 3 — Make search better (measured)
+
+Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D69`.
+
+| file | § | what it was for |
+|---|---|---|
+| [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 | what Phase 3 actually changed on retrieval — and the strip that failed |
+
 ### Every phase — the register
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D65`. Phase 0, 1 and 2 decisions in one register, because a decision is cited from wherever it is relevant and would go stale the moment it was filed under the phase that happened to make it |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D69`. All phases in one register |
 
-### Phases 3–6
+### Phases 4–6
 
-**No study files yet for these, and that is the honest state rather than an omission.** Phase 3
-is hybrid search and reranking, Phase 4 judges answers, Phase 5 is the agent and MCP, Phase 6 is
-production polish — see [`../phases/ROADMAP.md`](../phases/ROADMAP.md) §6. Teaching material is
-written *after* the thing it teaches has been measured here, never ahead of it — which is why
-`14-MEASURE.md` waited until the golden set was scored.
+**No study files yet for these.** Phase 4 judges answers (faithfulness / citations), Phase 5 is
+the agent and MCP, Phase 6 is production polish — see
+[`../phases/ROADMAP.md`](../phases/ROADMAP.md). Teaching material is written *after* the thing
+it teaches has been measured here. Lab start for Phase 4: [`../logs/HANDOFF.md`](../logs/HANDOFF.md)
+**Round 13**.
 
 ## Three numbering families, and why
 
@@ -115,12 +124,12 @@ things and they do not line up — deliberately.
   to "§18" is unambiguous across the pair.
 - **`04`–`07` share a second run, `§1`–`§6`**, for the same reason: `05` continues `04`,
   `06` continues `05`. One container, then several, then the database in one, then the tests.
-- **`10`–`14` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
+- **`10`–`15` share a third run, `§R1`–, for the RAG system.** The `R` prefix is not decoration:
   without it, `§1` would mean Docker in one family and RAG in another. A letter makes a collision
   impossible rather than merely unlikely. `11` continues `10`, `12` continues `11`, `13`
   continues `12`, and `14` continues after Phase 1 closed — §R1–§R2 are retrieval, §R3 is
-  generation, §R4 is evaluation, §R5 is defending the result under questioning, and §R6 is the
-  Phase 2 golden-set scorecard.
+  generation, §R4 is evaluation, §R5 is defending the result under questioning, §R6 is the
+  Phase 2 golden-set scorecard, and §R7 (`15-IMPROVE.md`) is what Phase 3 changed on search.
 
   **The `R` is for RAG, not for Retrieval**, and the distinction only became visible when §R3
   moved into `11`. A subject-labelled prefix would have forced `§G1` there and a fourth family on

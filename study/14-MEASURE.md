@@ -782,5 +782,6 @@ too, is a stronger result than a higher recall figure.
 | [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | the phase plan; this file is the teaching write-up of its score |
 | [`12-EVALUATION.md`](12-EVALUATION.md) | §R4 — *how* to measure (Sitting 4, still the 19 probe answers) |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | §R5 — defend Phase 1 cold; Phase 1's last gate |
+| [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 — what Phase 3 changed on search (read after this scorecard) |
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **D06, D45, D58–D65**, plus §H CLOSED (spot-check of ten, then verified, 2026-08-21) |
 

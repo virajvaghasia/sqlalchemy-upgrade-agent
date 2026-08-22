@@ -7,6 +7,9 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). Continues from [`PHASE-2.md`
 **Branch:** stay on `phase-2/measure` until you cut `phase-3/improve` (one long-lived branch
 per phase). Lab Round 12 closed — Phase 2 confirmed on the 3060; continue here.
 
+**Read first:** [`../study/15-IMPROVE.md`](../study/15-IMPROVE.md) §R7 — plain-language what
+Phase 3 changed. This file is the measured plan/tables; that one is the sitting.
+
 **Rule:** one change at a time, measure after each (`D61` paired comparison against
 `deliverables/baseline-phase1.json`).
 
