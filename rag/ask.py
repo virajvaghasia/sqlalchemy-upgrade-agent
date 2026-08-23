@@ -53,6 +53,7 @@ sources.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -145,6 +146,12 @@ SYSTEM = (
 REFUSAL_OPENING = "The sources do not answer"
 
 
+# Leading citation markers, which belong to the refusal rather than to an answer:
+# "[2] The sources do not answer this." A prompt that asks for a citation before
+# every statement gets one in front of the refusal too.
+_LEADING_CITATIONS = re.compile(r"^(?:\s*\[\d+\])+\s*")
+
+
 def refused(answer: str) -> bool:
     """Did the model decline, rather than answer badly?
 
@@ -153,8 +160,19 @@ def refused(answer: str) -> bool:
     sources not covering some sub-part -- which is the behaviour prompt D was
     built to produce (answer the part that is covered, say which part is not)
     and is the opposite of a refusal.
+
+    **Leading `[n]` markers are stripped first, and that is not cosmetic.**
+    Measured 2026-08-22: a prompt variant asking for a citation before every
+    statement produced `"[2] The sources do not answer this."` on six items.
+    The bare prefix test scored every one of them as an ANSWER, turning three
+    refusals into apparent fixes -- it would have reported a significant
+    improvement that was partly the model citing its own refusal.
+
+    The anchor is still the START of the answer: stripping citations does not
+    weaken the prefix test into a search, which is the property the paragraph
+    above exists to protect.
     """
-    return answer.strip().startswith(REFUSAL_OPENING)
+    return _LEADING_CITATIONS.sub("", answer.strip()).startswith(REFUSAL_OPENING)
 
 
 def build_prompt(question: str, hits) -> str:

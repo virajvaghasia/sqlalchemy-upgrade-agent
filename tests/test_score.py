@@ -404,3 +404,163 @@ def test_refusals_are_scored_at_the_k_that_ships_not_at_the_retrieval_depth(monk
     assert limits == [ask.DEFAULT_K]
     assert ask.DEFAULT_K != score.DEPTH, (
         "if these ever coincide this test stops proving anything")
+
+
+# --- D70: why the absent items are absent ------------------------------------
+#
+# An item outside the top-20 is beyond every reranker by construction, so the
+# absents are the only population that can justify recall-side work. "Improve
+# chunking" is recall-side, and this survey is what decides whether it is the
+# right lever or a guess.
+
+
+def _full(cid, text, start, end, path="doc/build/x.rst", version="2.0.51"):
+    """Chunks here need the fields neighbours() sorts on, which _chunk lacks."""
+    return {"id": cid, "text": text, "char_start": start, "char_end": end,
+            "source_path": path, "sqlalchemy_version": version, "heading_path": []}
+
+
+BROKEN = _full("c00100", "the migration steps are as follows:", 0, 100)
+INTACT = _full("c00200", "Use Session.get() to load by primary key.", 100, 200)
+LISTING_HEAD = _full("c00300", "example::\n\n    stmt = select(User).where(\n", 200, 300)
+LISTING_TAIL = _full("c00400", "        User.id == 1\n    )\n", 300, 400)
+SHAPES = {c["id"]: c for c in (BROKEN, INTACT, LISTING_HEAD, LISTING_TAIL)}
+
+
+def _survey(rank_by_item, answer_chunks):
+    items = [{"id": gid, "answer_chunks": cids} for gid, cids in answer_chunks.items()]
+    rows = [{"id": gid, "answerable": True, "rank": rank_by_item[gid]}
+            for gid in answer_chunks]
+    return score.absent_shapes(rows, items, SHAPES)
+
+
+def test_a_broken_answer_chunk_behind_an_absent_item_is_flagged():
+    a = _survey({"g001": None}, {"g001": ["c00100"]})
+    assert a["absent_ids"] == ["g001"]
+    assert a["absent_flagged"] == 1
+
+
+def test_an_intact_answer_chunk_behind_an_absent_item_is_not_flagged():
+    """The result Phase 3 actually got: absent, and the chunk is fine. That is
+    what says the mismatch is vocabulary rather than a broken boundary."""
+    a = _survey({"g001": None}, {"g001": ["c00200"]})
+    assert a["absent_flagged"] == 0
+
+
+def test_a_severed_listing_counts_even_though_neither_edge_looks_wrong():
+    """Shape C is the one no reader would catch. Both halves read as ordinary
+    indented code; only the pair shows the statement was cut."""
+    a = _survey({"g001": None}, {"g001": ["c00300"]})
+    assert a["absent_flagged"] == 1
+    assert [f for _, _, f in a["absent_chunks"]] == [["C"]]
+
+
+def test_found_items_are_the_control_and_are_counted_separately():
+    """Without a base rate from the items retrieval DOES find, this measures how
+    eagerly three regexes fire and nothing else. Mixing the two populations
+    would destroy the only comparison that makes the survey evidence."""
+    a = _survey({"g001": None, "g002": 3},
+                {"g001": ["c00200"], "g002": ["c00100"]})
+    assert a["absent_ids"] == ["g001"]
+    assert a["absent_flagged"] == 0, "the absent item's chunk is intact"
+    assert a["found_flagged"] == 1, "the broken chunk belongs to a FOUND item"
+    assert a["found_items"] == 1
+
+
+def test_unanswerable_items_are_not_surveyed():
+    """An unanswerable item has no answer chunks and can never be 'found'.
+    Counting it as absent would inflate the population D70 reasons about."""
+    items = [{"id": "g001", "answer_chunks": []}]
+    rows = [{"id": "g001", "answerable": False, "rank": None}]
+    a = score.absent_shapes(rows, items, SHAPES)
+    assert a["absent_ids"] == []
+
+
+def test_every_count_is_reported_beside_a_corpus_base_rate():
+    """A count with no base rate is not evidence: 1 of 30 is alarming against a
+    0.2% corpus and unremarkable against a 10.7% one. Both readings appear in
+    the real output, which is why the rates are computed rather than described."""
+    a = _survey({"g001": None}, {"g001": ["c00100"]})
+    assert set(a["base"]) == {"A", "B", "C", "either"}
+    assert a["base"]["A"] > 0, "the fixture contains a shape-A chunk"
+
+
+def test_the_survey_calls_chunk_pys_detectors_rather_than_holding_a_copy():
+    """Mutation. If this file ever grows its own regex, the survey and
+    `chunk.py --audit` start reporting different things about the same corpus --
+    which is exactly how probe.py ended up with a second, wrong copy of the
+    refusal test."""
+    from rag import chunk as chunk_mod
+
+    clean = _survey({"g001": None}, {"g001": ["c00200"]})
+    assert clean["absent_flagged"] == 0
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(chunk_mod, "ends_open_shape", lambda c: True)
+        mutated = _survey({"g001": None}, {"g001": ["c00200"]})
+    assert mutated["absent_flagged"] == 1, "the survey is not using chunk.py's detector"
+
+
+def test_the_absent_section_says_so_plainly_when_nothing_is_flagged():
+    """Zero is the load-bearing result here, and a table of zeroes does not say
+    what it means. The prose has to draw the conclusion (D70)."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        score.report_absents(_survey({"g001": None}, {"g001": ["c00200"]}))
+    text = out.getvalue()
+    assert "g001" in text
+    assert "vocabulary" in text, "must name what the failure IS, not only what it is not"
+
+
+# --- end to end: the only number describing what a user receives -------------
+
+def _rrow(gid, answerable, refused, in_prompt):
+    return {"id": gid, "answerable": answerable, "refused": refused,
+            "answer_in_prompt": in_prompt}
+
+
+def _refusal_text(rows):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        score.report_refusals(rows)
+    return out.getvalue()
+
+
+def test_end_to_end_counts_only_answers_that_had_the_page_and_gave_an_answer():
+    """Both conditions, or the figure is a recall number wearing a new label.
+    An item where retrieval failed cannot be generation's win, and an item the
+    model refused is not a win at all however good the retrieval was."""
+    rows = [
+        _rrow("g001", True, False, True),    # page there, answered   -> counts
+        _rrow("g002", True, True, True),     # page there, refused    -> lost
+        _rrow("g003", True, False, False),   # answered without the page
+        _rrow("g004", True, True, False),    # honest refusal
+    ]
+    text = _refusal_text(rows)
+    assert "1/4   = 0.25   END TO END" in text
+
+
+def test_end_to_end_is_never_above_the_retrieval_ceiling():
+    """It is a subset of `answer reached the prompt` by construction. If this
+    ever inverts, the two are being computed from different populations."""
+    rows = [_rrow("g001", True, False, True), _rrow("g002", True, True, True),
+            _rrow("g003", True, False, False)]
+    text = _refusal_text(rows)
+    assert "answer reached the prompt           2/3" in text
+    assert "1/3   = 0.33   END TO END" in text
+
+
+def test_the_generation_loss_is_the_gap_between_them():
+    """The number Phase 4 exists to close, and the one no recall figure can
+    see: pages that arrived and produced nothing."""
+    rows = [_rrow("g001", True, True, True), _rrow("g002", True, True, True),
+            _rrow("g003", True, False, True), _rrow("g004", True, False, True)]
+    assert "generation loses                    2/4   = 0.50" in _refusal_text(rows)
+
+
+def test_unanswerable_items_are_not_in_the_end_to_end_denominator():
+    """A correctly refused unanswerable item is a success, and putting it in
+    this denominator would penalise the system for behaving well -- the same
+    trap D62 refused when it split refusal accuracy out of recall."""
+    rows = [_rrow("g001", True, False, True), _rrow("g002", False, True, False)]
+    assert "1/1   = 1.00   END TO END" in _refusal_text(rows)

@@ -128,3 +128,25 @@ def test_refusal_is_narrowed_to_subject_and_must_name_what_was_sought():
     assert "about the subject of the question at all" in lowered, "refusal is scoped to subject"
     assert "say exactly" not in lowered, "the A wording over-refused; see D43"
     assert "genuinely silent" not in lowered, "that is B's sufficiency test; see D52"
+
+
+def test_a_refusal_with_a_citation_in_front_of_it_is_still_a_refusal():
+    """Measured 2026-08-22. A prompt variant asking for a citation before every
+    statement produced "[2] The sources do not answer this." on six items, and
+    the bare prefix test scored every one as an ANSWER -- turning three refusals
+    into apparent fixes in a paired comparison that then read p = 0.000.
+
+    The instrument was broken by the very intervention it was measuring."""
+    assert ask.refused("[2] The sources do not answer this.")
+    assert ask.refused("[1][3] The sources do not answer this")
+    assert ask.refused("  [2]  The sources do not answer this.")
+
+
+def test_stripping_citations_does_not_turn_the_prefix_test_into_a_search():
+    """The property the prefix test exists to protect: prompt D deliberately
+    produces "here is the part the sources cover, and here is the part they do
+    not", which is an ANSWER. A substring test would score it as a refusal and
+    inflate the number in the flattering direction."""
+    assert not ask.refused(
+        "Use Session.get() [1]. The sources do not answer the second half.")
+    assert not ask.refused("[1] Use Session.get(). The sources do not answer that.")
