@@ -7,6 +7,16 @@ Phase 2, Step 4 — one command, one score, and the parts of it that flatter us.
     uv run python -m rag.score --save f        # write rows, to be a later run's baseline
 
     uv run python -m rag.score --refusals      # D62, generation, printed apart
+    uv run python -m rag.score --absents       # D70, why the missed items are missed
+
+Two flags freeze an earlier row for a re-measure, and they are NOT interchangeable:
+
+    --no-rerank                 hybrid without seat-5 CE  -- the D67 row
+    --dense-only --no-rerank    dense + twin collapse     -- the D66 row
+
+`--dense-only` ALONE is neither row. It turns off BM25 and leaves the reranker
+on, a combination that has never shipped; it scores 0.53 where the D66 row is
+0.52. Three docs told you to reproduce D66 with it until 2026-08-22.
 
 Refusal accuracy on the unanswerable items (D62) is the one section that needs
 generation rather than retrieval, so it is behind `--refusals` and costs ~50
@@ -345,6 +355,135 @@ def report_refusals(rows: list[dict]) -> None:
     print(f"      with the answer absent        {len(over_without):>3}"
           f"   honest — retrieval never supplied it")
 
+    # END TO END, and it is computed here rather than in a doc.
+    #
+    # This figure was hand-derived in the docs twice (0.36 on the 50, 0.35 on
+    # the 100) by subtracting one printed number from another. That is exactly
+    # the arithmetic CLAUDE.md's measurement rule exists to stop -- a count
+    # nobody can reproduce with a command. It is the single most important
+    # number in the Phase 4 scorecard, because it is the only one describing
+    # what a user actually receives, so it prints.
+    #
+    # Retrieval's recall is a CEILING. An item counts here only if the answer
+    # chunk reached the prompt AND the model did not decline: getting the page
+    # in front of the model and getting an answer out of it are separate
+    # problems, and this is where the second one is priced.
+    in_prompt = [r for r in answerable if r["answer_in_prompt"]]
+    end_to_end = [r for r in in_prompt if not r["refused"]]
+    n = len(answerable)
+    print(f"\n  answer reached the prompt         {len(in_prompt):>3}/{n}"
+          f"   <- retrieval's ceiling, at k={_ship_k()}")
+    print(f"  ...and was answered, not refused  {len(end_to_end):>3}/{n}"
+          f"   = {len(end_to_end) / n:.2f}   END TO END" if n else "")
+    if n and in_prompt:
+        lost = len(in_prompt) - len(end_to_end)
+        print(f"  generation loses                  {lost:>3}/{n}"
+              f"   = {lost / n:.2f} of the ceiling, invisible to every recall figure")
+
+
+def absent_shapes(rows: list[dict], items: list[dict], chunks: dict[str, dict]) -> dict:
+    """D70: are the answer chunks we cannot retrieve BROKEN, or just worded differently?
+
+    An item absent from the top-20 is beyond reranking by construction — the
+    reranker only reorders what retrieval already returned. So the absents are
+    the only population that can justify recall-side work, and "improve chunking"
+    is a recall-side lever. This asks whether they are shaped like the chunker's
+    known defects.
+
+    The three shapes are chunk.py's own predicates (D56 A and B, plus §R5.3's
+    severed listing as shape C), so this survey and `chunk.py --audit` cannot
+    disagree. The corpus-wide rate is carried alongside every count because a
+    count without a base rate is not evidence: 4 of 30 would be alarming against
+    a 0.2% corpus and unremarkable against a 10.7% one.
+
+    The FOUND items are the control. Without it this measures how eagerly three
+    regexes fire, not whether broken chunks are why retrieval missed.
+    """
+    from rag import chunk as chunk_mod
+
+    by_id = {i["id"]: i for i in items}
+    allc = list(chunks.values())
+    nxt, _ = chunk_mod.neighbours(allc)
+
+    def flags(c: dict) -> list[str]:
+        out = []
+        if chunk_mod.ends_open_shape(c):
+            out.append("A")
+        if chunk_mod.opens_backward_shape(c):
+            out.append("B")
+        n = nxt.get(c["id"])
+        if n is not None and chunk_mod.severed_listing(c, n):
+            out.append("C")
+        return out
+
+    def survey(subset: list[dict]) -> tuple[list[tuple[str, str, list[str]]], int]:
+        seen = []
+        for r in sorted(subset, key=lambda r: r["id"]):
+            for cid in by_id[r["id"]]["answer_chunks"]:
+                c = chunks.get(cid)
+                if c is not None:
+                    seen.append((r["id"], cid, flags(c)))
+        return seen, sum(1 for _, _, f in seen if f)
+
+    answerable = [r for r in rows if r["answerable"]]
+    absent_survey, absent_flagged = survey([r for r in answerable if r["rank"] is None])
+    found_survey, found_flagged = survey([r for r in answerable if r["rank"] is not None])
+
+    n_boundaries = sum(1 for c in allc if c["id"] in nxt
+                       and nxt[c["id"]]["char_start"] >= c["char_end"])
+    base = chunk_mod.audit(allc)
+    return {
+        "absent_ids": sorted(r["id"] for r in answerable if r["rank"] is None),
+        "found_items": sum(1 for r in answerable if r["rank"] is not None),
+        "absent_chunks": absent_survey,
+        "absent_flagged": absent_flagged,
+        "found_chunks": found_survey,
+        "found_flagged": found_flagged,
+        # Corpus-wide rates, so every count above has something to be judged against.
+        "base": {
+            "A": base["ends_open"] / base["n_chunks"],
+            "B": base["opens_backward"] / base["n_chunks"],
+            "either": base["either"] / base["n_chunks"],
+            "C": sum(1 for c in allc if c["id"] in nxt
+                     and chunk_mod.severed_listing(c, nxt[c["id"]])) / max(n_boundaries, 1),
+        },
+    }
+
+
+def report_absents(a: dict) -> None:
+    n = len(a["absent_chunks"])
+    print(f"\nABSENT FROM TOP-{DEPTH} — are their answer chunks BROKEN, or just worded "
+          f"differently?  (D70)")
+    print(f"  {len(a['absent_ids'])} answerable items, {n} answer chunks between them")
+    print("  " + ", ".join(a["absent_ids"]))
+    if not n:
+        return
+
+    counts = {k: sum(1 for _, _, f in a["absent_chunks"] if k in f) for k in "ABC"}
+    print(f"\n  shape of those {n} answer chunks                  count    corpus")
+    print(f"    A  ends announcing what never follows        {counts['A']:5}"
+          f"    {a['base']['A']:5.1%}")
+    print(f"    B  opens pointing at what is not here        {counts['B']:5}"
+          f"    {a['base']['B']:5.1%}")
+    print(f"    C  boundary severed inside a code listing    {counts['C']:5}"
+          f"    {a['base']['C']:5.1%}  of cuts")
+    print(f"    any of the three                             {a['absent_flagged']:5}"
+          f"    {a['base']['either']:5.1%}")
+
+    fn = len(a["found_chunks"])
+    rate = f" = {a['found_flagged'] / fn:.0%}" if fn else ""
+    print(f"\n  control — the {a['found_items']} items retrieval DOES find: "
+          f"{a['found_flagged']} of {fn} answer chunks flagged{rate}")
+
+    flagged = [(g, c, f) for g, c, f in a["absent_chunks"] if f]
+    if flagged:
+        print("\n  flagged, and each one wants reading before it is believed:")
+        for gid, cid, f in flagged:
+            print(f"    {gid}  {cid}  shape {'+'.join(f)}")
+    else:
+        print("\n  Not one of them. Chunk repair cannot be the lever that reaches these"
+              "\n  items; the mismatch is vocabulary, not a broken boundary (D70).")
+
 
 def _ship_k() -> int:
     from rag import ask as ask_mod
@@ -416,6 +555,10 @@ def main() -> None:
         print(f"mode: {', '.join(modes)}\n")
     rows = score_items(items, chunks, hybrid=hybrid, rerank=rerank)
     report(rows)
+    if "--absents" in argv:
+        # D70: printed after the curve, because it only makes sense once you know
+        # how many items are absent. Costs no extra retrieval -- it reads `rows`.
+        report_absents(absent_shapes(rows, items, chunks))
     if "--baseline" in argv:
         path = pathlib.Path(argv[argv.index("--baseline") + 1])
         compare(rows, json.loads(path.read_text())["rows"])

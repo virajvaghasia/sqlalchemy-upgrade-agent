@@ -98,6 +98,7 @@ ENV_MARKERS = {
     "rag.index": "needs Qdrant running",
     "rag.score": "reads corpus/chunks.jsonl, which is generated and gitignored (D11), and the live path also needs Qdrant",
     "rag.golden": "reads corpus/chunks.jsonl, which is generated and gitignored (D11)",
+    "rag.judge": "~100 Ollama generations against a gitignored corpus; ~30 min and nondeterministic",
     "psql": "needs a running database",
 }
 
