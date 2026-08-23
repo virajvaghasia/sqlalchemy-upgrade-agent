@@ -568,6 +568,81 @@ def _non_blank(text: str) -> list[str]:
     return [l for l in text.split("\n") if l.strip()]
 
 
+# The three boundary defects, one predicate each. They were inline inside audit()
+# until 2026-08-22, when D70 needed to ask the same questions of a *subset* — the
+# answer chunks of the items retrieval cannot find. Same code, called twice, so
+# the survey and the corpus-wide audit cannot report different things.
+
+
+def ends_open_shape(c: dict) -> bool:
+    """Shape A — ends announcing something that never arrives ("...is as follows:").
+
+    A single trailing colon, not RST's ``::`` (that would introduce a listing).
+    """
+    return _non_blank(c["text"])[-1].rstrip().endswith(":")
+
+
+def opens_backward_shape(c: dict) -> bool:
+    """Shape B — opens pointing at something that is not here ("The above example...").
+
+    Regex over-fires ~1 in 8 (c00203 points forward). Treat the count as slightly high.
+    """
+    return bool(OPENS_BACKWARD.search(" ".join(_non_blank(c["text"])[:1])[:160]))
+
+
+# Shape C — the boundary falls INSIDE a code listing. This is the third defect,
+# named in study/13-VERIFICATION.md §R5.3 and never before written as code: the
+# §R5.3 figure ("at least 11 of 3077") was computed by hand in a session and its
+# doc block is classified `# summary of` because nothing could reproduce it.
+#
+# It is not shape A. A chunk ending on `::` announced a listing and dropped it;
+# this one is already *inside* the listing when the cut happens, so neither edge
+# looks wrong on its own — which is the whole problem. Broken prose is visible,
+# broken code is not (§R5.3).
+#
+# "Positive evidence of code on either side" is what makes the claim `at least`:
+# an indented line alone is a terrible proxy in glossary.rst, where every
+# definition body is indented under its term. Requiring a Python/SQL token as
+# well is what took the loose count of 123 down to the defensible 11.
+_CODE_TOKEN = re.compile(
+    r"(=|\(|\)|\bimport\b|\bdef\b|\bclass\b|\breturn\b|\bSELECT\b|>>>|\.\.\.)")
+
+
+def _is_code_line(line: str) -> bool:
+    return line.startswith(("    ", "\t")) and bool(_CODE_TOKEN.search(line))
+
+
+def severed_listing(a: dict, b: dict) -> bool:
+    """True when the cut between adjacent chunks `a` -> `b` lands inside a listing.
+
+    Only meaningful for a *real* cut: if `b` starts before `a` ends the blocks
+    overlap (D33/D34) and the listing survives in both copies, so there is
+    nothing severed. audit()'s `a_lost` makes the same distinction.
+    """
+    if b["char_start"] < a["char_end"]:
+        return False
+    return _is_code_line(_non_blank(a["text"])[-1]) and _is_code_line(_non_blank(b["text"])[0])
+
+
+def neighbours(chunks: list[dict]) -> tuple[dict[str, dict], dict[str, dict]]:
+    """Map each chunk id to the chunk after it and before it, within one file+version.
+
+    Two chunks from the same page but different releases are not neighbours —
+    that is the pair D58 calls a twin, and treating them as adjacent would make
+    every twin look like a severed boundary.
+    """
+    order: dict[tuple[str, str], list[dict]] = {}
+    for c in chunks:
+        order.setdefault((c["source_path"], c["sqlalchemy_version"]), []).append(c)
+    nxt: dict[str, dict] = {}
+    prv: dict[str, dict] = {}
+    for group in order.values():
+        group.sort(key=lambda c: c["char_start"])
+        for a, b in zip(group, group[1:]):
+            nxt[a["id"]], prv[b["id"]] = b, a
+    return nxt, prv
+
+
 def audit(chunks: list[dict]) -> dict:
     """Count chunks that do not stand on their own, and say how many are lost.
 
@@ -594,23 +669,10 @@ def audit(chunks: list[dict]) -> dict:
     is a third defect, measured in study/13-VERIFICATION.md §R5.3 (at least
     11 of 3077 boundaries), not here.
     """
-    order: dict[tuple[str, str], list[dict]] = {}
-    for c in chunks:
-        order.setdefault((c["source_path"], c["sqlalchemy_version"]), []).append(c)
-    nxt: dict[str, dict] = {}
-    prv: dict[str, dict] = {}
-    for group in order.values():
-        group.sort(key=lambda c: c["char_start"])
-        for a, b in zip(group, group[1:]):
-            nxt[a["id"]], prv[b["id"]] = b, a
+    nxt, prv = neighbours(chunks)
 
-    # Shape A — ends announcing something that never arrives ("...is as follows:").
-    # A single trailing colon, not RST's `::` (that would introduce a listing).
-    ends_open = [c for c in chunks if _non_blank(c["text"])[-1].rstrip().endswith(":")]
-    # Shape B — opens pointing at something that is not here ("The above example...").
-    # Regex over-fires ~1 in 8 (c00203 points forward). Treat the count as slightly high.
-    opens_back = [c for c in chunks
-                  if OPENS_BACKWARD.search(" ".join(_non_blank(c["text"])[:1])[:160])]
+    ends_open = [c for c in chunks if ends_open_shape(c)]
+    opens_back = [c for c in chunks if opens_backward_shape(c)]
 
     def a_lost(c: dict) -> bool:
         n = nxt.get(c["id"])
