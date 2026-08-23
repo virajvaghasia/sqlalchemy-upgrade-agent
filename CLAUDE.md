@@ -43,12 +43,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R7 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D76`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D77`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 251 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 258 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -347,11 +347,13 @@ role force quoting in every statement. It matches the Compose service it belongs
 `PHASE-4.md` written; Step 1 re-baseline CLOSED (`D72`); `rag/judge.py` citation integrity built
 (`D71`) and run (`D73`: **31 of 48** answered items cite nothing). **Prompt candidate `H`
 measured** (`D74`): moving the citation rule into the user turn gives end to end **0.43 → 0.52**,
-**9↑ 0↓**, p = 0.0039, uncited **67% → 10%**. **Not shipped — Viraj's call.** Faithfulness still
-needs a pinned judge; no key on this machine. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
+**9↑ 0↓**, p = 0.0039, uncited **67% → 10%**. **Not shipped — Viraj's call.** Groundedness measured too
+(`D77`): H makes **0 ungrounded API calls in 62 answers** against D's 2 in 48, and turns `g065`'s
+invented Alembic recipe into a cited paraphrase. Prose-level faithfulness still needs a pinned
+judge; no key on this machine. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**251 tests**, **58/58** `# runnable`, **76** decisions, **§H empty**.
+**258 tests**, **58/58** `# runnable`, **77** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -366,7 +368,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 251 passed with Qdrant up; 246 + 5 skipped without
+uv run pytest                            # 258 passed with Qdrant up; 253 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -1309,7 +1311,7 @@ Append a dated entry each session; keep each entry to a few bullets.
 ### 2026-08-22 (afternoon) — Phase 3 closed: the last ROADMAP row rejected with a number (`D70`)
 
 - **Asked to confirm Phase 3 was correctly done.** Re-ran every gate and re-measured every row
-  rather than reading the tables: **251 tests** (was 196), **58/58** `# runnable`, verdicts in
+  rather than reading the tables: **258 tests** (was 196), **58/58** `# runnable`, verdicts in
   sync, golden 100/100 human. `recall@5` **0.64 ±0.097**, absents **17**, dup seats **0**,
   paired **7↑ 0↓** with McNemar **p = 0.016** — all four Phase 3 rows reproduce exactly.
 - **The phase was NOT closed, and its own gate said so.** `ROADMAP.md`'s third step ("improve
@@ -1380,7 +1382,7 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **`0.64` is a ceiling and the docs were quoting it as the system's score.** START HERE now
   says quote **0.43**, and `0.64` only with the word *retrieval* attached.
 - Also fixed: `rag/__init__.py` still said "Steps 2-5 land here as they are built" with thirteen
-  modules present. **251 tests**, 58/58 `# runnable`.
+  modules present. **258 tests**, 58/58 `# runnable`.
 
 ### 2026-08-22 (night) — the citation run: `SOURCES ARE NOT DECORATION` fails its own test (`D73`)
 
@@ -1406,7 +1408,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   ~100 generations and the question should not have to be asked twice.
 - **`rag.judge` added to `check_runnable`'s ENV list** with a reason — the new `# runnable` block
   in `PHASE-4.md` tried to run 100 generations and timed the gate out.
-- **251 tests**, 58/58 `# runnable`, **73** decisions. Nothing committed.
+- **258 tests**, 58/58 `# runnable`, **73** decisions. Nothing committed.
 
 ### 2026-08-22 (overnight, Mac free for 12h) — prompt lab: position beats emphasis (`D74`, `D75`)
 
@@ -1443,7 +1445,7 @@ Append a dated entry each session; keep each entry to a few bullets.
   `.lower().startswith(...)` — no `.strip()`, so a leading space hid a refusal `ask.refused`
   caught. Across the 100 saved answers the two disagreed on **zero**, so unifying moved no
   recorded number. Now calls `ask.refused`; two tests.
-- **251 tests**, 58/58 `# runnable`, **75** decisions.
+- **258 tests**, 58/58 `# runnable`, **75** decisions.
 
 ### 2026-08-23 — the prompt result, and the instrument that was broken by it (`D74`, `D76`)
 
@@ -1477,4 +1479,29 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **NOT SHIPPED.** `ask.SYSTEM` and `build_prompt` are untouched; `H` lives in
   `compare_prompts.py` as a measured candidate. **The prompt that ships is Viraj's call** —
   assuming it was the wrong call on 2026-08-17.
-- **251 tests**, 58/58 `# runnable`, **76** decisions.
+- **258 tests**, 58/58 `# runnable`, **76** decisions.
+
+### 2026-08-23 (later) — groundedness without a judge (`D77`)
+
+- **`judge.ungrounded_calls()`** — dotted API calls in an answer's **code** that appear in
+  **none of its own sources**. Deterministic; no judge model, no API key. The only Phase 4 metric
+  that reaches the defect prompt work could not move (`D74`: fabrications stuck at 2).
+- **Measured over the saved D/H/I answers** — re-retrieved sources (cheap, deterministic) and
+  reused the ~2.5 hours of generations rather than regenerating, which `D54` drift would have
+  made non-comparable anyway. **D: 2 ungrounded of 48 answered. H: 0 of 62. I: 3 of 63.**
+- **The severity collapse a COUNT could not see.** `fabr` is 2 under every wording. On `g065`:
+  **D** invents an Alembic recipe (`op.create_table`, `sa.Column`; `op.create_view` on 08-21,
+  which does not exist); **H** replies *"[3] SQLAlchemy supports ALTER TABLE, CREATE VIEW…
+  Alembic or SQLAlchemy-Migrate can be used"* — **zero code blocks, one citation, a paraphrase of
+  the page it cites.** Both score as "answered an unanswerable item". **A count of fabrications
+  is not a measure of harm.**
+- **It confirms the golden note from the other direction.** The 08-21 spot-check rewrote `g065`'s
+  reason to "CREATE VIEW chunks exist but do not teach the same-migration recipe". H found those
+  chunks and repeated exactly that much.
+- **Stated limit: `g056` is never caught** — it fabricates in prose, not code, and a code
+  grounding detector is structurally blind to it. Prose faithfulness needs the pinned judge.
+- **Groundedness ≠ existence**, and both are kept: `op.create_table` is real and still ungrounded
+  if no source mentions it. Existence is `audit_golden_fullbar`'s job on the real library.
+- False positives designed out and tested: local variables excluded, question identifiers
+  subtracted, `Session.get` grounds `session.get`, matching via `probe._contains`.
+- **258 tests**, 58/58 `# runnable`, **77** decisions.

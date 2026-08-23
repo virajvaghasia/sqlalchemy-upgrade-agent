@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D76`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D77`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -2058,6 +2058,63 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > real?"* → *"Because the first version of that number was wrong and I found it. The model cited
 > its own refusals, my refusal detector is a prefix test, and it scored six declines as answers.
 > Fixed the detector, re-scored the saved answers, and it's p = 0.0039 instead."*
+
+### D77 — groundedness, measured without a judge: the fabrication COUNT hid a collapse in severity
+
+> **Built and measured 2026-08-23.** `rag/judge.py` `ungrounded_calls()` — dotted API calls the
+> answer's **code** makes that appear in **none of its own sources**. Deterministic: no judge
+> model, no API key, no free tier. It is the only Phase 4 metric that reaches the defect prompt
+> work could not move (`D74`: fabrications sat at **2** under every wording tried).
+>
+> **It measures GROUNDEDNESS, not existence, and the boundary is the point.**
+> `op.create_table` is a real Alembic function; if no retrieved source mentions it, an answer
+> calling it is still unsupported by the pages the system was given — which is exactly what a
+> RAG faithfulness metric should say. *Does this symbol exist at all* is a different question,
+> answered against the real library by `tools/audit_golden_fullbar.py`. **Neither subsumes the
+> other**, and `g065` fails both.
+>
+> | | answered | with an ungrounded call | rate |
+> |---|---|---|---|
+> | **D** shipped | 48 | **2** | 4% |
+> | **H** | **62** | **0** | **0%** |
+> | **I** | 63 | 3 | 5% |
+>
+> **H answers 14 more questions and grounds every line of code in all of them.**
+>
+> **The severity collapse the count could not see.** `fabr` stays at 2 for all three wordings,
+> so on that metric nothing improved. What actually changed, on `g065`:
+>
+> - **D** produced a confident Alembic recipe — `op.create_table`, `sa.Column`, and on the
+> 08-21 run `op.create_view`, which does not exist on alembic 1.19.1. **A fabricated procedure.**
+> - **H** produced: *"[3] SQLAlchemy supports ALTER TABLE, CREATE VIEW, CREATE TRIGGER… For a
+> more comprehensive option, schema migration tools like Alembic or SQLAlchemy-Migrate can be
+> used."* **Zero code blocks, one citation, and a paraphrase of the source it cites.**
+>
+> **Both are scored as "answered an unanswerable item". They are not the same failure.** One
+> invents a procedure a developer would run; the other repeats what the page says and stops.
+> **A count of fabrications is not a measure of harm**, and this is the entry that says so.
+>
+> **It also confirms the golden note independently.** The 2026-08-21 spot-check rewrote `g065`'s
+> reason to *"CREATE VIEW chunks exist (`c00484`/`c02056`) but do not teach same-migration
+> CREATE TABLE + VIEW"*. H found exactly those chunks and repeated exactly that much. The label
+> and the behaviour agree, arrived at from opposite directions.
+>
+> **What it does not catch: `g056`.** Never flagged under any wording, because it fabricates in
+> **prose**, not code. A code-grounding detector is structurally blind to that, and saying so is
+> better than implying coverage it does not have. Prose-level faithfulness is the judge's job
+> and still needs a pinned model.
+>
+> **False positives were designed out and are tested.** Local variables (`subq`, `stmt`) are not
+> API calls; identifiers from the **question** are subtracted, because a developer pasting their
+> own broken code puts symbols in the prompt the docs will never contain, and flagging those
+> measures the questioner; `Session.get` in the docs grounds `session.get` in the answer, or the
+> metric would report capitalisation as fabrication. Matching is `probe.py`'s `_contains`,
+> imported rather than reimplemented — the naive version counted `relation` inside every
+> `relationship`, 798 chunks against 0.
+> **Asked as** — *"How do you detect hallucination without a bigger model?"* → *"For code I
+> don't need one. I check whether the API calls in the answer appear in the pages I retrieved.
+> The shipped prompt makes two ungrounded answers in 48; moving the citation rule makes zero in
+> 62 — and it turned an invented Alembic recipe into a cited quote of the FAQ."*
 
 ## Using this in an interview
 

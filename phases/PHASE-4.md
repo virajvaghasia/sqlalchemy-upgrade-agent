@@ -135,8 +135,40 @@ model, no key and no free tier. It answers what a script can settle exactly:
 **Refusals are excluded from every rate.** A declined answer has nothing to cite, and counting
 it as `uncited` would make the system look worse the more honest it got — `D62`'s trap again.
 
-**Faithfulness is the half that needs a judge**: is each claim supported by a chunk that was in
-the prompt? That is a reading task, so it waits on Step 2's pinned model.
+**Faithfulness has a deterministic half too, and it is built** (`D77`). `ungrounded_calls()`
+takes the dotted API calls in an answer's **code** and asks whether each appears in **any of its
+own sources**. No judge, no key.
+
+| | answered | with an ungrounded call | rate |
+|---|---|---|---|
+| **D** shipped | 48 | **2** | 4% |
+| **H** | **62** | **0** | **0%** |
+| **I** | 63 | 3 | 5% |
+
+**It measures groundedness, not existence.** `op.create_table` is real; if no retrieved source
+mentions it, an answer calling it is still unsupported by the pages the system was given. Whether
+a symbol exists at all is `tools/audit_golden_fullbar.py`'s job against the real library.
+Neither subsumes the other — `g065` fails both.
+
+**The severity collapse a count could not see.** `fabr` is 2 under every wording, so by that
+metric nothing improved. On `g065` what actually changed is large:
+
+- **D** — a confident Alembic recipe: `op.create_table`, `sa.Column` (and `op.create_view` on
+  the 08-21 run, which does not exist on alembic 1.19.1). **A fabricated procedure.**
+- **H** — *"[3] SQLAlchemy supports ALTER TABLE, CREATE VIEW, CREATE TRIGGER… schema migration
+  tools like Alembic or SQLAlchemy-Migrate can be used."* **Zero code blocks, one citation, a
+  paraphrase of the page it cites.**
+
+Both score as "answered an unanswerable item". **They are not the same failure**, and a count of
+fabrications is not a measure of harm.
+
+**It independently confirms the golden note.** The 08-21 spot-check rewrote `g065`'s reason to
+*"CREATE VIEW chunks exist but do not teach same-migration CREATE TABLE + VIEW"*. H found exactly
+those chunks and repeated exactly that much.
+
+**What it cannot see: `g056`**, which fabricates in prose rather than code. A code-grounding
+detector is structurally blind to that. **Prose-level faithfulness still needs the pinned judge**
+of Step 2 — that is the remaining blocked work, and there is no key on this machine.
 
 #### Measured 2026-08-22, first full run — and it is worse than Phase 1 recorded (`D73`)
 

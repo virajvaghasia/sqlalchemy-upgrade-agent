@@ -104,7 +104,7 @@ experiments/           the code under study: the 1.4 app and the measurement har
 rag/                   retrieval (Phase 1-3) + judge.py, the Phase 4 answer grader
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 251 tests pinning what the docs claim
+tests/                 258 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -176,10 +176,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-251 tests collected in 10.79s
+258 tests collected in 11.71s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 251 passed with it up and 246
+Five of them skip when Qdrant is not running, so a run reports 258 passed with it up and 253
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
