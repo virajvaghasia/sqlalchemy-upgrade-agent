@@ -120,6 +120,61 @@ def uncited_code_blocks(answer: str) -> int:
     return n
 
 
+# A dotted API call in the answer's code: `op.create_view(`, `session.get(`,
+# `Query.from_self(`. Deliberately NOT bare identifiers -- `subq`, `stmt`, `ua`
+# are the model's own local variables and grounding them is meaningless.
+API_CALL = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\s*\(")
+
+
+def api_calls(answer: str) -> list[str]:
+    """Every dotted call inside the answer's code blocks, deduplicated.
+
+    Scoped to code blocks: prose naming `Query.from_self` is usually discussing
+    the thing the question asked about, while code CALLING it is a claim that
+    this is how you do it.
+    """
+    return sorted({m.group(1) for block in code_blocks(answer)
+                   for m in API_CALL.finditer(block)})
+
+
+def ungrounded_calls(answer: str, source_texts: list[str], question: str = "") -> list[str]:
+    """Dotted calls the answer makes that appear in NONE of its sources.
+
+    This is the deterministic half of faithfulness, and the only Phase 4 metric
+    that reaches the defect the prompt work could not (D74: fabrications sat at
+    2 under every wording tried).
+
+    **It measures GROUNDEDNESS, not existence, and the difference matters.**
+    `op.create_table` is a real Alembic function; if it is not in any retrieved
+    source then an answer calling it is still unsupported by the pages the
+    system was given, which is exactly what a RAG faithfulness metric should
+    say. Whether a symbol exists at all is a different question, answered
+    against the real library by tools/audit_golden_fullbar.py. Neither
+    subsumes the other: g065 invented `op.create_view` (fails both) beside
+    `op.create_table` (exists, still ungrounded here).
+
+    The question is subtracted because a developer pasting their own broken code
+    puts identifiers in the prompt that the docs will never contain -- flagging
+    the model for echoing them back would measure the questioner, not the answer.
+
+    Matching is probe.py's `_contains`, imported rather than reimplemented: a
+    naive `symbol in text` counted `relation` inside every `relationship`, 798
+    chunks against 0, and silenced the signal it existed for.
+    """
+    from rag.probe import _contains
+
+    haystack = "\n".join(source_texts) + "\n" + question
+    out = []
+    for call in api_calls(answer):
+        # Ground on the attribute chain and on its last segment: docs often
+        # write `Session.get` where the answer writes `session.get`, and
+        # rejecting that would report a style difference as a fabrication.
+        tail = call.rsplit(".", 1)[-1]
+        if not _contains(haystack, call) and not _contains(haystack, tail):
+            out.append(call)
+    return out
+
+
 def citation_report(answer: str, n_sources: int) -> dict:
     """Everything checkable about an answer's citations without reading it.
 
@@ -168,6 +223,8 @@ def aggregate(rows: list[dict]) -> dict:
         "single_source": sum(1 for r in answered if r["single_source"]),
         "with_code": sum(1 for r in answered if r["code_blocks"]),
         "uncited_code": sum(1 for r in answered if r["uncited_code_blocks"]),
+        # Answers calling an API that appears in none of their own sources.
+        "ungrounded": sum(1 for r in answered if r.get("ungrounded")),
         "mean_coverage": round(sum(r["coverage"] for r in answered) / n, 3) if n else 0.0,
     }
 
@@ -191,6 +248,8 @@ def report(rows: list[dict], agg: dict) -> None:
         print(f"    of those, code with no citation   {agg['uncited_code']:>4}"
               f"  {agg['uncited_code'] / agg['with_code']:6.1%}")
     k = rows[0]["n_sources"] if rows else 0
+    if any("ungrounded" in r for r in rows):
+        print(f"  calls an API in none of its sources {agg['ungrounded']:>4}  {pct('ungrounded')}")
     print(f"\n  mean source coverage                {agg['mean_coverage']:.2f}"
           f"   (fraction of the {k} prompt sources an answer cites)")
 
@@ -210,7 +269,8 @@ def report(rows: list[dict], agg: dict) -> None:
             u = sum(1 for r in sub if r["uncited"])
             print(f"    {prov:<16}{len(sub):>9}{u:>9}{u / len(sub):>7.0%}")
 
-    bad = [r for r in rows if not r["refused"] and (r["out_of_range"] or r["uncited_code_blocks"])]
+    bad = [r for r in rows if not r["refused"]
+           and (r["out_of_range"] or r["uncited_code_blocks"] or r.get("ungrounded"))]
     if bad:
         print("\n  the two that need a person, named:")
         for r in bad:
@@ -219,6 +279,8 @@ def report(rows: list[dict], agg: dict) -> None:
                 why.append(f"cites {r['out_of_range']} of {r['n_sources']} sources")
             if r["uncited_code_blocks"]:
                 why.append(f"{r['uncited_code_blocks']} uncited code block(s)")
+            if r.get("ungrounded"):
+                why.append("ungrounded: " + ", ".join(r["ungrounded"][:4]))
             print(f"    {r['id']}  {'; '.join(why)}")
 
 
@@ -238,12 +300,14 @@ def judge_rows(items: list[dict], k: int | None = None, generate=None) -> list[d
     for it in items:
         hits = index.retrieve(it["question"], limit=k)
         prompt = ask.build_prompt(it["question"], hits)
+        source_texts = [h.payload["text"] for h in hits]
         out = gen(prompt)
         # ask.generate returns (answer, timings); injected fakes may return
         # just the text. Accept both rather than making every test build a tuple.
         answer = out[0] if isinstance(out, tuple) else out
         rows.append(dict(citation_report(answer, len(hits)), id=it["id"],
-                         provenance=it.get("provenance")))
+                         provenance=it.get("provenance"),
+                         ungrounded=ungrounded_calls(answer, source_texts, it["question"])))
     return rows
 
 

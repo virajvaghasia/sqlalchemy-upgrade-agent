@@ -253,3 +253,57 @@ def test_a_single_provenance_prints_no_split():
     with contextlib.redirect_stdout(out):
         judge.report(rows, judge.aggregate(rows))
     assert "by provenance" not in out.getvalue()
+
+
+# --- groundedness: the deterministic half of faithfulness ---------------------
+#
+# The one Phase 4 defect prompt work could not move: fabrications sat at 2 under
+# every wording tried (D74). g065 answered with `op.create_view`, which appears
+# in no retrieved source and does not exist on alembic 1.19.1.
+
+def test_a_call_absent_from_every_source_is_ungrounded():
+    a = "See [1]:\n\n```python\nop.create_view('v', 'SELECT 1')\n```\n"
+    assert judge.ungrounded_calls(a, ["nothing relevant here"]) == ["op.create_view"]
+
+
+def test_a_call_present_in_a_source_is_grounded():
+    a = "See [1]:\n\n```python\nsession.get(User, 1)\n```\n"
+    assert judge.ungrounded_calls(a, ["use Session.get() to load by primary key"]) == []
+
+
+def test_grounding_tolerates_the_docs_writing_the_class_where_the_answer_writes_the_instance():
+    """Docs say `Session.get`; answers say `session.get`. Reporting that as a
+    fabrication would measure capitalisation, not faithfulness."""
+    a = "```python\nsession.execute(stmt)\n```"
+    assert judge.ungrounded_calls(a, ["Session.execute() returns a Result"]) == []
+
+
+def test_identifiers_from_the_question_are_not_fabrications():
+    """A developer pasting their own broken code puts identifiers in the prompt
+    that the docs will never contain. Flagging the model for echoing them back
+    measures the questioner, not the answer."""
+    a = "```python\nmy_helper.run_it()\n```"
+    assert judge.ungrounded_calls(a, ["docs"], question="my_helper.run_it() fails") == []
+
+
+def test_local_variables_are_not_api_calls():
+    """subq, stmt, ua are the model's own names. Grounding them is meaningless,
+    and counting them would bury the real signal in noise."""
+    a = "```python\nsubq = select(User).subquery()\nstmt = subq\n```"
+    assert "subq" not in judge.api_calls(a)
+    assert "stmt" not in judge.api_calls(a)
+
+
+def test_prose_mentions_are_not_counted_only_code():
+    """Prose naming Query.from_self is usually discussing what the question
+    asked about; code CALLING it is a claim about how to do the thing."""
+    assert judge.api_calls("The Query.from_self() method was removed.") == []
+
+
+def test_groundedness_is_not_a_claim_about_existence():
+    """op.create_table is real and still ungrounded if no source mentions it —
+    which is correct for a RAG metric: the answer is unsupported by the pages
+    the system was given. Existence is audit_golden_fullbar's job, against the
+    real library. Neither subsumes the other, and g065 fails both."""
+    a = "```python\nop.create_table('t')\n```"
+    assert judge.ungrounded_calls(a, ["unrelated source text"]) == ["op.create_table"]
