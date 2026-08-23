@@ -10,7 +10,8 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`README.md`** — the front door and the map: every doc, every script, and what each proves.
   **Keep it current** — it is the only file that indexes the whole repo.
 - **`phases/ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
-- **`phases/PHASE-2.md`** — the current phase in detail. `PHASE-1.md` and `PHASE-0.md` are the
+- **`phases/PHASE-4.md`** — the current phase. `PHASE-3.md` is the one before, complete.
+- **`phases/PHASE-2.md`** — Phase 2 in detail. `PHASE-1.md` and `PHASE-0.md` are the
   phases before, both complete; their plan files stay as the record of how each gate closed.
 - **`study/01-CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
 - **`study/02-MIGRATION-2.0.md`** — §16–§22: the 1.4 → 2.0 upgrade. Continues `study/01-CONCEPTS.md`'s section
@@ -42,12 +43,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R7 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D69`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D76`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 196 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 251 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -342,25 +343,38 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**State (2026-08-22):** **Phase 2 complete** (lab Round 12 CLOSED). **Phase 3 current** —
-`D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted). Still on
-**`phase-2/measure`**. **196 tests**, **58/58** `# runnable`, **69** decisions, **§H empty**.
+**State (2026-08-22):** **Phase 2 complete** (lab Round 12 CLOSED). **Phase 4 current** —
+`PHASE-4.md` written; Step 1 re-baseline CLOSED (`D72`); `rag/judge.py` citation integrity built
+(`D71`) and run (`D73`: **31 of 48** answered items cite nothing). **Prompt candidate `H`
+measured** (`D74`): moving the citation rule into the user turn gives end to end **0.43 → 0.52**,
+**9↑ 0↓**, p = 0.0039, uncited **67% → 10%**. **Not shipped — Viraj's call.** Faithfulness still
+needs a pinned judge; no key on this machine. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
+**`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
+and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
+**251 tests**, **58/58** `# runnable`, **76** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
-(p = 0.016). Quote **0.64**.
+(p = 0.016).
+
+**Quote `0.43`, not `0.64`.** `0.64` is retrieval's **ceiling** — the answer chunk reached the
+prompt. **End to end the system delivers `39/91 = 0.43`** (`D72`, measured 2026-08-22): page in
+the prompt *and* the model did not decline. The 21-point gap is generation's, it is Phase 4's
+whole subject, and `rag.score --refusals` now prints it rather than leaving it to arithmetic in
+a doc. Say `0.64` only with the word *retrieval* attached to it.
 
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 196 passed with Qdrant up; 191 + 5 skipped without
+uv run pytest                            # 251 passed with Qdrant up; 246 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
 uv run python -m rag.score --baseline deliverables/baseline-phase1.json   # 7 fixed, 0 broken
-uv run python -m rag.score --no-rerank   # hybrid only (pre-D68)
-uv run python -m rag.score --dense-only  # re-measure without BM25
+uv run python -m rag.score --absents     # D70: why the 17 misses are missed
+uv run python -m rag.score --no-rerank              # the D67 row, 0.63
+uv run python -m rag.score --dense-only --no-rerank # the D66 row, 0.52 — BOTH flags
 ```
 
 **Qdrant is not running by default on the Mac.** `open -a Docker`, then
@@ -381,8 +395,9 @@ docs. That has happened four times and never the other way round.
 | **0** | complete, except the Day 3 tunnel (blocked on Shaili sharing the Tailscale node) | `deliverables/BREAKAGES.md`, 23 entries |
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
 | **2** | **complete** — 100 golden, signature closed, audit 100 PASS | `deliverables/golden.json`, `GOLDEN-FULLBAR-AUDIT.md` |
-| **3** | **current.** `D66`–`D68` done; `D69` strip rejected; boundary chunking still open | [`phases/PHASE-3.md`](phases/PHASE-3.md) |
-| 4–6 | planned in `phases/ROADMAP.md` | — |
+| **3** | **complete (retrieval).** `D66`–`D68` shipped; `D69` strip and `D70` boundaries both rejected with numbers. Gate closed: every metrics row has a figure and a decision id | [`phases/PHASE-3.md`](phases/PHASE-3.md), `recall@5 0.64` |
+| **4** | **current.** Steps 1 and 3a closed. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** of answers cite nothing. Faithfulness needs a pinned judge, and there is no key on this machine | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
+| 5–6 | planned in `phases/ROADMAP.md` | — |
 
 ### The baseline, and the number NOT to quote
 
@@ -500,7 +515,8 @@ prompt** (`g006`, `g008`, `g013`, `g021`, `g029`, `g048`, `g049`), 17 without; e
 
 **All of it.** `rag/score.py` — validation, `recall@1/3/5/10/20`, MRR, rank of the first
 containing chunk, duplicate-slot count, per-provenance breakdown, a paired `--baseline`
-comparison with an exact McNemar p-value, and **`--refusals`** (`D62`). **25 tests, six mutations
+comparison with an exact McNemar p-value, **`--refusals`** (`D62`) and **`--absents`** (`D70`).
+**33 tests, seven mutations
 checked**, two end-to-end that skip when Qdrant is absent.
 
 **`--refusals` is the one section that needs generation**, so it is behind a flag and costs ~50
@@ -620,9 +636,16 @@ of thing that is worse discovered in Phase 3 than written down now:
    vs baseline (p = 0.031).
 3. ~~Reranker (`D68`)~~ done — seat-5 CE promotion only; **0.63 → 0.64**, **7↑ 0↓** (p = 0.016).
    Full CE reorder rejected (10 broken).
-4. ~~`D69` Sphinx strip~~ **rejected** (0.64→0.58; index restored). Absents are mostly phrasing,
-   not `D56` cuts — boundary chunking only if a named absent shows a severed answer.
-5. **Phase 4:** over-refusals with the answer already in the prompt (list in §R6.2; ±2 under
+4. ~~`D69` Sphinx strip~~ **rejected** (0.64→0.58; index restored).
+5. ~~Boundary re-chunking (`D70`)~~ **rejected without building it.** The condition this list
+   used to carry — *"only if a named absent shows a severed answer"* — was **checked and is not
+   met**: of the 17 absents' 30 answer chunks, **0** are `D56` ends-open, **0** opens-ref, and
+   the **1** severed-listing flag (`g113`/`c02823`) does not survive reading — the chunk ends on
+   a complete doctest. **The control is the result:** the 74 items retrieval *does* find carry
+   broken answer chunks at **2%**, the same rate. Chunk quality is not what separates them.
+   Reproduce: `rag.score --absents`. `D56`'s 10.7%/6.3% still stands as a corpus defect and is
+   a **Phase 4 citation-quality** concern, not a recall lever.
+6. **Phase 4:** over-refusals with the answer already in the prompt (list in §R6.2; ±2 under
    `D54`). Plus fabrications `g056`/`g065` to explain. **Lab start:** `logs/HANDOFF.md`
    Round 13. Teaching write-up of Phase 3: [`study/15-IMPROVE.md`](study/15-IMPROVE.md).
 
@@ -1282,3 +1305,176 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Indexes: `study/README.md`, root `README.md`, CLAUDE teaching-files line, `PHASE-3.md`.
 - **`logs/HANDOFF.md` Round 13 OPEN** — lab PC: confirm 0.64, then `--refusals` baseline for
   Phase 4 (same sitting, `D54`).
+
+### 2026-08-22 (afternoon) — Phase 3 closed: the last ROADMAP row rejected with a number (`D70`)
+
+- **Asked to confirm Phase 3 was correctly done.** Re-ran every gate and re-measured every row
+  rather than reading the tables: **251 tests** (was 196), **58/58** `# runnable`, verdicts in
+  sync, golden 100/100 human. `recall@5` **0.64 ±0.097**, absents **17**, dup seats **0**,
+  paired **7↑ 0↓** with McNemar **p = 0.016** — all four Phase 3 rows reproduce exactly.
+- **The phase was NOT closed, and its own gate said so.** `ROADMAP.md`'s third step ("improve
+  chunking") was still `| ? | ? | ? |` with no decision id, and `PHASE-3.md`'s gate reads *"done
+  when each row has a measured before/after and a decision id that says what was rejected."*
+  `D69` was the Sphinx strip — a different lever.
+- **`D70` closes it as a measured rejection, without building it.** Surveyed the **17 absents'
+  30 answer chunks** with `chunk.py`'s own detectors: **0** ends-open, **0** opens-ref, **1**
+  severed listing. **The control is the result** — the 74 items retrieval *does* find carry
+  broken answer chunks at **2%** (2 of 123), the same rate. Chunk quality is not what separates
+  found from absent.
+- **The one hit was opened, not counted.** `g113`/`c02823` ends on a **complete** doctest
+  (`{stop}<...>`) and `c02824` starts a separate `>>> session.rollback()` teardown. Nothing
+  severed. A detector firing 1 in 30 gets its hit read or it is just a third regex.
+- **The claim it replaces had lived in prose since the morning.** `PHASE-3.md` Step 4 asserted
+  the absents were not `D56` shapes with **no command behind it**, green CI throughout. It is
+  `rag.score --absents` now.
+- **Shape C is new code for an old number.** §R5.3's *"at least 11 of 3077"* severed listings was
+  computed by hand and its block is `# summary of`. Now `chunk.severed_listing()`, with the
+  indented-glossary control that is the difference between 11 and the loose 123.
+- **Refactored `audit()`'s inline detectors to module level** (`ends_open_shape`,
+  `opens_backward_shape`, `neighbours`) so the survey and the corpus audit cannot drift. Audit
+  output byte-identical after: 10.7% / 6.3%. A mutation test fails if `score.py` grows a private
+  copy — the defect `probe.py` already had once with the refusal test.
+- **A doc bug found by running the commands rather than reading them:** `--dense-only` does NOT
+  reproduce the `D66` row. It leaves the reranker on and scores **0.53**; the row is **0.52** and
+  needs **`--dense-only --no-rerank`**. Wrong in `CLAUDE.md`, `PHASE-3.md` and `15-IMPROVE.md`,
+  none of them a `# runnable` block. Fixed in all three plus `score.py`'s docstring.
+- **`204 passed, 5 skipped` was measured, not inferred** — stopped the Qdrant container, ran the
+  suite, restarted it. The arithmetic would have been right; the rule says derive it.
+- **Adding 13 tests broke the per-file block in `07-TESTS.md`**, as it always does.
+- Docs: `D70`, `PHASE-3.md` Step 5 + a filled gate table, `ROADMAP.md` metrics row,
+  `15-IMPROVE.md` §R7.5 (and §R7.5 → §R7.6), `README.md`, `study/README.md`, this block.
+
+### 2026-08-22 (evening) — Phase 4 opened, and Step 1 says retrieval's gain half-arrived
+
+- **`phases/PHASE-4.md` written**, sized on measurements already in hand rather than on the
+  ROADMAP's guess at an order.
+- **`rag/judge.py` (`D71`) — citation integrity with no model, no key, no free tier.** The
+  deterministic half of Phase 4 built first and completely: citations pointing at sources that
+  do not exist, code blocks citing nothing, coverage of the prompt's pages. Faithfulness waits
+  on a pinned judge; `ROADMAP.md` lists it first, and it is the half that cannot run today.
+- **It produces a count `probe.py` structurally cannot.** `signals()` builds citations as
+  `{n for n in range(1, len(hits) + 1) …}` — only numbers that *exist* — so an answer citing
+  `[7]` against five sources reads there as `uncited`. Two defects, two fixes, two counts now.
+- **Two bugs caught by tests before any number shipped.** A blank line between a citation and
+  its code fence defeated the lookback, scoring every properly cited block as uncited; and
+  `report()` crashed on an empty run. Both are tests now.
+- **First numbers were verified, not believed.** On 5 items both answered ones cited *nothing*.
+  100% of an n of 2 is what a broken regex prints, so a raw answer was printed and read: `g002`
+  has **zero** `[n]` markers and leaks `` :meth:`_orm.Query.from_self` `` into user-facing text.
+- **Step 1 re-baseline CLOSED on the Mac, one sitting (`D54` respected), and it reframes the
+  phase (`D72`).** Retrieval ceiling **0.49 → 0.64**; **end to end 0.35 → 0.43**. **Retrieval
+  gained 15 points and the user got 8.**
+- **The over-refusal count went UP as the system improved — 13 → 19 — and that is arithmetic,
+  not a regression.** The cell counts items where the answer *is in the prompt* and the model
+  refused; better retrieval makes more items eligible. **The raw count is not comparable across
+  retrieval changes**: as a rate against the ceiling it is 13/45 = 29% → 19/58 = 33%.
+- **The named example, cross-checked.** Phase 3 fixed seven items; **`g044` and `g050` are on
+  today's over-refusal list.** Retrieval found the page, put it in the prompt, and the model
+  declined. `PHASE-3.md` scores both as wins — correctly — and the user got nothing from either.
+- **Drift separated from signal:** `g015` left the list (the `D54` noise floor), seven joined,
+  twelve common. Unanswerable unchanged at **7/9 refused, 2 FABRICATED** — retrieval work moves
+  nothing there, as `D70` implies.
+- **The headline number now prints.** `0.36` and `0.35` had been hand-derived in docs by
+  subtracting one printed figure from another — right, and reproducible by no command.
+  `rag.score --refusals` computes end to end, the ceiling and the gap, with four tests.
+- **`0.64` is a ceiling and the docs were quoting it as the system's score.** START HERE now
+  says quote **0.43**, and `0.64` only with the word *retrieval* attached.
+- Also fixed: `rag/__init__.py` still said "Steps 2-5 land here as they are built" with thirteen
+  modules present. **251 tests**, 58/58 `# runnable`.
+
+### 2026-08-22 (night) — the citation run: `SOURCES ARE NOT DECORATION` fails its own test (`D73`)
+
+- **First full `rag.judge --citations` over the 100.** Of the **48** items that got an answer:
+  **31 cite nothing (65%)**, 16 cite only one of five, **26 of the 28 answers containing code put
+  executable code on screen with no source**, mean coverage **0.07**. **Zero** out-of-range
+  citations — when it cites, it never invents a source number, so the defect is **omission**.
+- **`rag/ask.py`'s own docstring is the headline.** It opens *"SOURCES ARE NOT DECORATION"* and
+  argues that without the chunks you cannot tell a correct answer from a lucky one. Measured,
+  two answers in three are exactly that unlucky-or-not-you-cannot-tell case.
+- **Verified four ways before writing it down**, because 65% is what a broken detector prints:
+  `build_prompt` numbers sources `[1]`…`[5]`; SYSTEM mandates *"in brackets, like [2]"*;
+  `generate()` sends SYSTEM by the identical path `--refusals` uses; and `g002`'s raw answer was
+  printed — zero `[n]`, and `` :meth:`_orm.Query.from_self` `` leaked into user-facing prose.
+- **Phase 1's `uncited: 3` was underpowered, not wrong.** 3 of 11 *answered* probe questions =
+  27%, Wilson **[0.04, 0.51]** vs this run's **[0.52, 0.78]** — they miss by a hair. **Second
+  time this repo has hit it:** three unanswerable items could not measure a fabrication rate on
+  08-21; eleven answered questions could not measure a citation rate.
+- **Mechanism left open and instrumented rather than guessed.** Phrasing was the suspect (`D63`),
+  but the uncited-code split is breakages 21% / github 20% / **migration_guide 31%** /
+  stackoverflow 36% — the repo's own docs-vocabulary set above real GitHub questions. So
+  `--citations` now prints a full per-provenance split and `--save` keeps the rows: a run costs
+  ~100 generations and the question should not have to be asked twice.
+- **`rag.judge` added to `check_runnable`'s ENV list** with a reason — the new `# runnable` block
+  in `PHASE-4.md` tried to run 100 generations and timed the gate out.
+- **251 tests**, 58/58 `# runnable`, **73** decisions. Nothing committed.
+
+### 2026-08-22 (overnight, Mac free for 12h) — prompt lab: position beats emphasis (`D74`, `D75`)
+
+- **The lab PC is still unreachable**; this ran on the Mac, which is what `--refusals` and the
+  sweeps need (Ollama + Qdrant, no GPU requirement beyond patience).
+- **`rag/compare_prompts.py --golden`** — the existing prompt instrument extended rather than a
+  second one built. Runs the golden set through several wordings **in one sitting** (`D54`),
+  scoring **both** Phase 4 defects off the **same** answers (one generation per item/variant;
+  refusal and citation are properties of one text). Retrieval runs **once**, not per variant —
+  the prompt cannot change what search returns, and re-retrieving would let an index change be
+  read as a prompt effect.
+- **Screened on 20 items before committing the night.** Five wordings; `E` (system-message
+  citation made mandatory) is a **null result** — cells identical to D, and on `g002` an answer
+  near word-for-word D's with **zero** citations. **`H`, which changes no wording at all** and
+  moves the rule into the **user turn** beside `ANSWER:`, took uncited from **5/7 → 1/13**.
+- **The denominators are the finding.** D answered 7 of 18, H answered **13** — asking for
+  citations made the model *more willing to answer*; over-refusals 3 → 1. H was aimed at `D73`
+  and moved `D72`. Same shape as `D54`: **mechanism, not volume.** `D74`.
+- **Nothing shipped.** n=18, p=0.500; the 100-item run decides and **the prompt is Viraj's
+  call** — assuming it was the wrong call on 2026-08-17.
+- **`I` kept in the full run despite containing H**, because it scores *worse* on citations
+  (3/12 vs 1/13) — F's relevance premise appears to cost compliance, and that wants explaining
+  rather than dropping.
+- **First full run died at generation 150 of 300 with zero rows saved** (`D75`). `urllib` raises
+  `socket.timeout` — a **`TimeoutError`, not a `URLError`** — so it walked past a handler written
+  for "Ollama is down" and killed the process. Two conditions collapsed into one: *no server*
+  should exit, *this call was slow* must not. Now: one retry at a longer ceiling, then the item
+  is recorded `failed` and the sweep continues; checkpoints every 25 items and per variant.
+  **The retry then fired for real on the relaunch and the run survived it.**
+- **A `failed` row is neither an answer nor a refusal**, and is dropped from pairing on **both**
+  sides — control-failed/variant-answered is a missing measurement, not a fix. That is how this
+  bug class yields a *wrong* number rather than no number. Four tests.
+- **The duplicate `refused()` settled with data, not argument.** `compare_prompts` held its own
+  `.lower().startswith(...)` — no `.strip()`, so a leading space hid a refusal `ask.refused`
+  caught. Across the 100 saved answers the two disagreed on **zero**, so unifying moved no
+  recorded number. Now calls `ask.refused`; two tests.
+- **251 tests**, 58/58 `# runnable`, **75** decisions.
+
+### 2026-08-23 — the prompt result, and the instrument that was broken by it (`D74`, `D76`)
+
+- **Full 100-item sweep landed: D (control), H, I, one sitting (`D54`).** Corrected numbers:
+
+  | | end to end | over-refused | uncited | code w/o source | fabricated |
+  |---|---|---|---|---|---|
+  | **D** shipped | 39/91 = **0.43** | 19 | 31/46 = **67%** | 25/26 = 96% | 2 |
+  | **H** | **47/91 = 0.52** | **10** | **6/60 = 10%** | 19/36 = 53% | 2 |
+  | **I** | 46/91 = 0.51 | 11 | 10/61 = 16% | 23/35 = 66% | 2 |
+
+- **H: 9 fixed, 0 broken, exact McNemar p = 0.0039.** `D61`'s bar was ~6 clean fixes with no
+  regressions. **End to end 0.43 → 0.52 is bigger than all of Phase 3's retrieval work**
+  (0.35 → 0.43) — from moving one sentence into the user turn.
+- **THE RESULT WAS WRONG THE FIRST TIME.** It read **12 fixed, p = 0.000, 0.55**. Spot-checking a
+  raw answer gave `g006` → `"[2] The sources do not answer this."` — **a refusal wearing a
+  citation.** `ask.refused()` is a prefix test, so it scored as an *answer*. H's whole content is
+  *"cite before each statement"*; the model complied in front of its own refusal. **The variant
+  under test reshaped the output in exactly the way that defeated the detector reading it**, and
+  `D` shows zero such cases because `D` barely cites — the bug is invisible until the thing being
+  measured starts working. `D76`.
+- **6 of H's answers were cited refusals; 3 sat in the "fixed" column.** Fixed in `ask.refused`
+  (strip leading `[n]`, anchor still at the start so it does not become a substring search).
+  **No recorded number moves** — `D` produced zero, so `D72`/`D73` stand as published, verified
+  not assumed. Re-scoring cost nothing because `D75` had saved the answers; regenerating would
+  have introduced `D54` drift and made the correction non-comparable.
+- **What the prompt does NOT fix:** fabrications stay at **2** under every wording (`g056`,
+  `g065` — position, emphasis and premise all fail), and **53% of H's code blocks still cite
+  nothing**. Better, not solved.
+- **`I` = H + F's premise is worse on every column** — a second instruction dilutes the first.
+- **NOT SHIPPED.** `ask.SYSTEM` and `build_prompt` are untouched; `H` lives in
+  `compare_prompts.py` as a measured candidate. **The prompt that ships is Viraj's call** —
+  assuming it was the wrong call on 2026-08-17.
+- **251 tests**, 58/58 `# runnable`, **76** decisions.

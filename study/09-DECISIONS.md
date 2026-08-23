@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D69`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D76`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1723,6 +1723,341 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > open, but the 17 absents' answer chunks show **zero** ends-open/opens-ref on audit shapes —
 > so fixing `D56` is unlikely to be the absent fix. Phrasing / corpus ceiling owns most of them.
 > **Asked as** — *"Did you clean the Sphinx markup before embedding?"* — yes, measured, reverted.
+
+### D70 — boundary re-chunking: rejected on a survey of the absents, not attempted
+
+> **Decided 2026-08-22** — do **not** re-cut chunk boundaries in Phase 3. `ROADMAP.md`'s step 3
+> ("code split by function, prose split by paragraph") closes as a **measured rejection**, and
+> Phase 3 ends here on retrieval.
+> **Instead of** — doing it because it was on the list. It was written into the ROADMAP before
+> Phase 1 ran, when the five known failures were all filed as one problem, and `D56` gave it a
+> real-looking number afterwards: **10.7%** of chunks do not stand alone, **6.3%** lose content
+> outright. That number is about the **corpus**. The question Phase 3 has to answer is about the
+> **17 items retrieval cannot find**, and those are not the same population.
+>
+> **Why the absents are the only population that can justify it.** An item outside the top-20 is
+> beyond every reranker by construction — `D68`'s cross-encoder reorders what retrieval already
+> returned and can no more reach rank 47 than it can invent a page. Re-chunking is recall-side,
+> so it is judged on the absents or it is judged on nothing.
+>
+> **Measured 2026-08-22, on the 17 absents after `D68`** — `rag.score --absents`:
+>
+> | shape of their 30 answer chunks | count | corpus rate |
+> |---|---|---|
+> | A ends announcing what never follows (`D56`) | **0** | 4.1% |
+> | B opens pointing at what is not here (`D56`) | **0** | 6.9% |
+> | C boundary severed inside a code listing (§R5.3) | **1** | 0.2% of cuts |
+> | any of the three | **1 of 30** | 10.7% |
+>
+> **The control is what makes that a result.** The 74 items retrieval *does* find carry
+> **2 of 123** flagged answer chunks — 2%. Broken chunks are no rarer behind the items that
+> succeed than behind the items that fail. **Chunk quality is not what separates them.**
+>
+> **The one hit was read, not counted.** `g113` → `c02823`, and it does not survive reading:
+> the chunk ends on a **complete** doctest (`{stop}<...>`), and `c02824` opens a separate
+> `>>> session.rollback()` teardown rather than continuing the listing. Shape C fires on the
+> pair of indented code edges; here the listing was already finished. **Zero real severances.**
+>
+> **What this does NOT claim.** Not that the chunker is good — `D56` stands, 6.3% of the corpus
+> still loses content, and `c00138`'s payload is still gone. Not that boundary work is worthless
+> for Phase 4: a severed listing pasted into a prompt is a *citation-quality* defect, and §R5.3's
+> "at least 11 of 3077" is about what the model is handed, not about what search can find. It
+> claims one thing — **re-chunking is not the lever that reaches the 17**.
+>
+> **What it cost to find out: nothing, and that is the point.** `D69` spent a full re-embed to
+> learn its answer. This survey reads rows the scorer already has. **Ask the population before
+> paying for the fix** — had `--absents` existed on 2026-08-21, `D69` would have been cheaper to
+> reject, because the same output already said the absents were not shape failures.
+>
+> **Now enforced rather than remembered.** The claim lived in `PHASE-3.md` prose from 08-22
+> morning with no command behind it — green CI the whole time, since `check_runnable` has no
+> opinion about sentences. It is `rag.score --absents` now, using `chunk.py`'s **own**
+> predicates (`ends_open_shape`, `opens_backward_shape`, `severed_listing`), with a mutation test
+> asserting the scorer holds no private copy. §R5.3's shape C had a hand-computed figure and a
+> `# summary of` block; it is code with three tests, including the indented-glossary control
+> that separates 11 from 123.
+> **Asked as** — *"Your chunker breaks 10% of chunks. Why didn't you fix that?"* → *"Because I
+> checked which items it was costing me. Zero of the thirty chunks behind my seventeen misses
+> are broken, and the items I retrieve fine have broken chunks at the same rate. It's a real
+> defect; it isn't this one."*
+
+### D71 — grade citations mechanically before grading meaning with a judge
+
+> **Decided 2026-08-22** — Phase 4's first metric is **citation integrity**, computed with no
+> judge model, no API key and no free tier: `rag/judge.py --citations`. Faithfulness (a reading
+> task, needing a strong judge) is built on top of it, not instead of it.
+> **Instead of** — starting with LLM-as-judge, which is what `ROADMAP.md` lists first. Two
+> reasons, and neither is that judges are bad.
+>
+> **1. The cheap half is exact, and it already catches the defect that opened the phase.**
+> `g065` fabricated `op.create_view` / `op.drop_view` beside two real Alembic calls — and
+> **carried no citation on the code block**. Nothing in this repo can decide from text whether
+> an API exists (that needs the real library; `tools/audit_golden_fullbar.py` runs 2.0.51). What
+> a script *can* say is that the model emitted executable-looking code and pointed at no source
+> for it. That is the machine-visible shadow of a fabrication, and it costs nothing to count.
+>
+> **2. A judge needs something to be calibrated against.** `ROADMAP.md` requires reporting the
+> judge's agreement with a human on ten hand-checked items. Deterministic counts are the rows
+> that agreement is measured on — a judge with no mechanical baseline beside it is a second
+> opinion about nothing.
+>
+> **The count `probe.py` structurally cannot produce.** Its `signals()` builds citations as
+> `{n for n in range(1, len(hits) + 1) if f"[{n}]" in answer}` — it only ever looks for numbers
+> that **exist**. An answer citing `[7]` when five sources were supplied contributes nothing
+> there and reads as `uncited`. Those are two different defects wanting two different fixes:
+> `uncited` is a model that did not cite, `out_of_range` is a model citing a source it was never
+> given. The second is strictly worse and much rarer, so it gets its own count instead of being
+> absorbed into the first. Pinned by a test.
+>
+> **Refusals are excluded from every citation rate.** An answer that declines has nothing to
+> cite; counting it as `uncited` would make the system look worse the more honest it got. That
+> is `D62`'s trap in a new place, and it is a test, not a comment.
+>
+> **First real run found a bug in this file, not in the system.** A blank line sits between a
+> citation and the code fence it introduces, so "the previous line" is empty — the lookback
+> credited nothing and scored every properly cited block as uncited. Caught by the test written
+> from the cited-block case, before any number was published.
+>
+> **Then the first real numbers, and they were checked before being believed.** On the first
+> five golden items: 3 refused, and **both** answered items cited **nothing at all**, with code
+> blocks carrying no source. 100% of an n of 2 is exactly what a broken regex prints, so one raw
+> answer was printed and read: `g002`'s answer contains **zero** `[n]` markers, and copies Sphinx
+> role markup (`` :meth:`_orm.Query.from_self` ``) straight into user-facing text. The detector
+> is right and the answer really is uncheckable.
+> **Asked as** — *"How do you know the answer isn't made up?"* → *"I count the ones that cite a
+> source that doesn't exist, and the code blocks that cite nothing. Then a judge reads the rest,
+> and I report how often it agrees with me on ten I checked by hand."*
+
+### D72 — end-to-end is the Phase 4 headline, and the over-refusal COUNT grows as retrieval improves
+
+> **Decided 2026-08-22, from the Phase 4 Step 1 re-baseline** — the number quoted for the system
+> is **end to end**: the answer chunk reached the prompt **and** the model did not decline. It is
+> printed by `rag.score --refusals`, not derived by hand in a doc, and refusals stay split out of
+> recall exactly as `D62` requires.
+> **Instead of** — quoting `recall@5`, which is a **ceiling**, and hand-subtracting one printed
+> number from another. That arithmetic produced the `0.36` and `0.35` figures in earlier docs:
+> right both times, reproducible by no command. `CLAUDE.md`'s measurement rule exists for this,
+> and the most important number in the phase was the one still breaking it.
+>
+> **Measured, one sitting, Mac, after Phase 3 (`D54` respected):**
+>
+> | | 2026-08-21 (pre-Phase 3) | 2026-08-22 (post) |
+> |---|---|---|
+> | retrieval ceiling, `recall@5` | 0.49 | **0.64** |
+> | answer reached the prompt | 45/91 | **58/91** |
+> | **end to end** | **32/91 = 0.35** | **39/91 = 0.43** |
+> | over-refused **with the page in hand** | **13** | **19** |
+> | generation's loss | ~15 points | **21 points** |
+>
+> **Phase 3 paid, and about half of it arrived.** Retrieval gained 15 points; the user got 8.
+>
+> **The finding, and it is the counter-intuitive one.** The over-refusal cell **grew from 13 to
+> 19 while the system got better**. That is not a regression — it is arithmetic. The cell counts
+> items where the answer **is in the prompt** and the model refused anyway. Improve retrieval and
+> more items become eligible for that cell. **A raw count of this defect is not comparable across
+> retrieval changes**; read it as a rate against the ceiling — 13/45 = 29% then, 19/58 = 33% now.
+>
+> **The named example, checked rather than asserted.** Phase 3 fixed seven items against the
+> saved baseline (`g017`, `g024`, `g038`, `g044`, `g046`, `g047`, `g050`). **Two of them —
+> `g044` and `g050` — are on today's over-refusal list.** Retrieval went and found the page,
+> put it in front of the model, and the model declined. A retrieval win converted directly into
+> a generation failure, and every metric in `PHASE-3.md` still scores both as successes.
+>
+> **What is `D54` drift and what is not.** The list is not simply 13 plus six. **`g015` left it**
+> and **seven joined**; twelve are common. `D54` says refusal behaviour is stable within a
+> sitting and drifts across days, so the one-item exit is expected noise. Seven joining, two of
+> them Phase 3's own fixes, is larger than drift and has a mechanism.
+>
+> **Unchanged, and worth saying:** unanswerable items still score **7/9 refused, 2 FABRICATED**
+> (`g056`, `g065`) — identical to 08-21. Retrieval work moved nothing there, which is what
+> `D70` predicted: an item with no answer in the corpus has no page for retrieval to find.
+> **Asked as** — *"Your retrieval improved 15 points. What did the user get?"* → *"Eight. And
+> two of the seven questions I fixed now get refused with the right page in the prompt — which
+> is why the phase after retrieval is generation, and why I report end to end."*
+
+### D73 — measured: the sources are mostly decoration, and Phase 1's number was too small to say so
+
+> **Found 2026-08-22**, first full `rag.judge --citations` run over the 100-item golden set.
+> Deterministic, no judge model, no API key — this is arithmetic over brackets, not an opinion.
+>
+> | over the **48** items that got an answer | | |
+> |---|---|---|
+> | cite **nothing at all** | **31** | **65%** |
+> | cite only one of the five sources | 16 | 33% |
+> | contain code | 28 | 58% |
+> | …of those, **code with no citation** | **26** | **93%** |
+> | cite a source that does not exist | **0** | 0% |
+> | **mean source coverage** | **0.07** | five pages in, ~a third of one cited |
+>
+> **`rag/ask.py` opens with the words "SOURCES ARE NOT DECORATION".** Measured, they mostly are.
+> The whole Phase 1 design argument — *"without the chunks there is no way to tell a correct
+> answer from a lucky one"* — depends on the citation actually being emitted, and on two answers
+> in three it is not.
+>
+> **This was verified four ways before it was written down**, because a 65% defect rate is
+> exactly what a broken detector prints: `build_prompt` numbers the sources `[1]`…`[5]`; the
+> SYSTEM clause says *"cite the source number in brackets, like [2]"*; `generate()` sends that
+> SYSTEM message, and the judge uses the identical path `score.py --refusals` does; and one raw
+> answer was printed and read — `g002` contains **zero** `[n]` markers and copies
+> `` :meth:`_orm.Query.from_self` `` into user-facing text.
+>
+> **Zero out-of-range citations is a real result too.** When the model does cite, it never
+> invents a source number. The defect is omission, not fabrication of provenance — and those
+> want different fixes.
+>
+> **Phase 1 reported this as `uncited: 3` and it was not wrong, it was underpowered.**
+> `deliverables/FAILURES.md` counted 3 over 19 probe questions, of which 8 refused — so **3 of
+> 11 answered = 27%**. Wilson: **[0.04, 0.51]** against this run's **[0.52, 0.78]**. The bands
+> miss each other by a hair, so these are not one rate measured twice; but n=11 could never have
+> settled it either way. **Second time this repo has been bitten by the same thing** — three
+> unanswerable items were "never enough to measure a fabrication rate" on 2026-08-21, and eleven
+> answered questions were never enough to measure a citation rate.
+>
+> **The mechanism is open, and named rather than guessed.** The obvious suspect was phrasing —
+> `D63` proved it decides retrieval. It does not obviously decide this: the uncited-code items
+> split **breakages 21% / github 20% / migration_guide 31% / stackoverflow 36%**, with the
+> repo's own docs-vocabulary set *above* real GitHub questions. That is a partial signal
+> (code-bearing answers only), so `--citations` now prints a **full per-provenance split** and
+> `--save` keeps the rows, because the next run costs ~100 generations and the question should
+> not have to be asked twice.
+>
+> **What this does NOT claim.** Not that 31 answers are wrong — an uncited answer can be
+> perfectly correct, and `g002`'s was. It claims they are **uncheckable**, which is the property
+> the whole retrieval apparatus was built to provide.
+> **Asked as** — *"Your system cites its sources. How often?"* → *"A third of the time. I
+> measured it, I know which two-thirds, and I know the model never cites a source that doesn't
+> exist — so it's an omission problem, not a provenance-fabrication problem."*
+
+### D74 — on a 7B model, WHERE the instruction sits beats how firmly it is worded
+
+> **Measured 2026-08-22**, 20-item screen, five wordings in one sitting (`D54`), before
+> committing a night of GPU-less generation to any of them.
+>
+> | | end/end | over-refused | uncited | code with no source |
+> |---|---|---|---|---|
+> | **D** shipped | 6/18 | 3 | **5/7** | 4/4 |
+> | **E** system msg, citation *mandatory* | 6/18 | 3 | **5/7** | 3/4 |
+> | **F** system msg, "sources are search results" | 7/18 | 2 | 6/8 | 5/5 |
+> | **H** *same wording as D*, moved to the **user turn** | **8/18** | **1** | **1/13** | 2/6 |
+> | **I** F + H | 8/18 | 1 | 3/12 | 4/6 |
+>
+> **E is a null result and it is the informative one.** It says *"an answer with no bracketed
+> number in it is not acceptable"* — about as hard as English gets — and returns cells identical
+> to D's. On `g002` its answer is near word-for-word D's, with zero citations. The model is not
+> defying the instruction; it is not attending to it. By the time generation starts, the system
+> message is thousands of tokens back, behind five full documentation chunks.
+>
+> **H changes no wording at all.** It carries D's system prompt untouched and puts the citation
+> rule on the last line of the *user* message, immediately before the `ANSWER:` cue. Uncited goes
+> **5 of 7 → 1 of 13**.
+>
+> **The denominators are the finding, not just the ratios.** D answered 7 of 18; H answered
+> **13**. Asking for citations made the model *more* willing to answer — over-refusals fell
+> 3 → 1. That was not the hypothesis: H was aimed at `D73`, and it moved `D72` as well.
+>
+> **This is the same shape as `D54`.** Prompt D beat B not by being firmer but by changing the
+> mechanism — sufficiency-judging out, partial answers in. E is the "say it louder" branch, and
+> it does nothing. **Position is a lever; volume is not.**
+>
+> **The 100-item run, 2026-08-23, corrected for the artifact in `D76`:**
+>
+> | | end to end | over-refused | uncited | code with no source | fabricated |
+> |---|---|---|---|---|---|
+> | **D** shipped | 39/91 = **0.43** | 19 | 31/46 = **67%** | 25/26 = 96% | 2 |
+> | **H** | **47/91 = 0.52** | **10** | **6/60 = 10%** | 19/36 = 53% | 2 |
+> | **I** | 46/91 = 0.51 | 11 | 10/61 = 16% | 23/35 = 66% | 2 |
+>
+> **H: 9 fixed, 0 broken, exact McNemar p = 0.0039.** `D61`'s bar for a Phase 3 retrieval move
+> was ~6 clean fixes with no regressions; this clears it. Fixed: `g008`, `g021`, `g049`, `g050`,
+> `g064`, `g095`, `g099`, `g103`, `g106`.
+>
+> **End to end 0.43 → 0.52 is larger than everything Phase 3's retrieval work bought** (0.35 →
+> 0.43). One sentence, moved.
+>
+> **Two things it does not fix, and both are stated rather than buried.** Fabrications stay at
+> **2** across all three wordings — `g056` and `g065` are untouched by position, emphasis or
+> premise, so prompt work is not the lever there. And **53% of H's code blocks still carry no
+> source**: the defect is much better, not solved.
+>
+> **`I` is `H` plus F's relevance premise and it is worse on every column.** Adding a second
+> instruction dilutes the first. That is why `I` was kept in the full run rather than dropped
+> for containing a winner.
+>
+> **H's ceiling is 57 where D's is 58** because one item (`g079`) timed out twice under H and is
+> excluded from both sides of the pairing (`D75`). H's 47/91 is therefore measured against a
+> denominator including an item it never got to answer — conservative in H's favour's opposite
+> direction, which is the right way round.
+>
+> **Nothing ships on this. The prompt that ships is Viraj's call** — the last time that was
+> assumed rather than asked, it was the wrong call (2026-08-17, prompt D). What is recorded here
+> is a measurement and a recommendation, not a change to `ask.SYSTEM`.
+> **Asked as** — *"How did you fix the citation problem?"* → *"I didn't reword the instruction —
+> I moved it. Stating it more forcefully in the system prompt changed nothing measurable; the
+> same sentence next to the answer cue took uncited answers from 71% to 8% on the screen."*
+
+### D75 — a long generation run must checkpoint, and a slow call is not a dead server
+
+> **Learned the expensive way, 2026-08-22, twice in two days.** The `--refusals` run on 08-21
+> died at session teardown with nothing written. The first 100-item prompt sweep died at
+> generation **150 of 300** — ~50 minutes — and saved **zero rows**.
+> **Cause of the second.** `urllib` raises `socket.timeout` on a slow response. That is a
+> `TimeoutError`/`OSError` and **not** a `URLError`, so it walked straight past a handler that
+> had been written to catch "Ollama is not running" and aborted the process instead.
+> **Two different conditions had been collapsed into one.** *No server* should exit — retrying
+> is pointless. *This one generation was slow* should not; the next item is probably fine.
+> **Fixed:** one retry at a longer ceiling (300s, then 900s), then the item is recorded as
+> `failed` and the sweep continues. Results checkpoint to disk every 25 items and after every
+> variant, so a crash costs minutes rather than a night.
+> **And a failed row is neither an answer nor a refusal.** It is excluded from every cell, and
+> from pairing on *both* sides — if the control failed and the variant answered, that is a
+> missing measurement, not a fix. Counting it either way would let a flaky night read as a
+> prompt effect, which is the specific way this class of bug produces a *wrong* result rather
+> than no result.
+> **Pinned by four tests**, because these paths only execute on a night that has already gone
+> wrong and would otherwise be written once and never exercised.
+> **Asked as** — *"What happens if one call hangs three hours into a run?"*
+
+### D76 — the instrument was broken by the intervention it was measuring
+
+> **Caught 2026-08-23, before publishing a wrong result.** The first read of the `H` sweep said
+> **12 fixed, 0 broken, p = 0.000** and end to end **0.55**. Spot-checking one raw answer, as the
+> measurement rule requires, produced this for `g006`:
+>
+> ```
+> [2] The sources do not answer this.
+> ```
+>
+> **That is a refusal wearing a citation.** `ask.refused()` is a **prefix** test —
+> `answer.strip().startswith("The sources do not answer")` — and `"[2] The sources…"` does not
+> start with it, so it was scored as an **answer**.
+>
+> **The mechanism is the point.** `H`'s entire content is *"cite the source number before each
+> statement"*. The model complied — including in front of its own refusal. **The variant under
+> test changed the shape of the output in exactly the way that defeated the detector reading
+> it.** `D` shows **zero** such cases, because `D` barely cites at all; the bug is invisible
+> until the thing you are measuring starts working.
+>
+> **Corrected: 6 of H's answers were cited refusals, and 3 of those sat in the "fixed" column.**
+> True result **9 fixed, 0 broken, p = 0.0039**, end to end **0.52**. Still significant, still
+> clears `D61`'s bar — and now true. Three items and three points of the original claim were
+> artefact.
+>
+> **Fixed in `ask.refused`, which is the one detector** (`D62`): leading `[n]` markers are
+> stripped before the prefix test. The anchor stays at the START of the answer, so this does not
+> weaken the prefix test into a substring search — the property that paragraph exists to protect,
+> because prompt D deliberately emits *"here is the part they cover and here is the part they do
+> not"*, which is an answer.
+>
+> **No recorded number moves.** `D` produced zero cited refusals, so `D72`, `D73` and every
+> earlier refusal measurement stand exactly as published. Verified rather than assumed.
+>
+> **Re-scoring cost nothing because the answers were saved** (`D75`). Had the sweep stored only
+> its summary table, correcting this would have meant regenerating 300 answers — and the drift
+> `D54` measures would have made the corrected run not comparable with the original.
+> **Asked as** — *"Your prompt change scored p = 0.000. How do you know the improvement is
+> real?"* → *"Because the first version of that number was wrong and I found it. The model cited
+> its own refusals, my refusal detector is a prefix test, and it scored six declines as answers.
+> Fixed the detector, re-scored the saved answers, and it's p = 0.0039 instead."*
 
 ## Using this in an interview
 

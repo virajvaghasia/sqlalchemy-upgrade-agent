@@ -1632,9 +1632,25 @@ ALL ITEMS recall@5    0.63  ±0.097  (same as 12.1; retrieval half unchanged)
 
 # Round 13 — Phase 4 start: refusal baseline on the 3060 (after D68)
 
-**Status: OPEN.** Phase 3 retrieval (`D66`–`D68` shipped, `D69` strip rejected) is on
-`phase-2/measure`. Read [`study/15-IMPROVE.md`](../study/15-IMPROVE.md) §R7 on the Mac first.
-This round is **generation**, not another embed experiment.
+**Status: OPEN, and its purpose CHANGED on 2026-08-22.** Phase 3 retrieval is closed
+(`D66`–`D68` shipped; `D69` strip and `D70` boundary re-chunking both rejected with numbers).
+Read [`study/15-IMPROVE.md`](../study/15-IMPROVE.md) §R7 on the Mac first. This round is
+**generation**, not another embed experiment.
+
+> **The baseline this round was written to produce already exists.** The lab was unreachable,
+> so `--refusals` ran on the **Mac** on 2026-08-22 in one sitting (`D54`): **end to end
+> 39/91 = 0.43** against a retrieval ceiling of **0.64**, **19** over-refusals with the answer
+> in the prompt, unanswerable **7/9 refused, 2 FABRICATED**. Full result: `D72`,
+> [`../phases/PHASE-4.md`](../phases/PHASE-4.md) Step 1.
+>
+> **So this round is now a CONFIRMATION, not a first measurement.** What the 3060 buys is
+> speed — ~100 calls at 62 tok/s instead of 18 — which is what makes a *same-sitting*
+> before/after affordable once prompt changes start. Run the same command; if any cell
+> disagrees with the Mac's, that is `D54` drift across machines and is itself a finding worth
+> having before any prompt work is judged.
+>
+> **`rag.score --refusals` now prints end-to-end itself** (`D72`) — it used to be hand-derived
+> in the docs. Paste the whole section, not a summary.
 
 **Why the lab.** Full `--refusals` is ~100 Ollama calls. Mac ~18 tok/s; 3060 ~62 tok/s.
 `D54`: re-baseline refusals **in the same sitting** as any prompt change — do not compare
@@ -1703,5 +1719,11 @@ Paste the full ID lists — do not summarise them away.
 
 ## After Round 13
 
-Mac reads the REPLY, then Phase 4 work starts (prompt / over-refusal / fabrication). No more
-Sphinx-strip or “try chunking for absents” until a *named* absent shows a severed answer.
+Mac reads the REPLY, then Phase 4 prompt work starts (over-refusal / fabrication) with the
+3060 doing before/after in one sitting.
+
+**Retrieval is closed — do not reopen it here.** No Sphinx strip (`D69`, measured, reverted) and
+no boundary re-chunking (`D70`): the condition this file used to carry, *"until a named absent
+shows a severed answer"*, was **checked on 2026-08-22 and is not met**. Of the 17 absents' 30
+answer chunks, zero are `D56` shapes and the single severed-listing flag does not survive
+reading. `uv run python -m rag.score --absents` reproduces it in one command.

@@ -23,7 +23,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
 | [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
-| [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip measured and rejected. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
+| [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip and boundary re-chunking both rejected with numbers. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
 
 ## By phase — which file belongs to what
 
@@ -94,17 +94,17 @@ re-checks all 100 against `chunks.jsonl`, live docs, and real `sqlalchemy==2.0.5
 
 ### Phase 3 — Make search better (measured)
 
-Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D69`.
+Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 
 | file | § | what it was for |
 |---|---|---|
-| [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 | what Phase 3 actually changed on retrieval — and the strip that failed |
+| [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 | what Phase 3 actually changed on retrieval — and the two levers that failed |
 
 ### Every phase — the register
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D69`. All phases in one register |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D76`. All phases in one register |
 
 ### Phases 4–6
 

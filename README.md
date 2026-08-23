@@ -101,10 +101,10 @@ study/                 the teaching material, numbered in reading order
 deliverables/          what a phase produced — BREAKAGES.md is Phase 0's, FAILURES.md is Phase 1's
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
-rag/                   the Phase 1 retrieval system — corpus in, answer with sources out
+rag/                   retrieval (Phase 1-3) + judge.py, the Phase 4 answer grader
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 196 tests pinning what the docs claim
+tests/                 251 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -117,7 +117,8 @@ to "§18" is unambiguous in either file.
 |---|---|
 | [`phases/ROADMAP.md`](phases/ROADMAP.md) | the six-phase arc, plus a glossary of every AI term used |
 | [`phases/PHASE-2.md`](phases/PHASE-2.md) | **Phase 2 (complete)** — golden set of **100**, audited, scored, signature closed; baseline artifact still the 50 (`D65`) |
-| [`phases/PHASE-3.md`](phases/PHASE-3.md) | **the current phase** — `D66`–`D68` done; `D69` Sphinx strip rejected; boundary chunking still open |
+| [`phases/PHASE-3.md`](phases/PHASE-3.md) | **Phase 3 (complete)** — `D66`–`D68` shipped, `recall@5` **0.51 → 0.64** (7↑ 0↓, p = 0.016); `D69` Sphinx strip and `D70` boundary re-chunking both rejected with numbers |
+| [`phases/PHASE-4.md`](phases/PHASE-4.md) | **the current phase** — judge the answers. End to end **0.43** against a **0.64** retrieval ceiling (`D72`); **65% of answers cite nothing** (`D73`) |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
 | [`study/`](study/README.md) | **the teaching material, in reading order** — the index explains the three § numbering families, and carries a **by-phase view** (`01`–`08` Phase 0, `10`–`13` Phase 1, `09` all of them) for reading it phase by phase instead |
@@ -175,10 +176,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-196 tests collected in 10.91s
+251 tests collected in 10.79s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 196 passed with it up and 191
+Five of them skip when Qdrant is not running, so a run reports 251 passed with it up and 246
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
