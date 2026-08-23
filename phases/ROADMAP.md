@@ -1,8 +1,9 @@
 # Roadmap — the six-phase arc
 
 The long view for [`sqlalchemy-upgrade-agent`](../README.md): what gets built, in what order,
-and why each phase exists. Start at [`../README.md`](../README.md); the current phase (**Phase 3**)
-is detailed in [`PHASE-3.md`](PHASE-3.md). Phase 2's record is [`PHASE-2.md`](PHASE-2.md).
+and why each phase exists. Start at [`../README.md`](../README.md); the current phase (**Phase 4**)
+is detailed in [`PHASE-4.md`](PHASE-4.md). Phase 3's record — retrieval, closed at `recall@5`
+**0.64** — is [`PHASE-3.md`](PHASE-3.md); Phase 2's is [`PHASE-2.md`](PHASE-2.md).
 
 ---
 
@@ -350,7 +351,32 @@ single highest-value object in the whole repo:
 | \+ hybrid search (`D67`, 100-item) | **0.63** ±0.097 · **6↑ 0↓** vs 50 · p=0.031 | **0.81** | **0.436** |
 | \+ reranker seat-5 CE (`D68`, 100-item) | **0.64** ±0.097 · **7↑ 0↓** vs 50 · p=0.016 | 0.81 | **0.436** |
 | \+ Sphinx strip at embed (`D69`) | **rejected** — 0.64→0.58, 2↓ | — | — |
-| \+ better chunking (boundaries) | ? | ? | ? |
+| \+ better chunking (boundaries) (`D70`) | **rejected unbuilt** — 1 of 30 absent answer chunks is a shape failure, against 2 of 123 for the items retrieval finds | — | — |
+
+**Phase 3 ships `0.64` of RETRIEVAL** — hybrid + seat-5 CE, the `D68` row. **What a user
+receives is `0.43`** (`D72`, 2026-08-22): the answer chunk reached the prompt *and* the model
+did not decline, **39 of 91**. Every row in this table is a ceiling; the gap below it is
+Phase 4's.
+
+| after Phase 3 | measured 2026-08-22 |
+|---|---|
+| retrieval ceiling (`recall@5`) | **0.64** |
+| answer reached the prompt | 58/91 |
+| **end to end** | **39/91 = 0.43** |
+| lost to over-refusal with the page in hand | **19** — of which `g044`, `g050` are items Phase 3 itself fixed |
+
+**Retrieval gained 15 points; the user got 8.** Two of the six rows are
+rejections, and a rejection with a number in it is worth as much as a gain: it is the half of
+the table that says the remaining 17 misses are **not** a retrieval-engineering problem.
+
+**`D70` row is measured 2026-08-22 and rejected without building it.** The lever was on the
+list from before Phase 1 ran, and `D56` gave it a real-looking number afterwards — 10.7% of
+chunks do not stand alone. But that number is about the **corpus**, and the question is about
+the **17 items search cannot find**. Surveying only those: **0** ends-open, **0** opens-ref,
+**1** severed listing (which does not survive reading — `c02823` ends on a complete doctest).
+The control is the finding: the 74 items retrieval *does* find carry broken answer chunks at
+**2%**, the same rate. Chunk quality is not what separates found from absent.
+Reproduce: `uv run python -m rag.score --absents`. See [`PHASE-3.md`](PHASE-3.md) Step 4.
 
 **`D69` row is measured 2026-08-22 and rejected.** See [`PHASE-3.md`](PHASE-3.md) Step 4.
 Index restored to the `D68` embed. Absents’ answer chunks are not `D56` shape failures.

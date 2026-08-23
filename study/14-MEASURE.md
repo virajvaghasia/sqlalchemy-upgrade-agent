@@ -550,6 +550,13 @@ holding at twice the size: **retrieval's number is a ceiling and generation lose
 invisible to every retrieval metric. The open cell grew from 6 items to **11** — still unread,
 still a human's call (`D06`), still Phase 4's.
 
+> **This is Phase 2's scorecard and these are its numbers. They have since moved.** After Phase 3
+> the same measurement reads **0.43 end to end against a 0.64 ceiling** — a **21**-point gap, not
+> fifteen — and the over-refusal cell grew from **13 to 19** *because* retrieval improved: it
+> counts items where the answer is in the prompt, so a better retriever makes more items eligible
+> for it. `D72` and [`../phases/PHASE-4.md`](../phases/PHASE-4.md) Step 1. **Read the count as a
+> rate against the ceiling** (29% → 33%), never as a raw number across retrieval changes.
+
 #### `D54` said refusal behaviour is deterministic. Across days, it is not
 
 The 08-20 run named seven items that refused with the answer in the prompt: `g006`, `g008`,
