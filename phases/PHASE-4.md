@@ -2,7 +2,8 @@
 
 Part of [`sqlalchemy-upgrade-agent`](../README.md). Follows
 [`PHASE-3.md`](PHASE-3.md), which closed retrieval at **`recall@5 = 0.64`**. Spec:
-[`ROADMAP.md`](ROADMAP.md) Phase 4. Teaching file when this ships: `study/16-JUDGE.md` (§R8).
+[`ROADMAP.md`](ROADMAP.md) Phase 4. Teaching file: [`../study/16-JUDGE.md`](../study/16-JUDGE.md) (§R8) — read that first;
+this file is the measured plan, that one is the sitting.
 
 > **Phase 3 ended because retrieval ran out of levers, not because it got good.** Four levers,
 > two shipped, two rejected with numbers (`D66`–`D70`). The **17 absents** are a phrasing and

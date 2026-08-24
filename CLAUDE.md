@@ -23,7 +23,8 @@ Meta, Google, Apple, Anthropic, and startups).
   `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation — how to measure),
   `13-VERIFICATION.md` §R5 (defending it under questioning; Phase 1's last gate),
   `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard), `15-IMPROVE.md` §R7 (Phase 3 retrieval
-  levers — what shipped and what was rejected). One `R` run across all six — it stands
+  levers — what shipped and what was rejected), `16-JUDGE.md` §R8 (Phase 4 — grading the
+  answer rather than the search). One `R` run across all seven — it stands
   for RAG, not Retrieval (`D47`). Phase 1 ends at §R5; §R6 is Phase 2's measured result
   (`D64`); §R7 is Phase 3's.
 - **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,
@@ -40,7 +41,7 @@ Meta, Google, Apple, Anthropic, and startups).
   `cache/` and the machine-specific `.graphify_*` paths are not.
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
   index and explains the three § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure,
-  §R1–§R7 RAG) plus the two runbooks (`03`, `08`).
+  §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
 - **`study/09-DECISIONS.md`** — the decision register, `D01`…`D77`: what was decided, what was

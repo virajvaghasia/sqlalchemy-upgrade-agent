@@ -23,6 +23,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
 | [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
+| [`16-JUDGE.md`](16-JUDGE.md) | **Phase 4 — judging the answer, not the search.** End to end **0.43** against retrieval's **0.64** ceiling; 65% of answers cite nothing; moving one sentence beat rewriting it; the result that was wrong the first time (§R8) | §R8 |
 | [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip and boundary re-chunking both rejected with numbers. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
 
 ## By phase — which file belongs to what
@@ -99,6 +100,7 @@ Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 | file | § | what it was for |
 |---|---|---|
 | [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 | what Phase 3 actually changed on retrieval — and the two levers that failed |
+| [`16-JUDGE.md`](16-JUDGE.md) | §R8 | what happens after the right page is already in the prompt |
 
 ### Every phase — the register
 

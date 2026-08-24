@@ -384,58 +384,50 @@ why those 17 are missing from search.
 
 ---
 
-### R7.5 Boundary re-chunking (`D70`) — rejected by *asking the right 17 pages*
+### R7.5 Boundary re-chunking (`D70`) — we checked the 17 misses; bad cuts are not why
 
-**The lever, in plain words.** The chunker cuts each documentation page into pieces. Sometimes
-it cuts badly — a piece ends *"the steps are as follows:"* and the steps are in the next piece.
-`D56` counted it: **10.7%** of the 3284 pieces do not stand on their own, and **6.3%** lose
-their content outright. The ROADMAP said *fix the chunking* from the very beginning.
+**One claim.** Someone might say: “10.7% of chunks look cut wrong (`D56`), so re-chunk and the
+17 missing answers will show up.” We checked. **That is wrong.**
 
-**Why we did not.** Look at *which* pages that 10.7% is costing us.
+**What we hoped.** Fix how pages are sliced → search finds pages it currently never finds.
 
-There are **17 questions** whose answer page never appears in the top 20 at all. Not ranked
-low — **absent**. Those are the only questions re-chunking could possibly help, because the
-reranker already handles "in the list but too far down," and nothing can rank a page that
-was never in the list.
-
-So: are the 17 absents' answer pages the broken ones?
+**What we actually did (no re-chunk, no re-embed).** Take the **17** questions whose answer is
+**absent from the top 20**. Look at *their* answer chunks. Ask: do those chunks look broken
+the way `D56` describes?
 
 ```
-their 30 answer chunks              broken?      whole corpus
-  ends "…as follows:"                  0             4.1%
-  opens "The above example…"           0             6.9%
-  cut inside a code listing            1             0.2% of cuts
+  On those 30 answer chunks (the 17 misses):
+    ends mid-thought ("…as follows:")     0
+    opens mid-thought ("The above…")      0
+    cut in the middle of a code listing   1   ← and even that one was a false alarm when opened
 ```
 
-**Zero and zero and one.** But that alone proves nothing — three regexes that never fire would
-print the same thing. **The control is the result:**
+So the missing answers are almost all **whole pages**. Search just doesn’t rank them.
+
+**The control (this is the proof).** Look at questions search **does** find:
 
 ```
-the 74 questions search DOES find:  2 of their 123 answer chunks are broken = 2%
-the 17 it misses:                   1 of their  30 answer chunks = 3%
+  74 questions found:   2% of their answer chunks look “broken”
+  17 questions missed:  ~3% of their answer chunks look “broken”
 ```
 
-**Same rate.** Broken chunks sit behind the questions that work just as often as behind the
-questions that fail. Whatever is separating found from missed, **it is not chunk quality.**
+**Same rate.** Broken chunks show up behind wins and losses alike. So chunk quality is **not**
+what separates found from missed. Phrasing / vocabulary is (see `g042`: 0 overlap with its
+cascade page).
 
-**The one hit, opened rather than counted.** `g113`'s chunk `c02823` was flagged for the
-code-listing cut. Reading it: the chunk ends on a **finished** example (`{stop}<...>`), and the
-next chunk starts a *separate* `>>> session.rollback()` snippet. Nothing was cut in half. The
-detector fires on "indented code on both sides of the cut," and here the listing was already
-over. **A detector that flags 1 in 30 has to have its hit read, or you are trusting a regex.**
+**What you should say after reading this**
 
-**What this is NOT saying.** Not that the chunker is fine — `D56` still stands, and `c00138`'s
-content is still gone from every chunk. Not that boundary work is dead forever: a code block cut
-in half is bad for the **answer the model writes** from it, which is Phase 4's subject. It says
-one thing: **re-chunking will not find those 17 pages.**
+- We **rejected** “fix chunking to fix the 17 absents” (`D70`).
+- We did it with a survey (`rag.score --absents`), not by rebuilding the index.
+- The chunker can still be imperfect (`D56` still true) — that is a **different** problem
+  (what the model is handed when a page *is* found). It is not why those 17 never arrive.
 
-**The cheap part, and the lesson.** `D69` spent a full re-embed (and a 6-point recall drop) to
-learn the same shape of answer. This one cost a single command over rows the scorer already
-had. **Survey the failures before paying for the fix** — and had `--absents` existed a day
-earlier, `D69` would have been rejected on paper first.
+**What you should not say**
 
-**Code.** `rag/score.py --absents`, calling `rag/chunk.py`'s **own** detectors, with a test that
-fails if the scorer ever grows a private copy of one.
+- “Chunking is still open for Phase 3.” It isn’t — surveyed and closed.
+- “The chunker is fine.” It isn’t — `D56` stands. It just isn’t the absent lever.
+
+**Command.** `uv run python -m rag.score --absents`
 
 ---
 
