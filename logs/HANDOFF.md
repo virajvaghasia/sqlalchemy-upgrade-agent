@@ -1690,7 +1690,90 @@ uv run python -m rag.score --baseline deliverables/baseline-phase1.json
 ### REPLY 13.1
 
 ```
-(paste here)
+# lab PC, 2026-09-01. tip addca71.
+
+git log -1 --oneline
+addca71 feat(phase-4): the faithfulness judge, pinned and proven (D78) — and a subscript is not a citation (D79)
+
+git status -sb
+## phase-2/measure...origin/phase-2/measure
+
+uv sync --frozen --extra embed
+Checked 77 packages in 945ms
+
+docker compose up -d qdrant
+Container sqlalchemy-upgrade-agent-qdrant-1 Started
+NAME                                IMAGE                   COMMAND             SERVICE   CREATED       STATUS                    PORTS
+sqlalchemy-upgrade-agent-qdrant-1   qdrant/qdrant:v1.19.0   "./entrypoint.sh"   qdrant    2 weeks ago   Up (healthy)              127.0.0.1:6333->6333/tcp, 6334/tcp
+
+uv run pytest -q
+282 passed, 1 warning
+
+uv run python -m rag.golden --status
+golden set: 100 items, 100 verified by a human, target 50 (D61)
+  unanswerable: 9  (at least 3 wanted — they are the only way to measure whether the system declines when it should)
+  provenance: breakages=34, github=25, migration_guide=16, stackoverflow=25
+
+uv run python -m rag.score
+
+ALL ITEMS  —  100 items, 91 answerable
+  recall@k   @1=0.31  @3=0.48  @5=0.64  @10=0.71  @20=0.81
+  strict     @1=0.31  @3=0.48  @5=0.64  @10=0.71  @20=0.81
+  MRR        0.436
+  recall@5    0.64  ±0.097  (95%, Wilson)
+  median rank when found  2.0   not in top-20: 17
+  slots lost to duplicates in top-5: 0
+
+EXCLUDING provenance=breakages  —  66 items, 59 answerable
+  recall@k   @1=0.34  @3=0.49  @5=0.69  @10=0.75  @20=0.83
+  strict     @1=0.34  @3=0.49  @5=0.69  @10=0.75  @20=0.83
+  MRR        0.473
+  recall@5    0.69  ±0.114  (95%, Wilson)
+  median rank when found  2   not in top-20: 10
+  slots lost to duplicates in top-5: 0
+
+provenance=breakages  —  34 items, 32 answerable
+  recall@k   @1=0.25  @3=0.47  @5=0.53  @10=0.66  @20=0.78
+  strict     @1=0.25  @3=0.47  @5=0.53  @10=0.66  @20=0.78
+  MRR        0.369
+  recall@5    0.53  ±0.163  (95%, Wilson)
+  median rank when found  3   not in top-20: 7
+  slots lost to duplicates in top-5: 0
+
+provenance=github  —  25 items, 23 answerable
+  recall@k   @1=0.26  @3=0.48  @5=0.74  @10=0.74  @20=0.91
+  strict     @1=0.26  @3=0.48  @5=0.74  @10=0.74  @20=0.91
+  MRR        0.434
+  recall@5    0.74  ±0.170  (95%, Wilson)
+  median rank when found  3   not in top-20: 2
+  slots lost to duplicates in top-5: 0
+
+provenance=migration_guide  —  16 items, 15 answerable
+  recall@k   @1=0.67  @3=0.73  @5=0.93  @10=1.00  @20=1.00
+  strict     @1=0.67  @3=0.73  @5=0.93  @10=1.00  @20=1.00
+  MRR        0.758
+  recall@5    0.93  ±0.143  (95%, Wilson)
+  median rank when found  1   not in top-20: 0
+  slots lost to duplicates in top-5: 0
+
+provenance=stackoverflow  —  25 items, 21 answerable
+  recall@k   @1=0.19  @3=0.33  @5=0.48  @10=0.57  @20=0.62
+  strict     @1=0.19  @3=0.33  @5=0.48  @10=0.57  @20=0.62
+  MRR        0.311
+  recall@5    0.48  ±0.196  (95%, Wilson)
+  median rank when found  2   not in top-20: 8
+  slots lost to duplicates in top-5: 0
+
+uv run python -m rag.score --baseline deliverables/baseline-phase1.json
+
+(same ALL ITEMS block as above — recall@5 0.64 ±0.097, not-in-top-20 17, dup seats 0)
+
+PAIRED against baseline  (recall@5)
+  fixed    7  g017, g024, g038, g044, g046, g047, g050
+  broken   0  —
+  exact McNemar p = 0.016  — significant
+
+# PASS — matches Mac after D68 on every cell checked.
 ```
 
 ## ASK 13.2 — `--refusals` baseline for Phase 4 (same sitting as 13.1)
@@ -1714,7 +1797,34 @@ Paste the full ID lists — do not summarise them away.
 ### REPLY 13.2
 
 ```
-(paste here)
+# lab PC, 2026-09-01. same sitting as 13.1. BLOCKED — NVIDIA driver not loaded.
+
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+ollama list | grep qwen
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    2 weeks ago
+
+# Diagnosis (no sudo available on this session):
+uname -r
+7.0.0-30-generic
+
+lsmod | grep nvidia
+(empty — nvidia kernel module not loaded)
+
+find /lib/modules/$(uname -r) -name 'nvidia.ko*'
+(no proprietary nvidia.ko for 7.0.0-30-generic)
+
+find /lib/modules/7.0.0-28-generic -name 'nvidia.ko*'
+/lib/modules/7.0.0-28-generic/kernel/nvidia-595-open/nvidia.ko
+
+# Driver package is installed (nvidia-driver-595-open 595.71.05) but DKMS module
+# was not built for the currently booted kernel 7.0.0-30-generic.
+# Ollama falls back to CPU; a 30s smoke test timed out still loading the model.
+
+uv run python -m rag.score --refusals
+NOT RUN — needs GPU. Reboot into 7.0.0-28-generic (has nvidia.ko) or rebuild
+DKMS with sudo, then re-run 13.2 + 14.1 in one sitting.
 ```
 
 ## After Round 13
@@ -1792,7 +1902,18 @@ H's nine fixed items were `g008`, `g021`, `g049`, `g050`, `g064`, `g095`, `g099`
 ### REPLY 14.1
 
 ```
-(paste here)
+# lab PC, 2026-09-01. same sitting as 13.1. BLOCKED — same NVIDIA driver issue as 13.2.
+
+ls -la rag/faithful.py
+-rw-rw-r-- 1 shaili shaili 12045 Sep  1 16:33 rag/faithful.py
+
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+uv run python -m rag.compare_prompts --golden D H --save /tmp/round14-DH.json
+NOT RUN — ~200 Ollama generations need the 3060; CPU fallback did not finish loading
+qwen2.5-coder:7b in 30s. Unblock: reboot to kernel 7.0.0-28-generic (nvidia.ko present)
+or `sudo dkms autoinstall` for 7.0.0-30-generic, then run 13.2 + 14.1 back-to-back.
 ```
 
 ## How to read the result — decided in advance, so the answer cannot be fitted to the data
