@@ -307,3 +307,101 @@ def test_groundedness_is_not_a_claim_about_existence():
     real library. Neither subsumes the other, and g065 fails both."""
     a = "```python\nop.create_table('t')\n```"
     assert judge.ungrounded_calls(a, ["unrelated source text"]) == ["op.create_table"]
+
+
+# --- subscripts are not citations -------------------------------------------
+
+def test_python_indexing_is_not_read_as_a_citation():
+    """`keys[0]` is a subscript. The first version of CITATION matched any
+    bracket-integer, so H's answer to g016 -- which contains
+    `row[keys[0]]` inside a code fence and cites [1] and [2] in prose --
+    scored as citing a source numbered 0 that was never in the prompt.
+
+    Measured over the 300 saved D/H/I answers the old regex fired three times
+    and all three were subscripts. Zero real citations are preceded by an
+    identifier character, `]` or `)`."""
+    answer = (
+        "[2] Use the Result object [1].\n\n"
+        "```python\n"
+        "keys = result.keys()\n"
+        'print(f"x: {row[keys[0]]}  y: {row[keys[1]]}")\n'
+        "```\n"
+    )
+    r = judge.citation_report(answer, n_sources=5)
+    assert r["out_of_range"] == []
+    assert r["in_range"] == [1, 2]
+
+
+def test_a_prose_subscript_is_not_a_citation_either():
+    """The g121 case is in prose, not in a fence -- which is why the fix is a
+    lookbehind rather than 'strip the code blocks first'."""
+    r = judge.citation_report(
+        "Use integer or slice notation, like `row[0]`, to read the value [3].",
+        n_sources=5,
+    )
+    assert r["out_of_range"] == [] and r["in_range"] == [3]
+
+
+def test_a_bare_zero_in_prose_is_still_an_invented_source():
+    """The narrowing must not swallow the defect the count exists for."""
+    assert judge.citation_report("see [0]", n_sources=5)["out_of_range"] == [0]
+
+
+def test_a_subscript_inside_a_block_does_not_launder_it_as_cited():
+    """uncited_code_blocks() credits a citation *inside* the fence, so the same
+    false positive would have hidden an uncited code block -- the g065 shape
+    the function was written to catch."""
+    answer = "Here is the migration:\n\n```python\nvalue = row[0]\n```\n"
+    assert judge.uncited_code_blocks(answer) == 1
+
+
+# --- the open cell ----------------------------------------------------------
+
+def _cell_row(id, *, answer="A real answer with plenty of words in it here.",
+         answerable=True, in_prompt=False, failed=False):
+    r = {"id": id, "answerable": answerable, "answer_in_prompt": in_prompt,
+         "answer": answer, "provenance": "github", "cited": [], "code_blocks": 0}
+    if failed:
+        r["failed"] = True
+        r.pop("answer")
+    return r
+
+
+def test_the_open_cell_is_answered_answerable_and_page_absent():
+    rows = [
+        _cell_row("hit"),                                   # in
+        _cell_row("had_the_page", in_prompt=True),          # scored elsewhere
+        _cell_row("unanswerable", answerable=False),        # fabrication, not this
+        _cell_row("refused", answer="The sources do not answer this."),
+        _cell_row("failed", failed=True),                   # D75: not a measurement
+    ]
+    assert [r["id"] for r in judge.open_cell(rows)] == ["hit"]
+
+
+def test_a_failed_row_is_not_read_as_an_open_cell_answer():
+    """D75: a timed-out generation is neither an answer nor a refusal. Counting
+    it as an answer would invent an item for a human to rule on."""
+    assert judge.open_cell([_cell_row("g079", failed=True)]) == []
+
+
+def test_the_sheet_renders_the_answer_and_asks_for_a_verdict(tmp_path):
+    """D06: the sheet must hand the decision over, not pre-empt it."""
+    out = tmp_path / "sheet.md"
+    items = [{"id": "g014", "question": "does scalars matter?",
+              "answer_chunks": ["c01588"]}]
+    n = judge.open_cell_sheet({"D": [_cell_row("g014")]}, items, out)
+    text = out.read_text()
+    assert n == 1
+    assert "does scalars matter?" in text and "c01588" in text
+    assert "Verdict:" in text and "does\nnot rule on it" in text
+
+
+def test_the_sheet_names_what_a_variant_ADDS_over_the_control(tmp_path):
+    """The shared items are a property of the system. The ones a variant adds
+    are the ones that decide whether shipping it is safe -- so they cannot be
+    left for the reader to diff by hand."""
+    out = tmp_path / "sheet.md"
+    saved = {"D": [_cell_row("shared")], "H": [_cell_row("shared"), _cell_row("only_H")]}
+    judge.open_cell_sheet(saved, [], out)
+    text = out.read_text()
+    assert "`H` adds 1" in text and "`only_H`" in text

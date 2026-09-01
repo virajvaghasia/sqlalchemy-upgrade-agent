@@ -1727,3 +1727,117 @@ no boundary re-chunking (`D70`): the condition this file used to carry, *"until 
 shows a severed answer"*, was **checked on 2026-08-22 and is not met**. Of the 17 absents' 30
 answer chunks, zero are `D56` shapes and the single severed-listing flag does not survive
 reading. `uv run python -m rag.score --absents` reproduces it in one command.
+
+---
+
+# Round 14 — the D vs H confirmation, one sitting (the ship decision)
+
+**Status: OPEN. Written 2026-09-01. This is the highest-value use of the 3060 right now**, and
+unlike Round 13 it is not a confirmation of something already known — it is the run that decides
+whether the shipped prompt changes.
+
+> **Read first on the Mac:** [`../phases/PHASE-4.md`](../phases/PHASE-4.md) Step 4 and `D74`.
+
+**Branch: `phase-2/measure`.** Tip must include `rag/faithful.py` and the `D79` citation fix.
+If `ls rag/faithful.py` fails after the pull, the Mac has not pushed and **stop here** — every
+number below would be measured against the wrong code.
+
+## Why this round exists
+
+Prompt **H** — D's wording, moved into the **user turn** beside `ANSWER:` — measured on the Mac
+on 2026-08-23: **end to end 0.43 → 0.52**, **9 fixed 0 broken**, exact McNemar **p = 0.0039**,
+uncited **67% → 10%**. Bigger than everything Phase 3's retrieval work bought (0.35 → 0.43).
+
+**It has not shipped**, and `D54` is why this needs re-running rather than trusting: refusal
+cells drift across days, and two of seven items flipped between 08-20 and 08-21 with the prompt,
+temperature and index all unchanged. **A before/after must be one sitting.** The Mac run *was*
+one sitting, so it is valid — this round asks whether it **reproduces on a second machine**,
+which is a stronger claim and one nothing in this repo has yet tested.
+
+**What the 3060 buys.** ~200 generations for D + H. Mac ~18 tok/s took about 2.5 hours; the
+3060 at ~62 tok/s should do it in roughly 45 minutes. That is the difference between "an
+overnight run" and "a sitting", which is exactly what `D54` demands of every future prompt change.
+
+## ASK 14.1 — D vs H, both arms, one sitting
+
+Run **after** 13.1 confirms retrieval is 0.64. Do not split this across two days.
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-2/measure && git pull --ff-only
+git log -1 --oneline
+ls -la rag/faithful.py            # must exist, or the Mac has not pushed
+
+uv sync --frozen --extra embed
+docker compose up -d qdrant
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+
+uv run python -m rag.compare_prompts --golden D H \
+    --save /tmp/round14-DH.json 2>&1 | tee /tmp/round14-DH.txt
+tail -120 /tmp/round14-DH.txt
+```
+
+**What the Mac got (the rows to compare against):**
+
+| | end to end | over-refused | uncited | code w/o source | fabricated |
+|---|---|---|---|---|---|
+| **D** shipped | 39/91 = **0.43** | 19 | 31/46 = **67%** | 25/26 = 96% | 2 |
+| **H** | **47/91 = 0.52** | **10** | **6/60 = 10%** | 19/36 = 53% | 2 |
+
+H's nine fixed items were `g008`, `g021`, `g049`, `g050`, `g064`, `g095`, `g099`, `g103`,
+`g106`.
+
+**Paste the full ID lists, not a summary.** The ids are the finding; the averages are not.
+
+### REPLY 14.1
+
+```
+(paste here)
+```
+
+## How to read the result — decided in advance, so the answer cannot be fitted to the data
+
+- **H reproduces (≥6 fixed, 0 broken, p < 0.05).** Two machines, two sittings, same direction.
+  Ship H. `D61`'s bar was ~6 clean fixes with no regressions and this clears it twice.
+- **H wins but by less (3–5 fixed, 0 broken).** Real but smaller than the Mac said. Ship it and
+  **quote the lab's number**, not the Mac's — the smaller of two honest measurements is the one
+  that survives a follow-up question.
+- **H breaks anything (≥1 regression).** Do not ship on this evidence. A regression that the Mac
+  did not see is `D54` drift or a machine difference, and either one has to be named before a
+  prompt ships on top of it.
+- **The cells disagree wildly.** That is the more interesting outcome: it means `D72`/`D73`/`D74`
+  are machine-dependent, which nothing in this repo currently claims. Record it and stop —
+  a finding, not a failure.
+
+## What NOT to run on the lab PC
+
+- **Faithfulness (`rag.faithful`).** It calls the Gemini API, so it is network-bound, not
+  GPU-bound — the 3060 buys nothing. It also needs `GEMINI_API_KEY`, and **`.env` is gitignored
+  so the key does NOT travel with the pull**. Run it on the Mac.
+
+  **If you do want it on this box anyway**, the key has to be added by hand — it is deliberately
+  not in git:
+
+  ```bash
+  echo 'GEMINI_API_KEY=paste-the-key' >> .env    # .env is gitignored; never `git add -f` it
+  uv run python -m rag.faithful --check          # ONE call: proves auth and the pinned model
+  ```
+
+  **`--check` is the authority, not `--models`.** Measured 2026-08-31 on the Mac: `--models`
+  listed `gemini-2.5-flash` and calling it returned **404 — "no longer available to new users"**.
+  The catalog is what the API advertises; a call is what happens. `MODEL` is pinned to
+  `gemini-3.6-flash`; if that 404s here too, run `--models` and pick a version-numbered id —
+  **not** `gemini-flash-latest`, which floats by design (`D78`).
+
+  **This is a shared box.** A key in `.env` here is readable by the other user. Prefer the Mac,
+  and if you do add it, remove the line before you leave.
+- **The open-cell read** (`deliverables/OPEN-CELL-REVIEW.md`). That is a human reading answers
+  against real 2.0.51 (`D06`), and it needs no machine at all.
+- **Anything retrieval.** Closed by `D66`–`D70`. Do not reopen it here.
+
+## Housekeeping on that box, unchanged
+
+- Clone lives at `~/Documents/Workspace/SqlUpgradeAgent`, shared box (`kj` + `shaili`).
+- **Do not touch `~/.claude`** — it is the other user's. No `claude`, no `/login`, no `/logout`.
+- Tailscale is already `shaili.gandhi@`; do not re-login. The Day 3 tunnel is still blocked on
+  Shaili sharing the node and nothing in this round needs it — AnyDesk is enough.

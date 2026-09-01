@@ -118,6 +118,38 @@ grade itself. Two decisions to record before any number is printed:
   store would (`D31` — 4 of 19 probe questions returned different top-5).
 - **Zero paid API calls** stands. Free tier or it does not ship.
 
+#### Correction 2026-08-30 — the pinning argument above is too strong (`D78`)
+
+**The `D65` analogy imported a conclusion without its cost structure**, and the difference is
+what it costs to re-derive the thing when it moves under you:
+
+| | if it changes | cost to restore |
+|---|---|---|
+| golden set (`D65`) | every row is unpaired | **~25 hours** of `D06` hand-verification |
+| vector store (`D31`) | 4 of 19 probe questions moved | a re-index — minutes |
+| **judge** | the absolute faithfulness number shifts | **~60 calls** — minutes |
+
+Sized, not asserted: over the saved sweep the answered items are **D 48 / H 62 / I 63**, so one
+call per answer is ~60 per variant and ~180 claim-by-claim. Reproduce with
+`deliverables/prompt-sweep-phase4.json`. **Rate limits are not the constraint on any free tier**,
+which removes the reason most people pick one.
+
+**So the snapshot id is a convenience. Two other properties are the tight ones:**
+
+- **Same judge, both arms, one sitting.** `D54` applied to the judge rather than the generator.
+  Judge D on Monday and H on Friday and the comparison is worthless however carefully the model
+  was pinned. Free to honour, and it is the actual correctness requirement.
+- **Agreement with a human, measured** — Step 5's hand-check of ten. A pinned judge with
+  unmeasured agreement is a precise instrument of unknown accuracy, and `g065` is this repo's
+  proof that the label no audit can test is exactly where it has been wrong before.
+
+**What that changes in practice:** `rag/faithful.py` records the model on **every row**
+(`stamp()`) rather than defending one id forever, and `--models` asks the key what it can
+actually reach so the pin is chosen from what exists rather than from memory. A local judge is
+in fact *more* pinnable than any API — you hold the weights — and stays the fallback if the
+agreement-of-ten comes back poor. `ROADMAP.md`'s "too weak to grade itself" objection is about
+**self**-grading; a different, larger model is not that.
+
 ### Step 3 — Citation integrity (built), then faithfulness (needs the judge)
 
 **`D71`: the deterministic half first, and completely.** `rag/judge.py --citations` needs no

@@ -2134,6 +2134,110 @@ and the follow-up question finds out.
 
 ---
 
+### D78 — pinning the judge is a convenience; "same judge, both arms, one sitting" is the requirement
+
+**Decided 2026-08-30.** `PHASE-4.md` Step 2 said the judge must be pinned *"the same way
+swapping the golden set would"* invalidate rows (`D65`/`D61`). **The analogy imported a
+conclusion without its cost structure**, and the cost structure is the whole argument:
+
+| | if it moves under you | cost to restore |
+|---|---|---|
+| golden set (`D65`) | every row is unpaired | **~25 hours** of `D06` hand-verification |
+| vector store (`D31`) | 4 of 19 probe questions returned a different top-5 | a re-index — minutes |
+| **judge** | the absolute faithfulness number shifts | **~60 calls** — minutes |
+
+**Sized rather than argued.** Over `deliverables/prompt-sweep-phase4.json` the answered items
+are **D 48 / H 62 / I 63**, so one call per answer is ~60 per variant, ~180 claim-by-claim, and
+~500 for all three variants read sentence by sentence. **Every free tier absorbs that**, which
+removes rate limits as a selection criterion and leaves stability as the only one.
+
+**What is tight instead:**
+
+- **Same judge, both arms, one sitting** — `D54` applied to the judge rather than the generator.
+  Judge D on Monday and H on Friday and the comparison is worthless however carefully the model
+  was pinned. This is the correctness requirement and it is free.
+- **Agreement with a human, measured** (Step 5's ten). A pinned judge whose agreement is unknown
+  is a precise instrument of unknown accuracy. `g065` is the standing proof that the label no
+  audit can test is where this repo has actually been wrong.
+
+**In code, not in prose.** `rag/faithful.py` stamps the model onto **every row** rather than
+defending one id forever, and `--models` asks the key what it can reach so the pin is chosen
+from what exists instead of from memory — a model id written from memory 404s.
+
+**The consequence that inverts the plan:** a **local** judge is *more* pinnable than any API,
+because you hold the weights — no deprecation, no terms change, nothing trained on our data.
+`ROADMAP.md`'s *"too weak to grade itself"* is an objection to **self**-grading; a different,
+larger model is not that. Gemini stays first because it is stronger and the key exists; local is
+the fallback if the agreement-of-ten comes back poor, and it is a real fallback rather than a
+consolation.
+
+**The pin, recorded rather than defended — `gemini-3.6-flash`, chosen 2026-08-31.**
+
+**And the argument for `--models` arrived within one call of writing it.** `gemini-2.5-flash`,
+written into `MODEL` from memory, returned **HTTP 404 — *"no longer available to new users…
+use models/gemini-3.6-flash"***. The credential was fine: a 404 on the model, not a 401 on the
+key. A model id written from memory is a stale id, and it fails in a way that reads exactly like
+a bad key.
+
+**The sharper finding: the catalog is not the truth.** `--models` lists 38 ids **including
+`gemini-2.5-flash`** — the one that had just 404'd. The listing is what the API advertises; a
+call is what actually happens. **`--check` is the authority; `--models` only proposes
+candidates.** Two commands, two jobs, and neither substitutes for the other.
+
+**No dated snapshot exists for the stable flash line** — every dated id in the catalog is a
+preview — so the best available pin is a version-numbered id rather than `gemini-flash-latest`,
+which floats by design and is the thing this entry says to avoid.
+
+**Proven end to end on real data, not just on auth.** `g056` — the item `D77` states the code
+grounding detector is *structurally blind* to, because it fabricates in prose rather than in a
+code block — was judged against its five real retrieved sources and came back **`PARTIAL`**,
+stamped `gemini-3.6-flash`. That is the first measurement in this repo that reaches the defect
+`D77` named and could not reach.
+
+**Interview question it answers:** *"You pinned your evaluator — why?"* Because rows must be
+traceable to the reader that produced them. **Not** because the id must never change: re-running
+this judge is minutes, so pinning is bookkeeping. The thing that would actually invalidate a
+comparison is judging the two arms at different times, and that is what the discipline forbids.
+
+---
+
+### D79 — a subscript is not a citation, and the second instrument H broke
+
+**Found 2026-08-30.** `rag/judge.py` matched citations with `\[(\d+)\]` over the whole answer,
+so **`keys[0]`, `row[1]` and `argv[1]` were read as citations.** On `g016` under prompt H this
+printed the project's first out-of-range citation — a source numbered `[0]` that does not exist —
+and the source was `row[keys[0]]` inside a Python block.
+
+**Measured across all 300 saved D/H/I answers the old regex fired 3 times and all 3 were
+subscripts** (`keys[0]`, `keys[1]`, and a prose mention of `row[0]`). Fixed with a lookbehind:
+a citation is `[n]` **not** preceded by an identifier character, `]` or `)`.
+
+**Why a lookbehind rather than "strip the code fences first".** The `g121` case is in **prose**,
+so fence-stripping would miss it — and `uncited_code_blocks()` deliberately credits a `# [2]`
+comment *inside* a fence, which fence-stripping would blind. The same false positive in that
+direction would have laundered an uncited code block as cited, hiding the `g065` shape the
+function exists to catch. A test pins that direction too.
+
+**No published number moves.** No answer's cited/uncited status flips, so `D73`'s 65% and the
+`D74` table stand as written; only H's and I's phantom out-of-range entries disappear, which
+makes `D73`'s *"zero invented source numbers"* claim **more** true rather than less.
+
+**The pattern, and it is the second instance in one phase.** `D76` was the first: H's compliance
+put `[2]` in front of a refusal and defeated `ask.refused()`'s prefix test. Here H's extra code
+put `[0]` in front of the citation counter. **Both times the variant under test reshaped the
+output in exactly the way that defeated the instrument reading it, and both times `D` was clean
+— because `D` barely cites and writes less code.** The bug is invisible until the thing being
+measured starts working.
+
+**Consequence, and it is now a habit rather than a memory:** when a prompt change improves a
+metric, re-verify the **detector** against the new output shape before believing the metric.
+
+**Interview question it answers:** *"How do you know your evaluation harness is right?"* By
+reading raw outputs from the arm that changed, not only from the control — twice now the control
+was clean and the treatment exposed the bug.
+
+---
+
 ## Where the rest of the repo lives
 
 | | |
