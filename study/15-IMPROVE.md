@@ -431,29 +431,58 @@ cascade page).
 
 ---
 
-### R7.6 What is left — and what needs the lab
+### R7.6 After R7.5 — you are done with *search*. What happens next?
 
-**Retrieval ceiling for now.** Quote **0.64**. Seventeen absents are mostly phrasing or
-corpus gaps. Further retrieval bets (query rewrite, add pages to the corpus) are optional
-measured experiments — not required to close Phase 3's retrieval story.
+**Stop here if you only wanted Phase 3.** Search work in this file is finished:
 
-**Phase 4 is generation.** §R6.2 already named it:
+| | |
+|---|---|
+| Shipped | twin collapse, hybrid BM25, seat-5 CE → retrieval **0.64** |
+| Rejected | Sphinx strip (`D69`), re-chunking for absents (`D70`) |
+| Still missing (ok for now) | **17** questions search never finds — mostly wrong wording, not broken cuts |
 
-- **13** answerable items refused **with** the answer chunk already in the prompt
-- Fabrications **`g056`**, **`g065`**
-- Q18 / Q19 from Phase 1 (same class)
+Nothing after this section is “another lever like R7.1–R7.5.” Different job.
 
-That work needs **Ollama + GPU** for a full `--refusals` re-baseline in one sitting (`D54`:
-do not compare refusal cells across days). The lab PC is the right box. Start from
-[`../logs/HANDOFF.md`](../logs/HANDOFF.md) **Round 13**.
+---
 
-**Mac vs lab for what you just read:**
+**The gap in one picture** (why Phase 4 exists):
+
+```
+  Search finds the right page          →  recall@5 = 0.64   ← Phase 3 (this file)
+  Model actually answers with it       →  end-to-end ≈ 0.43 ← Phase 4
+                      gap ≈ 0.21
+```
+
+So: better search helped, but the user still often gets a refusal or a made-up answer even when
+the page is already on the desk. **That is generation**, not retrieval.
+
+**What happens next, in order (plain list):**
+
+1. **Lab Round 13** — pull `phase-2/measure`, confirm search still ~0.64, run
+   `rag.score --refusals` on the **3060** (same sitting). That stamps a Phase 4 “before”
+   picture. Mac can do it too; lab is faster. See [`../logs/HANDOFF.md`](../logs/HANDOFF.md).
+
+2. **Phase 4 — judge / fix the *answer***, not the search.** Teaching file:
+   [`16-JUDGE.md`](16-JUDGE.md) §R8. Plan: [`../phases/PHASE-4.md`](../phases/PHASE-4.md).
+   Concrete headaches already named in §R6.2:
+   - model **refuses** even though the right page is in the prompt
+   - model **invents** APIs (`g056`, `g065`)
+   - citations missing or fake
+
+3. **Phases 5–6 later** (agent, deploy) — ignore until Phase 4 has numbers. ROADMAP only.
+
+**What you do *not* do after R7.5**
+
+- Another Sphinx strip or “fix chunking” pass to chase the 17
+- Quote **0.64** as “the system is 64% good” — that is **retrieval only**; end-to-end is lower
+- Wait on Tailscale for Phase 4 — AnyDesk + the lab clone is enough for Round 13
+
+**Mac vs lab (same as before):**
 
 | work | where |
 |---|---|
-| `D66`–`D69` (this file) | **Mac** — Qdrant + embed + score |
-| Confirm retrieval after pull | either machine |
-| `--refusals`, prompt changes, judge later | **lab PC** (3060) — Round 13 |
+| Everything in R7.1–R7.5 | Mac was enough |
+| Full `--refusals` / prompt experiments | lab PC preferred (GPU) |
 
 ---
 
@@ -465,7 +494,8 @@ do not compare refusal cells across days). The lab PC is the right box. Start fr
   only shipped.
 - Absents are not a markup problem and not a chunk-boundary problem — measured, with the
   found items as the control: **2% of their answer chunks are broken too**.
-- Next sitting is Phase 4 on the lab, not another embed experiment on the Mac.
+- Next sitting is **Phase 4** (did the model answer well?), not another search experiment.
+  Map: R7.6 above → Round 13 → [`16-JUDGE.md`](16-JUDGE.md).
 
 ## Do not say
 

@@ -1,393 +1,577 @@
 # Judge — study notes
 
-Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R8**, continuing the `R` run after
-[`15-IMPROVE.md`](15-IMPROVE.md) §R7. Plan file (decisions + tables):
-[`../phases/PHASE-4.md`](../phases/PHASE-4.md). Decisions: **`D71`–`D77`**.
+Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R8**, after
+[`15-IMPROVE.md`](15-IMPROVE.md) §R7. Plan: [`../phases/PHASE-4.md`](../phases/PHASE-4.md).
+Decisions: **`D71`–`D77`**.
 
-> **Read this after §R7.** §R7 was about *search* — finding the right page. This one is about
-> what happens **after** the right page is already sitting in the prompt. That turns out to be
-> where most of the loss is, and none of §R7's numbers could see it.
+> **§R7 was search** — which five pages land on the desk. **This file is the writing.** The
+> model looks at those pages and either answers, refuses, cites, or invents. Search metrics
+> stop at “page arrived.” Users care about what comes back.
 
 ---
 
 ## If you are lost — one picture
 
-You have been quoting **0.64**. That number is real, and it is **not what your system does**.
+**“Desk” = the five pages the model is allowed to read for this one question.**
+
+Search is a library. The model does not read all 3284 chunks. For each question it only gets
+**five** short documentation excerpts pasted into the prompt (`DEFAULT_K = 5`). Those five are
+the **desk**. A “desk page” is one of those excerpts — not a special file on disk.
 
 ```
-  0.64   the right page reached the prompt        ← what §R7 measured
-  0.43   ...and the model actually answered       ← what a user gets
-  ────
-  0.21   lost AFTER search had already won
+  Library (corpus)     →  search picks 5  →  desk  →  model writes answer
+  3284 chunks                ↑
+                        "desk pages"
 ```
 
-**Both numbers are about the same 91 questions.** The gap is 19 questions where search did its
-job, put the correct documentation page in front of the model, and the model said *"The sources
-do not answer this."*
+Same idea as §R7’s desk seats. Here we care what the model does *after* those five arrived.
 
-**Say `0.43`.** Say `0.64` only with the word **retrieval** attached to it.
+```
+  Search finds the right page     0.64     ← that page was among the five on the desk
+  Model actually answers          0.43     ← Phase 4 headline. Quote THIS.
+  ─────────────────────────────   ────
+  Lost after search already won   0.21
+```
+
+Same **91** answerable questions. Most of the gap: the right page was already on the desk, and
+the model still said *"The sources do not answer this."*
+
+**Say `0.43`.** Say `0.64` only with the word **retrieval** in the same breath.
+
+---
+
+## Easy picture — four different report cards (keep them separate)
+
+Remember the desk from §R7: search puts **five documentation pages** in front of the model.
+Then the model writes. Phase 4 is only about that writing. It asks **four separate questions**.
+Each gets its own score. Do **not** blend them into one “the system is X% good” number.
+
+**1. Did search put the right page on the desk?**
+
+```
+  Question → search → five pages on the desk
+                         ↑
+                    was the verified answer among them?
+```
+
+That is **retrieval**. Phase 3 already measured it: **0.64**. This file does not re-fight that.
+
+**2. When the right page *was* on the desk, did the model still answer?**
+
+```
+  Right page on desk + model writes an answer  →  good for the user
+  Right page on desk + model says "sources don't answer"  →  search won, user got nothing
+```
+
+That combo (page arrived **and** model answered) is **end to end**: **0.43**.
+Quote **0.43** as what the system does. Quote **0.64** only as “search’s ceiling.”
+
+**3. If it answered, can you open a page and check the claim?**
+
+A good answer looks like: *“…was removed in 2.0 [3].”* — you open source **[3]** and verify.
+A bad-for-RAG answer can be *correct* but have **no `[1]`/`[2]`/…** at all — you just have to trust it.
+
+That is **citations**. Under the shipped prompt, about **two thirds** of answers cite nothing.
+
+**4. If it pasted code, do those API names appear on the desk pages?**
+
+```
+  Answer shows:  op.create_view(...)
+  Desk pages:    no "create_view" anywhere
+  → the code is not backed by what we retrieved
+```
+
+That is **grounding**. A small script checks it — no second AI judge required.
+
+---
+
+**Why you must not average these into one score**
+
+Suppose the model always refuses. Then:
+- citations look “perfect” (there is nothing to cite),
+- but every user gets a useless decline.
+
+One blended “quality” number would go **up** while the product got worse. So we keep four
+columns, the same way we never blend “did search find it?” with “did the model answer?”
+
+---
+
+**If someone asks in an interview — one sentence each**
+
+| They ask | You say |
+|---|---|
+| What’s your score? | **0.43** end to end. **0.64** is only “did search find the page.” |
+| Why did refusals go *up* after better search? | More questions now *have* the page in the prompt, so more can refuse *with it there*. Look at the **percentage**, not the raw count. |
+| What fixed citations? | Same instruction, moved to sit **right before** the answer — not shouted louder at the top. |
+| Did you fix hallucinations? | Still **2** fabrications on unanswerable items; under prompt H the dangerous *code recipes* got milder. |
 
 ---
 
 ## §R8 — what Phase 4 measured
 
-### R8.0 Three report cards, not two
+### R8.1 End to end (`D72`) — did the user get an answer?
 
-§R4 taught you there were two: **retrieval** (did the right page arrive) and **generation** (was
-the answer any good). Phase 4 splits the second one, because "any good" was hiding three
-different failures that want three different fixes.
+**Plain job.** A “win” needs **both**:
 
-```
-  Did the right page reach the prompt?          RETRIEVAL   — §R7 closed this at 0.64
-  Did the model answer, or decline anyway?      REFUSAL     — 19 of 58 declined. D72
-  If it answered, can you CHECK the answer?     CITATION    — 65% cite nothing. D73
-  If it wrote code, is that code in the pages?  GROUNDING   — D77
-```
+1. the verified answer page was among the five on the desk, **and**
+2. the model did **not** refuse.
 
-**Why they must stay apart.** Suppose you averaged them into one "quality" score. A system that
-refuses everything gets a *perfect* citation score, because a refusal has nothing to cite. The
-number would go **up** as the system became more useless. `D62` refused that averaging for
-recall and this file keeps refusing it.
-
----
-
-### R8.1 End to end (`D72`) — the number that was being computed by hand
-
-**Plain job.** Count the questions where **both** things went right: the answer chunk was in the
-prompt, **and** the model did not decline.
+Search alone can only guarantee (1). Users need (1) **and** (2).
 
 ```
-  91 answerable questions
-  58  the answer chunk reached the prompt          ← retrieval's ceiling
-  19  ...of those, the model refused anyway        ← thrown away
+  Desk has the right page?     Model answers?
+       YES ──────────────────── YES  →  count as end-to-end win
+       YES ──────────────────── NO   →  over-refusal (search won, user got nothing)
+       NO  ──────────────────── *    →  search miss (Phase 3 / absents)
+```
+
+**The arithmetic (91 answerable):**
+
+```
+  58  page reached the prompt          ← search's ceiling → 58/91 ≈ 0.64
+  19  of those, model still refused    ← thrown away
   ────
-  39  answered with the right page in hand   =  0.43
+  39  answered with the page in hand   =  39/91 = 0.43
 ```
 
-**Where it had been living.** Nowhere reproducible. Earlier docs said `0.36`, then `0.35`, both
-arrived at by a person subtracting one printed number from another. Both were *right*. Neither
-could be re-derived by running anything — which is precisely what this repo's measurement rule
-exists to stop. It prints now:
+**Command — do not hand-subtract in a spreadsheet:**
 
 ```
 uv run python -m rag.score --refusals
 ```
 
-**The counter-intuitive bit, and it will be asked.** Phase 3 improved retrieval, and the
-over-refusal count went **up**: 13 → 19.
+**Weird fact that is NOT a bug.** After Phase 3 improved search, “over-refusals with page in
+hand” went **13 → 19**.
 
-That is not a regression. Read the definition again: *refused **with the answer in the
-prompt***. Improve retrieval and more questions become **eligible** for that cell — a question
-whose page never arrived cannot be over-refused, it is just a miss.
+Read the cell name again: *refused **while the answer was already in the prompt***. Better
+search puts the right page in front of the model **more often** → more questions become
+*eligible* for that cell. A question whose page never arrived cannot “over-refuse”; it is just
+a miss.
 
 ```
-  before Phase 3   13 of 45 eligible   = 29%
-  after  Phase 3   19 of 58 eligible   = 33%
+  before Phase 3   13 of 45 eligible  = 29%
+  after  Phase 3   19 of 58 eligible  = 33%
 ```
 
-**So never compare the raw count across a retrieval change.** Compare the rate.
+So: **never compare the raw count across a retrieval change.** Compare the rate.
 
-**And the sharpest version of it:** Phase 3 fixed seven questions. **Two of them — `g044` and
-`g050` — are now refused with the page in the prompt.** Search went and found the page, and the
-model declined it. Every table in §R7 scores those two as wins. They are, and the user got
-nothing from either.
+**Named example.** Phase 3’s paired baseline fixed seven items. Two of them — **`g044`** and
+**`g050`** — sit on today’s over-refusal list. Search found the page (§R7 correctly calls that a
+win). The model declined. The user got nothing from either.
+
+**What it is not.** “Generation got worse after Phase 3.” The ceiling moved; more of the old
+generation defect became visible.
 
 ---
 
-### R8.2 Citations (`D73`) — `ask.py` fails its own opening sentence
+### R8.2 Citations (`D73`) — can someone verify the answer?
 
-`rag/ask.py` opens with these words:
+**Plain job.** The product promise of RAG: *here are the pages, and here is which one I used.*
+Without `[2]`-style markers, a correct answer and a lucky guess look the same to a reader.
 
-> **SOURCES ARE NOT DECORATION**
-
-and argues that without the chunks there is no way to tell a correct answer from a lucky one.
-
-Measured over the 48 questions that got an answer at all:
+`rag/ask.py` already *asks* for citations (`SOURCES ARE NOT DECORATION`). Measured on the **48**
+questions that got an answer under the shipped prompt:
 
 ```
-  cite nothing at all              31   65%
-  cite only one of the five        16   33%
-  contain code                     28   58%
-    ...of those, code uncited      26   93%
-  cite a source that doesn't exist  0    0%
-  mean coverage                  0.07   five pages in, a third of one cited
+  cite nothing at all                 31   65%
+  cite only one of the five pages     16   33%
+  write code                          28
+    …and that code has no citation    26   93% of those
+  invent a fake source number [7]      0    0%
 ```
 
-**Two answers in three are unverifiable.** Not *wrong* — unverifiable. Here is the whole
-difference, on `g002`:
+**Two answers in three cannot be checked.** Not always *wrong* — *unverifiable*.
+
+**Side by side — `g002`:**
 
 ```
-The :meth:`_orm.Query.from_self` method has been removed from :class:`_orm.Query`
-in SQLAlchemy 2.0. Instead, you should use the :func:`_orm.aliased` construct...
+  WHAT SHIPPED (correct, blind)              WHAT WOULD BE CHECKABLE
+  ─────────────────────────────              ───────────────────────
+  The :meth:`_orm.Query.from_self`           Query.from_self was removed [3].
+  method has been removed…                   Use aliased(…) instead [3].
+  (zero [n]; Sphinx junk in the face)
 ```
 
-That answer is **correct**. It is also a paragraph you have to take on faith, and it leaks raw
-documentation markup into a user's face. If it had said `...has been removed [3].` you could
-open source 3 and check it in four seconds. That is the entire product argument for RAG, and it
-was not happening.
+With `[3]` you open source 3 and verify in seconds. That *is* the RAG pitch. It was not
+happening.
 
-**Why I checked it four ways before believing it.** A 65% defect rate is exactly what a broken
-detector prints. So:
+**Omission ≠ invention.**
 
-1. `build_prompt` numbers the sources `[1]`…`[5]` — the format exists.
-2. `SYSTEM` says *"cite the source number in brackets, like [2]"* — it is demanded.
-3. `generate()` sends `SYSTEM` — the model was told.
-4. `g002`'s raw answer, printed and read — **zero** `[n]` anywhere.
+| defect | what happened | fix shape |
+|---|---|---|
+| **Omission** (the real one) | No `[n]` at all | Get the model to cite |
+| **Invention** | Cite `[7]` when only `[1]`–`[5]` exist | We measured **0** of these |
 
-**Zero out-of-range citations is a real result too.** When the model does cite, it never invents
-a source number like `[7]` when five were given. **The defect is omission, not invention** — and
-those want different fixes.
+**Why Phase 1’s `uncited: 3` did not settle this.** That was 3 of **11** answered probe
+questions (~27%). Eleven questions cannot pin a rate; **48** can. Same trap as “3 unanswerable
+items cannot measure fabrication.”
 
-**What it is NOT: a claim that Phase 1 was wrong.** Phase 1 measured this and reported
-`uncited: 3`. That was 3 of the **11** probe questions that got an answer = 27%.
-
-```
-  Phase 1   3/11 = 27%   Wilson 95%  [0.04, 0.51]
-  Phase 4  31/48 = 65%   Wilson 95%  [0.52, 0.78]
-```
-
-The bands miss each other **by a hair**. Phase 1 was not wrong; **eleven questions could never
-have settled it either way**. This is the second time the repo has been bitten by exactly that —
-three unanswerable items could not measure a fabrication rate on 08-21, and eleven answered
-questions could not measure a citation rate.
+**What it is not.** A claim the answers are mostly false. Many are right *and* unchecked.
 
 ---
 
-### R8.3 The prompt lab (`D74`) — position beats emphasis
+### R8.3 Prompt lab (`D74`) — *where* the rule sits beats *how loud* it is
 
-Both defects above are the *model's*, not search's. So the first lever is the prompt, and it is
-free to try.
+**Plain job.** Refusal and citation failures are the **model’s** habits, not search’s. Cheapest
+lever: change the prompt. Free. No re-embed.
 
-**The obvious idea, and it does nothing.** Variant **E** says it as hard as English allows, in
-the system message:
+**Trap: shout louder in SYSTEM (variant E).** Same cite rule, written as hard as English allows,
+still in the system message. On `g002`: still **zero** citations. Whole table unchanged.
 
-> *"Every factual sentence must end with the bracketed number of the source it came from…
-> **An answer with no bracketed number in it is not acceptable.**"*
-
-Result on `g002`: an answer near word-for-word identical to the shipped prompt's, with **zero**
-citations. Every cell in the table unmoved.
-
-**The model is not defying you. It is not attending.** By the time it starts writing, that
-instruction is thousands of tokens back, behind five full documentation chunks:
+**Why shouting fails.** The rule is buried under five long doc pages before the model writes:
 
 ```
-  [ SYSTEM: ...cite the source number...  ]   ← the rule, way back here
-  [ SOURCE 1  ~700 tokens of docs         ]
-  [ SOURCE 2  ~700 tokens                 ]
-  [ SOURCE 3  ~700 tokens                 ]
-  [ SOURCE 4  ~700 tokens                 ]
-  [ SOURCE 5  ~700 tokens                 ]
-  [ QUESTION: ...                         ]
-  [ ANSWER:                               ]   ← it starts writing here
+  ┌─ SYSTEM: "cite like [2]…" ─┐   ← rule lives way back here
+  │  SOURCE 1  (~700 tokens)   │
+  │  SOURCE 2                  │
+  │  SOURCE 3                  │
+  │  SOURCE 4                  │
+  │  SOURCE 5                  │
+  │  QUESTION                  │
+  └─ ANSWER: ──────────────────┘   ← model starts writing; rule is forgotten
 ```
 
-**Variant H changes no wording at all.** Same sentence, moved to the last line before `ANSWER:`:
+**What worked (variant H): same words, new seat.** Put the rule as the **last line before
+ANSWER** — right next to where writing starts. No new wording. Only position.
 
 ```
-  [ QUESTION: ...                                     ]
-  [ Before answering: cite the source number in       ]  ← the rule, here instead
-  [ brackets, like [2], after each statement...       ]
-  [ ANSWER:                                           ]
+  QUESTION
+  Before answering: cite like [2] after each statement…
+  ANSWER:                         ← rule is right here
 ```
 
-Measured over all 100:
+| | end to end | over-refused | uncited |
+|---|---|---|---|
+| **D** (ships today) | 39/91 = **0.43** | 19 | **67%** |
+| **E** louder in SYSTEM | same as D | | |
+| **H** same words, user turn | **47/91 = 0.52** | **10** | **10%** |
 
-| | end to end | over-refused | uncited | code w/o source |
-|---|---|---|---|---|
-| **D** shipped | 39/91 = **0.43** | 19 | 31/46 = **67%** | 25/26 = 96% |
-| **E** louder, system message | — same as D — | | | |
-| **H** *same words*, user turn | **47/91 = 0.52** | **10** | **6/60 = 10%** | 19/36 = 53% |
+**9↑ 0↓**, McNemar p = **0.0039**.
 
-**9 fixed, 0 broken, exact McNemar p = 0.0039.**
+Moving one sentence bought **more** end-to-end lift than all of Phase 3 search (0.35 → 0.43).
+H targeted citations; over-refusals also fell **19 → 10**. No invented mechanism — say “we don’t
+know why willingness rose” rather than fake a story.
 
-**End to end 0.43 → 0.52 is a bigger gain than everything §R7's retrieval work bought**
-(0.35 → 0.43). From moving one sentence.
+**What it is not.**
 
-**The part that was not the hypothesis.** H was aimed at citations. It also cut over-refusals
-**19 → 10**, and the count of questions answered at all went **46 → 60**. *Asking the model to
-cite made it more willing to answer.* I do not have a mechanism for that, and saying so is
-better than inventing one.
-
-**This is the same shape as `D54`.** Prompt D beat prompt B not by being firmer but by changing
-the **mechanism**. E is the "say it louder" branch, and it is a null result.
-**Position is a lever. Volume is not.**
-
-**What it is NOT: shipped.** `ask.SYSTEM` is untouched. H lives in `rag/compare_prompts.py` with
-its numbers beside it, because which prompt ships is a decision, and the last time that was
-assumed rather than asked (2026-08-17) it was the wrong call.
+- Not shipped — `ask.SYSTEM` is still D; H lives in `rag/compare_prompts.py` until you decide.
+- Not “we improved the prompt” in the vague sense — **position** is the lever; **volume** was
+  measured and did nothing.
 
 ---
 
-### R8.4 The result was wrong the first time (`D76`) — read this one twice
+### R8.3a Which prompt should we pick?
 
-The first reading of that table said **12 fixed, p = 0.000, end to end 0.55**.
+**Recommendation: pick H as the next production candidate.** It is the only variant with a
+full 100-item result that improves the two problems this phase is trying to improve, while
+introducing **zero paired regressions**:
 
-The measurement rule says spot-check a raw answer. Here is `g006` under H:
+```
+  D = today's production prompt
+  H = same system prompt as D
+      + the same citation reminder in the user message,
+        immediately before ANSWER:
+```
+
+H is not a new model and not a new retrieval method. It changes **where one instruction is
+written**. The instruction is farther away in the system message; H repeats it beside the
+place where the model is about to write.
+
+**The choices, in plain language:**
+
+| choice | what it changes | what we learned | pick? |
+|---|---|---|---|
+| **D** | current shipped prompt | baseline: end to end **0.43**, uncited **67%** | keep only as control |
+| **E** | shouts “citations are mandatory” in SYSTEM | same result as D; louder was not better | **No** |
+| **F** | tells the model search results are relevant | only screened on 20; not the clean full-run winner | not first |
+| **H** | repeats D’s citation rule immediately before `ANSWER:` | **0.52**, uncited **10%**, **9↑ 0↓** | **Recommended** |
+| **I** | H plus F’s extra relevance instruction | **0.51**, uncited **16%**; worse than H everywhere | **No** |
+
+**Why H beats I.** I sounds like it gives the model more help: “these pages are relevant,
+answer from them.” But adding that second instruction diluted the first. H is simpler and
+measured better. More instructions are not automatically more control.
+
+**What H fixes:**
+
+- end to end: **0.43 → 0.52**
+- over-refusals with the page already present: **19 → 10**
+- answers with no citation: **67% → 10%**
+- paired comparison: **9 fixed, 0 broken**, exact McNemar **p = 0.0039**
+
+**What H does not fix:**
+
+- fabrications remain **2 of 9** (`g056`, `g065`)
+- **53%** of H's code-containing answers still have no source beside the code
+- prose-level faithfulness is not measured yet; that needs the pinned strong judge
+
+So the recommendation is not “H solves the system.” It is: **H is the best measured prompt
+candidate, and its remaining failures are visible.**
+
+**The exact decision to make.** If the goal is to improve what users receive now, choose H.
+If the goal is to preserve the current production behaviour until a human reviews the raw
+answers, keep D temporarily. Either is defensible; silently changing D is not.
+
+**Say this:**
+
+> “I recommend H. It keeps the shipped system prompt and moves the citation reminder into the
+> user turn immediately before the answer. On the 100-item run it improved end to end from
+> 0.43 to 0.52, reduced uncited answers from 67% to 10%, fixed nine paired items with no
+> regressions, and still leaves fabrication and prose-faithfulness work open.”
+
+**Do not say this:**
+
+- “H fixed hallucinations.” Fabrications stayed at **2**.
+- “H is proven correct forever.” The result is one measured sitting; `D54` says generation can
+  drift between days.
+- “E failed because the model ignores instructions.” The measured claim is narrower: E's
+  stronger system wording produced no improvement; we do not know the model's internal reason.
+- “I is safer because it has more instructions.” It measured worse than H.
+- “H is shipped.” It remains in `compare_prompts.py`; `ask.SYSTEM` is still D until you decide.
+
+---
+
+### R8.4 Detector bug (`D76`) — a refusal wearing a `[2]` badge
+
+**Plain job.** When you change the prompt, re-check that your *scorer* still means what you
+think. H taught the model to put `[n]` everywhere — including in front of a refusal.
+
+First scoreboard for H: **12↑**, end to end **0.55**. Spot-check of raw `g006`:
 
 ```
 [2] The sources do not answer this.
 ```
 
-**That is a refusal wearing a citation.**
-
-`ask.refused()` is a **prefix** test — it asks whether the answer *starts with* `"The sources do
-not answer"`. `"[2] The sources…"` does not. **It was scored as an answer.**
-
-And look at *why*: H's entire content is *"cite the source number before each statement."* The
-model complied. Including in front of its own refusal.
-
-> **The variant under test reshaped the output in exactly the way that defeated the detector
-> reading it.**
-
-**And the shipped prompt shows zero such cases**, because the shipped prompt barely cites at all.
-**The bug was invisible until the thing being measured started working.**
-
-Corrected: 6 of H's answers were cited refusals, **3 of them sat in the "fixed" column**.
+That is a **decline**, not an answer. The detector `ask.refused()` asked: does the text
+**start with** `"The sources do not answer"`?  
+`"[2] The sources…"` does **not** → counted as answered. **The fix under test broke the meter.**
 
 ```
-  first read    12 fixed, p = 0.000, 0.55
-  true result    9 fixed, p = 0.0039, 0.52
+  first (wrong)   12 fixed,  end to end 0.55
+  true            9 fixed,   end to end 0.52   ← still clears the bar; now honest
 ```
 
-Still significant. Still clears `D61`'s bar of ~6 clean fixes with no regressions. **And now
-true.**
+**Fix:** strip leading `[n]` markers, *then* test the start.
 
-**Why the prefix test is not simply a bug to widen.** A substring search would be worse: prompt D
-deliberately produces *"here is the part the sources cover, and here is the part they do not"* —
-which is an **answer**. Matching the phrase anywhere would score that as a refusal and inflate
-the number in the flattering direction. The fix strips leading `[n]` markers and keeps the anchor
-at the **start**.
+**Why not “search for the phrase anywhere”?** Prompt D deliberately writes answers like *“here
+is what the sources cover, and here is what they do not.”* That is an **answer**. A substring
+match would score it as a refusal and inflate the flattering number.
 
-**Two things made the correction cheap, and both were decisions:**
+Saved full answers (`D75`) made the correction seconds, not another 300 generations. Shipped
+prompt D produced **zero** cited refusals, so published D72/D73 numbers did not need rewriting.
 
-- **The answers were saved** (`D75`). Re-scoring cost seconds. Had only the summary table been
-  kept, correcting it would have meant regenerating 300 answers — and `D54` drift would have
-  made the corrected run not comparable with the run it was correcting.
-- **No recorded number moved.** The shipped prompt produced zero cited refusals, so `D72` and
-  `D73` stand exactly as published. **Verified, not assumed.**
+**What it is not.** “H was fake.” Corrected H still wins; the first table was just wrong.
 
 ---
 
-### R8.5 Groundedness (`D77`) — catching invented code with no judge model
+### R8.5 Groundedness (`D77`) — did the code invent APIs?
 
-Everything above is about citing. This is about **lying**.
+**Two different “is this lying?” questions:**
 
-**The one defect the prompt could not move.** Fabrications — answering a question the corpus
-genuinely cannot answer — sat at **2 of 9** under *every* wording tried. Position, emphasis,
-premise: all failed.
+| | citations (`D73`) | grounding (`D77`) |
+|---|---|---|
+| Asks | Can I find which page you used? | Are the **API calls in your code** on those pages? |
+| Needs | `[n]` markers | String match into the five desk pages |
+| Needs a big judge model? | No | No |
 
-**The idea, and it needs no AI at all.** Take the API calls in the answer's **code**, and ask
-whether each one appears in **any of the pages that were in the prompt**.
+**Idea in one picture:**
 
 ```
-  answer says:   op.create_view("v", "SELECT ...")
-  sources say:   ...nothing containing create_view...
-  verdict:       ungrounded
+  Answer code:   op.create_view(...)
+  Desk pages:    … no "create_view" anywhere …
+  → ungrounded   (unsupported by what we retrieved — whether or not Alembic has it)
 ```
 
-| | answered | with an ungrounded call | rate |
+| | answered | with an ungrounded call |
+|---|---|---|
+| **D** | 48 | **2** (4%) |
+| **H** | **62** | **0** (0%) |
+
+**Fabrication count stayed 2 of 9** under every prompt tried. Harm did not. Named example
+**`g065`** (corpus cannot teach same-migration CREATE TABLE + VIEW):
+
+| D (shipped) | H |
+|---|---|
+| Full recipe: `op.create_table`, invented view helpers — **none of that text on the desk** | Cites the real page, paraphrases, **no code block** |
+
+Both score as “answered an unanswerable.” One is a procedure a developer might run. One stops.
+
+> A fabrication **count** is not a measure of **harm**.
+
+**Blind spots — say them out loud:**
+
+- **`g056`** invents in **prose**, not code → this detector cannot see it.
+- Grounding ≠ “does this symbol exist in Alembic?” That is `audit_golden_fullbar.py` against
+  the real library. Grounding only asks: *was it in the pages we retrieved?*
+
+**What it is not.** “I fixed hallucination.” Count unchanged; severity under H dropped.
+
+---
+
+### R8.5a The open cell — the golden page is not on the desk
+
+This is the part that is easy to mix up:
+
+| Thing | What it does | Does the model see it? |
+|---|---|---|
+| **Golden answer chunk** | Reference page used to judge whether the answer is right | **No**, when it is absent from the retrieved prompt |
+| **Five retrieved chunks** | The pages actually handed to the model | **Yes** |
+| **Open-cell review** | Human checks whether the answer is correct anyway | Happens **after** generation |
+
+The same record applies to the earlier reviewed items:
+
+| Item | Golden chunks and corpus sources | What those chunks say |
+|---|---|---|
+| **`g014`** | `c01588`, `c01589` — both `doc/build/changelog/migration_20.rst` | `Result` returns tuples by default; call `.scalars()` to return ORM objects directly. The second chunk shows `session.execute(select(User))` followed by `.scalars()`. |
+| **`g060`** | `c02378` — `doc/build/orm/declarative_tables.rst` | `mapped_column()` adds ORM-specific configuration and becomes a normal `Column` in the Declarative table. |
+| **`g112`** | `c01585` — `doc/build/changelog/migration_20.rst` | Maps `session.query(User).count()` to `session.scalar(select(func.count()).select_from(User))` or `session.scalar(select(func.count(User.id)))`. |
+| **`g117`** | `c02482`, `c02485` — both `doc/build/orm/extensions/asyncio.rst` | Lazy relationships need `AsyncAttrs.awaitable_attrs`, `selectinload`, or `refresh(..., attribute_names=[...])` — not plain sync-style attribute access. |
+| **`g120`** | `c00890`, `c00897` — both `doc/build/orm/inheritance_loading.rst` | `with_polymorphic()` works with joined inheritance; emits LEFT OUTER JOINs to subclass tables. |
+| **`g119`** | `c02996`, `c01181` — both `doc/build/orm/session_basics.rst` | General 2.0 querying via `select()` + `Session.execute()` / `Session.scalars()`; does not directly compare `scalar` vs `scalar_one_or_none`. |
+| **`g016`** | `c01576` — `migration_20.rst` | Row is a named tuple; mapping access moves to `row._mapping` / `result.mappings()`. |
+| **`g028`** | `c01562` — `migration_20.rst` | Library-level autocommit removed; driver-level remains via `isolation_level`. |
+| **`g036`** | `c01567`, `c01568` — `migration_20.rst` | `MetaData(bind=…)` / bound metadata removed; pass `Engine` to `create_all` / `sessionmaker`. |
+| **`g039`** | `c01588`, `c01589` — same as `g014` | Same scalars story under different wording. |
+| **`g040`** | `c01603` — `migration_20.rst` | Joinedload of a collection needs `Result.unique()` in 2.0. |
+| **`g058`** | `c01567`, `c01568`, `c01573` — `migration_20.rst` | Prefer `Connection.execute(text(…))`; connectionless `engine.execute` removed. |
+| **`g085`** | `c01608`, `c03009` — `migration_20.rst` + `session_basics.rst` | Session autocommit removed; autobegin added (and can be disabled). |
+| **`g020`** | `c02230` — `orm/cascades.rst` | `cascade_backrefs` removed; many-to-one assignment no longer enrolls the object. |
+| **`g114`** | `c01181`, `c03126` — `session_basics.rst` + `tutorial/data_select.rst` | `execute(select(User))` returns `Row`; delete needs a mapped instance (or a Core `delete()`). |
+
+Those chunks were absent from the five-page prompts. Answers were checked against the
+official 2.0 documentation and live `sqlalchemy==2.0.51` tests. Full sheet verdicts live in
+`deliverables/OPEN-CELL-REVIEW.md`.
+
+Take **`g074`**. The golden set names `c00711` and `c01010` as answer pages, but neither
+reached the five pages on the model’s desk. The model therefore could not “grab” the golden
+answer from the prompt. It produced the mixin and `column_property()` example anyway.
+
+The review then checked that answer against three things:
+
+1. The official SQLAlchemy 2.0 documentation, which contains the same
+   `SomethingMixin` / `x_plus_y` pattern.
+2. The golden chunks, recorded precisely:
+
+   | Chunk | Corpus source | What it contributes |
+   |---|---|---|
+   | `c00711` | `doc/build/orm/declarative_config.rst` | Shows `column_property(firstname + " " + lastname)` as a mapped SQL expression. |
+   | `c01010` | `doc/build/orm/mapped_sql_expr.rst` | Describes a plain Python `@property` alternative and contrasts it with `column_property()` and `hybrid_property`. |
+
+   Neither chunk contains the exact `SomethingMixin` example. They support the underlying
+   `column_property()` claim; the exact reusable-mixin pattern was verified from the official
+   2.0 documentation separately.
+3. A live SQLAlchemy `2.0.51` run, which produced:
+
+```text
+SELECT something.x + something.y AS anon_1
+FROM something
+[5]
+```
+
+So `g074` is **CORRECT**, but it is still a **retrieval miss**. The model answered from
+knowledge or from a pattern it reconstructed; it did not demonstrate that this RAG run
+retrieved the right page. That is why the answer can be correct while the retrieval metric
+still records an open cell.
+
+**What it is not.** The golden set is not secretly added to the prompt, and a correct open-cell
+answer does not prove retrieval succeeded. It proves only that the model answered correctly
+without the designated reference page in front of it.
+
+**`g112` shows why “partly correct” matters.** Its reference chunk `c01585` in
+`doc/build/changelog/migration_20.rst` gives the requested 2.0 form:
+
+```python
+session.scalar(
+    select(func.count()).select_from(User)
+)
+```
+
+It also gives `session.scalar(select(func.count(User.id)))` as the simpler alternative.
+The `D` answer only explains the legacy `Query.count()` method, so it never answers the
+equivalent-API question. `H` and `I` add `func.count(User.name)` and explain the
+`select()` direction, but their code still uses legacy `session.query()` and never gives
+the modern count form. Their claim that the example counts “each distinct user name” is
+also false: `func.count(User.name)` counts non-NULL values; it does not apply `DISTINCT`.
+
+A live `2.0.51` test confirmed the difference: the legacy query emitted a subquery and
+returned `2`, while the modern `select(func.count()).select_from(User)` form returned `3`
+for the test data. The exact `LIKE` patterns also differ: `"%ed"` matches a suffix, while
+`"%ed%"` matches the substring described in the answer.
+
+**`g117` misses the async-specific answer.** Golden chunks `c02482` and `c02485` say: use
+`AsyncAttrs.awaitable_attrs`, eager `selectinload`, or `refresh(..., attribute_names=[...])`.
+The `D` answer only defines `relationship()` and then loops `for address in user.addresses`
+inside `AsyncSession` — generic ORM, not the asyncio guidance. The `I` answer is worse: it
+builds `sessionmaker(conn.sync_engine, class_=AsyncSession)`, which mixes a sync engine with
+an async session class and is not the documented pattern.
+
+**`g120` is a thin but correct yes.** Chunks `c00883`/`c00890` show `with_polymorphic(Employee,
+[Engineer, Manager])` emitting LEFT OUTER JOINs under joined inheritance. `c00897` extends the
+same hierarchy through `Manager` → `VicePresident`.
+
+**`g119` gets the conclusion direction right but the mechanism wrong.** Live `2.0.51`:
+`session.scalar(select(User.name))` with two rows returns the **first row** (`a`) and does
+**not** raise. `session.execute(...).scalar_one_or_none()` raises `MultipleResultsFound`.
+So they are **not equivalent** on multi-row results, but not because `scalar` raises — it
+silently returns the first value. The `D` answer even contradicts itself: it says `scalar`
+raises on multiple rows, then says it performs no row-count checks.
+
+**Open-cell sheet — complete rollup** (`deliverables/OPEN-CELL-REVIEW.md`):
+
+| Verdict | D (7) | H (13) | I (15) |
 |---|---|---|---|
-| **D** shipped | 48 | **2** | 4% |
-| **H** | **62** | **0** | **0%** |
+| `CORRECT` | 4 | 6 | 5 |
+| `PARTIAL` | 3 | 7 | 9 |
+| `WRONG` | 0 | 0 | 1 (`g117`) |
 
-**H answers 14 more questions and grounds every line of code in all of them.**
+Named H/I-only findings:
 
-**Now the finding that a count could not show you.** The fabrication count is **2 for both**. By
-that metric, nothing improved. Here is what actually changed, on `g065` — *"can I create a table
-and a view in the same migration?"*, which the corpus cannot answer:
+- **`g016` PARTIAL** — live: `hasattr(row, "keys")` is **False**; `result.keys()` and
+  `row._mapping.keys()` both work. Answer pointed only at `Result.keys()`, while golden
+  `c01576` teaches `_mapping` / `mappings()`.
+- **`g028` PARTIAL** — only said “driver-level remains”; golden `c01562`’s load-bearing half
+  is that **library-level autocommit was removed**.
+- **`g040` PARTIAL** — suggested `selectinload` (valid alternative) but missed the golden
+  2.0 fix: `result.unique()`. Live: without `unique()` → `InvalidRequestError`.
+- **`g085` PARTIAL** — talked about subtransactions; golden is autocommit removed /
+  autobegin (`c01608`, `c03009`).
+- **`g020` PARTIAL (I only)** — correctly says `cascade_backrefs` was removed, then wrongly
+  tells you to set it `False` / use `Session(future=True)` as if the option still existed.
+- **`g114` PARTIAL (I only)** — diagnosis is right (don’t `delete` a `Row`), but never names
+  `.scalars()`, which is the usual cause the golden chunks document.
 
-```
-  ---- D (shipped) ----
-  ...you can use the `DDL` construct along with Alembic...
-
-  ```python
-  from alembic import op
-  import sqlalchemy as sa
-
-  def upgrade():
-      op.create_table('my_table', sa.Column('id', sa.Integer, ...))
-      ...
-  ```
-  ← a recipe. None of these calls appear in any retrieved page.
-    On the 08-21 run it also called op.create_view(), which does not
-    exist on alembic 1.19.1 at all.
-
-  ---- H ----
-  [3] SQLAlchemy supports ALTER TABLE, CREATE VIEW, CREATE TRIGGER,
-      Schema Upgrade Functionality. For a more comprehensive option,
-      schema migration tools like Alembic or SQLAlchemy-Migrate can be used.
-  ← zero code blocks. one citation. a paraphrase of the page it cites.
-```
-
-**Both are scored "answered an unanswerable item."** One hands a developer a procedure they will
-run and that partly does not exist. The other repeats what the page says and stops.
-
-> **A count of fabrications is not a measure of harm.**
-
-**It confirms the golden set from the opposite direction.** On 2026-08-21 the spot-check of ten
-rewrote `g065`'s reason to *"CREATE VIEW chunks exist (`c00484`/`c02056`) but do not teach
-same-migration CREATE TABLE + VIEW."* H found exactly those chunks and repeated exactly that
-much. The hand-written label and the machine's behaviour agree, arrived at independently.
-
-**What it is NOT: a claim about whether an API exists.** `op.create_table` is a real Alembic
-function, and it is still reported ungrounded when no source mentions it — which is **correct**
-for a RAG metric: the answer is unsupported by the pages the system was given. *Does this symbol
-exist at all* is a different question, answered against the real library by
-`tools/audit_golden_fullbar.py`. **Neither replaces the other.** `g065` fails both.
-
-**What it cannot see: `g056`.** Never flagged, under any wording, because it fabricates in
-**prose** rather than code. A code-grounding detector is structurally blind to that, and saying
-so is better than implying coverage it does not have.
+Shared wins that stayed correct across prompts: `g014`/`g039` (scalars), `g036` (no
+`MetaData(bind=…)`), `g058` (`Connection.execute`), `g060`, `g074`, `g120`.
 
 ---
 
 ### R8.6 What is left
 
-**One thing, and it needs a key.** Prose-level faithfulness — *is this sentence supported by that
-passage* — is a reading task, so it needs the strong judge `ROADMAP.md` specifies (Gemini free
-tier). There is no key on this machine. Everything buildable without one is built.
+| Open | Plain meaning |
+|---|---|
+| **Ship H or keep D** | Recommendation is H; your call. Numbers ready; production prompt still D. |
+| **Prose faithfulness** | “Does this *sentence* match that passage?” Needs a pinned strong judge (e.g. Gemini free tier). No key on this machine yet. |
+| **Lab Round 13** | GPU sittings for `--refusals`; Mac already ran one D72 baseline. |
 
-When it exists, two rules from the plan file carry over:
-
-- **Pin the judge model and version.** Swapping judges mid-project invalidates every historical
-  row — the same trap as swapping the golden set (`D65`) or the vector store (`D31`, where 4 of
-  19 probe questions returned different top-5).
-- **Report the judge's agreement with a human on ten hand-checked items.** LLM judges agree with
-  people ~85–92% of the time. The precedent is `§H CLOSED` — the golden signature closed on a
-  risk-weighted spot-check of ten, and `g065` is why that sample was worth taking.
-
-**And one decision is waiting on a person:** whether H ships.
+When a judge exists: pin model + version; hand-check ~10 items and report agreement rate.
 
 ---
 
 ## After this you can say
 
-- **"My system scores 0.43, and 0.64 is retrieval's ceiling."** The 21 points between them are
-  generation's, and no retrieval metric can see them.
-- **"Improving retrieval made one defect's count go up, and that's arithmetic."** The cell counts
-  refusals *with the page in the prompt*; better search makes more questions eligible. Compare
-  the rate, not the count.
-- **"Two of the seven questions Phase 3 fixed are now refused with the right page in hand."**
-- **"Moving one sentence beat rewriting it."** Same words in the user turn instead of the system
-  message: end to end 0.43 → 0.52, 9↑ 0↓, p = 0.0039, uncited 67% → 10%.
-- **"My first version of that number was wrong and I found it."** The model cited its own
-  refusal; a prefix detector scored six declines as answers. `D76`.
-- **"I detect invented code without a second model"** — API calls checked against the pages that
-  were actually retrieved.
+- End to end **0.43**; **0.64** is retrieval’s ceiling only.
+- Better search made over-refusal **count** rise — compare **rates** (29% → 33%).
+- Two Phase 3 search wins (`g044`, `g050`) are still refused with the page in hand.
+- **Moving** the cite rule beat **shouting** it: 0.43 → 0.52, uncited 67% → 10%.
+- First H score was wrong (`[2] The sources…`); corrected, still significant (`D76`).
+- Invented **code** can be caught with no judge model (`D77`); prose lies need more.
 
 ## Do not say
 
-- **"My RAG system is 64% accurate."** That is the ceiling, and it is the single most misleading
-  sentence available about this project.
-- **"I fixed hallucination."** Fabrication count is unchanged at 2. What changed is its
-  *severity*, and that is a different and more honest claim.
-- **"I improved the prompt."** Say **what** changed — its position — because *"I made the
-  instruction stronger"* is the branch that was measured and did **nothing** (variant E).
-- **"The reranker/chunking could fix the remaining misses."** `D70` closed that: the 17 absent
-  answers are not broken chunks, and the questions retrieval *does* find have broken chunks at
-  the same 2% rate.
-- **"LLM-as-judge grades my answers."** Not yet. Everything in this file is deterministic —
-  brackets and symbol matching. That is a strength worth stating plainly, not a gap to hide.
+- “My RAG is 64% accurate.”
+- “I fixed hallucination” (count still 2; severity changed).
+- “I improved the prompt” without saying **position** (E was louder and did nothing).
+- “Chunking / reranker will fix the rest” (`D70` closed that for the 17 absents).
+- “LLM-as-judge grades my answers” — not yet; this file is brackets + symbol checks.
 
 ---
 
@@ -395,9 +579,10 @@ When it exists, two rules from the plan file carry over:
 
 | | |
 |---|---|
-| [`../phases/PHASE-4.md`](../phases/PHASE-4.md) | the plan, with every measured table |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | `D71`–`D77` in full, each with its interview question |
-| [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 — the retrieval work this phase sits on top of |
-| [`14-MEASURE.md`](14-MEASURE.md) | §R6 — Phase 2's scorecard, where the 15-point gap was first seen |
-| `rag/judge.py` | citations and groundedness — no model, no key |
-| `rag/compare_prompts.py` | the prompt lab, `--golden` |
+| [`../phases/PHASE-4.md`](../phases/PHASE-4.md) | plan + measured tables |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | `D71`–`D77` |
+| [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 — search / desk pages |
+| [`14-MEASURE.md`](14-MEASURE.md) | §R6 — generation gap first seen |
+| `rag/judge.py` | citations + grounding (no model, no key) |
+| `rag/compare_prompts.py` | prompt lab (`--golden`) |
+| [`../logs/HANDOFF.md`](../logs/HANDOFF.md) | Round 13 |
