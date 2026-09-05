@@ -27,13 +27,13 @@ the prose it is structurally blind to.
 
 **Question.** t.select().execute() connectionless style removed how do I run it
 
-**Judge says:** `UNSUPPORTED` — Passage [3] states that the ability to associate an Engine with MetaData and the resulting execution patterns are removed.
+**Judge says:** `UNSUPPORTED` — Passage [3] explicitly states that the patterns described, including using `engine.execute(t.select())`, are no longer supported.
 
 _judge model: `gemma4:e4b`_
 
-**A second model says:** `UNSUPPORTED` — Passage [3] states that the ability to associate an Engine with a MetaData object and the `t.select().execute()` pattern are no longer supported in SQLAlchemy 2.0.
+**A second model says:** `UNSUPPORTED` — Passage [3] states that bound metadata and connectionless execution patterns are completely removed in SQLAlchemy 2.0, contradicting the claim.
 
-_second model: `gemini-3.5-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
+_second model: `gemini-3.8-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -227,17 +227,175 @@ DBAPI connection being returned to the pool with transactional resources removed
 
 ---
 
-## 2. `g079`  (variant `D`, github)
+## 2. `g065`  (variant `D`, stackoverflow)
 
-**Question.** Migrating Query.get -> Session.get, what to do with Query.options?
+**Question.** Create table and view in the same migration in SQLAlchemy
 
-**Judge says:** `UNSUPPORTED` — The passages show that options like `joinedload` are used with `session.execute(select(...).options(...))` in Passage [2].
+**Judge says:** `UNSUPPORTED` — None of the passages describe creating both a table and a view in the same migration, nor do they provide the detailed example structure.
 
 _judge model: `gemma4:e4b`_
 
-**A second model says:** `UNSUPPORTED` — None of the passages state that `Session.get` supports options like `joinedload` or is used to migrate `Query.options`.
+**A second model says:** `PARTIAL` — Passages [2] and [3] mention using the DDL construct and the Alembic migration tool with SQLAlchemy, but they do not contain the specific example or instructions for creating a table and view together.
 
-_second model: `gemini-3.5-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
+_second model: `gemini-3.8-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
+
+**The claim it read** (the answer with code fences removed):
+
+```
+To create a table and a view in the same migration in SQLAlchemy, you can use the `DDL` construct along with Alembic, which is a schema migration tool that is compatible with SQLAlchemy. Here is an example of how you can do this:
+
+ 
+
+In this example, the `upgrade` function creates a table named `my_table` and a view named `my_view` that selects from `my_table`. The `downgrade` function drops the view and the table.
+
+For more information on using Alembic with SQLAlchemy, you can refer to the Alembic documentation [3].
+```
+
+**The passages it was given** (the same five the model answered from):
+
+<details><summary>[1] <code>c01590</code></summary>
+
+```
+The fact that SQLAlchemy has both a :func:`_expression.select` construct
+as well as a separate :class:`_orm.Query` object that features an extremely
+similar, but fundamentally incompatible interface is likely the greatest
+inconsistency in SQLAlchemy, one that arose as a result of small incremental
+additions over time that added up to two major APIs that are divergent.
+
+In SQLAlchemy's first releases, the :class:`_orm.Query` object didn't exist
+at all.  The original idea was that the :class:`_orm.Mapper` construct itself would
+be able to select rows, and that :class:`_schema.Table` objects, not classes,
+would be used to create the various criteria in a Core-style approach.   The
+:class:`_query.Query` came along some months / years into SQLAlchemy's history
+as a user proposal for a new, "buildable" querying object originally called ``SelectResults``
+was accepted.
+Concepts like a ``.where()`` method, which ``SelectResults`` called ``.filter()``,
+were not present in SQLAlchemy previously, and the :func:`_sql.select` construct
+used only the "all-at-once" construction style that's now deprecated
+at :ref:`migration_20_5284`.
+```
+
+</details>
+
+<details><summary>[2] <code>c02056</code></summary>
+
+```
+Does SQLAlchemy support ALTER TABLE, CREATE VIEW, CREATE TRIGGER, Schema Upgrade Functionality?
+===============================================================================================
+
+General ALTER support isn't present in SQLAlchemy directly.  For special DDL
+on an ad-hoc basis, the :class:`.DDL` and related constructs can be used.
+See :ref:`metadata_ddl_toplevel` for a discussion on this subject.
+
+A more comprehensive option is to use schema migration tools, such as Alembic
+or SQLAlchemy-Migrate; see :ref:`schema_migrations` for discussion on this.
+```
+
+</details>
+
+<details><summary>[3] <code>c01856</code></summary>
+
+```
+Altering Database Objects through Migrations
+---------------------------------------------
+
+While SQLAlchemy directly supports emitting CREATE and DROP statements for
+schema constructs, the ability to alter those constructs, usually via the ALTER
+statement as well as other database-specific constructs, is outside of the
+scope of SQLAlchemy itself.  While it's easy enough to emit ALTER statements
+and similar by hand, such as by passing a :func:`_expression.text` construct to
+:meth:`_engine.Connection.execute` or by using the :class:`.DDL` construct, it's a
+common practice to automate the maintenance of database schemas in relation to
+application code using schema migration tools.
+
+The SQLAlchemy project offers the  `Alembic <https://alembic.sqlalchemy.org>`_
+migration tool for this purpose.   Alembic features a highly customizable
+environment and a minimalistic usage pattern, supporting such features as
+transactional DDL, automatic generation of "candidate" migrations, an "offline"
+mode which generates SQL scripts, and support for branch resolution.
+
+Alembic supersedes the `SQLAlchemy-Migrate
+<https://github.com/openstack/sqlalchemy-migrate>`_   project, which is the
+original migration tool for SQLAlchemy and is now  considered legacy.
+```
+
+</details>
+
+<details><summary>[4] <code>c01591</code></summary>
+
+```
+As the new approach took off, the object evolved into the :class:`_orm.Query`
+object as new features such as being able to select individual columns,
+being able to select multiple entities at once, being able to build subqueries
+from a :class:`_orm.Query` object rather than from a :class:`_sql.select`
+object were added.   The goal became that :class:`_orm.Query` should have the
+full functionality of :class:`_sql.select` in that it could be composed to
+build SELECT statements fully with no explicit use of :func:`_sql.select`
+needed.   At the same time, :func:`_sql.select` had also evolved "generative"
+methods like :meth:`_sql.Select.where` and :meth:`_sql.Select.order_by`.
+
+In modern SQLAlchemy, this goal has been achieved and the two objects are now
+completely overlapping in functionality.  The major challenge to unifying these
+objects was that the :func:`_sql.select` object needed to remain **completely
+agnostic of the ORM**.  To achieve this, the vast majority of logic from
+:class:`_orm.Query` has been moved into the SQL compile phase, where
+ORM-specific compiler plugins receive the
+:class:`_sql.Select` construct and interpret its contents in terms of an
+ORM-style query, before passing off to the core-level compiler in order to
+create a SQL string.  With the advent of the new
+:ref:`SQL compilation caching system <change_4639>`,
+the majority of this ORM logic is also cached.
+```
+
+</details>
+
+<details><summary>[5] <code>c01547</code></summary>
+
+```
+* :ref:`change_4617` - this change may impact code that was somehow relying
+  upon behavior that was mostly unusable in the :class:`_sql.Select` construct,
+  where it would create unnamed subqueries that were usually confusing and
+  non-working.  These subqueries would be rejected by most databases in any
+  case as a name is usually required except on SQLite, however it is possible
+  some applications will need to adjust some queries that are inadvertently
+  relying upon this.
+
+* :ref:`change_select_join` - somewhat related, the :class:`_sql.Select` class
+  featured ``.join()`` and ``.outerjoin()`` methods that implicitly created a
+  subquery and then returned a :class:`_sql.Join` construct, which again would
+  be mostly useless and produced lots of confusion.  The decision was made to
+  move forward with the vastly more useful 2.0-style join-building approach
+  where these methods now work the same way as the ORM :meth:`_orm.Query.join`
+  method.
+
+* :ref:`change_deferred_construction` - some error messages related to
+  construction of a :class:`_orm.Query` or :class:`_sql.Select` may not be
+  emitted until compilation / execution, rather than at construction time.
+  This might impact some test suites that are testing against failure modes.
+
+For the full overview of SQLAlchemy 1.4 changes, see the
+:doc:`/changelog/migration_14` document.
+```
+
+</details>
+
+**Human verdict** (write AGREE or DISAGREE): _______
+
+**If DISAGREE, it should have been** (SUPPORTED / PARTIAL / UNSUPPORTED): _______
+
+---
+
+## 3. `g079`  (variant `D`, github)
+
+**Question.** Migrating Query.get -> Session.get, what to do with Query.options?
+
+**Judge says:** `UNSUPPORTED` — None of the passages demonstrate passing advanced loading options like `joinedload` directly to `Session.get()`.
+
+_judge model: `gemma4:e4b`_
+
+**A second model says:** `UNSUPPORTED` — None of the provided passages state that `Session.get` supports options like `joinedload` or that `Query.options` migrates to `Session.get`.
+
+_second model: `gemini-3.8-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -455,17 +613,17 @@ Legacy code examples are illustrated below::
 
 ---
 
-## 3. `g080`  (variant `D`, github)
+## 4. `g080`  (variant `D`, github)
 
 **Question.** How to use the load_only() query option with 2.0
 
-**Judge says:** `UNSUPPORTED` — Passages [2] and [3] contradict the claim by detailing how to use `load_only()` with related objects and collections.
+**Judge says:** `UNSUPPORTED` — Passages [2] and [3] show exactly how to use `load_only()` with related objects and collections, contradicting the claim's concluding statement.
 
 _judge model: `gemma4:e4b`_
 
-**A second model says:** `PARTIAL` — Passages [1], [2], [3], and [4] cover the usage of `load_only()`, including its application to related objects and collections which the claim incorrectly states is not covered.
+**A second model says:** `PARTIAL` — Passages [2] and [3] explicitly cover how to use `load_only()` with related objects and collections, contradicting the claim's final sentence.
 
-_second model: `gemini-3.5-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
+_second model: `gemini-3.8-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -665,235 +823,184 @@ Above, th
 
 ---
 
-## 4. `g083`  (variant `D`, github)
+## 5. `g117`  (variant `D`, stackoverflow)
 
-**Question.** Is there any way to run engine.execute() statement in SQLAlchemy version 2.0?
+**Question.** how to access relationships with async sqlalchemy?
 
-**Judge says:** `UNSUPPORTED` — Passage [4] states that while `engine.execute()` calls will need adjustment, it is not stated that there is no way to run the statement in version 2.0.
+**Judge says:** `UNSUPPORTED` — None of the passages discuss how to define or access relationships specifically within an asynchronous SQLAlchemy context.
 
 _judge model: `gemma4:e4b`_
-
-**A second model says:** `SUPPORTED` — Passages [1] and [4] support this claim.
-
-_second model: `gemini-3.5-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
 ```
-No, there is no way to run `engine.execute()` statement in SQLAlchemy version 2.0. The features of "connectionless" and "implicit" execution are deprecated and will be removed in version 2.0. Instead, you should use the `Connection.execute()` method of the `Connection` object.
+To access relationships with async SQLAlchemy, you can use the `relationship` function provided by SQLAlchemy ORM. This function allows you to define relationships between different tables in your database schema. Here's an example of how you can define a relationship between two tables, `User` and `Address`, and then access the `addresses` relationship from a `User` instance:
+
+ 
+
+In this example, the `User` class has a relationship with the `Address` class defined using the `relationship` function. The `back_populates` parameter is used to establish the bidirectional relationship. When you retrieve a `User` instance from the database, you can access the `addresses` relationship to get the associated `Address` instances.
 ```
 
 **The passages it was given** (the same five the model answered from):
 
-<details><summary>[1] <code>c00031</code></summary>
+<details><summary>[1] <code>c02502</code></summary>
 
 ```
-Connectionless Execution, Implicit Execution
-============================================
+Using the Inspector to inspect schema objects
+---------------------------------------------------
 
-.. deprecated:: 2.0 The features of "connectionless" and "implicit" execution
-   in SQLAlchemy are deprecated and will be removed in version 2.0.  See
-   :ref:`migration_20_implicit_execution` for background.
+SQLAlchemy does not yet offer an asyncio version of the
+:class:`_reflection.Inspector` (introduced at :ref:`metadata_reflection_inspector`),
+however the existing interface may be used in an asyncio context by
+leveraging the :meth:`_asyncio.AsyncConnection.run_sync` method of
+:class:`_asyncio.AsyncConnection`::
 
-Recall from the first section we mentioned executing with and without explicit
-usage of :class:`_engine.Connection`. "Connectionless" execution
-refers to the usage of the ``execute()`` method on an object
-which is not a :class:`_engine.Connection`.  This was illustrated using the
-:meth:`_engine.Engine.execute` method of :class:`_engine.Engine`::
+    import asyncio
 
-    result = engine.execute(text("select username from users"))
-    for row in result:
-        print("username:", row["username"])
+    from sqlalchemy import inspect
+    from sqlalchemy.ext.asyncio import create_async_engine
 
-In addition to "connectionless" execution, it is also possible
-to use the :meth:`~.Executable.execute` method of
-any :class:`.Executable` construct, which is a marker for SQL expression objects
-that support execution.   The SQL expression object itself references an
-:class:`_engine.Engine` or :class:`_engine.Connection` known as the **bind**, which it uses
-in order to provide so-called "implicit" execution services.
+    engine = create_async_engine("postgresql+asyncpg://scott:tiger@localhost/test")
 
-Given a table as below::
 
-    from sqlalchemy import MetaData, Table, Column, Integer
+    def use_inspector(conn):
+        inspector = inspect(conn)
+        # use the inspector
+        print(inspector.get_view_names())
+        # return any value to the caller
+        return inspector.get_table_names()
 
-    metadata_obj = MetaData()
-    users_table = Table(
-        "users",
-        metadata_obj,
-        Column("
-… truncated; full text: uv run python -m rag.golden --show c00031
+
+    async def async_main():
+        async with engine.connect() as conn:
+            tables = await conn.run_sync(use_inspector)
+
+
+    asyncio.run(async_main())
 ```
 
 </details>
 
-<details><summary>[2] <code>c01571</code></summary>
+<details><summary>[2] <code>c02491</code></summary>
 
 ```
-Overall, the above executional patterns were introduced in SQLAlchemy's
-very first 0.1 release before the :class:`_engine.Connection` object even existed.
-After many years of de-emphasizing these patterns, "implicit, connectionless"
-execution and "bound metadata" are no longer as widely used so in 2.0 we seek
-to finally reduce the number of choices for how to execute a statement in
-Core from "many choices"::
+The SQLAlchemy :ref:`event system <event_toplevel>` is not directly exposed
+by the asyncio extension, meaning there is not yet an "async" version of a
+SQLAlchemy event handler.
 
-    # many choices
+However, as the asyncio extension surrounds the usual synchronous SQLAlchemy
+API, regular "synchronous" style event handlers are freely available as they
+would be if asyncio were not used.
 
-    # bound metadata?
-    metadata_obj = MetaData(engine)
+As detailed below, there are two current strategies to register events given
+asyncio-facing APIs:
 
-    # or not?
-    metadata_obj = MetaData()
+* Events can be registered at the instance level (e.g. a specific
+  :class:`_asyncio.AsyncEngine` instance) by associating the event with the
+  ``sync`` attribute that refers to the proxied object. For example to register
+  the :meth:`_events.PoolEvents.connect` event against an
+  :class:`_asyncio.AsyncEngine` instance, use its
+  :attr:`_asyncio.AsyncEngine.sync_engine` attribute as target. Targets
+  include:
 
-    # execute from engine?
-    result = engine.execute(stmt)
+* To register an event at the class level, targeting all instances of the same type (e.g.
+  all :class:`_asyncio.AsyncSession` instances), use the corresponding
+  sync-style class. For example to register the
+  :meth:`_ormevents.SessionEvents.before_commit` event against the
+  :class:`_asyncio.AsyncSession` class, use the :class:`_orm.Session` class as
+  the target.
 
-    # or execute the statement itself (but only if you did
-    # "bound metadata" above, which means you can't get rid of "bound" if any
-    # part of your program uses this form)
-    result = stmt.execute()
+* To register at the :class:`_orm.sessionmaker` level, combine an explicit
+  :class:`_orm.sessionmaker` with an :class:`_asyncio.async_sessionmaker`
 
-    # execute from connection, but it autocommits?
-    conn = engine.connect()
-    conn.execute(stmt)
-
-    # execute from connection, but autocommit isn't working, so use the special
-    # option?
-    conn.execution_options(autocommit=True).execute(stmt)
-
-    # or on the statement ?!
-    conn.execute(stmt.execution_options(autocommit=True))
-
-    # or execute from connection, and we use explicit transaction?
-    with conn.begin():
-        conn.execute(stmt)
+… truncated; full text: uv run python -m rag.golden --show c02491
 ```
 
 </details>
 
-<details><summary>[3] <code>c01564</code></summary>
+<details><summary>[3] <code>c00797</code></summary>
 
 ```
-In the case of autocommit for a pure textual statement, there is actually a
-regular expression that parses every statement in order to detect autocommit!
-Not surprisingly, this regex is continuously failing to accommodate for various
-kinds of statements and  stored procedures that imply a "write" to the
-database, leading to ongoing confusion as some statements produce results in
-the database and others don't.  By preventing the user from being aware of the
-transactional concept, we get a lot of bug reports on this one because users
-don't understand that databases always use a transaction, whether or not some
-layer is autocommitting it.
+The SQLAlchemy :ref:`event system <event_toplevel>` is not directly exposed
+by the asyncio extension, meaning there is not yet an "async" version of a
+SQLAlchemy event handler.
 
-SQLAlchemy 2.0 will require that all database actions at every level be
-explicit as to how the transaction should be used.    For the vast majority
-of Core use cases, it's the pattern that is already recommended::
+However, as the asyncio extension surrounds the usual synchronous SQLAlchemy
+API, regular "synchronous" style event handlers are freely available as they
+would be if asyncio were not used.
 
-    with engine.begin() as conn:
-        conn.execute(some_table.insert().values(foo="bar"))
+As detailed below, there are two current strategies to register events given
+asyncio-facing APIs:
 
-For "commit as you go, or rollback instead" usage, which resembles how the
-:class:`_orm.Session` is normally used today, the "future" version of
-:class:`_engine.Connection`, which is the one that is returned from an
-:class:`_engine.Engine` that was created using the
-:paramref:`_sa.create_engine.future` flag, includes new
-:meth:`_engine.Connection.commit` and :meth:`_engine.Connection.rollback`
-methods, which act upon a transaction that is now
-… truncated; full text: uv run python -m rag.golden --show c01564
-```
+* Events can be registered at the instance level (e.g. a specific
+  :class:`_asyncio.AsyncEngine` instance) by associating the event with the
+  ``sync`` attribute that refers to the proxied object. For example to register
+  the :meth:`_events.PoolEvents.connect` event against an
+  :class:`_asyncio.AsyncEngine` instance, use its
+  :attr:`_asyncio.AsyncEngine.sync_engine` attribute as target. Targets
+  include:
 
-</details>
-
-<details><summary>[4] <code>c01568</code></summary>
-
-```
-For schema level patterns, explicit use of an :class:`_engine.Engine`
-or :class:`_engine.Connection` is required.   The :class:`_engine.Engine`
-may still be used directly as the source of connectivity for a
-:meth:`_schema.MetaData.create_all` operation or autoload operation.
-For executing statements, only the :class:`_engine.Connection` object
-has a :meth:`_engine.Connection.execute` method (in addition to
-the ORM-level :meth:`_orm.Session.execute` method)::
-
-
-    from sqlalchemy import MetaData
-
-    metadata_obj = MetaData()
-
-    # engine level:
-
-    # create tables
-    metadata_obj.create_all(engine)
-
-    # reflect all tables
-    metadata_obj.reflect(engine)
-
-    # reflect individual table
-    t = Table("t", metadata_obj, autoload_with=engine)
-
-
-    # connection level:
-
-
-    with engine.connect() as connection:
-        # create tables, requires explicit begin and/or commit:
-        with connection.begin():
-            metadata_obj.create_all(connection)
-
-        # reflect all tables
-        metadata_obj.reflect(connection)
-
-        # reflect individual table
-        t = Table("t", metadata_obj, autoload_with=connection)
-
-        # execute SQL statements
-        result = connection.execute(t.select())
-
-The Core documentation has already standardized on the desired pattern here,
-so it is likely that most modern applications would not have to change
-much in any case, however the
-… truncated; full text: uv run python -m rag.golden --show c01568
+* To register an event at the class level, targeting all instances of the same type (e.g.
+  all :class:`_asyncio.AsyncSession` instances), use the corresponding
+  sync-style class. For example to register the
+  :meth:`_ormevents.SessionEvents.before_commit` event against the
+  :class:`_asyncio.AsyncSession` class, use the :class:`_orm.Session` class as
+  the target.
 ```
 
 </details>
 
-<details><summary>[5] <code>c01573</code></summary>
+<details><summary>[4] <code>c01870</code></summary>
 
 ```
-execute() method more strict, execution options are more prominent
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>>> class Address(Base):
+    ...     __tablename__ = "address"
+    ...
+    ...     id = Column(Integer, primary_key=True)
+    ...     email_address = Column(String, nullable=False)
+    ...     user_id = Column(Integer, ForeignKey("user_account.id"))
+    ...
+    ...     user = relationship("User", back_populates="addresses")
+    ...
+    ...     def __repr__(self):
+    ...         return f"Address(id={self.id!r}, email_address={self.email_address!r})"
+    >>> conn = engine.connect()
+    >>> from sqlalchemy.orm import Session
+    >>> session = Session(conn)
+    >>> session.add_all(
+    ...     [
+    ...         User(
+    ...             name="spongebob",
+    ...             fullname="Spongebob Squarepants",
+    ...             addresses=[Address(email_address="spongebob@sqlalchemy.org")],
+    ...         ),
+    ...         User(
+    ...             name="sandy",
+    ...             fullname="Sandy Cheeks",
+    ...             addresses=[
+    ...                 Address(email_address="sandy@sqlalchemy.org"),
+    ...                 Address(email_address="squirrel@squirrelpower.org"),
+    ...             ],
+    ...         ),
+    ...         User(
+    ...             name="patrick",
+    ...             fullname="Patrick Star",
+    ...             addresses=[Address(email_address="pat999@aol.com")],
+    ...         ),
+    ...         User(
+    ...             name="squidward",
+    ..
+… truncated; full text: uv run python -m rag.golden --show c01870
+```
 
-The argument patterns that may be used with the :meth:`_engine.Connection`
-execute method in SQLAlchemy 2.0 are highly simplified, removing many previously
-available argument patterns.  The new API in the 1.4 series is described at
-:meth:`_engine.Connection`. The examples below illustrate the patterns that
-require modification::
+</details>
 
+<details><summary>[5] <code>c02019</code></summary>
 
-    connection = engine.connect()
-
-    # direct string SQL not supported; use text() or exec_driver_sql() method
-    result = connection.execute("select * from table")
-
-    # positional parameters no longer supported, only named
-    # unless using exec_driver_sql()
-    result = connection.execute(table.insert(), ("x", "y", "z"))
-
-    # **kwargs no longer accepted, pass a single dictionary
-    result = connection.execute(table.insert(), x=10, y=5)
-
-    # multiple *args no longer accepted, pass a list
-    result = connection.execute(
-        table.insert(), {"x": 10, "y": 5}, {"x": 15, "y": 12}, {"x": 9, "y": 8}
-    )
-
-The new :meth:`_engine.Connection.execute` method now accepts a subset of the
-argument styles that are accepted by the 1.x :meth:`_engine.Connection.execute`
-method, so the following code is cross-compatible between 1.x and 2.0::
-
-
-    connection = engine.connect()
-
-    from sqlalchemy import 
-… truncated; full text: uv run python -m rag.golden --show c01573
+```
+The SQLAlchemy async mode requires an async driver to be used to connect to the db.
+This error is usually raised when trying to use the async version of SQLAlchemy
+with a non compatible :term:`DBAPI`.
 ```
 
 </details>
@@ -904,17 +1011,17 @@ method, so the following code is cross-compatible between 1.x and 2.0::
 
 ---
 
-## 5. `g119`  (variant `D`, stackoverflow)
+## 6. `g119`  (variant `D`, stackoverflow)
 
 **Question.** Is session.scalar(stmt) equivalent to session.execute(stmt).scalar_one_or_none() (SQLAlchemy 2.0)?
 
-**Judge says:** `UNSUPPORTED` — None of the passages discuss the specific comparison between `session.scalar(stmt)` and `session.execute(stmt).scalar_one_or_none()`.
+**Judge says:** `UNSUPPORTED` — None of the passages compare or define the specific behavior difference between `session.scalar(stmt)` and `session.execute(stmt).scalar_one_or_none()`.
 
 _judge model: `gemma4:e4b`_
 
-**A second model says:** `UNSUPPORTED` — None of the passages mention `scalar_one_or_none()` or compare its behavior to `session.scalar()`.
+**A second model says:** `UNSUPPORTED` — None of the provided passages discuss `scalar_one_or_none()` or compare its behavior to `session.scalar()`.
 
-_second model: `gemini-3.5-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
+_second model: `gemini-3.8-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -1200,17 +1307,17 @@ while still maintaining explicitness::
 
 ---
 
-## 6. `g016`  (variant `H`, breakages)
+## 7. `g016`  (variant `H`, breakages)
 
 **Question.** row.keys() AttributeError, where did keys go on result rows
 
-**Judge says:** `UNSUPPORTED` — None of the passages state that `row.keys()` is deprecated or provide the alternative usage on the `Result` object.
+**Judge says:** `UNSUPPORTED` — None of the passages state that `row.keys()` is deprecated from result rows and replaced by using it on the `Result` object.
 
 _judge model: `gemma4:e4b`_
 
-**A second model says:** `UNSUPPORTED` — None of the passages state that the `row.keys()` method is no longer available on result rows in SQLAlchemy 2.0 or that it should be used on the `Result` object instead.
+**A second model says:** `UNSUPPORTED` — 
 
-_second model: `gemini-3.5-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
+_second model: `gemini-3.8-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -1430,211 +1537,17 @@ Setting ``b1.data
 
 ---
 
-## 7. `g088`  (variant `H`, github)
-
-**Question.** How to unit test with 2.0 style transactions
-
-**Judge says:** `UNSUPPORTED` — The passages do not contain the specific code example or the full instructional setup provided in the claim.
-
-_judge model: `gemma4:e4b`_
-
-**A second model says:** `PARTIAL` — Passages [2] and [4] support the transaction recipe and its behavior, but none of the passages mention SQLAlchemy version 2.0.51.
-
-_second model: `gemini-3.5-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
-
-**The claim it read** (the answer with code fences removed):
-
-```
-To unit test with 2.0 style transactions, you can follow the recipe provided in the documentation for SQLAlchemy 2.0.51 [2]. Here is how you can set up your test case:
-
- 
-
-This setup ensures that your tests can use the session to perform operations and commit or rollback as needed, while the external transaction is rolled back at the end of each test to clean up any changes made during the test.
-```
-
-**The passages it was given** (the same five the model answered from):
-
-<details><summary>[1] <code>c01292</code></summary>
-
-```
-.. versionchanged:: 1.4  This section introduces a new version of the
-   "join into an external transaction" recipe that will work equally well
-   for both :term:`2.0 style` and :term:`1.x style` engines and sessions.
-   The recipe here from previous versions such as 1.3 will also continue to
-   work for 1.x engines and sessions.
-
-The recipe works by establishing a :class:`_engine.Connection` within a
-transaction and optionally a SAVEPOINT, then passing it to a :class:`_orm.Session` as the
-"bind".   The :class:`_orm.Session` detects that the given :class:`_engine.Connection`
-is already in a transaction and will not run COMMIT on it if the transaction
-is in fact an outermost transaction.   Then when the test tears down, the
-transaction is rolled back so that any data changes throughout the test
-are reverted::
-
-    from sqlalchemy.orm import sessionmaker
-    from sqlalchemy import create_engine
-    from unittest import TestCase
-
-    # global application scope.  create Session class, engine
-    Session = sessionmaker()
-
-    engine = create_engine("postgresql://...")
-
-
-    class SomeTest(TestCase):
-        def setUp(self):
-            # connect to the database
-            self.connection = engine.connect()
-
-            # begin a non-ORM transaction
-            self.trans = self.connection.begin()
-
-            # bind an individual Session to the connection
-            self.session =
-… truncated; full text: uv run python -m rag.golden --show c01292
-```
-
-</details>
-
-<details><summary>[2] <code>c03100</code></summary>
-
-```
-Joining a Session into an External Transaction (such as for test suites)
-========================================================================
-
-If a :class:`_engine.Connection` is being used which is already in a transactional
-state (i.e. has a :class:`.Transaction` established), a :class:`.Session` can
-be made to participate within that transaction by just binding the
-:class:`.Session` to that :class:`_engine.Connection`. The usual rationale for this
-is a test suite that allows ORM code to work freely with a :class:`.Session`,
-including the ability to call :meth:`.Session.commit`, where afterwards the
-entire database interaction is rolled back.
-
-.. versionchanged:: 2.0 The "join into an external transaction" recipe is
-   newly improved again in 2.0; event handlers to "reset" the nested
-   transaction are no longer required.
-
-The recipe works by establishing a :class:`_engine.Connection` within a
-transaction and optionally a SAVEPOINT, then passing it to a
-:class:`_orm.Session` as the "bind"; the
-:paramref:`_orm.Session.join_transaction_mode` parameter is passed with the
-setting ``"create_savepoint"``, which indicates that new SAVEPOINTs should be
-created in order to implement BEGIN/COMMIT/ROLLBACK for the
-:class:`_orm.Session`, which will leave the external transaction in the same
-state in which it was passed.
-```
-
-</details>
-
-<details><summary>[3] <code>c01291</code></summary>
-
-```
-Joining a Session into an External Transaction (such as for test suites)
-========================================================================
-
-If a :class:`_engine.Connection` is being used which is already in a transactional
-state (i.e. has a :class:`.Transaction` established), a :class:`.Session` can
-be made to participate within that transaction by just binding the
-:class:`.Session` to that :class:`_engine.Connection`. The usual rationale for this
-is a test suite that allows ORM code to work freely with a :class:`.Session`,
-including the ability to call :meth:`.Session.commit`, where afterwards the
-entire database interaction is rolled back.
-
-.. versionchanged:: 1.4  This section introduces a new version of the
-   "join into an external transaction" recipe that will work equally well
-   for both :term:`2.0 style` and :term:`1.x style` engines and sessions.
-   The recipe here from previous versions such as 1.3 will also continue to
-   work for 1.x engines and sessions.
-```
-
-</details>
-
-<details><summary>[4] <code>c03101</code></summary>
-
-```
-When the test tears down, the external transaction is rolled back so that any
-data changes throughout the test are reverted::
-
-    from sqlalchemy.orm import sessionmaker
-    from sqlalchemy import create_engine
-    from unittest import TestCase
-
-    # global application scope.  create Session class, engine
-    Session = sessionmaker()
-
-    engine = create_engine("postgresql+psycopg2://...")
-
-
-    class SomeTest(TestCase):
-        def setUp(self):
-            # connect to the database
-            self.connection = engine.connect()
-
-            # begin a non-ORM transaction
-            self.trans = self.connection.begin()
-
-            # bind an individual Session to the connection, selecting
-            # "create_savepoint" join_transaction_mode
-            self.session = Session(
-                bind=self.connection, join_transaction_mode="create_savepoint"
-            )
-
-        def test_something(self):
-            # use the session in tests.
-
-            self.session.add(Foo())
-            self.session.commit()
-
-        def test_something_with_rollbacks(self):
-            self.session.add(Bar())
-            self.session.flush()
-            self.session.rollback()
-
-            self.session.add(Foo())
-            self.session.commit()
-
-        def tearDown(self):
-            self.session.close()
-
-            # rollback - everything that happened with the
-            # Session 
-… truncated; full text: uv run python -m rag.golden --show c03101
-```
-
-</details>
-
-<details><summary>[5] <code>c01561</code></summary>
-
-```
-Migration to 2.0 Step Seven - Test against a SQLAlchemy 2.0 Release
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-As mentioned previously, SQLAlchemy 2.0 has additional API and behavioral
-changes that are intended to be backwards compatible, however may introduce
-some incompatibilities nonetheless.  Therefore after the overall porting
-process is complete, the final step is to test against the most recent release
-of SQLAlchemy 2.0 to correct for any remaining issues that might be present.
-
-The guide at :ref:`whatsnew_20_toplevel` provides an overview of
-new features and behaviors for SQLAlchemy 2.0 which extend beyond the base
-set of 1.4->2.0 API changes.
-```
-
-</details>
-
-**Human verdict** (write AGREE or DISAGREE): _______
-
-**If DISAGREE, it should have been** (SUPPORTED / PARTIAL / UNSUPPORTED): _______
-
----
-
 ## 8. `g056`  (variant `D`, stackoverflow)
 
 **Question.** Query property for models in sqlalchemy 1.4-2.0
 
-**Judge says:** `SUPPORTED` — Passages [1] and [2] both provide examples and text describing this technique.
+**Judge says:** `SUPPORTED` — Passages [1] and [2] both describe using Python properties with `_query.Query` for this purpose.
 
 _judge model: `gemma4:e4b`_
+
+**A second model says:** `PARTIAL` — Passages [1] and [2] support defining an `addresses` property using a Python property and `_query.Query`, but do not identify the snippets as being from SQLAlchemy 1.4 and 2.0, nor does the property return a query object (it calls `.all()`).
+
+_second model: `gemini-3.8-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -1848,9 +1761,13 @@ the caching of the SQL calls and result sets themselves is available in
 
 **Question.** Query property for models in sqlalchemy 1.4-2.0
 
-**Judge says:** `SUPPORTED` — Passages [1] and [2] both describe using a regular Python property in conjunction with :class:`_query.Query` to create a query-enabled property.
+**Judge says:** `SUPPORTED` — Passages [1], [2], and [3] discuss both the use of properties with `_query.Query` and the deprecation of string attribute names in favor of mapped attributes.
 
 _judge model: `gemma4:e4b`_
+
+**A second model says:** `PARTIAL` — Passage [3] supports the deprecation/removal of string attribute names and IDE/pep-484 compatibility, but none of the passages specifically state that regular Python properties with Query can be used in "SQLAlchemy 1.4 and 2.0" as a general feature.
+
+_second model: `gemini-3.8-flash` — **they DISAGREE**. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
@@ -2058,194 +1975,190 @@ the caching of the SQL calls and result sets themselves is available in
 
 ---
 
-## 10. `g014`  (variant `D`, breakages)
+## 10. `g060`  (variant `D`, stackoverflow)
 
-**Question.** session.execute(select(User)) gives Row objects not User, do I need scalars
+**Question.** What is the difference between mapped_column and Column in SQLAlchemy?
 
-**Judge says:** `SUPPORTED` — Passage [3] directly explains that using `scalars` avoids generating `Row` objects and returns ORM entities directly.
+**Judge says:** `SUPPORTED` — Passage [1] contains a direct quote detailing that `_orm.mapped_column` is new in SQLAlchemy 2.0, intended as a drop-in replacement for `Column` in Declarative mappings only, and provides the specific ORM/typing benefits listed.
 
 _judge model: `gemma4:e4b`_
+
+**A second model says:** `SUPPORTED` — Passage [1] directly supports the claim.
+
+_second model: `gemini-3.8-flash` — they agree. Two models agreeing can still both be wrong; your reading is the one that counts (`D06`)._
 
 **The claim it read** (the answer with code fences removed):
 
 ```
-Yes, you need to use `scalars` if you want to get `User` instances directly instead of `Row` objects. The sources do not answer this directly, but they provide context that explains why you might need to use `scalars` when selecting ORM entities.
+The :func:`_orm.mapped_column` construct is new as of the SQLAlchemy 2.0 series and is intended first and foremost to be a drop-in replacement for the use of :class:`_schema.Column` within Declarative mappings only, adding new ORM-specific convenience features such as the ability to establish :paramref:`_orm.mapped_column.deferred` within the construct, and most importantly to indicate to typing tools such as Mypy_ and Pylance_ an accurate representation of how the attribute will behave at runtime at both the class level as well as the instance level.
 ```
 
 **The passages it was given** (the same five the model answered from):
 
-<details><summary>[1] <code>c01383</code></summary>
+<details><summary>[1] <code>c02379</code></summary>
 
 ```
-A highly recommended convenience method of achieving the same result as above
-is to use the :meth:`_orm.Session.scalars` method to execute the statement
-directly; this method will return a :class:`_result.ScalarResult` object
-that delivers the first "column" of each row at once, in this case,
-instances of the ``User`` class::
+In the above example, Declarative will build a :class:`_schema.Table`
+construct that is equivalent to the following::
 
-    >>> user = session.scalars(select(User)).first()
-    {opensql}SELECT user_account.id, user_account.name, user_account.fullname
-    FROM user_account
-    [...] (){stop}
-    >>> user
-    User(id=1, name='spongebob', fullname='Spongebob Squarepants')
+    # equivalent Table object produced
+    user_table = Table(
+        "user",
+        Base.metadata,
+        Column("id", Integer, primary_key=True),
+        Column("name", String(50)),
+        Column("fullname", String()),
+        Column("nickname", String(30)),
+    )
 
-Alternatively, we can select individual columns of an ORM entity as distinct
-elements within result rows, by using the class-bound attributes; when these
-are passed to a construct such as :func:`_sql.select`, they are resolved into
-the :class:`_schema.Column` or other SQL expression represented by each
-attribute::
+When the ``User`` class above is mapped, this :class:`_schema.Table` object
+can be accessed directly via the ``__table__`` attribute; this is described
+further at :ref:`orm_declarative_metadata`.
 
-    >>> print(select(User.name, User.fullname))
-    {opensql}SELECT user_account.name, user_account.fullname
-    FROM user_account
+.. sidebar::  ``mapped_column()`` supersedes the use of ``Column()``
 
-When we invoke *this* statement using :meth:`_orm.Session.execute`, we now
-receive rows that have individual elements per value, each corresponding
-to a separate column or other SQL expression::
-
-    >>> row = session.execute(select(User.name, User.fullname)).first()
-    {opensql}SELECT user_account.name, user_account.fullname
-    FROM user_account
-    [...] (){stop}
-… truncated; full text: uv run python -m rag.golden --show c01383
-```
-
-</details>
-
-<details><summary>[2] <code>c03127</code></summary>
-
-```
-A highly recommended convenience method of achieving the same result as above
-is to use the :meth:`_orm.Session.scalars` method to execute the statement
-directly; this method will return a :class:`_result.ScalarResult` object
-that delivers the first "column" of each row at once, in this case,
-instances of the ``User`` class::
-
-    >>> user = session.scalars(select(User)).first()
-    {execsql}SELECT user_account.id, user_account.name, user_account.fullname
-    FROM user_account
-    [...] (){stop}
-    >>> user
-    User(id=1, name='spongebob', fullname='Spongebob Squarepants')
-
-Alternatively, we can select individual columns of an ORM entity as distinct
-elements within result rows, by using the class-bound attributes; when these
-are passed to a construct such as :func:`_sql.select`, they are resolved into
-the :class:`_schema.Column` or other SQL expression represented by each
-attribute::
-
-    >>> print(select(User.name, User.fullname))
-    {printsql}SELECT user_account.name, user_account.fullname
-    FROM user_account
-
-When we invoke *this* statement using :meth:`_orm.Session.execute`, we now
-receive rows that have individual elements per value, each corresponding
-to a separate column or other SQL expression::
-
-    >>> row = session.execute(select(User.name, User.fullname)).first()
-    {execsql}SELECT user_account.name, user_account.fullname
-    FROM user_account
-    [...] (){stop
-… truncated; full text: uv run python -m rag.golden --show c03127
+  Users of 1.x SQLAlchemy will note the use of the :func:`_orm.mapped_column`
+  construct, which is new as of the SQLAlchemy 2.0 series.  This ORM-specific
+  construct is intended first and foremost to be a drop-in replacement for
+  the use of :class:`_schema.Column` within Declarative mappings only, adding
+  new ORM-specific convenience features such as the ability to establish
+  :paramref:`_orm.mapped_column.deferred` within the construct, and most
+  importantly to indicate to typing tools such as Mypy_ and Pylance_ an
+  accurate representation of how the attribute will behave at runtime at
+  both the class level as well as the instance level.  As will be seen in
+  the following sections, it's also at the forefront of a new
+  anno
+… truncated; full text: uv run python -m rag.golden --show c02379
 ```
 
 </details>
 
-<details><summary>[3] <code>c02917</code></summary>
+<details><summary>[2] <code>c02773</code></summary>
 
 ```
-When selecting a list of single-element rows containing ORM entities, it is
-typical to skip the generation of :class:`_engine.Row` objects and instead
-receive ORM entities directly.   This is most easily achieved by using the
-:meth:`_orm.Session.scalars` method to execute, rather than the
-:meth:`_orm.Session.execute` method, so that a :class:`.ScalarResult` object
-which yields single elements rather than rows is returned::
+:func:`_orm.deferred` may also be used in place of :func:`_orm.column_property`
+when mapped SQL expressions should be loaded on a deferred basis:
 
-    >>> session.scalars(select(User).order_by(User.id)).all()
-    {execsql}SELECT user_account.id, user_account.name, user_account.fullname
-    FROM user_account ORDER BY user_account.id
-    [...] ()
-    {stop}[User(id=1, name='spongebob', fullname='Spongebob Squarepants'),
-     User(id=2, name='sandy', fullname='Sandy Cheeks'),
-     User(id=3, name='patrick', fullname='Patrick Star'),
-     User(id=4, name='squidward', fullname='Squidward Tentacles'),
-     User(id=5, name='ehkrabs', fullname='Eugene H. Krabs')]
+.. sourcecode:: python
 
-Calling the :meth:`_orm.Session.scalars` method is the equivalent to calling
-upon :meth:`_orm.Session.execute` to receive a :class:`_engine.Result` object,
-then calling upon :meth:`_engine.Result.scalars` to receive a
-:class:`_engine.ScalarResult` object.
-```
+    from sqlalchemy.orm import deferred
 
-</details>
 
-<details><summary>[4] <code>c01382</code></summary>
+    class User(Base):
+        __tablename__ = "user"
 
-```
-ORM entities, such our ``User`` class as well as the column-mapped
-attributes upon it such as ``User.name``, also participate in the SQL Expression
-Language system representing tables and columns.    Below illustrates an
-example of SELECTing from the ``User`` entity, which ultimately renders
-in the same way as if we had used ``user_table`` directly::
+        id: Mapped[int] = mapped_column(primary_key=True)
+        firstname: Mapped[str] = mapped_column()
+        lastname: Mapped[str] = mapped_column()
+        fullname: Mapped[str] = deferred(firstname + " " + lastname)
 
-    >>> print(select(User))
-    {opensql}SELECT user_account.id, user_account.name, user_account.fullname
-    FROM user_account
+.. seealso::
 
-When executing a statement like the above using the ORM :meth:`_orm.Session.execute`
-method, there is an important difference when we select from a full entity
-such as ``User``, as opposed to ``user_table``, which is that the **entity
-itself is returned as a single element within each row**.  That is, when we fetch rows from
-the above statement, as there is only the ``User`` entity in the list of
-things to fetch, we get back :class:`_engine.Row` objects that have only one element, which contain
-instances of the ``User`` class::
+    :ref:`mapper_column_property_sql_expressions` - in the section
+    :ref:`mapper_sql_expressions`
 
-    >>> row = session.execute(select(User)).first()
-    {opensql}BEGIN...
-    SELECT user_account.id, user_account.name, user_account.fullname
-    FROM user_account
-    [...] (){stop}
-    >>> row
-    (User(id=1, name='spongebob', fullname='Spongebob Squarepants'),)
-
-The above :class:`_engine.Row` has just one element, representing the ``User`` entity::
-
-    >>> row[0]
-    User(id
-… truncated; full text: uv run python -m rag.golden --show c01382
+    :ref:`orm_imperative_table_column_options` - in the section
+    :ref:`orm_declarative_table_config_toplevel`
 ```
 
 </details>
 
-<details><summary>[5] <code>c01380</code></summary>
+<details><summary>[3] <code>c02667</code></summary>
 
 ```
-.. sourcecode:: pycon+sql
+Using Column Deferral with ``column_property()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    >>> stmt = select(User).where(User.name == "spongebob")
-    >>> with Session(engine) as session:
-    ...     for row in session.execute(stmt):
-    ...         print(row)
-    {opensql}BEGIN (implicit)
-    SELECT user_account.id, user_account.name, user_account.fullname
-    FROM user_account
-    WHERE user_account.name = ?
-    [...] ('spongebob',){stop}
-    (User(id=1, name='spongebob', fullname='Spongebob Squarepants'),)
-    {opensql}ROLLBACK{stop}
+The column deferral feature introduced in the :ref:`queryguide_toplevel`
+at :ref:`orm_queryguide_column_deferral` may be applied at mapping time
+to a SQL expression mapped by :func:`_orm.column_property` by using the
+:func:`_orm.deferred` function in place of :func:`_orm.column_property`::
 
-.. topic:: select() from a Table vs. ORM class
+    from sqlalchemy.orm import deferred
 
-    While the SQL generated in these examples looks the same whether we invoke
-    ``select(user_table)`` or ``select(User)``, in the more general case
-    they do not necessarily render the same thing, as an ORM-mapped class
-    may be mapped to other kinds of "selectables" besides tables.  The
-    ``select()`` that's against an ORM entity also indicates that ORM-mapped
-    instances should be returned in a result, which is not the case when
-    SELECTing from a :class:`_schema.Table` object.
 
-The following sections will discuss the SELECT construct in more detail.
+    class User(Base):
+        __tablename__ = "user"
+
+        id: Mapped[int] = mapped_column(primary_key=True)
+        firstname: Mapped[str] = mapped_column()
+        lastname: Mapped[str] = mapped_column()
+        fullname: Mapped[str] = deferred(firstname + " " + lastname)
+```
+
+</details>
+
+<details><summary>[4] <code>c01018</code></summary>
+
+```
+Naming Columns Distinctly from Attribute Names
+----------------------------------------------
+
+A mapping by default shares the same name for a
+:class:`_schema.Column` as that of the mapped attribute - specifically
+it matches the :attr:`_schema.Column.key` attribute on :class:`_schema.Column`, which
+by default is the same as the :attr:`_schema.Column.name`.
+
+The name assigned to the Python attribute which maps to
+:class:`_schema.Column` can be different from either
+:attr:`_schema.Column.name` or :attr:`_schema.Column.key` just by assigning
+it that way, as we illustrate here in a Declarative mapping::
+
+    class User(Base):
+        __tablename__ = "user"
+        id = Column("user_id", Integer, primary_key=True)
+        name = Column("user_name", String(50))
+
+Where above ``User.id`` resolves to a column named ``user_id``
+and ``User.name`` resolves to a column named ``user_name``.
+
+When mapping to an existing table, the :class:`_schema.Column` object
+can be referenced directly::
+
+    class User(Base):
+        __table__ = user_table
+        id = user_table.c.user_id
+        name = user_table.c.user_name
+
+The corresponding technique for an :term:`imperative` mapping is
+to place the desired key in the :paramref:`_orm.mapper.properties`
+dictionary with the desired key::
+
+    mapper_registry.map_imperatively(
+        User,
+        user_table,
+        properties={
+            "id": user_
+… truncated; full text: uv run python -m rag.golden --show c01018
+```
+
+</details>
+
+<details><summary>[5] <code>c02954</code></summary>
+
+```
+The :func:`_orm.mapped_column` directive is used for all column-based
+attributes that require more specific customization. Besides typing
+information, this directive accepts a wide variety of arguments that indicate
+specific details about a database column, including server defaults and
+constraint information, such as membership within the primary key and foreign
+keys. The :func:`_orm.mapped_column` directive accepts a superset of arguments
+that are accepted by the SQLAlchemy :class:`_schema.Column` class, which is
+used by SQLAlchemy Core to represent database columns.
+
+All ORM mapped classes require at least one column be declared as part of the
+primary key, typically by using the :paramref:`_schema.Column.primary_key`
+parameter on those :func:`_orm.mapped_column` objects that should be part
+of the key.  In the above example, the ``User.id`` and ``Address.id``
+columns are marked as primary key.
+
+Taken together, the combination of a string table name as well as a list
+of column declarations is known in SQLAlchemy as :term:`table metadata`.
+Setting up table metadata using both Core and ORM approaches is introduced
+in the :ref:`unified_tutorial` at :ref:`tutorial_working_with_metadata`.
+The above mapping is an example of what's known as
+:ref:`Annotated Declarative Table <orm_declarative_mapped_column>`
+configuration.
 ```
 
 </details>
