@@ -1797,34 +1797,36 @@ Paste the full ID lists — do not summarise them away.
 ### REPLY 13.2
 
 ```
-# lab PC, 2026-09-01. same sitting as 13.1. BLOCKED — NVIDIA driver not loaded.
+# lab PC, 2026-09-05. tip 169e94c. GPU restored (kernel 7.0.0-30 + nvidia modules).
+# Same sitting as Round 14.1 (D54).
 
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
-NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+NVIDIA GeForce RTX 3060, 689 MiB, 12288 MiB
 
 ollama list | grep qwen
-qwen2.5-coder:7b    dae161e27b0e    4.7 GB    2 weeks ago
-
-# Diagnosis (no sudo available on this session):
-uname -r
-7.0.0-30-generic
-
-lsmod | grep nvidia
-(empty — nvidia kernel module not loaded)
-
-find /lib/modules/$(uname -r) -name 'nvidia.ko*'
-(no proprietary nvidia.ko for 7.0.0-30-generic)
-
-find /lib/modules/7.0.0-28-generic -name 'nvidia.ko*'
-/lib/modules/7.0.0-28-generic/kernel/nvidia-595-open/nvidia.ko
-
-# Driver package is installed (nvidia-driver-595-open 595.71.05) but DKMS module
-# was not built for the currently booted kernel 7.0.0-30-generic.
-# Ollama falls back to CPU; a 30s smoke test timed out still loading the model.
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    3 weeks ago
 
 uv run python -m rag.score --refusals
-NOT RUN — needs GPU. Reboot into 7.0.0-28-generic (has nvidia.ko) or rebuild
-DKMS with sudo, then re-run 13.2 + 14.1 in one sitting.
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               7/9  (78%)
+    answered — FABRICATED           2/9  (22%)   g056, g065
+  answerable items                  91
+    refused — over-refusal          45/91  (49%)
+      with the answer IN the prompt  20   generation defect (the Q18/Q19 class)   g006, g008, g013, g021, g029, g044, g048, g049, g050, g051, g064, g084, g087, g090, g095, g099, g100, g103, g106, g116
+      with the answer absent         25   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   38/91   = 0.42   END TO END
+  generation loses                   20/91   = 0.22 of the ceiling, invisible to every recall figure
+
+ALL ITEMS recall@5    0.64  ±0.097  (same as 13.1; retrieval half unchanged)
+  not in top-20: 17   slots lost to duplicates in top-5: 0
+
+# vs Mac D72 (2026-08-22): end to end 39/91=0.43, over-refused-in-prompt 19, fabr g056/g065.
+# Lab today: 38/91=0.42, over-refused-in-prompt 20, same fabr IDs. D54 drift of ±1 cell.
+# vs Round 12.2 lab (pre-D68 tip): over-refused-in-prompt was also 20 — same ID list shape.
 ```
 
 ## After Round 13
@@ -1907,18 +1909,53 @@ H's nine fixed items were `g008`, `g021`, `g049`, `g050`, `g064`, `g095`, `g099`
 ### REPLY 14.1
 
 ```
-# lab PC, 2026-09-01. same sitting as 13.1. BLOCKED — same NVIDIA driver issue as 13.2.
+# lab PC, 2026-09-05. tip 169e94c. Same sitting as REPLY 13.2 (D54).
+# First attempt died mid-D at 25/100 when the IDE wait was interrupted; restarted with
+# nohup from scratch (no --resume on compare_prompts). Full log: /tmp/round14-DH.log
+
+git log -1 --oneline
+169e94c feat(phase-4): local prose judge measured (D80–D82) and Phase 4 tracks documented
 
 ls -la rag/faithful.py
--rw-rw-r-- 1 shaili shaili 12045 Sep  1 16:33 rag/faithful.py
+-rw-rw-r-- 1 shaili shaili 60982 Sep  5 11:18 rag/faithful.py
 
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
-NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+NVIDIA GeForce RTX 3060, 3058 MiB, 12288 MiB
 
-uv run python -m rag.compare_prompts --golden D H --save /tmp/round14-DH.json
-NOT RUN — ~200 Ollama generations need the 3060; CPU fallback did not finish loading
-qwen2.5-coder:7b in 30s. Unblock: reboot to kernel 7.0.0-28-generic (nvidia.ko present)
-or `sudo dkms autoinstall` for 7.0.0-30-generic, then run 13.2 + 14.1 back-to-back.
+# ollama ps during the run reported qwen2.5-coder:7b at 52%/48% CPU/GPU (not 100% GPU).
+# Recorded — sizes the sitting (~25–30 min per arm).
+
+uv run python -u -m rag.compare_prompts --golden D H --save /tmp/round14-DH.json
+
+golden sweep — 100 items x 2 variants, k=5
+variants: D, H
+retrieved 100 items once; generating
+  D: done (0 failed)
+  H: done (0 failed)
+
+==============================================================================
+GOLDEN SWEEP — both Phase 4 defects, one sitting (D54)
+==============================================================================
+
+        end/end  ceiling   over  uncited   code  unc.code  fabr
+D         38/91       58     20    19/46     30     27/30     2
+H         42/91       58     16     3/55     32     19/32     2
+
+PAIRED against D, item by item — the evidence D61 asks for, not the averages
+
+  H: answers now that D refused    6  g008, g021, g049, g050, g099, g106
+     refuses now that D answered    2  g030, g032
+     exact McNemar p = 0.289
+
+saved 200 rows to /tmp/round14-DH.json
+
+# vs Mac (D74): D 39/91=0.43 over=19 uncited=31/46; H 47/91=0.52 over=10 uncited=6/60;
+#   Mac fixed 9 (g008,g021,g049,g050,g064,g095,g099,g103,g106) broken 0 p=0.0039
+# Lab:   D 38/91=0.42 over=20 uncited=19/46; H 42/91=0.46 over=16 uncited=3/55;
+#   Lab fixed 6 broken 2 (g030,g032) p=0.289
+# Pre-decided rule: "H breaks anything (≥1 regression) → do not ship on this evidence."
+# That is the reading. Direction still favors H on end/end and citations; the 2 regressions
+# are the blocker under the rule written before the data.
 ```
 
 ## How to read the result — decided in advance, so the answer cannot be fitted to the data
@@ -1988,7 +2025,30 @@ it is a number worth having.
 ### REPLY 15.1
 
 ```
-(paste here)
+# lab PC, 2026-09-05. tip 169e94c. After Round 14.1 in the same day sitting.
+
+git log -1 --oneline
+169e94c feat(phase-4): local prose judge measured (D80–D82) and Phase 4 tracks documented
+
+ls -la rag/faithful.py rag/judge.py
+-rw-rw-r-- 1 shaili shaili 60982 Sep  5 11:18 rag/faithful.py
+-rw-rw-r-- 1 shaili shaili 34448 Sep  5 11:18 rag/judge.py
+
+uv sync --frozen --extra embed
+Checked 77 packages in 845ms
+
+docker compose up -d qdrant
+(healthy)
+
+ollama list
+gemma4:e4b          c6eb396dbd59    9.6 GB    (pulled this sitting)
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB
+
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+NVIDIA GeForce RTX 3060, 508 MiB, 12288 MiB   # after unloading qwen for the judge
+
+# qwen unloaded via keep_alive=0 before the judge sweep so the card holds
+# embedder + gemma only, not two generators.
 ```
 
 ## ASK 15.2 — judge D and H, one sitting
@@ -2042,7 +2102,117 @@ one name, and the report prints `!! TWO JUDGES IN ONE RUN` rather than a compari
 ### REPLY 15.2
 
 ```
-(paste here)
+# lab PC, 2026-09-05. tip 169e94c. Same day as 13.2/14.1.
+# Sweep ran detached (nohup). /tmp/round15-faith.log was cleared by a later tmp wipe;
+# numbers below are reconstructed from deliverables/faithfulness-phase4.json via
+# rag.faithful.report() — same code path the sweep prints at the end.
+
+# During the run (measured earlier): ollama ps showed gemma4:e4b at 3.2 GB, 100% GPU, context 8192.
+# VRAM ~8738 MiB with embedder + judge. No CPU spill.
+
+nohup uv run python -u -m rag.faithful --sweep --local --variants D,H
+
+FAITHFULNESS  —  prose only; code is judge.py's half (D77)
+  judge: gemma4:e4b, one sitting, both arms, identical passages
+
+  variant     answers  judged   SUPP   PART  UNSUP  UNPARSED  NO_PROSE  supported
+  -------------------------------------------------------------------------------
+  D                48      47     36      5      6         0         1       77%
+  H                62      61     56      4      1         0         1       92%
+
+  D: 11 answers not fully supported by their own sources
+    g014   PARTIAL      Passage [3] directly answers the necessity of using `scalars`, contradicting the claim's asserti
+    g019   PARTIAL      Passages [1], [2], [3], and [4] describe both the replacement context manager and the preferred 
+    g045   UNSUPPORTED  Passage [3] explicitly states that the patterns described, including using `engine.execute(t.sel
+    g065   UNSUPPORTED  None of the passages describe creating both a table and a view in the same migration, nor do the
+    g078   PARTIAL      Passages [1] and [3] support the need to set `SQLALCHEMY_WARN_20=1` and the best practices of us
+    g079   UNSUPPORTED  None of the passages demonstrate passing advanced loading options like `joinedload` directly to 
+    g080   UNSUPPORTED  Passages [2] and [3] show exactly how to use `load_only()` with related objects and collections,
+    g083   PARTIAL      Passage [1] confirms the deprecation of "connectionless" and "implicit" execution and recommends
+    g117   UNSUPPORTED  None of the passages discuss how to define or access relationships specifically within an asynch
+    g120   PARTIAL      The passages confirm that `with_polymorphic` works on joined table inheritance and accepts a bas
+    g119   UNSUPPORTED  None of the passages compare or define the specific behavior difference between `session.scalar(
+
+  H: 5 answers not fully supported by their own sources
+    g016   UNSUPPORTED  None of the passages state that `row.keys()` is deprecated from result rows and replaced by usin
+    g031   PARTIAL      Passage [1] confirms the shift of the function to `_orm.registry.map_imperatively` but does not 
+    g062   PARTIAL      The passages demonstrate using `typing.Literal` for enums in `mapped_column` (Passages [2] and [
+    g064   PARTIAL      Passage [5] supports the general concept of using union types within `type_annotation_map` but d
+    g065   PARTIAL      Passages [2] and [3] state that while SQLAlchemy can emit some DDL statements, general support f
+
+# paired on items both arms answered with a prose verdict (lab, binary SUPPORTED vs not):
+#   H gained SUPPORTED  8  g014, g019, g045, g078, g080, g083, g119, g120
+#   H lost SUPPORTED    2  g031, g062
+#   exact McNemar p = 0.109  (via rag.score.mcnemar_exact) — clears neither half of D61's bar
+# Mac D82 was 5↑ 1↓ p=0.2188 on rates D 85% / H 92%.
+# Lab rates: D 77% / H 92%. H supported% matches Mac; D drifted 85→77 (more PARTIAL: Mac 2, lab 5).
+# PARTIAL is not "almost zero" here the way Mac warned — lab D used PARTIAL 5 times in 47.
+
+per-item (64 unique answered ids):
+  [1/64] g002  D=SUPPORTED  H=SUPPORTED
+  [2/64] g004  D=SUPPORTED  H=SUPPORTED
+  [3/64] g008  D=-  H=SUPPORTED
+  [4/64] g014  D=PARTIAL  H=SUPPORTED
+  [5/64] g015  D=SUPPORTED  H=SUPPORTED
+  [6/64] g016  D=-  H=UNSUPPORTED
+  [7/64] g017  D=SUPPORTED  H=SUPPORTED
+  [8/64] g018  D=SUPPORTED  H=SUPPORTED
+  [9/64] g019  D=PARTIAL  H=SUPPORTED
+  [10/64] g021  D=-  H=SUPPORTED
+  [11/64] g024  D=NO_PROSE  H=SUPPORTED
+  [12/64] g025  D=SUPPORTED  H=SUPPORTED
+  [13/64] g026  D=SUPPORTED  H=SUPPORTED
+  [14/64] g027  D=SUPPORTED  H=SUPPORTED
+  [15/64] g028  D=-  H=NO_PROSE
+  [16/64] g029  D=SUPPORTED  H=SUPPORTED
+  [17/64] g030  D=SUPPORTED  H=SUPPORTED
+  [18/64] g031  D=SUPPORTED  H=PARTIAL
+  [19/64] g032  D=SUPPORTED  H=SUPPORTED
+  [20/64] g033  D=SUPPORTED  H=SUPPORTED
+  [21/64] g034  D=SUPPORTED  H=SUPPORTED
+  [22/64] g035  D=SUPPORTED  H=SUPPORTED
+  [23/64] g036  D=-  H=SUPPORTED
+  [24/64] g038  D=SUPPORTED  H=SUPPORTED
+  [25/64] g039  D=-  H=SUPPORTED
+  [26/64] g040  D=-  H=SUPPORTED
+  [27/64] g041  D=SUPPORTED  H=SUPPORTED
+  [28/64] g043  D=SUPPORTED  H=SUPPORTED
+  [29/64] g045  D=UNSUPPORTED  H=SUPPORTED
+  [30/64] g046  D=SUPPORTED  H=SUPPORTED
+  [31/64] g047  D=SUPPORTED  H=SUPPORTED
+  [32/64] g049  D=-  H=SUPPORTED
+  [33/64] g050  D=-  H=SUPPORTED
+  [34/64] g053  D=SUPPORTED  H=SUPPORTED
+  [35/64] g055  D=SUPPORTED  H=SUPPORTED
+  [36/64] g056  D=SUPPORTED  H=SUPPORTED
+  [37/64] g058  D=-  H=SUPPORTED
+  [38/64] g060  D=SUPPORTED  H=SUPPORTED
+  [39/64] g062  D=SUPPORTED  H=PARTIAL
+  [40/64] g064  D=-  H=PARTIAL
+  [41/64] g065  D=UNSUPPORTED  H=PARTIAL
+  [42/64] g074  D=SUPPORTED  H=SUPPORTED
+  [43/64] g078  D=PARTIAL  H=SUPPORTED
+  [44/64] g079  D=UNSUPPORTED  H=-
+  [45/64] g080  D=UNSUPPORTED  H=SUPPORTED
+  [46/64] g081  D=SUPPORTED  H=SUPPORTED
+  [47/64] g083  D=PARTIAL  H=SUPPORTED
+  [48/64] g085  D=-  H=SUPPORTED
+  [49/64] g088  D=SUPPORTED  H=SUPPORTED
+  [50/64] g095  D=-  H=SUPPORTED
+  [51/64] g098  D=SUPPORTED  H=SUPPORTED
+  [52/64] g099  D=-  H=SUPPORTED
+  [53/64] g103  D=-  H=SUPPORTED
+  [54/64] g106  D=-  H=SUPPORTED
+  [55/64] g109  D=SUPPORTED  H=SUPPORTED
+  [56/64] g110  D=SUPPORTED  H=SUPPORTED
+  [57/64] g111  D=SUPPORTED  H=SUPPORTED
+  [58/64] g112  D=SUPPORTED  H=SUPPORTED
+  [59/64] g115  D=SUPPORTED  H=SUPPORTED
+  [60/64] g117  D=UNSUPPORTED  H=-
+  [61/64] g118  D=SUPPORTED  H=SUPPORTED
+  [62/64] g119  D=UNSUPPORTED  H=SUPPORTED
+  [63/64] g120  D=PARTIAL  H=SUPPORTED
+  [64/64] g121  D=SUPPORTED  H=SUPPORTED
 ```
 
 ## ASK 15.3 — the gate, end to end
@@ -2069,7 +2239,48 @@ finding, and it stops the round.**
 ### REPLY 15.3
 
 ```
-(paste here)
+# lab PC, 2026-09-05. after 15.2. tip 169e94c.
+
+uv run python -m rag.judge --report
+
+PHASE 4 SCORECARD  —  the whole system, one command
+  golden set: 100 items, 91 answerable, 9 not — all human-verified (D06)
+
+1  RETRIEVAL — did the right page reach the prompt?   [measured live]
+     recall@5  0.64 ±0.097     absent from top 20  17     duplicate seats  0
+     This is a CEILING, not a score: it says the page arrived, not that the user got it (D72).
+
+2  GENERATION — did the user get an answer?           [read: prompt-sweep-phase4.json]
+     prompt              end to end   over-refused   fabricated   failed
+     D (ships)          39/91 = 0.43             19            2        0
+     H                  47/91 = 0.52             10            2        1
+     THE GAP: retrieval 0.64 → delivered 0.43 = 0.21 lost after the right page was already in the prompt.
+
+3  CITATIONS — can the answer be checked?             [read: prompt-sweep-phase4.json, re-scored with today's rules (D79)]
+     prompt          answered         uncited    code w/o source  out of range  coverage
+     D                     48       31 =  65%         26/28 =  93%             0      0.07
+     H                     62        6 =  10%         20/37 =  54%             0      0.32
+       (stored fields disagree with today's rules on 1: g016)
+
+4  FAITHFULNESS — is the prose supported by those pages?
+     [read: faithfulness-phase4.json, judge gemma4:e4b]
+     prompt          judged  SUPPORTED  PARTIAL  UNSUPPORTED  supported
+     D                   47         36        5            6       77%
+     H                   61         56        4            1       92%
+
+5  THE JUDGE'S OWN CEILING — does it agree with a human?
+     10 verdicts in JUDGE-AGREEMENT.md, 0 answered — a human has not read them yet (D06).
+     An unmeasured judge is a precise instrument of unknown accuracy. This line is the assumption the gate refuses.
+
+# Section-by-section vs expected:
+# 1 retrieval  PASS — 0.64 ±0.097, absent 17, dup seats 0
+# 2 generation PASS — reads Mac prompt-sweep-phase4.json: D 0.43 / H 0.52 (load-bearing)
+#   NOTE: lab Round 14.1 same-sitting D/H was 38/91=0.42 and 42/91=0.46 with 6↑2↓ —
+#   that lives in REPLY 14.1; --report deliberately re-derives from the saved Mac sweep.
+# 3 citations  PASS — D uncited 31/48=65%; stale-row names g016 under H
+# 4 faithfulness — header names gemma4:e4b; LAB numbers D 36/5/6=77%, H 56/4/1=92%
+#   (Mac was D 40/2/5=85%, H 56/3/2=92%). H matches; D drifted. Finding per Round 15 rule.
+# 5 agreement  PASS as written — 0 answered, human has not read them yet
 ```
 
 ## How to read Round 15's result — decided now, before the data
