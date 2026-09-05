@@ -405,3 +405,47 @@ def test_the_sheet_names_what_a_variant_ADDS_over_the_control(tmp_path):
     judge.open_cell_sheet(saved, [], out)
     text = out.read_text()
     assert "`H` adds 1" in text and "`only_H`" in text
+
+
+# --- a failed row is not a delivered answer ---------------------------------
+
+def test_a_failed_row_is_not_counted_as_delivered():
+    """Measured 2026-09-03: a D75 failed row carries no "answer" key, so
+    `ask.refused("")` is False and the row sailed into the delivered count as a
+    success. H read 48/91 against a published 47/91 — and the inflation landed
+    on the arm under test, the same direction as D76 and D79.
+
+    A failure is not an answer and not a refusal. It is a missing measurement,
+    so it belongs in neither numerator while staying in the denominator, which
+    is what keeps both arms on one ruler (D61)."""
+    rows = [
+        {"id": "a", "answerable": True, "answer_in_prompt": True,
+         "failed": True},                                   # no "answer" key
+        {"id": "b", "answerable": True, "answer_in_prompt": True,
+         "answer": "Use select() instead, per [1]."},
+    ]
+    got = judge._sweep_generation(rows)
+    assert got["delivered"] == 1
+    assert got["n_answerable"] == 2          # still in the denominator
+    assert got["failed"] == 1
+
+
+def test_a_failed_row_is_not_counted_as_a_fabrication():
+    """Same trap on the unanswerable side: an item with no answer at all must
+    not read as the model having answered an unanswerable question."""
+    rows = [{"id": "u", "answerable": False, "failed": True}]
+    assert judge._sweep_generation(rows)["fabricated"] == 0
+
+
+def test_the_published_figures_are_reproduced_from_the_saved_sweep():
+    """The scorecard's generation cells are a DERIVATION, not a quote. If this
+    drifts, either the saved answers or the derivation moved — and every Phase
+    4 number rests on these cells (D72, D74)."""
+    import json
+    sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
+    expected = {"D": (39, 19, 2), "H": (47, 10, 2), "I": (46, 11, 2)}
+    for variant, (delivered, over, fabr) in expected.items():
+        got = judge._sweep_generation(sweep[variant])
+        assert got["n_answerable"] == 91, variant
+        assert (got["delivered"], got["over_refused"], got["fabricated"]) == \
+               (delivered, over, fabr), variant
