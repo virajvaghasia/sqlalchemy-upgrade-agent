@@ -46,7 +46,17 @@ Phase 4 — judge the answers rather than the search:
 
     judge.py       D71 — citation integrity, computed with no model and no API
                    key: citations pointing at sources that do not exist, code
-                   blocks citing nothing, coverage of the prompt's pages
+                   blocks citing nothing, coverage of the prompt's pages.
+                   D77 adds ungrounded API calls; D81 adds `--report`, the
+                   whole-system scorecard PHASE-4.md's gate asks for
+    faithful.py    D80/D82 — the half that needs a reader: is this answer's
+                   PROSE supported by the pages it was given? Code is judge.py's
+                   half and is deliberately stripped out. The judge is LOCAL
+                   (`--local`, gemma4:e4b) because the hosted free tier allows
+                   20 requests a day per model against a ~110-call run, and
+                   D78's binding property is one judge across both arms in one
+                   sitting. `--agreement` renders Step 5's ten for a human;
+                   `--cross-check` asks a second model the same ten
 
 `phases/PHASE-1.md` through `PHASE-4.md` hold the reasoning; this file only
 says what exists. Decisions are cited by id and live in study/09-DECISIONS.md.

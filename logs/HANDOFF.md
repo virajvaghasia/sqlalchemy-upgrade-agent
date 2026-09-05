@@ -1846,6 +1846,11 @@ reading. `uv run python -m rag.score --absents` reproduces it in one command.
 unlike Round 13 it is not a confirmation of something already known — it is the run that decides
 whether the shipped prompt changes.
 
+> **Mac ready 2026-09-05.** Gates green on Mac (`pytest` pass, `58/58` runnable). Faithfulness
+> sweep artifact + agreement sheet are on this branch. Lab: `git pull --ff-only` on
+> `phase-2/measure`, then start at ASK 14.1 (or 13.1 if you want the quick recall confirm first).
+> Human reading still open on the Mac: `JUDGE-AGREEMENT.md` (10 blanks) + ship H call.
+
 > **Read first on the Mac:** [`../phases/PHASE-4.md`](../phases/PHASE-4.md) Step 4 and `D74`.
 
 **Branch: `phase-2/measure`.** Tip must include `rag/faithful.py` and the `D79` citation fix.
@@ -1930,28 +1935,189 @@ or `sudo dkms autoinstall` for 7.0.0-30-generic, then run 13.2 + 14.1 back-to-ba
   are machine-dependent, which nothing in this repo currently claims. Record it and stop —
   a finding, not a failure.
 
+# Round 15 — the prose judge on the 3060 (OPEN, written 2026-09-03)
+
+**Read first on the Mac:** [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) `D80` and
+`D81`, and [`../study/16-JUDGE.md`](../study/16-JUDGE.md) §R8.6.
+
+**This round exists because the advice that used to sit at the bottom of this file was wrong.**
+It said faithfulness *"calls the Gemini API, so it is network-bound, not GPU-bound — the 3060
+buys nothing. Run it on the Mac."* Both halves died on 2026-09-03:
+
+- **The hosted judge cannot do the run at all.** The 429 body names the ceiling:
+  `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, **`quotaValue: 20`**. Twenty requests a
+  day, per model. D + H over the saved answers is **~110 calls**. And `D78`'s binding property is
+  *same judge, both arms, **one sitting*** — so spreading 110 calls across six days does not
+  squeeze under the quota, it destroys the comparison.
+- **So the judge is local**, `gemma4:e4b` on Ollama — which makes this run **exactly** the kind
+  of work the 3060 exists for. On the Mac it measured **~3.4 minutes per item over 64 items,
+  about 3.5 hours.** This is now the slowest thing in the project and the box was built for it.
+
+**It is not self-grading**, which is the objection `ROADMAP.md` raises: the generator is
+`qwen2.5-coder:7b` and the judge is a different family and size. Nothing marks its own homework.
+
+**Branch: `phase-2/measure`.** The tip must contain `rag/faithful.py` with a `--sweep` flag and
+`rag/judge.py` with `--report`. If `uv run python -m rag.faithful --sweep --help` is not
+recognised after the pull, **stop** — the Mac has not pushed, and every number below would be
+measured against the wrong code.
+
+## ASK 15.1 — pull, and check the judge model is here
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-2/measure && git pull --ff-only
+git log -1 --oneline
+ls -la rag/faithful.py rag/judge.py
+
+uv sync --frozen --extra embed
+docker compose up -d qdrant
+
+ollama list                       # is gemma4:e4b here? if not, next line pulls it (~9.6 GB)
+ollama pull gemma4:e4b
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+```
+
+**Why the VRAM line matters here specifically.** VRAM is this box's tight budget, not RAM
+(31 GiB system, **12288 MiB** card). On the Mac `ollama ps` reported `gemma4:e4b` at **3.2 GB,
+100% GPU, context 8192**. `qwen2.5-coder:7b` is not needed for this round — nothing generates,
+only judges — so the card should be holding the embedder plus one judge, not two models.
+**If `ollama ps` shows anything less than `100% GPU`, say so in the REPLY**: a judge that spilled
+to CPU is the difference between a 40-minute round and a five-hour one, and it is not a failure,
+it is a number worth having.
+
+### REPLY 15.1
+
+```
+(paste here)
+```
+
+## ASK 15.2 — judge D and H, one sitting
+
+Run it detached. It survives the terminal closing and writes rows as it goes — `D75` is the
+reason both of those are true (a 300-generation sweep once died at 150 with **zero** rows saved).
+
+```bash
+nohup uv run python -u -m rag.faithful --sweep --local --variants D,H \
+      > /tmp/round15-faith.log 2>&1 &
+disown
+
+# check on it whenever; the file is written every 10 items
+grep -c '^  \[' /tmp/round15-faith.log
+ollama ps
+
+# when it prints "saved N rows":
+tail -60 /tmp/round15-faith.log
+```
+
+**Paste the whole FAITHFULNESS block and the per-item lines, not a summary.** The ids are the
+finding; the percentages are not.
+
+**What the Mac measured on 2026-09-03, for comparison (`D82`):**
+
+```
+variant   answers  judged   SUPP  PART  UNSUP  UNPARSED  NO_PROSE  supported
+D              48      47     40     2      5         0         1       85%
+H              62      61     56     3      2         0         1       92%
+```
+
+**Do not read that as "H is more faithful", and do not let the lab run be read that way either.**
+Paired on the 46 items both arms answered it is **5↑ 1↓, exact McNemar p = 0.2188** — clears
+neither half of `D61`'s bar. The rate gap is the **16 items only H answered**, 13 of them
+`SUPPORTED`.
+
+**The known weakness of this judge, so you can look for it in the lab's rows.** A second model
+(`gemini-3.5-flash`) agreed with it on **4 of 10** of the review sheet, and **every disagreement
+was the second model choosing `PARTIAL`** where ours chose an extreme. Ours used `PARTIAL` twice
+in 47. **If the lab's run also shows almost no `PARTIAL`, that is the model, not the corpus** —
+and it is the most useful thing this round can confirm.
+
+**Timing, so you can size the sitting.** On the Mac a single judge call is **46s** with nothing
+else running, and the full 64-item run took about **90 minutes**. It is resumable:
+`--resume` picks up the checkpoint, refuses if the saved rows carry a different judge model, and
+finishes half-judged items rather than skipping them.
+
+**Do NOT pass `--model` or drop `--local`.** Two model ids in one run makes it two judges wearing
+one name, and the report prints `!! TWO JUDGES IN ONE RUN` rather than a comparison (`D78`).
+
+### REPLY 15.2
+
+```
+(paste here)
+```
+
+## ASK 15.3 — the gate, end to end
+
+```bash
+uv run python -m rag.judge --report 2>&1 | tee /tmp/round15-report.txt
+```
+
+**What "pass" looks like**, and every one of these is checkable against a number already in the
+repo rather than against a feeling:
+
+| section | expected |
+|---|---|
+| 1 retrieval | recall@5 ≈ **0.64 ±0.097**, absent from top 20 **17**, duplicate seats **0** |
+| 2 generation | D **39/91 = 0.43**, over-refused **19**, fabricated **2**; H **47/91 = 0.52**, **10**, **2** |
+| 3 citations | D uncited **31/48 = 65%**; the stale-row line names **`g016`** under H and nothing under D |
+| 4 faithfulness | the Mac got D **40/2/5 = 85%** supported, H **56/3/2 = 92%**; the header must name **`gemma4:e4b`** |
+| 5 agreement | *"0 answered — a human has not read them yet"* until the sheet is filled |
+
+**Section 2 is the load-bearing check.** Those cells are re-derived from the saved answers, so if
+this box prints anything else, the saved sweep or the code moved — not the model. **That is a
+finding, and it stops the round.**
+
+### REPLY 15.3
+
+```
+(paste here)
+```
+
+## How to read Round 15's result — decided now, before the data
+
+- **The verdict counts land close to the Mac's.** The prose judge is machine-independent, which
+  is a claim nothing in this repo has been able to make about any generation number (`D54` says
+  the opposite about refusals). Record it and quote the lab's numbers.
+- **They differ.** Then faithfulness drifts across machines the way refusals do, and **every
+  faithfulness figure has to carry its machine** the way rows already carry their judge model.
+  That is a real finding and it costs one sentence in `D80`.
+- **The judge spilled to CPU and the run took hours.** Not a failure — write the timing into
+  REPLY 15.1. It sizes every future judge run and it is the number that decides whether the
+  agreement-of-ten should be sampled larger.
+- **`--report`'s section 2 disagrees with the table above.** Stop. Do not run anything else. The
+  saved sweep or the derivation moved, and every Phase 4 number rests on those cells.
+
 ## What NOT to run on the lab PC
 
-- **Faithfulness (`rag.faithful`).** It calls the Gemini API, so it is network-bound, not
-  GPU-bound — the 3060 buys nothing. It also needs `GEMINI_API_KEY`, and **`.env` is gitignored
-  so the key does NOT travel with the pull**. Run it on the Mac.
+- **The hosted Gemini judge, expecting it to finish.** The free tier is **20 requests per day per
+  model** (measured 2026-09-03) against a ~110-call run. The quota is per Google Cloud **project**,
+  so a second key is a second 20 — still not 110, and mixing keys mid-run is the same
+  disqualifying error as mixing models. `uv run python -m rag.faithful --check` is one call and is
+  worth running once to see whether the pinned id is answering here at all; anything past that is
+  spending a quota that cannot reach the finish line.
 
-  **If you do want it on this box anyway**, the key has to be added by hand — it is deliberately
-  not in git:
+  **And if you do put a key on this box:** `.env` is gitignored so the key does NOT travel with a
+  pull, it has to be pasted by hand, and **this is a shared machine** — the other user can read
+  it. Remove the line before you leave. Never `git add -f` it.
 
   ```bash
-  echo 'GEMINI_API_KEY=paste-the-key' >> .env    # .env is gitignored; never `git add -f` it
-  uv run python -m rag.faithful --check          # ONE call: proves auth and the pinned model
+  echo 'GEMINI_API_KEY=paste-the-key' >> .env    # gitignored; delete it before you leave
+  uv run python -m rag.faithful --check          # ONE call
   ```
 
-  **`--check` is the authority, not `--models`.** Measured 2026-08-31 on the Mac: `--models`
-  listed `gemini-2.5-flash` and calling it returned **404 — "no longer available to new users"**.
-  The catalog is what the API advertises; a call is what happens. `MODEL` is pinned to
-  `gemini-3.6-flash`; if that 404s here too, run `--models` and pick a version-numbered id —
-  **not** `gemini-flash-latest`, which floats by design (`D78`).
+  **`--check` is the authority, not `--models`.** Measured 2026-08-31: `--models` listed
+  `gemini-2.5-flash` and calling it returned **404 — "no longer available to new users"**. And on
+  2026-09-03 the pinned `gemini-3.6-flash` returned **503** while three siblings answered in the
+  same minute. The catalog is what the API advertises; a call is what happens.
 
-  **This is a shared box.** A key in `.env` here is readable by the other user. Prefer the Mac,
-  and if you do add it, remove the line before you leave.
+- **`--cross-check` against a hosted model, expecting all ten.** It is ten calls against the same
+  **20/day/model** ceiling, and the Mac's second attempt got **7 of 10** before the cap. The tool
+  now fails fast on a per-day 429 rather than retrying it (a per-minute 429 is still retried), so
+  it will tell you plainly instead of hanging. Worth running once if a key is on the box; not
+  worth planning the round around.
+- **The agreement-of-ten** (`deliverables/JUDGE-AGREEMENT.md`). That is a human reading the judge's
+  verdicts against the passages (`D06`), and it needs no machine at all. **Do it on whatever you
+  are comfortable reading on** — the rate is parsed back out of the file, so the only thing that
+  matters is that the AGREE/DISAGREE lines get filled in.
 - **The open-cell read** (`deliverables/OPEN-CELL-REVIEW.md`). That is a human reading answers
   against real 2.0.51 (`D06`), and it needs no machine at all.
 - **Anything retrieval.** Closed by `D66`–`D70`. Do not reopen it here.

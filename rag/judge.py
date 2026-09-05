@@ -4,6 +4,7 @@ Phase 4 — grade the ANSWER, not the search.
     uv run python -m rag.judge --citations              # deterministic; no model, no key
     uv run python -m rag.judge --citations --limit 20
     uv run python -m rag.judge --citations --save f.json # keep the rows; a run costs ~100 calls
+    uv run python -m rag.judge --report                 # PHASE-4.md's gate, one command
 
 Phase 3 closed retrieval at recall@5 = 0.64. End to end the system answers
 0.43 (D72), so twenty-one points are lost AFTER the right page is already in
@@ -446,6 +447,205 @@ def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
     return n
 
 
+SWEEP_NAME = "prompt-sweep-phase4.json"
+FAITH_NAME = "faithfulness-phase4.json"
+AGREEMENT_NAME = "JUDGE-AGREEMENT.md"
+DELIVERABLES = GOLDEN_PATH.parent
+
+
+# --- the scorecard ----------------------------------------------------------
+#
+# PHASE-4.md's gate, in one place:
+#
+#   "Done when one command scores the full golden set and emits retrieval
+#    metrics, faithfulness and citation accuracy in one report -- and when the
+#    judge's own agreement with a human on ten hand-checked items is a number
+#    in that report rather than an assumption."
+#
+# WHAT IT COMPUTES AND WHAT IT READS, LABELLED IN THE OUTPUT
+#
+# Retrieval is measured live: it needs Qdrant and no generations, so it is
+# cheap and there is no excuse for quoting a stored figure. Everything about
+# the ANSWERS is read from `deliverables/prompt-sweep-phase4.json` -- 300 saved
+# generations, about two and a half hours of Mac time -- because regenerating
+# them would not only cost the evening, it would produce DIFFERENT answers
+# (`D54`) and quietly turn a scorecard into a new experiment.
+#
+# Every section says which of the two it is. A report that mixes a live
+# measurement with a stored one and labels neither is how `0.64` came to be
+# quoted as the system's score.
+#
+# THE CITATION FIGURES ARE RECOMPUTED, NOT READ
+#
+# The saved file carries citation fields from the day it was written --
+# 2026-08-27 -- and `D79` changed what counts as a citation on 2026-09-01: the
+# regex was reading `keys[0]` and `row[1]` as citations of a source numbered
+# zero. Reading those stored fields would reprint a number the current code
+# disagrees with. So the answers are re-scored with today's `citation_report`,
+# and `--stale` prints every row where the two differ.
+
+
+def _sweep_generation(rows: list[dict]) -> dict:
+    """End to end, over-refusals and fabrications off saved answers.
+
+    Reproduces D72's and D74's published figures exactly -- D 39/91, 19, 2 --
+    which is the check that this derivation is the same one those numbers came
+    from rather than a plausible-looking second opinion.
+    """
+    # The denominator is every answerable item, failed rows included. Dropping
+    # them per-arm would give D 91 and H 90 -- two different rulers for a
+    # comparison that only means anything item by item (D61). A failed row is
+    # simply not in the numerator, and the count is printed separately so it
+    # cannot hide there.
+    answerable = [r for r in rows if r.get("answerable")]
+    unanswerable = [r for r in rows
+                    if not r.get("answerable") and not r.get("failed")]
+    # `not r.get("failed")` is load-bearing in BOTH lists, and leaving it out
+    # of the first one is a bug this file actually had. A D75 failed row
+    # carries no "answer" key at all, so `ask.refused("")` is False and the row
+    # sailed into the delivered count as a success: H read 48/91 against a
+    # published 47/91, and the inflation landed on the arm under test.
+    #
+    # Same family as D76 and D79 -- an instrument that breaks in the direction
+    # of the thing being promoted. A failure is not an answer and it is not a
+    # refusal; it is a missing measurement (D75), and it belongs in neither
+    # numerator while staying in the denominator so the arms share one ruler.
+    delivered = [r for r in answerable
+                 if r.get("answer_in_prompt") and not r.get("failed")
+                 and not ask.refused(r.get("answer", ""))]
+    over = [r for r in answerable
+            if r.get("answer_in_prompt") and not r.get("failed")
+            and ask.refused(r.get("answer", ""))]
+    return {
+        "n_answerable": len(answerable),
+        "delivered": len(delivered),
+        "end_to_end": len(delivered) / len(answerable) if answerable else 0.0,
+        "over_refused": len(over),
+        "over_refused_ids": [r["id"] for r in over],
+        # An unanswerable item that got an answer. The count is 2 under every
+        # wording measured (D74) and D77 is why the count alone is not enough:
+        # D invents an Alembic recipe, H paraphrases a page it cites, and both
+        # land here.
+        "fabricated": sum(1 for r in unanswerable
+                          if not r.get("failed")
+                          and not ask.refused(r.get("answer", ""))),
+        "failed": sum(1 for r in rows if r.get("failed")),
+    }
+
+
+def _sweep_citations(rows: list[dict]) -> tuple[dict, list[str]]:
+    """Citation integrity, recomputed from the answers with today's rules."""
+    fresh, stale = [], []
+    for r in rows:
+        if r.get("failed"):
+            continue
+        got = citation_report(r.get("answer", ""), r.get("n_sources", 0))
+        if any(got[k] != r[k] for k in ("uncited", "out_of_range",
+                                        "uncited_code_blocks")
+               if k in r):
+            stale.append(r["id"])
+        fresh.append(dict(got, id=r["id"], provenance=r.get("provenance")))
+    return aggregate(fresh), stale
+
+
+def scorecard(items: list[dict], sweep: dict, variants: list[str],
+              faith: dict | None, agreement: dict,
+              retrieval: dict | None) -> None:
+    # Imported here, not at module level: rag.faithful imports THIS module,
+    # so a top-level import back would make neither of them importable.
+    from rag import faithful, score
+
+    n_answerable = sum(1 for i in items if i.get("answerable"))
+    print("\nPHASE 4 SCORECARD  —  the whole system, one command")
+    print(f"  golden set: {len(items)} items, {n_answerable} answerable, "
+          f"{len(items) - n_answerable} not — all human-verified (D06)")
+
+    print("\n1  RETRIEVAL — did the right page reach the prompt?   [measured live]")
+    if retrieval is None:
+        print("     skipped (--no-retrieval)")
+    else:
+        print(f"     recall@5  {retrieval['recall'][5]:.2f} ±"
+              f"{score.wilson_half_width(retrieval['recall'][5], retrieval['n_answerable']):.3f}"
+              f"     absent from top 20  {retrieval['not_found_at_depth']}"
+              f"     duplicate seats  {retrieval['slots_lost_to_duplicates']}")
+        print("     This is a CEILING, not a score: it says the page arrived, "
+              "not that the user got it (D72).")
+
+    print(f"\n2  GENERATION — did the user get an answer?           "
+          f"[read: {SWEEP_NAME}]")
+    print(f"     {'prompt':<14}{'end to end':>16}{'over-refused':>15}"
+          f"{'fabricated':>13}{'failed':>9}")
+    gen = {}
+    for v in variants:
+        g = gen[v] = _sweep_generation(sweep[v])
+        label = f"{v} (ships)" if v == variants[0] else v
+        print(f"     {label:<14}{g['delivered']:>7}/{g['n_answerable']} = "
+              f"{g['end_to_end']:.2f}{g['over_refused']:>15}"
+              f"{g['fabricated']:>13}{g['failed']:>9}")
+    if retrieval is not None:
+        gap = retrieval["recall"][5] - gen[variants[0]]["end_to_end"]
+        print(f"     THE GAP: retrieval {retrieval['recall'][5]:.2f} → delivered "
+              f"{gen[variants[0]]['end_to_end']:.2f} = {gap:.2f} lost after the "
+              f"right page was already in the prompt.")
+
+    print(f"\n3  CITATIONS — can the answer be checked?             "
+          f"[read: {SWEEP_NAME}, re-scored with today's rules (D79)]")
+    print(f"     {'prompt':<14}{'answered':>10}{'uncited':>16}"
+          f"{'code w/o source':>19}{'out of range':>14}{'coverage':>10}")
+    for v in variants:
+        c, stale = _sweep_citations(sweep[v])
+        answered = c["n_answered"]
+        print(f"     {v:<14}{answered:>10}"
+              f"{c['uncited']:>9} = {c['uncited'] / answered if answered else 0:>4.0%}"
+              f"{c['uncited_code']:>11}/{c['with_code']} = "
+              f"{c['uncited_code'] / c['with_code'] if c['with_code'] else 0:>4.0%}"
+              f"{c['out_of_range']:>14}{c['mean_coverage']:>10.2f}")
+        if stale:
+            print(f"       (stored fields disagree with today's rules on "
+                  f"{len(stale)}: {', '.join(stale[:8])})")
+
+    print("\n4  FAITHFULNESS — is the prose supported by those pages?")
+    if not faith:
+        print(f"     NOT MEASURED. `uv run python -m rag.faithful --sweep` "
+              f"writes {FAITH_NAME}.")
+        print("     Not zero and not a pass — unmeasured. Code grounding is "
+              "measured and separate (D77).")
+    else:
+        print(f"     [read: {FAITH_NAME}, judge {faith.get('judge_model', '?')}]")
+        print(f"     {'prompt':<14}{'judged':>8}{'SUPPORTED':>11}{'PARTIAL':>9}"
+              f"{'UNSUPPORTED':>13}{'supported':>11}")
+        for v, rows in faith["variants"].items():
+            a = faithful.aggregate(rows)
+            print(f"     {v:<14}{a['judged']:>8}{a['SUPPORTED']:>11}"
+                  f"{a['PARTIAL']:>9}{a['UNSUPPORTED']:>13}"
+                  f"{a['supported_rate']:>10.0%}")
+
+    print("\n5  THE JUDGE'S OWN CEILING — does it agree with a human?")
+    if agreement["n"] == 0:
+        print(f"     NO SHEET. `uv run python -m rag.faithful --agreement` "
+              f"writes {AGREEMENT_NAME}.")
+    elif not agreement["filled"]:
+        print(f"     {agreement['n']} verdicts in {AGREEMENT_NAME}, "
+              f"0 answered — a human has not read them yet (D06).")
+        print("     An unmeasured judge is a precise instrument of unknown "
+              "accuracy. This line is the assumption the gate refuses.")
+    else:
+        print(f"     {agreement['agree']} of {agreement['filled']} answered = "
+              f"{agreement['rate']:.0%} agreement"
+              + (f"   ({agreement['n'] - agreement['filled']} still blank)"
+                 if agreement["filled"] < agreement["n"] else ""))
+
+
+def _arg(argv: list[str], flag: str, default=None):
+    """The token after `flag`, unless that token is itself a flag."""
+    if flag not in argv:
+        return default
+    nxt = argv.index(flag) + 1
+    if nxt >= len(argv) or argv[nxt].startswith("--"):
+        return default
+    return argv[nxt]
+
+
 def main() -> None:
     argv = sys.argv[1:]
     items = json.loads(GOLDEN_PATH.read_text())["items"]
@@ -467,8 +667,38 @@ def main() -> None:
         print("D06: a human rules on these. This script does not.")
         return
 
+    if "--report" in argv:
+        # PHASE-4.md's gate in one command. Retrieval is measured live because
+        # it is cheap; everything about the answers is read from saved runs,
+        # because regenerating them would cost the evening AND produce
+        # different answers (D54). Each section says which it is.
+        from rag import faithful, score
+
+        sweep_path = DELIVERABLES / SWEEP_NAME
+        if not sweep_path.exists():
+            sys.exit(f"{sweep_path} is missing — it is the saved prompt sweep "
+                     f"every answer-side figure is read from.")
+        sweep = json.loads(sweep_path.read_text())
+        variants = _arg(argv, "--variants", "D,H").split(",")
+        missing = [v for v in variants if v not in sweep]
+        if missing:
+            sys.exit(f"{SWEEP_NAME} has no variant(s) {missing}; it holds "
+                     f"{sorted(sweep)}")
+
+        retrieval = None
+        if "--no-retrieval" not in argv:
+            chunks = score.load_chunks()
+            retrieval = score.aggregate(score.score_items(items, chunks))
+
+        faith_path = DELIVERABLES / FAITH_NAME
+        faith = json.loads(faith_path.read_text()) if faith_path.exists() else None
+        agreement = faithful.read_agreement(DELIVERABLES / AGREEMENT_NAME)
+        scorecard(items, sweep, variants, faith, agreement, retrieval)
+        return
+
     if "--citations" not in argv:
-        sys.exit(__doc__.strip().splitlines()[0] + "\n\n  pass --citations")
+        sys.exit(__doc__.strip().splitlines()[0]
+                 + "\n\n  pass --citations, --report or --open-cell")
 
     rows = judge_rows(items)
     report(rows, aggregate(rows))

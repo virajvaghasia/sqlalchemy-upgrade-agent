@@ -19,6 +19,11 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`deliverables/BREAKAGES.md`** — the Phase 0 Part A deliverable. 23 entries, each with the 1.4 code and
   the real 2.0 error. Generated skeleton; the *fix* and *docs* fields are Viraj's to write.
   Never regenerate over it once filled — diff instead (the file's own header says how).
+- **`rag/faithful.py`** — the prose half of Phase 4. `--check` / `--models` (the key and what it
+  can reach), `--sweep --local` (judge the saved D/H answers, one sitting, both arms),
+  `--claims <id>` (one item, sentence by sentence), `--agreement` (Step 5's ten, for a human).
+  **The hosted free tier is 20 calls/day/model** (`D80`) — measured, not assumed — so `--local`
+  is the path that works.
 - **The six teaching files for the RAG system:** `10-RETRIEVAL.md` §R1–§R2 (retrieval),
   `11-GENERATION.md` §R3 (generation), `12-EVALUATION.md` §R4 (evaluation — how to measure),
   `13-VERIFICATION.md` §R5 (defending it under questioning; Phase 1's last gate),
@@ -44,12 +49,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D77`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D82`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 282 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 336 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -290,6 +295,14 @@ networking.
   - **Round 7 is queued**: sweep `--k 5 / 6 / 10` over the probe set. One failing answer ranked
     **6** with `DEFAULT_K = 5`, so a single integer may fix what Phase 3 was going to. 19
     generations per value — the GPU makes it a sitting rather than an evening.
+  - **Rounds 13, 14 and 15 are OPEN in `logs/HANDOFF.md`**, and 15 is the one the box is
+    actually needed for. 13 confirms retrieval `0.64` + a `--refusals` baseline; 14 is the D vs
+    H ship decision on a second machine; **15 is the prose judge** — `rag.faithful --sweep
+    --local`, which measured **~3.4 min/item over 64 items (~3.5 h) on the Mac** and is now the
+    slowest job in the project. **The advice that used to say faithfulness is network-bound and
+    the 3060 buys nothing is wrong and was corrected 2026-09-03** (`D80`): the hosted judge is
+    capped at **20 calls a day per model** against a ~110-call run, so the judge is local and
+    the run is GPU-bound.
   - **Still open on this box:** the Day 3 tunnel — blocked on Shaili sharing the
     Tailscale node, which is one person and nothing routes around it (`logs/HANDOFF.md`
     Round 3). And the reboot test, deferred.
@@ -350,11 +363,23 @@ role force quoting in every statement. It matches the Compose service it belongs
 measured** (`D74`): moving the citation rule into the user turn gives end to end **0.43 → 0.52**,
 **9↑ 0↓**, p = 0.0039, uncited **67% → 10%**. **Not shipped — Viraj's call.** Groundedness measured too
 (`D77`): H makes **0 ungrounded API calls in 62 answers** against D's 2 in 48, and turns `g065`'s
-invented Alembic recipe into a cited paraphrase. Prose-level faithfulness still needs a pinned
-judge; no key on this machine. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
+invented Alembic recipe into a cited paraphrase. **Prose faithfulness is built and the judge is
+LOCAL** (`D80`, 2026-09-03): the pinned `gemini-3.6-flash` answered **503** all morning while three
+siblings answered, and the 429 body names the real ceiling —
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, **quotaValue 20**. Twenty calls a day per
+model against a **~110-call** run, so the API judge cannot do D+H in one sitting at all, which is
+`D78`'s own tight property. `gemma4:e4b` on Ollama judges instead — a different family from the
+generator, so nothing self-grades. **The gate now has its command** (`D81`):
+`uv run python -m rag.judge --report`, and it reproduces `D72`/`D74`'s cells exactly.
+**Faithfulness measured 2026-09-03** (`D82`): D **85%** supported (40/47), H **92%** (56/61) —
+**but do not quote that as "H is more faithful."** On the **46 items both arms answered** it is
+**5↑ 1↓, p = 0.22**, which clears neither half of `D61`'s bar. The gap is the **16 questions only
+H answered**, **13 of them grounded** — so the claim is **"H answers 14 more and the extra answers
+hold up"**, which kills the standing objection that a more willing prompt buys answers by talking
+past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**282 tests**, **58/58** `# runnable`, **79** decisions, **§H empty**.
+**336 tests**, **58/58** `# runnable`, **82** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -369,7 +394,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 282 passed with Qdrant up; 277 + 5 skipped without
+uv run pytest                            # 336 passed with Qdrant up; 331 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -378,6 +403,9 @@ uv run python -m rag.score --baseline deliverables/baseline-phase1.json   # 7 fi
 uv run python -m rag.score --absents     # D70: why the 17 misses are missed
 uv run python -m rag.score --no-rerank              # the D67 row, 0.63
 uv run python -m rag.score --dense-only --no-rerank # the D66 row, 0.52 — BOTH flags
+uv run python -m rag.judge --report      # PHASE-4's gate: all five report cards, one command
+uv run python -m rag.faithful --check    # is the hosted judge reachable today? (D80: often not)
+uv run python -m rag.faithful --sweep --local --resume   # the judge run; ~90 min, resumable
 ```
 
 **Qdrant is not running by default on the Mac.** `open -a Docker`, then
@@ -399,7 +427,7 @@ docs. That has happened four times and never the other way round.
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
 | **2** | **complete** — 100 golden, signature closed, audit 100 PASS | `deliverables/golden.json`, `GOLDEN-FULLBAR-AUDIT.md` |
 | **3** | **complete (retrieval).** `D66`–`D68` shipped; `D69` strip and `D70` boundaries both rejected with numbers. Gate closed: every metrics row has a figure and a decision id | [`phases/PHASE-3.md`](phases/PHASE-3.md), `recall@5 0.64` |
-| **4** | **current.** Steps 1 and 3a closed. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** of answers cite nothing. Faithfulness needs a pinned judge, and there is no key on this machine | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
+| **4** | **current.** Steps 1–3 closed and 5's instrument built. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** cite nothing; prose faithfulness built and running on a **local** judge (`D80`); the gate has its one command, `rag.judge --report` (`D81`). faithfulness measured (`D82`) — **85% D / 92% H, but 5↑ 1↓ p = 0.22 paired**. Open: `deliverables/JUDGE-AGREEMENT.md` is rendered, **10 verdicts, 0 answered** — every faithfulness figure is provisional on it | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
 | 5–6 | planned in `phases/ROADMAP.md` | — |
 
 ### The baseline, and the number NOT to quote
@@ -1481,6 +1509,116 @@ Append a dated entry each session; keep each entry to a few bullets.
   `compare_prompts.py` as a measured candidate. **The prompt that ships is Viraj's call** —
   assuming it was the wrong call on 2026-08-17.
 - **258 tests**, 58/58 `# runnable`, **76** decisions.
+
+### 2026-09-03 — the prose judge, and the free tier that is 20 calls a day (`D80`, `D81`)
+
+- **Asked for "the task which doesn't need the lab PC."** That is Phase 4's remaining blocked
+  half: prose faithfulness, Step 5's agreement sheet, and the gate's one command. Rounds 13/14
+  in `HANDOFF.md` stay lab work and were not touched.
+- **`rag/faithful.py` grew a run mode**: `--sweep` judges the saved D/H answers, `--claims <id>`
+  goes sentence by sentence on one item, `--agreement` renders Step 5's ten. **51 tests in that
+  file, seven mutations checked** (retry-every-code, keep-refusals, PARTIAL-counts-as-supported,
+  drop-the-NO_PROSE-guard, retrieve-per-arm, random-sample — all CAUGHT).
+- **It judges SAVED answers and re-retrieves the sources**, one retrieval per item shared by both
+  arms. Regenerating would cost the evening *and* return different answers (`D54`); two lookups
+  of one query is how a prompt difference becomes a lookup difference.
+- **The judge broke before the judged did.** `gemini-3.6-flash` — pinned three days earlier —
+  answered **503** through four retries while `3.5`, `3.7` and `3.8` answered first time, same
+  key, same minute. **A pinned id is a promise about a name, not a service.**
+- **And `D78` was wrong in a sentence, measured.** It says *"rate limits are not the constraint
+  on any free tier."* The 429 body: `GenerateRequestsPerDayPerProjectPerModel-FreeTier`,
+  **quotaValue 20**. Twenty a day per model; D+H needs **~110**. Spreading that over six days
+  breaks `D78`'s own *same judge, both arms, one sitting*. **So the judge is `gemma4:e4b` on
+  Ollama** — the fallback `D78` had already named, and not self-grading: the generator is
+  `qwen2.5-coder:7b`.
+- **Two silent bugs of mine, both flattering, both caught before a number shipped.** The report
+  header printed the module constant, so a run judged by `gemma4:e4b` announced itself as
+  `gemini-3.7-flash` — now built from the row stamps, with `!! TWO JUDGES IN ONE RUN` for two
+  ids. And Ollama truncates at `num_ctx` **in silence**: default 4096, judge prompts measured
+  7127–11149 chars (~1800–2800 tokens). It fits today, which is exactly when to pin it —
+  `LOCAL_CONTEXT = 8192`.
+- **`rag.judge --report` is the gate** (`D81`). Five sections, each labelled **live** or **read
+  from a file**. Its generation figures re-derive `D72`/`D74` exactly — D 39/91, 19, 2; H 47/91,
+  10, 2; I 46/91, 11, 2 — which is the check that it is the same derivation, not a second opinion.
+- **Citations are re-scored rather than read, and it found `g016`.** The stored fields predate
+  `D79`. Under H, `print(f"x: {row[keys[0]]}  y: {row[keys[1]]}")` had been read as citing
+  `[0, 1, 2]`; today it cites `[2]`, `out_of_range` drops to none, and **`uncited_code_blocks`
+  goes 0 → 1**. The subscripts did not just invent a source, **they made an uncited code block
+  look cited.** `D` yields zero such rows — third time this phase a detector bug was invisible
+  until the arm under test started complying (`D76`, `D79`, this).
+- **The denominator bug I nearly shipped:** dropping `D75` failed rows per-arm gives D 91 and H
+  90 — two rulers for a paired comparison (`D61`). Fixed: every answerable item counts, failures
+  are their own column.
+- **A `check_runnable` block that reported the load average.** pytest appends `(0:01:02)` to its
+  collected line **only past sixty seconds**, so `07-TESTS.md`'s block passed on an idle machine
+  and failed while the judge held the GPU. Normalised alongside the existing `in <t>s` rule and
+  documented in the tool's own "the one normalisation" paragraph — a check whose result depends
+  on machine load is worse than a declared exception.
+- **`--resume` added mid-run, and it earned itself the same afternoon.** The sweep checkpoints
+  every 10 items but had no way to pick them up; a kill threw away hours. It resumes only when
+  the saved rows carry the **same judge model**, and it finishes a half-judged item rather than
+  skipping it — skipping would leave one arm short and turn a paired comparison into two
+  averages (`D61`). Verified live: *"resuming: 36 rows already judged by gemma4:e4b"*, 21 items
+  skipped, the 2 half-judged ones completed.
+- **A speedup I measured wrong, then measured again.** Concurrent arms looked like **1.66x**
+  (131.5s vs 217.8s for two calls) — taken **while the sweep was still running**, so the
+  "sequential" baseline was a contended 108.9s. Stopping everything and re-running it:
+  **46s + 46s = 92s sequential, 92s concurrent. Ollama serialises; concurrency buys nothing.**
+  `workers` now defaults to 1 with the numbers in the comment, and the capability stays behind
+  `--workers` because the lab 3060 is a different machine. **A benchmark taken on a busy machine
+  measures the machine** — and my own diagnostic commands were most of the load I was measuring.
+- **A mutation that was MISSED, and the claim moved rather than the test.** The comment said rows
+  are appended in variant order "never in completion order"; swapping the loop to iterate the
+  results dict passes every test, because `pool.map` already returns in input order. The
+  guarantee was never where the comment pointed. Comment and test docstring now name the real
+  mechanism and say plainly that moving to `as_completed` would break it silently.
+- **THE RESULT (`D82`), and the headline is not the one the table shows.** 110 answers judged,
+  one sitting: D **85%** supported (40/47), H **92%** (56/61). **Paired on the 46 items both arms
+  answered: 5↑ 1↓, exact McNemar p = 0.2188** — clears neither half of `D61`'s bar. The rate gap
+  is the **16 questions only H answered**, **13 of them `SUPPORTED`**. So the claim is **"H
+  answers 14 more and the extra answers hold up"**, not "H is more faithful" — and that kills the
+  standing objection that a more willing prompt buys its answers by talking past the evidence.
+- **`g088` is the one regression, read not counted.** D `SUPPORTED` (*"Passage [4] provides a
+  complete code example … all the steps"*), H `UNSUPPORTED` (*"the passages do not contain the
+  specific code example or the full instructional setup"*). H did not contradict its sources; it
+  **supplied more than they contain** — the failure a chattier prompt should be expected to have,
+  once in 46.
+- **`g016`: three instruments, one item.** The `D79` re-score (stored `[0,1,2]` → today `[2]`,
+  uncited code blocks **0 → 1**), the citation check (code with no source), and the judge
+  (`UNSUPPORTED` — *"None of the passages state that `row.keys()` is deprecated"*). The subscript
+  made the block look cited; the claim was not in the pages either.
+- **A FOURTH instance of the instrument breaking toward the arm under test.** `--report` printed H
+  at **48/91** against a published **47/91**: a `D75` failed row has **no `answer` key**, so
+  `ask.refused("")` is `False` and `g079` — an item with no answer at all — was counted as
+  delivered. Fixed; three tests, one of which asserts the scorecard reproduces `D72`/`D74` for all
+  three variants, so the next drift fails a test instead of needing someone to spot a `48`.
+- **The agreement sheet had zero controls and the docs already claimed it had some.** 7
+  `UNSUPPORTED` + 5 `PARTIAL` meant risk-ranking filled all ten slots with accusations. A sheet of
+  only accusations cannot catch the judge *waving something through* — the `g065` failure mode.
+  **3 `SUPPORTED` now reserved, capped at half the sheet** so risk still leads.
+- **The judge was then judged, and it did not do well.** A second model (`gemini-3.5-flash`) on
+  the review sheet's ten agreed **4/10**, and **all six disagreements were it choosing `PARTIAL`**
+  where ours chose an extreme. Ours used `PARTIAL` **2 times in 47**. The weakness has a name:
+  **a coarser scale**, not "worse". On **`g056`** — `D77`'s named blind spot — two hosted models
+  (`3.6` in `D78`, `3.5` today) say `PARTIAL` and `gemma4:e4b` says `SUPPORTED` **on both arms**.
+  So **read 13/16 as a ceiling**, and the human sheet is not a formality.
+- **The sheet had no controls, then had the wrong ones.** Risk-ranking filled all ten slots with
+  accusations, so nothing could catch the judge *waving something through* — the `g065` mode. Then
+  reserved controls were arbitrary `SUPPORTED` rows, and **`g056` still was not on it.** Controls
+  are now ranked by suspicion: answered-an-unanswerable-item first, open-cell second.
+- **A name is not a model.** `ollama list` shows `gpt-5.5:latest` and `gemma4:e4b` sharing digest
+  `c6eb396dbd59` — **two tags, one set of weights.** A cross-check comparing name strings would
+  have measured a model against itself and reported high agreement from a log that looks
+  legitimate. `same_model()` compares digests, falling back to names for hosted ids.
+- **A 429 is two conditions in one status code.** The body names which:
+  `GenerateRequestsPerDayPerProjectPerModel-FreeTier`. A per-minute limit deserves backoff; a
+  per-day limit does not clear today, so four retries cost 90s to reach the same refusal and ten
+  items of that is fifteen minutes of a tool looking busy while it fails. Per-day now raises
+  immediately; per-minute still retries; an unreadable body still gets its retries.
+- **What is deliberately NOT judged: variant `I`.** `D74` measured it worse on every column and it
+  is not a ship candidate, so it would cost ~60 more judge calls to confirm a decision already
+  made. Named here rather than left as a silent hole.
+- **336 tests**, **58/58** `# runnable`, **82** decisions. Nothing committed.
 
 ### 2026-08-23 (later) — groundedness without a judge (`D77`)
 

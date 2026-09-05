@@ -1,0 +1,41 @@
+{
+ "second_model": "gemini-3.5-flash",
+ "rows_judge": "gemma4:e4b",
+ "verdicts": {
+  "D:g045": {
+   "verdict": "UNSUPPORTED",
+   "reason": "Passage [3] states that the ability to associate an Engine with a MetaData object and the `t.select().execute()` pattern are no longer supported in SQLAlchemy 2.0.",
+   "judge_model": "gemini-3.5-flash"
+  },
+  "D:g079": {
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the passages state that `Session.get` supports options like `joinedload` or is used to migrate `Query.options`.",
+   "judge_model": "gemini-3.5-flash"
+  },
+  "D:g080": {
+   "verdict": "PARTIAL",
+   "reason": "Passages [1], [2], [3], and [4] cover the usage of `load_only()`, including its application to related objects and collections which the claim incorrectly states is not covered.",
+   "judge_model": "gemini-3.5-flash"
+  },
+  "D:g083": {
+   "verdict": "SUPPORTED",
+   "reason": "Passages [1] and [4] support this claim.",
+   "judge_model": "gemini-3.5-flash"
+  },
+  "D:g119": {
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the passages mention `scalar_one_or_none()` or compare its behavior to `session.scalar()`.",
+   "judge_model": "gemini-3.5-flash"
+  },
+  "H:g016": {
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the passages state that the `row.keys()` method is no longer available on result rows in SQLAlchemy 2.0 or that it should be used on the `Result` object instead.",
+   "judge_model": "gemini-3.5-flash"
+  },
+  "H:g088": {
+   "verdict": "PARTIAL",
+   "reason": "Passages [2] and [4] support the transaction recipe and its behavior, but none of the passages mention SQLAlchemy version 2.0.51.",
+   "judge_model": "gemini-3.5-flash"
+  }
+ }
+}

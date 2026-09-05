@@ -150,7 +150,40 @@ in fact *more* pinnable than any API — you hold the weights — and stays the 
 agreement-of-ten comes back poor. `ROADMAP.md`'s "too weak to grade itself" objection is about
 **self**-grading; a different, larger model is not that.
 
-### Step 3 — Citation integrity (built), then faithfulness (needs the judge)
+#### Correction 2026-09-03 — the pin went dark, and the free tier is 20 a day (`D80`)
+
+Three days after the pin was chosen, two of the paragraph above's premises failed on the same
+morning. Both by measurement.
+
+**The pinned id stopped answering.** One call each, same key, same minute:
+
+```
+gemini-3.6-flash     FAIL HTTP 503 from gemini-3.6-flash
+gemini-3.5-flash     OK   SUPPORTED
+gemini-3.7-flash     OK   SUPPORTED
+gemini-3.8-flash     OK   SUPPORTED
+```
+
+**And the free tier's real ceiling contradicts the sizing above in as many words.** `D78` says
+*"rate limits are not the constraint on any free tier"*. The 429 body:
+
+```
+quotaId:    GenerateRequestsPerDayPerProjectPerModel-FreeTier
+quotaValue: 20
+```
+
+**Twenty requests per day, per model. This comparison needs ~110.** So the API judge cannot
+finish it today or in any single day — and the tight property `D78` itself names is *same judge,
+both arms, **one sitting***. Spreading the run over six days to fit the quota does not honour
+that property, it destroys it.
+
+**So the judge is local: `gemma4:e4b` on Ollama, no quota.** `D78` already named this fallback
+and gave the reason it is a good one — you hold the weights, so it is *more* pinnable than any
+API. It is **not** self-grading: the generator is `qwen2.5-coder:7b`, a different family and a
+different size, and `ROADMAP.md`'s objection is to a model marking its own homework. Whether it
+is *good enough* is Step 5's number, not a matter of reputation.
+
+### Step 3 — Citation integrity, then faithfulness — both built and measured
 
 **`D71`: the deterministic half first, and completely.** `rag/judge.py --citations` needs no
 model, no key and no free tier. It answers what a script can settle exactly:
@@ -200,8 +233,81 @@ fabrications is not a measure of harm.
 those chunks and repeated exactly that much.
 
 **What it cannot see: `g056`**, which fabricates in prose rather than code. A code-grounding
-detector is structurally blind to that. **Prose-level faithfulness still needs the pinned judge**
-of Step 2 — that is the remaining blocked work, and there is no key on this machine.
+detector is structurally blind to that. **Prose-level faithfulness needs a judge** — and as of
+2026-09-03 it is built and running (`D80`).
+
+#### The prose half, built 2026-09-03 — `rag.faithful --sweep`
+
+**What is sent to the judge, and what deliberately is not.** The prose only: fenced code is
+stripped before the claim is built. That is a division of labour rather than a shortcut —
+`judge.ungrounded_calls` already grades code deterministically, exactly, with no key (`D77`), and
+sending the code here would spend a call to re-answer worse a question a regex answers exactly.
+What is left is precisely `D77`'s stated blind spot.
+
+**Three properties, each pinned by a test rather than promised:**
+
+- **It judges SAVED answers and re-retrieves the sources.** Regenerating would cost the evening
+  and produce *different* answers (`D54`), turning a scorecard into a new experiment. Retrieval
+  is deterministic and prompt-independent, so it runs **once per item** and both arms are judged
+  against **identical passages** — two lookups of one query is how a difference between prompts
+  becomes a difference between lookups.
+- **Refusals, failures and unanswered items never reach the judge.** A decline has nothing to be
+  faithful to, and scoring it UNSUPPORTED would make the system look worse the more honest it got
+  — `D62`'s trap. A **cited** refusal is still a refusal here (`D76`).
+- **`UNPARSED` and `NO_PROSE` are kept out of every rate rather than coerced.** A judge that
+  stopped following the format is a fact about the run; a code-only answer is not a pass. Both
+  would move the number in the flattering direction.
+
+`--claims <id>` is the deep dive the aggregate points at: one item, one call per sentence, so the
+answer is *which sentence* rather than *how many answers*.
+
+#### Measured 2026-09-03 — and the rate and the pairing disagree (`D82`)
+
+110 answers judged by `gemma4:e4b`, one sitting, both arms, identical passages:
+
+```
+variant   answers  judged   SUPP  PART  UNSUP  UNPARSED  NO_PROSE  supported
+D              48      47     40     2      5         0         1       85%
+H              62      61     56     3      2         0         1       92%
+```
+
+**Do not quote 85% → 92% as "H is more faithful."** The paired comparison `D61` requires says
+otherwise:
+
+```
+judged by both arms: 46          (D only: 2; H only: 16)
+H supported where D was not : 5   g024 g045 g078 g080 g083
+D supported where H is not  : 1   g088
+exact McNemar p = 0.2188
+```
+
+**5↑ 1↓, p = 0.22** — clears neither half of `D61`'s bar. The rate gap comes from the **16 items
+only H answered**, **13 of which are `SUPPORTED`**.
+
+**That is a confirmation of `D74`, and a more useful one than another citation count.** The
+standing objection to shipping H is that a prompt making the model more willing buys its extra
+answers by talking past the evidence. Measured, it does not: **willingness did not cost
+grounding.** Say it that way.
+
+**`g088`, the single regression, read rather than counted.** D `SUPPORTED` — *"Passage [4]
+provides a complete code example … detailing all the steps."* H `UNSUPPORTED` — *"The passages do
+not contain the specific code example or the full instructional setup provided in the claim."*
+H did not contradict its sources; **it supplied more than they contain**, which is the failure a
+forthcoming prompt should be expected to have. Once in 46, and it is on the agreement sheet.
+
+**`g016`, where three instruments land on one item.** The `D79` re-score says its stored fields
+called it cited `[0,1,2]` when today it cites `[2]` and **uncited code blocks goes 0 → 1**; the
+citation check says the code block has no source; the judge says `UNSUPPORTED` — *"None of the
+passages state that `row.keys()` is deprecated."* The subscript bug made that block *look* cited,
+and the claim was not in the pages either.
+
+**`g065` is `PARTIAL` on both arms and the reasons keep `D77`'s severity split** — D's *"do not
+contain the specific code example or the detailed `upgrade`/`downgrade` functions"* against H's
+*"outside SQLAlchemy's scope, but they recommend Alembic."* Same verdict, different harm. **A
+count of PARTIAL is no more a measure of harm than a count of fabrications was.**
+
+**Every figure here is provisional on section 5.** The judge's agreement with a human is **0 of
+10 answered**.
 
 #### Measured 2026-08-22, first full run — and it is worse than Phase 1 recorded (`D73`)
 
@@ -343,6 +449,24 @@ agreement rate.** Precedent exists: the golden-set signature closed on a risk-we
 spot-check of ten (§H CLOSED, 2026-08-21), and `g065` is why that sample was worth taking — its
 `answerable: false` reason was measurably wrong and no audit could see it.
 
+**Built 2026-09-03: `uv run python -m rag.faithful --agreement`** renders
+`deliverables/JUDGE-AGREEMENT.md` — ten verdicts with the claim the judge read, the five passages
+it read them against, and a blank. **Claude renders the sheet and does not fill it in** (`D06`).
+
+**The sample is risk-weighted, not random**, and both halves of that matter:
+
+- every `UNSUPPORTED` and `PARTIAL` goes in first, because a uniform ten from a mostly-`SUPPORTED`
+  set measures agreement where it is easiest and says nothing about the verdicts a decision would
+  rest on;
+- `SUPPORTED` rows fill the rest, because **without them the sheet can only catch the judge
+  accusing wrongly, never the judge missing something** — and a miss is exactly the `g065` failure
+  mode.
+
+**The rate is read back out of the filled sheet**, not typed into a doc beside it, so the number
+in the scorecard is the artifact a human actually wrote in. An unanswered row counts as
+unanswered and never as agreement; the blanks are printed next to the rate, because *"9 of 10
+agree"* over one filled row is the shape of every flattering statistic this repo has caught.
+
 ---
 
 ## Gate
@@ -353,6 +477,30 @@ hand-checked items is a number in that report rather than an assumption.
 
 **The same rule as Phase 3:** a lever tried and dropped with a number beside it counts. A lever
 skipped does not.
+
+### The command, built 2026-09-03 (`D81`)
+
+```
+uv run python -m rag.judge --report
+```
+
+Five sections, and **each states whether it was measured live or read from a file** — a report
+that mixes the two and labels neither is how `0.64` came to be quoted as the system's score.
+Retrieval is live (cheap: lookups, no generations). Everything about the answers is read from the
+300 saved generations, because regenerating them costs the evening *and* returns different
+answers (`D54`).
+
+**Its generation figures were checked against the published ones rather than trusted**: D
+**39/91 = 0.43**, 19 over-refusals, 2 fabrications; H **47/91 = 0.52**, 10, 2; I **46/91 = 0.51**,
+11, 2 — every cell identical to `D72` and `D74`.
+
+**Citations are re-scored with today's rules, not read**, because the saved fields predate `D79`
+— and the report names each row where the two disagree. `g016` is one, and the old bug was worse
+than a phantom citation: `row[keys[0]]` made an **uncited code block look cited**. `D` yields zero
+such rows; only the complying variants do.
+
+**What is still open at the gate:** section 5's agreement rate. The sheet exists, and a human has
+not read it. The report prints that fact rather than a number.
 
 ---
 

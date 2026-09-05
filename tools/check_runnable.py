@@ -45,8 +45,11 @@ THE ONE NORMALISATION, AND WHY IT IS NOT A LOOPHOLE
 pytest prints `114 passed, 1 warning in 1.04s`. The duration is genuinely
 nondeterministic, so an exact match would fail forever and the check would be
 turned off — which is worse than a narrow, declared exception. Timings of the
-form `in <number>s` are normalised on both sides. **Nothing else is.** Counts,
-paths, error strings and every other digit must match exactly.
+form `in <number>s` are normalised on both sides, and so is the
+parenthesised `(0:01:02)` pytest appends once a run passes sixty seconds --
+without that, the same block passes on an idle machine and fails on a busy one,
+which is a check that reports the load average. **Nothing else is normalised.**
+Counts, paths, error strings and every other digit must match exactly.
 """
 
 from __future__ import annotations
@@ -99,6 +102,7 @@ ENV_MARKERS = {
     "rag.score": "reads corpus/chunks.jsonl, which is generated and gitignored (D11), and the live path also needs Qdrant",
     "rag.golden": "reads corpus/chunks.jsonl, which is generated and gitignored (D11)",
     "rag.judge": "~100 Ollama generations against a gitignored corpus; ~30 min and nondeterministic",
+    "rag.faithful": "needs a judge model (a key, or Ollama) plus Qdrant and the gitignored corpus; ~110 calls",
     "psql": "needs a running database",
 }
 
@@ -112,6 +116,16 @@ MUTATION_MARKERS = (", then ", "then uv run", "then, ")
 HISTORY_MARKERS = ("before ", "first draft", "event only", "old ", "previously")
 
 TIMING = re.compile(r"\bin \d+\.\d+s\b")
+
+# pytest appends a wall-clock suffix -- `317 tests collected in 62.15s
+# (0:01:02)` -- ONLY once the run passes sixty seconds. So the same block
+# passes on an idle machine and fails on a busy one, which is worse than a
+# declared exception: it is a check that reports the load average.
+#
+# Found 2026-09-03, when collection crossed a minute for the first time
+# (317 tests, with a judge run holding the GPU). Same rule as TIMING and the
+# same narrow shape -- a parenthesised H:MM:SS at end of line, nothing else.
+TIMING_SUFFIX = re.compile(r" \(\d+:\d{2}:\d{2}\)$", re.M)
 
 
 class Block:
@@ -214,6 +228,7 @@ def normalise(text: str) -> str:
     two spaces in has to keep those two spaces or it will not be found.
     """
     text = TIMING.sub("in <t>s", text)
+    text = TIMING_SUFFIX.sub("", text)
     lines = [l.rstrip() for l in text.split("\n")]
     while lines and not lines[0].strip():
         lines.pop(0)

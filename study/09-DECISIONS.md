@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D77`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D82`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -2235,6 +2235,306 @@ metric, re-verify the **detector** against the new output shape before believing
 **Interview question it answers:** *"How do you know your evaluation harness is right?"* By
 reading raw outputs from the arm that changed, not only from the control — twice now the control
 was clean and the treatment exposed the bug.
+
+### D80 — the pinned judge went dark and the free tier is 20 calls a day, so the judge is local
+
+**Measured 2026-09-03.** `D78` was written three days earlier, pinned `gemini-3.6-flash`, and
+argued that pinning is bookkeeping because a re-run is *"~60 calls — minutes"*. **Two of its
+premises failed on the same morning, and both failed by measurement rather than by argument.**
+
+**First: the pinned id stopped answering.** One call each, same key, same minute:
+
+```
+gemini-3.6-flash     FAIL HTTP 503 from gemini-3.6-flash
+gemini-3.5-flash     OK   SUPPORTED
+gemini-3.7-flash     OK   SUPPORTED
+gemini-3.8-flash     OK   SUPPORTED
+```
+
+`gemini-3.6-flash` answered *"currently experiencing high demand"* through four retries while
+three siblings answered first time. **A pinned id is a promise about a name, not about a
+service.** `D78` was right that the id is bookkeeping — it just did not expect the bookkeeping to
+be the thing that broke.
+
+**And the cadence is the corroboration.** All four ids above were reachable in the catalog on the
+same morning, and `3.8` — the newest of them — answered first time. If that line ships a new
+flash model every few weeks, then **the pin is being replaced faster than a phase completes**,
+and "pin a version-numbered id rather than a floating alias" (`D78`) buys less than it sounds
+like it does. It stops the model changing *underneath* a run; it does not stop the id you pinned
+from becoming the unmaintained one. `--model` is the answer to that, and `stamp()` is what makes
+the answer safe: change the reader, never lose which reader produced a row.
+
+**Second, and this one contradicts `D78` in as many words.** `D78` says:
+
+> *"Rate limits are not the constraint on any free tier, which removes the reason most people
+> pick one."*
+
+The 429 body disagrees, and it names the quota:
+
+```
+quotaId:    GenerateRequestsPerDayPerProjectPerModel-FreeTier
+quotaValue: 20
+```
+
+**Twenty requests per day, per model.** D + H over the saved sweep is about **110 calls**. So the
+API judge cannot finish this comparison today, or in any one day — and `D78`'s own tight property
+is *same judge, both arms, **one sitting***. Spreading the run across six days to fit the quota
+does not satisfy that property, it destroys it. **The sizing in `D78` was arithmetic about the
+workload with no measurement of the ceiling it had to fit under.**
+
+**The escape was already written down.** `D78`'s last paragraph:
+
+> *"A local judge is in fact MORE pinnable than any API — you hold the weights — and stays the
+> fallback if the agreement-of-ten comes back poor."*
+
+**So the judge is `gemma4:e4b` on Ollama, and nothing else changed.** `local_post()` wears the
+Gemini transport's exact signature — `(path, body, key, timeout)`, same return shape — so
+`generate`, `judge_claim`, `judge_answer` and `sweep_rows` are untouched by which judge is in
+use. A judge swap that needed edits in four call sites is a judge swap nobody makes under time
+pressure, and `D78` requires the swap to stay cheap.
+
+**It is not self-grading, which is the objection `ROADMAP.md` actually raises.** The generator is
+`qwen2.5-coder:7b`; the judge is a different family and a different size. Nothing marks its own
+homework. And *"but is a local model strong enough"* is the question **Step 5 exists to answer
+with a number** rather than to settle by reputation: `--agreement` puts ten of this judge's
+verdicts in front of a human. **A strong judge with unmeasured agreement and a weak judge with
+unmeasured agreement are the same object.**
+
+**Two defects found while building it, both silent, both the flattering direction:**
+
+- **The report named the wrong instrument.** It printed the module constant, so a run judged by
+  `gemma4:e4b` announced itself as `gemini-3.7-flash`. Now the header is built from the row
+  **stamps** — which is what `D78` made `stamp()` mandatory for — and two distinct ids in one run
+  print `!! TWO JUDGES IN ONE RUN`, because that is a void comparison rather than a warning.
+- **Ollama truncates at `num_ctx` in silence.** The default is 4096 tokens; the judge prompt
+  measured **7127–11149 characters, roughly 1800–2800 tokens**. It fits — *today* — which is
+  exactly when to pin it, because the first answer that overflows produces confident verdicts
+  from four passages out of five and no error anywhere. `LOCAL_CONTEXT = 8192`, pinned by a test.
+
+**Interview question it answers:** *"What happens when your evaluator's provider changes under
+you?"* Ours did, twice in one morning — a 503 on the pinned id and a daily quota two orders of
+magnitude below the workload. The design survived because the model id was **recorded on every
+row instead of defended**, and because the transport was one injectable function. What it cost
+was a paragraph of `D78` being wrong, which is written down rather than edited away.
+
+---
+
+### D81 — the scorecard recomputes what it can, and the control was the only clean arm again
+
+**Built 2026-09-03**, and it closes `PHASE-4.md`'s gate: *"one command scores the full golden set
+and emits retrieval metrics, faithfulness and citation accuracy in one report."*
+
+`uv run python -m rag.judge --report`. Five sections, and **each one says whether it was measured
+live or read from a file**:
+
+| section | source | why |
+|---|---|---|
+| retrieval | **live**, needs Qdrant | ~100 lookups, no generations — cheap, so quoting a stored figure would be laziness |
+| generation | read: `prompt-sweep-phase4.json` | 300 saved answers, ~2.5 h of Mac time; regenerating gives **different** answers (`D54`) |
+| citations | read, then **re-scored** | see below |
+| faithfulness | read: `faithfulness-phase4.json` | ~110 judge calls |
+| judge agreement | read: `JUDGE-AGREEMENT.md` | a human fills it (`D06`) |
+
+**A report that mixes a live measurement with a stored one and labels neither is how `0.64` came
+to be quoted as the system's score.**
+
+**The generation figures are a derivation, and it was checked against the published ones rather
+than trusted.** From the saved rows the report computes D **39/91 = 0.43**, 19 over-refusals, 2
+fabrications; H **47/91 = 0.52**, 10, 2; I **46/91 = 0.51**, 11, 2 — **every cell identical to
+`D72` and `D74`**. That is the check that this is the same derivation those numbers came from and
+not a plausible-looking second opinion.
+
+**The denominator is every answerable item, failed rows included.** Dropping a `D75` failed row
+per-arm gives D 91 and H 90 — two different rulers for a comparison that only means anything item
+by item (`D61`). The failed count is printed in its own column so it cannot hide in the numerator.
+
+**Citations are recomputed, not read, and that is the finding.** The saved file's citation fields
+were written on 2026-08-27; `D79` changed what counts as a citation on 2026-09-01. Reading those
+fields would reprint numbers the current code disagrees with. Re-scored with today's rules, the
+report also names every row where stored and fresh disagree:
+
+```
+D: 0 rows
+H: 1 row  — g016
+I: 1 row  — g121
+```
+
+**`g016` is the named example, and the old bug was worse than "a phantom citation".** H's answer
+contains `print(f"x: {row[keys[0]]}  y: {row[keys[1]]}")`. Pre-`D79`:
+
+| | stored (2026-08-27) | today (`D79`) |
+|---|---|---|
+| `cited` | `[0, 1, 2]` | `[2]` |
+| `out_of_range` | `[0]` | `[]` |
+| `uncited_code_blocks` | **0** | **1** |
+
+The subscripts did not merely invent a citation of a source numbered zero. **They made a code
+block with no citation look cited** — the flattering direction, and invisible in the aggregate.
+
+**And the shape is now familiar enough to name.** `D` produces **zero** stale rows; only `H` and
+`I` do. `D` barely cites and barely writes code, so the instrument's bug cannot fire on it.
+**Third time in this phase** that a defect in a detector was invisible until the variant under
+test started complying: `D76` (a refusal wearing a citation), `D79` (a subscript read as a
+citation), and now this. **Test your instruments against the arm that changed, never only against
+the control.**
+
+**A fourth instance of the same bug class, found by the report disagreeing with the published
+table.** Section 2 printed H at **48/91** where `D74` says **47/91**. The cause: a `D75` failed
+row carries **no `answer` key at all**, so `ask.refused("")` is `False` and the row walked into
+the *delivered* count as a success. `g079` — an item with no answer — was being scored as an
+answered one.
+
+**It inflated H, the arm under test**, exactly like `D76` (a refusal wearing a citation) and
+`D79` (a subscript read as a citation). **A failure is not an answer and not a refusal: it is a
+missing measurement**, so it belongs in neither numerator while staying in the denominator, which
+is what keeps both arms on one ruler (`D61`). Three tests now pin it, including one that asserts
+the scorecard reproduces `D72`/`D74`'s cells for all three variants — so the next drift in that
+derivation fails a test rather than needing a human to notice a `48` where a `47` belongs.
+
+**Interview question it answers:** *"How do you report an evaluation you cannot fully run today?"*
+By printing `NOT MEASURED` with the command that would fix it, rather than a zero or a blank.
+Section 4 says so when there is no judge run, and section 5 says *"0 answered — a human has not
+read them yet"* rather than reporting an agreement rate over an empty sheet. **An unmeasured
+judge is a precise instrument of unknown accuracy, and the gate is written to refuse the
+assumption.**
+
+### D82 — prose faithfulness, measured: H's edge is NOT in being more faithful, it is in answering more
+
+**Measured 2026-09-03**, 110 answers judged by `gemma4:e4b`, one sitting, both arms, identical
+passages. The first prose-level faithfulness number in this repo, and the half `D77` declared
+itself structurally blind to.
+
+```
+variant   answers  judged   SUPP  PART  UNSUP  UNPARSED  NO_PROSE  supported
+D              48      47     40     2      5         0         1       85%
+H              62      61     56     3      2         0         1       92%
+```
+
+**Read alone, that says H is more faithful. The paired comparison says it is not — and the
+paired comparison is the one `D61` requires**, because a rate over two different sets of answers
+is two averages, not a result:
+
+```
+judged by both arms: 46          (D only: 2 — g079, g117; H only: 16)
+H fully supported where D was not : 5   g024 g045 g078 g080 g083
+D fully supported where H is not  : 1   g088
+exact McNemar p = 0.2188
+```
+
+**5 fixed, 1 broken, p = 0.22.** `D61`'s bar is ~6 clean fixes with **no** regressions. This
+clears neither half. **On the answers both prompts produced, H's faithfulness advantage is not
+established.**
+
+**So where does 85% → 92% come from? The sixteen items only H answered.** Thirteen of those
+sixteen come back `SUPPORTED`. That is not H being more faithful on a given answer — it is H
+answering fourteen more questions (`D74`) and the extra answers being mostly grounded.
+
+**Which makes this a confirmation of `D74` rather than a new claim, and a more valuable one than
+another citation count.** The obvious objection to shipping H has always been that a prompt which
+makes a model *more willing to answer* buys its extra answers by talking past the evidence. That
+objection is now measured and it does not hold: **willingness did not cost grounding.** Say it
+that way, not "H is more faithful."
+
+**`g088` is the one regression and it is worth reading rather than counting.** Same question,
+both arms answered, and the judge splits:
+
+- **D** — `SUPPORTED`: *"Passage [4] provides a complete code example and description detailing
+  all the steps listed in the claim."*
+- **H** — `UNSUPPORTED`: *"The passages do not contain the specific code example or the full
+  instructional setup provided in the claim."*
+
+H did not contradict the sources. **It supplied more than they contain.** That is the failure mode
+a forthcoming prompt should be expected to have, it happened once in 46, and it is on the
+agreement sheet for a human to confirm.
+
+**`g016` is where three instruments converge on one item**, which is the strongest evidence in
+this run that they are measuring something real:
+
+| instrument | what it says about `g016` under H |
+|---|---|
+| `D79` re-score | the stored fields called it cited `[0,1,2]`; today `[2]`, and **uncited code blocks 0 → 1** |
+| citation integrity | a code block with no source attached |
+| **the prose judge** | `UNSUPPORTED` — *"None of the passages state that `row.keys()` is deprecated"* |
+
+The subscript bug had made that code block *look* cited. Underneath it, the claim was not in the
+pages either.
+
+**`g065` comes back `PARTIAL` on both arms, and the reasons preserve `D77`'s severity split.** D:
+*"support the general concept … but do not contain the specific code example or the detailed
+`upgrade`/`downgrade` functions."* H: *"state that general ALTER support is outside SQLAlchemy's
+scope, but recommend Alembic."* Same verdict, and the reasons describe a fabricated procedure on
+one side and a paraphrase on the other. **A count of PARTIAL is still not a measure of harm** —
+`D77` said this about fabrications and it survives contact with a judge.
+
+**What this number is NOT.** `UNSUPPORTED` means *not in the pages the system retrieved*, not
+*false*. A correct sentence the model knew from training and no retrieved page mentions scores
+`UNSUPPORTED` here, deliberately: a RAG system answering from memory has not used its sources and
+cannot be checked. **Existence** is `tools/audit_golden_fullbar.py`'s job on the real library, and
+**code grounding** is `D77`'s. Three questions, three instruments, none subsuming another.
+
+**A SECOND MODEL WAS ASKED THE SAME TEN, AND IT AGREED WITH THE JUDGE ON FOUR.** Measured
+2026-09-03, `gemini-3.5-flash` against the `gemma4:e4b` rows on the sheet's ten:
+
+```
+  g045   D  UNSUPPORTED  -> UNSUPPORTED  agree
+  g079   D  UNSUPPORTED  -> UNSUPPORTED  agree
+  g080   D  UNSUPPORTED  -> PARTIAL      DIFFER
+  g083   D  UNSUPPORTED  -> SUPPORTED    DIFFER
+  g119   D  UNSUPPORTED  -> UNSUPPORTED  agree
+  g016   H  UNSUPPORTED  -> UNSUPPORTED  agree
+  g088   H  UNSUPPORTED  -> PARTIAL      DIFFER
+  g056   D  SUPPORTED    -> PARTIAL      DIFFER
+  g056   H  SUPPORTED    -> PARTIAL      DIFFER
+  g014   D  SUPPORTED    -> PARTIAL      DIFFER
+
+  4/10 = 40% model-to-model agreement
+```
+
+**Provenance of those ten, stated because two runs exist.** The table above is the **first**
+cross-check, which answered all ten. A second run was needed to capture the verdicts to
+`deliverables/JUDGE-CROSSCHECK.json` (the first predated the saving code), and it got **7 of 10
+before the daily quota cut it off** — `g056` twice and `g014`, the three `SUPPORTED` controls, came
+back `(no answer: 429)`. So the saved artifact holds **7** rows and reports **4/7 = 57%** over what
+it actually answered, with the three unanswered printed beside it rather than dropped. **The
+10-row table is the complete measurement; the file catches up on the next day's quota.** Both
+numbers are real and they are not the same denominator, which is exactly why the tool prints the
+denominator.
+
+**All six disagreements are the same shape: the hosted model chose `PARTIAL` where the local
+judge chose an extreme.** The local judge barely uses the middle category at all — **2 `PARTIAL`
+in 47** for D, **3 in 61** for H — while the second model reached for it six times in ten. That is
+not "the local judge is lenient" and it is not "harsh": **it is a judge with a coarser scale**,
+and on a three-way rubric that is a specific, nameable weakness rather than a vague doubt.
+
+**`g056` is the sharpest instance and it now has three readings.** `D78` recorded
+`gemini-3.6-flash` judging it **`PARTIAL`**. `gemini-3.5-flash` says **`PARTIAL`** on both arms.
+`gemma4:e4b` says **`SUPPORTED`** on both. Two hosted models agree with each other and disagree
+with the local one — **on the exact item `D77` named as the reason a prose judge was needed at
+all.** If the local judge is wrong there, it is wrong in the direction that matters: waving
+through the answer this repo already knows is a fabrication.
+
+**What that does to the numbers above: it puts a visible error bar on them and changes none of the
+conclusions.** The paired result was already *not significant* (5↑ 1↓, p = 0.22), so a noisier
+judge cannot rescue it. The claim that survives — *H answers 14 more questions and 13 of the 16
+extra answers are grounded* — rests on `SUPPORTED` verdicts from a judge that over-uses
+`SUPPORTED`, so **treat 13/16 as an upper bound**, not a point estimate.
+
+**Why this is in the register rather than quietly fixed by switching judges.** Switching to a
+hosted judge is exactly what `D80` measured as impossible: 20 calls a day per model against ~110.
+The cross-check is affordable *because it is ten calls*. So the honest position is a local judge
+whose specific weakness is **named and measured**, with a second opinion on the rows any decision
+would rest on — not a stronger judge we cannot actually run.
+
+**And the whole table is still provisional on one unmeasured thing.** The judge's agreement with a
+**human** is **0 of 10 answered**. `deliverables/JUDGE-AGREEMENT.md` exists; nobody has read it. Every figure
+above is what an instrument of unknown accuracy reported, the scorecard says so in section 5, and
+`D06` says only Viraj closes that.
+
+**Interview question it answers:** *"Your prompt change improved a metric — how do you know it did
+not just make the model chattier?"* Because the rate and the pairing were reported separately and
+they disagree. The rate moved 85% → 92%; the paired test on the answers both prompts produced is
+5↑ 1↓, p = 0.22. **The honest claim is the smaller one**: it answers fourteen more questions and
+the extra answers are mostly grounded.
 
 ---
 

@@ -450,6 +450,20 @@ Phase 2 measured whether you fetched the right pages. Now: is the final answer a
 - **LLM-as-judge** — you use a *strong* AI to grade your system's answers. (Free tier of
   Google's Gemini. Your local model is too weak to be a trustworthy judge — it's fine for
   quick iteration, but the numbers that go in your README come from the strong judge.)
+
+  > **Overtaken by measurement, 2026-09-03 (`D80`).** Two things this bullet assumed turned out
+  > not to hold. The **free tier is 20 requests per day, per model** — the 429 body says
+  > `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `quotaValue: 20` — against a run that
+  > needs **~110** calls, so the hosted judge cannot grade both prompt arms **in one sitting**,
+  > which `D78` establishes as the property that actually decides whether a comparison means
+  > anything. And the pinned model answered **HTTP 503** all morning while three siblings
+  > answered on the first attempt.
+  >
+  > **So the judge is local — `gemma4:e4b` on Ollama — and the objection above does not apply to
+  > it.** *"Too weak to grade itself"* is about **self**-grading; the generator here is
+  > `qwen2.5-coder:7b`, a different family and size, so nothing marks its own homework. Whether
+  > this judge is good enough is the **agreement-of-ten**, which is the next bullet and is a
+  > measurement rather than a reputation.
 - **Faithfulness** — does the answer actually stick to the retrieved sources, or did it
   make things up? This is the anti-hallucination metric.
 - **Citation accuracy** — do the sources it cites actually exist and actually support the
@@ -464,6 +478,13 @@ Phase 2 measured whether you fetched the right pages. Now: is the final answer a
 
 **Done when:** one command scores the full golden set and emits a report with retrieval
 metrics, faithfulness, and citation accuracy.
+
+**Built 2026-09-03 (`D81`): `uv run python -m rag.judge --report`.** Five sections, each stating
+whether it was **measured live** or **read from a saved run** — retrieval is live because it is
+only lookups; the answer-side figures come from the 300 saved generations, because re-running
+them returns *different* answers (`D54`). Still open at the gate: the judge's agreement rate.
+The sheet of ten is rendered and a human has not read it, and the report prints that fact rather
+than a number.
 
 ---
 

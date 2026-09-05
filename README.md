@@ -101,10 +101,10 @@ study/                 the teaching material, numbered in reading order
 deliverables/          what a phase produced — BREAKAGES.md is Phase 0's, FAILURES.md is Phase 1's
 logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
-rag/                   retrieval (Phase 1-3) + judge.py, the Phase 4 answer grader
+rag/                   retrieval (Phase 1-3) + judge.py / faithful.py, the Phase 4 answer graders
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 282 tests pinning what the docs claim
+tests/                 336 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -141,8 +141,8 @@ to "§18" is unambiguous in either file.
 | [`study/13-VERIFICATION.md`](study/13-VERIFICATION.md) | **§R5 — defending it without notes.** The five questions Phase 1 closes on, answered four ways each: plain words, mechanism, the measurement that makes it checkable, and the spoken version. Includes the wrong answer each question attracts, the follow-up that kills it, and **§R5.7** — all five said end to end, for rehearsing as one piece |
 | [`study/14-MEASURE.md`](study/14-MEASURE.md) | **§R6 — Phase 2's scorecard.** The golden baseline (and why not to quote `0.51` alone), the 100-item run where **real questions score worst** (Stack Overflow 0.38 against migration-guide 0.73), the refusal run (**thirteen** generation defects with the page in hand, and two fabrications), and the ceiling questions — including one whose `answerable: false` label looks wrong |
 | [`study/15-IMPROVE.md`](study/15-IMPROVE.md) | **§R7 — Phase 3 retrieval.** Twin collapse, hybrid BM25, seat-5 CE; Sphinx strip **rejected**. Quote **0.64**. Next is Phase 4 on the lab |
-| [`study/16-JUDGE.md`](study/16-JUDGE.md) | **§R8 — Phase 4.** End to end **0.43** vs retrieval's **0.64** ceiling; 65% of answers cite nothing; position beats emphasis; the result that was wrong first time |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 66 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
+| [`study/16-JUDGE.md`](study/16-JUDGE.md) | **§R8 — Phase 4.** End to end **0.43** vs retrieval's **0.64** ceiling; 65% of answers cite nothing; position beats emphasis; the result that was wrong first time; and the day the hosted judge went 503 on its pinned id and turned out to be capped at **20 calls a day per model** against a ~110-call run, so the judge went local (`D80`) |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 82 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -177,10 +177,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-282 tests collected in 22.84s
+336 tests collected in 22.84s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 282 passed with it up and 277
+Five of them skip when Qdrant is not running, so a run reports 336 passed with it up and 331
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
