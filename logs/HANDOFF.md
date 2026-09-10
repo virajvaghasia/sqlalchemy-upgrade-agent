@@ -2388,7 +2388,27 @@ below is wrong.
 ### REPLY 16.0
 
 ```
-(paste here)
+# lab PC, 2026-09-10. tip 1091d7b.
+
+git log -1 --oneline
+1091d7b feat(phase-4): narrow D83 to a compute-path confound, stamp machines, open Round 16
+
+ls rag/faithful.py rag/judge.py
+rag/faithful.py
+rag/judge.py
+
+grep -c "faithfulness-phase4\.{machine()}" rag/faithful.py
+1
+
+uv sync --frozen --extra embed
+Checked 77 packages in 919ms
+
+docker compose up -d qdrant
+Container sqlalchemy-upgrade-agent-qdrant-1 Running
+NAME                                IMAGE                   COMMAND             SERVICE   CREATED       STATUS                PORTS
+sqlalchemy-upgrade-agent-qdrant-1   qdrant/qdrant:v1.19.0   "./entrypoint.sh"   qdrant    3 weeks ago   Up 4 days (healthy)   127.0.0.1:6333->6333/tcp, 6334/tcp
+
+# PASS — tip newer than a380920; machine-stamp grep = 1; qdrant healthy.
 ```
 
 ## ASK 16.1 — put the generator fully on the GPU, and PROVE it before running anything long
@@ -2439,7 +2459,35 @@ planning further cross-machine rounds that cannot answer anything.
 ### REPLY 16.1
 
 ```
-(paste here — including the failed attempts)
+# lab PC, 2026-09-10. same sitting as 16.0.
+
+# 1. what is on the card
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+NVIDIA GeForce RTX 3060, 589 MiB, 12288 MiB
+
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+pid, process_name, used_gpu_memory [MiB]
+4480, /usr/libexec/gnome-remote-desktop-daemon, 106 MiB
+697560, /usr/share/rustdesk/rustdesk, 142 MiB
+
+ollama ps
+(empty — nothing loaded)
+
+# Unloaded leftover bake-off models (gemma4:e4b, qwen2.5:14b-instruct, llama3.1:8b)
+# then loaded the generator. Did NOT need sudo / OLLAMA_NUM_GPU — first load was clean.
+
+# 2+3. throwaway generation + THE LINE
+ollama run qwen2.5-coder:7b "say OK"
+OK
+
+ollama ps
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+
+nvidia-smi memory after load: 5248 MiB
+
+# PASS — PROCESSOR = 100% GPU. Round 14's 52%/48% was not reproduced on a clean card.
+# Levers a/b/c not needed. Proceeding to 16.2.
 ```
 
 ## ASK 16.2 — re-run D vs H with the generator fully on the GPU
@@ -2483,7 +2531,72 @@ name above is deliberate — this is the exact mistake that cost us the Mac's ju
 ### REPLY 16.2
 
 ```
-(paste here)
+# lab PC, 2026-09-10. tip 1091d7b. After 16.1 proved 100% GPU.
+# Generator stayed 100% GPU before, during (mid-run check at H:50/100), and after.
+
+# BEFORE (from 16.1, immediately before nohup):
+ollama ps
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+
+nohup uv run python -u -m rag.compare_prompts --golden D H \
+      --save /tmp/round16-DH.json > /tmp/round16-DH.log 2>&1 &
+
+# DURING (at H:50/100):
+ollama ps
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+# nvidia-smi: 9128 MiB used, 95% util — embedder+reranker+qwen coexist; qwen still 100% GPU
+
+retrieved 100 items once; generating
+  D: 25/100
+  D: 50/100
+  D: 75/100
+  D: 100/100
+  D: done (0 failed)
+  H: 25/100
+  H: 50/100
+    generation timed out at 300s; retrying once
+  H: 75/100
+  H: 100/100
+  H: done (0 failed)
+  H: answers now that D refused    6  g008, g021, g049, g050, g099, g106
+
+==============================================================================
+GOLDEN SWEEP — both Phase 4 defects, one sitting (D54)
+==============================================================================
+
+        end/end  ceiling   over  uncited   code  unc.code  fabr
+D         38/91       58     20    18/45     29     24/29     2
+H         42/91       58     16     5/57     31     19/31     2
+
+  end/end   answer in the prompt AND not refused — what a user gets
+  ceiling   answer in the prompt at all — identical across variants by design
+  over      refused WITH the page in hand (D72's defect)
+  uncited   answered items citing nothing (D73's defect)
+  unc.code  answers whose code carries no source, of those containing code
+  fabr      answered an unanswerable item — the worst cell in the table
+
+PAIRED against D, item by item — the evidence D61 asks for, not the averages
+
+  H: answers now that D refused    6  g008, g021, g049, g050, g099, g106
+     refuses now that D answered    2  g030, g032
+     exact McNemar p = 0.289
+
+saved 200 rows to /tmp/round16-DH.json
+
+# AFTER:
+ollama ps
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       About a minute from now
+
+cp /tmp/round16-DH.json deliverables/prompt-sweep-round16.Linux-x86_64.json
+# did NOT touch deliverables/prompt-sweep-phase4.json
+
+# vs Round 14 lab (52%/48% CPU/GPU): D 38/91 H 42/91 6↑2↓ p=0.289 — IDENTICAL cells and IDs
+# vs Mac all-GPU: D 39/91 H 47/91 9↑0↓ p=0.0039
+# Pre-decided reading: cells stay where Round 14 put them → compute-path confound NOT confirmed.
+# H stays held. Generation does not reproduce across machines even at matched 100% GPU backends.
 ```
 
 ## ASK 16.3 — optional, only if 16.2 finished and you still have the sitting
