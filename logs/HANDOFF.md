@@ -7,6 +7,25 @@ a GUI, not something Claude can type into.
 So this file is the wire. Claude writes **ASK** blocks; Viraj runs them on the PC and
 pastes the output into the matching **REPLY** block; Claude reads it on the next pull.
 
+## Where things stand — read this first (updated 2026-09-10)
+
+**One round is open: [Round 16](#round-16--was-it-the-machine-or-was-it-the-cpu).** Everything
+else on the lab box is closed.
+
+| round | state |
+|---|---|
+| 1, 12, 13, 14, 15 | **CLOSED** — replies pasted, results folded into `D83` |
+| 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Not needed for Round 16 — AnyDesk is enough |
+| **16** | **OPEN. The only thing to do on the lab PC.** ~1 hour + a 5-minute setup check |
+
+**What Round 16 is, in one paragraph.** Round 14 compared prompt D against prompt H on the lab and
+found two regressions the Mac never saw, which held the prompt back from shipping. On 2026-09-10
+we noticed the lab run had the generator at **52% CPU / 48% GPU** while the Mac ran it at **100%
+GPU** — so that comparison was not two machines running the same computation, it was two different
+compute paths. Round 16 re-runs it with the generator fully on the card. **If the numbers move
+toward the Mac's, the prompt ships.** If they do not, the hold is confirmed for a reason that
+survived its best challenge. Either way it is an hour.
+
 ## The loop
 
 ```
@@ -1632,7 +1651,12 @@ ALL ITEMS recall@5    0.63  ±0.097  (same as 12.1; retrieval half unchanged)
 
 # Round 13 — Phase 4 start: refusal baseline on the 3060 (after D68)
 
-**Status: OPEN, and its purpose CHANGED on 2026-08-22.** Phase 3 retrieval is closed
+**Status: CLOSED 2026-09-05.** REPLY 13.1 and 13.2 are below. Retrieval matched the Mac exactly
+(recall@5 **0.64**, **17** absents, ceiling **58/91**); end to end **38/91 = 0.42** against the
+Mac's 0.43; unanswerable **7/9 refused, 2 FABRICATED** (`g056`, `g065`), identical. Folded into
+`D83`.
+
+**Original framing, kept because it is what the round was written to do.** Phase 3 retrieval is closed
 (`D66`–`D68` shipped; `D69` strip and `D70` boundary re-chunking both rejected with numbers).
 Read [`study/15-IMPROVE.md`](../study/15-IMPROVE.md) §R7 on the Mac first. This round is
 **generation**, not another embed experiment.
@@ -1844,14 +1868,21 @@ reading. `uv run python -m rag.score --absents` reproduces it in one command.
 
 # Round 14 — the D vs H confirmation, one sitting (the ship decision)
 
-**Status: OPEN. Written 2026-09-01. This is the highest-value use of the 3060 right now**, and
+**Status: CLOSED 2026-09-05 — and it decided the ship question against H.** REPLY 14.1 below:
+**6↑ 2↓, p = 0.289**, regressions `g030` and `g032`, against the Mac's 9↑ 0↓ p = 0.0039. The
+pre-written rule (one regression = hold) applies, so **H does not ship** (`D83`). **Caveat found
+2026-09-10:** the generator ran **52%/48% CPU/GPU** on this run against **100% GPU** on the Mac, so
+the comparison carries a compute-path confound — **Round 16** tests it.
+
+**Original framing.** Written 2026-09-01. This was the highest-value use of the 3060 at the time, and
 unlike Round 13 it is not a confirmation of something already known — it is the run that decides
 whether the shipped prompt changes.
 
 > **Mac ready 2026-09-05.** Gates green on Mac (`pytest` pass, `58/58` runnable). Faithfulness
 > sweep artifact + agreement sheet are on this branch. Lab: `git pull --ff-only` on
 > `phase-2/measure`, then start at ASK 14.1 (or 13.1 if you want the quick recall confirm first).
-> Human reading still open on the Mac: `JUDGE-AGREEMENT.md` (10 blanks) + ship H call.
+> Human reading still open on the Mac: `JUDGE-AGREEMENT.md` (10 blanks). **The ship-H call is no
+> longer open** — Round 14.1's 6↑ 2↓ with two regressions triggers the pre-written hold (`D83`).
 
 > **Read first on the Mac:** [`../phases/PHASE-4.md`](../phases/PHASE-4.md) Step 4 and `D74`.
 
@@ -1972,7 +2003,12 @@ saved 200 rows to /tmp/round14-DH.json
   are machine-dependent, which nothing in this repo currently claims. Record it and stop —
   a finding, not a failure.
 
-# Round 15 — the prose judge on the 3060 (OPEN, written 2026-09-03)
+# Round 15 — the prose judge on the 3060
+
+**Status: CLOSED 2026-09-05.** REPLY 15.1/15.2 below: judge `gemma4:e4b` at **100% GPU**,
+**D 77% / H 92%** supported, paired **8↑ 2↓ p = 0.109**. H's 92% matches the Mac exactly; D drifted
+**85% → 77%**. It also struck `D82`'s "coarser scale" claim — the lab used `PARTIAL` **5 times in
+47** where the Mac used it twice. Folded into `D83`.
 
 **Read first on the Mac:** [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) `D80` and
 `D81`, and [`../study/16-JUDGE.md`](../study/16-JUDGE.md) §R8.6.
@@ -2296,6 +2332,209 @@ PHASE 4 SCORECARD  —  the whole system, one command
   agreement-of-ten should be sampled larger.
 - **`--report`'s section 2 disagrees with the table above.** Stop. Do not run anything else. The
   saved sweep or the derivation moved, and every Phase 4 number rests on those cells.
+
+# Round 16 — was it the machine, or was it the CPU?
+
+**Status: OPEN, written 2026-09-10. The only round that needs the lab box.** One environment
+variable, one re-run. It is cheap and it can flip a product decision.
+
+**Read first:** [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) `D83`, including the
+**NARROWED** block at the top of it.
+
+**This round exists because of one line in your own REPLY 14.1, which I read wrong.** You wrote:
+
+```
+# ollama ps during the run reported qwen2.5-coder:7b at 52%/48% CPU/GPU (not 100% GPU).
+# Recorded — sizes the sitting (~25–30 min per arm).
+```
+
+You logged it as a **timing** note. I took it as one and wrote `D83` as *"generation does not
+reproduce across machines."* **Measured on the Mac 2026-09-10, the same model under the same
+Ollama runs `100% GPU`.** So Round 14 did not compare two machines running the same computation —
+it compared **all-GPU Metal against roughly half CPU**, and `TEMPERATURE = 0.0` does not make
+output identical across backends. Floating point accumulates differently; one flipped token turns
+an answer into a refusal, which is precisely the cell that moved.
+
+**So the honest state is: the drift has a named suspect and nobody has tested it.** This round
+tests it, and it is the cheapest experiment in the project — it changes one environment variable.
+
+## ASK 16.0 — sync and bring the stack up (5 minutes)
+
+Nothing here is new; it is written out so the round is self-contained and you are not hunting
+through Round 13 for the setup.
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+
+git fetch origin
+git checkout phase-2/measure
+git pull --ff-only
+git log -1 --oneline                 # must be NEWER than a380920
+
+# the code this round needs must exist, or you are running the wrong tip
+ls rag/faithful.py rag/judge.py
+grep -c "faithfulness-phase4\.{machine()}" rag/faithful.py    # expect 1
+
+uv sync --frozen --extra embed
+docker compose up -d qdrant
+docker compose ps                    # qdrant must be (healthy)
+```
+
+**If `grep` returns 0, stop.** The Mac has not pushed the machine-stamping work and every path
+below is wrong.
+
+**Why Qdrant:** `compare_prompts --golden` retrieves before it generates. No Qdrant, no run.
+
+### REPLY 16.0
+
+```
+(paste here)
+```
+
+## ASK 16.1 — put the generator fully on the GPU, and PROVE it before running anything long
+
+The 3060 has 12288 MiB and `qwen2.5-coder:7b` needs roughly 5 GB. It went half-CPU last time
+anyway, which usually means Ollama left headroom for a context it was not going to use, or
+another process was holding the card.
+
+```bash
+# 1. what is on the card right now — anything big here is the likely cause
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+
+# 2. load the model with one throwaway generation
+ollama run qwen2.5-coder:7b "say OK" >/dev/null
+
+# 3. THE LINE THIS ROUND IS ABOUT
+ollama ps
+```
+
+**Read the `PROCESSOR` column. It must say `100% GPU`.**
+
+**If it says anything else, do NOT run the sweep** — a second half-CPU run measures the same
+confound twice and the round produces nothing. Try these **one at a time**, running `ollama ps`
+after each, so the REPLY records which one worked:
+
+```bash
+# a) free the card, then reload
+#    (kill whatever nvidia-smi listed above, if it is yours to kill)
+ollama stop qwen2.5-coder:7b && ollama run qwen2.5-coder:7b "say OK" >/dev/null && ollama ps
+
+# b) restart the Ollama service and reload
+sudo systemctl restart ollama && sleep 5 && ollama run qwen2.5-coder:7b "say OK" >/dev/null && ollama ps
+
+# c) force every layer onto the GPU for the service, then reload
+sudo systemctl set-environment OLLAMA_NUM_GPU=999
+sudo systemctl restart ollama && sleep 5 && ollama run qwen2.5-coder:7b "say OK" >/dev/null && ollama ps
+```
+
+**Paste the `ollama ps` line from each attempt you make**, including the failures. Which lever
+moved it is part of the answer, and "it worked eventually" is not.
+
+**If none of them reach 100% GPU, that is a complete and useful REPLY.** It means the 3060 cannot
+run this model fully resident under this configuration, `D83`'s confound is not removable on this
+box, and the Mac-vs-lab comparison is permanently confounded — worth knowing, and it stops us
+planning further cross-machine rounds that cannot answer anything.
+
+### REPLY 16.1
+
+```
+(paste here — including the failed attempts)
+```
+
+## ASK 16.2 — re-run D vs H with the generator fully on the GPU
+
+**Only after 16.1 shows `100% GPU`.** Roughly 25–30 minutes per arm, so ~1 hour. Run it detached
+so an interrupted terminal cannot kill it — Round 14's first attempt died at 25/100 exactly that
+way, and `compare_prompts` has **no `--resume`**, so a death means starting over.
+
+```bash
+nohup uv run python -u -m rag.compare_prompts --golden D H \
+      --save /tmp/round16-DH.json > /tmp/round16-DH.log 2>&1 &
+disown
+
+# check on it whenever
+tail -5 /tmp/round16-DH.log
+ollama ps                       # confirm it is STILL 100% GPU mid-run
+
+# when it finishes
+tail -40 /tmp/round16-DH.log
+ollama ps                       # and once more after
+```
+
+**Paste the whole `GOLDEN SWEEP` block and the `PAIRED against D` list — the ids, not a summary —
+plus `ollama ps` from before, during and after.** The ids are the finding; the percentages are
+not, and the `ollama ps` lines are what the round exists to pin down.
+
+**Copy the JSON back into the repo so the Mac can re-score it without regenerating:**
+
+```bash
+cp /tmp/round16-DH.json deliverables/prompt-sweep-round16.Linux-x86_64.json
+git add deliverables/prompt-sweep-round16.Linux-x86_64.json logs/HANDOFF.md
+git commit -m "docs(handoff): Round 16 reply — D vs H with the generator fully on GPU"
+git push
+```
+
+**Do not overwrite `deliverables/prompt-sweep-phase4.json`.** That is the Mac's 300 saved
+generations and every published Phase 4 citation figure is derived from it. The machine-suffixed
+name above is deliberate — this is the exact mistake that cost us the Mac's judge rows in Round 15
+(`D83`).
+
+### REPLY 16.2
+
+```
+(paste here)
+```
+
+## ASK 16.3 — optional, only if 16.2 finished and you still have the sitting
+
+The prose judge again, now that the generator's backend is known. ~90 minutes, resumable, and it
+writes to a machine-suffixed path so it **cannot** clobber the Mac's rows the way Round 15 did.
+
+```bash
+nohup uv run python -u -m rag.faithful --sweep --local --variants D,H \
+      > /tmp/round16-faith.log 2>&1 &
+disown
+
+grep -c '^  \[' /tmp/round16-faith.log     # progress
+ollama ps                                  # gemma4:e4b should be 100% GPU
+
+# when it prints "saved N rows":
+tail -40 /tmp/round16-faith.log
+ls -la deliverables/faithfulness-phase4.*.json
+```
+
+**It writes `deliverables/faithfulness-phase4.Linux-x86_64.json`** and refuses to overwrite a file
+from a different machine. `--resume` picks up the checkpoint if it dies.
+
+**Do not pass `--model` and do not drop `--local`** — two model ids in one run is two judges
+wearing one name, and the report prints `!! TWO JUDGES IN ONE RUN` rather than a comparison
+(`D78`).
+
+### REPLY 16.3
+
+```
+(paste here)
+```
+
+## How to read it — decided now, before the data
+
+Round 14 on the lab (half-CPU) gave **D 38/91, H 42/91, 6↑ 2↓, p = 0.289**.
+The Mac (all-GPU) gave **D 39/91, H 47/91, 9↑ 0↓, p = 0.0039**.
+
+- **The lab's cells move toward the Mac's** (H back up near 47, regressions `g030`/`g032` gone).
+  Then **the variable was the compute path, not the machine.** `D83` narrows again — to a sentence
+  about backends — and **H becomes shippable on two clean runs.** This is the outcome that would
+  change a product decision, which is why the round is worth a sitting.
+- **The cells stay where Round 14 put them.** Then the broad claim is earned: generation really
+  does not reproduce across machines even at matched backends, and `D54` grows a paragraph. H stays
+  held, now for a reason that survived its best challenge.
+- **Something in between.** Report it as in between. Do not round it toward whichever story is
+  tidier — the honest version of this finding is worth more than a clean one.
+
+**Whatever happens, `ollama ps` output before AND after the run is part of the answer**, not
+housekeeping. That one line is what this whole round exists to pin down, and it is the line that
+was recorded as a timing note last time.
 
 ## What NOT to run on the lab PC
 

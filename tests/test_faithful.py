@@ -849,3 +849,40 @@ def test_an_unreadable_429_body_still_gets_its_retries():
     faithful.retrying(post, backoff=0, sleep=lambda s: None)(
         "models/x:generateContent", {}, "k")
     assert len(post.calls) == 2
+
+
+# --- the machine is part of a row's provenance ------------------------------
+
+def test_every_row_records_the_machine_that_produced_it():
+    """Measured 2026-09-05: same judge, same saved answers, same corpus,
+    temperature 0 — prompt D's supported rate was 85% on the Mac and 77% on the
+    lab 3060 (D83). Verdicts are not machine-independent, so a row carrying
+    only its judge is under-labelled."""
+    row = faithful.stamp({"claim": "c", "verdict": "SUPPORTED", "reason": "r"})
+    assert row["machine"] == faithful.machine()
+    assert "-" in row["machine"]              # System-arch, e.g. Darwin-arm64
+
+
+def test_the_report_flags_rows_from_more_than_one_machine(capsys):
+    """Not fatal the way two judges is, but it must be visible: a scorecard
+    reading one machine's judge rows beside another's answers cannot tell."""
+    a, b = rows_of("SUPPORTED"), rows_of("SUPPORTED")
+    a[0]["machine"] = "Darwin-arm64"
+    b[0]["machine"] = "Linux-x86_64"
+    faithful.report({"D": a, "H": b})
+    assert "ROWS FROM MORE THAN ONE MACHINE" in capsys.readouterr().out
+
+
+def test_the_machine_stamp_is_not_a_hostname():
+    """It identifies a machine CLASS, not a person's laptop."""
+    import platform
+    assert platform.node() not in faithful.machine()
+
+
+def test_the_default_rows_path_carries_the_machine():
+    """A stamp says afterwards which machine a row came from; a distinct path
+    stops the second machine destroying the first one's evidence. The lab's run
+    overwrote the Mac's `faithfulness-phase4.json` and the Mac's rows survived
+    only because git had them (D83)."""
+    assert faithful.machine() in faithful.ROWS_DEFAULT.name
+    assert faithful.ROWS_LEGACY.name == "faithfulness-phase4.json"

@@ -69,9 +69,12 @@ track; most of the time they mean E, and E is the last human work, not the first
 | **D. Open cell** | Golden page **missed** the desk — is the answer still right on real 2.0.51? | §R8.5a | `deliverables/OPEN-CELL-REVIEW.md` | No (you read it) | **Done** — 35/35 marked |
 | **E. Prose faithfulness** | Does this **sentence** match the passages? | §R8.6–§R8.7 | `rag.faithful --sweep --local`, `JUDGE-AGREEMENT.md` | Yes — local `gemma4:e4b` | Measured (`D82`), **provisional** until you mark the ten |
 
-**Plus Track F — ship H or keep D** (not a metric). Recommendation is H; production prompt is
-still D until you say so. Evidence: end to end **0.43 → 0.52**, uncited **67% → 10%**, open-cell
-H-only extras **3 CORRECT / 4 PARTIAL / 0 WRONG**. See §R8.3a.
+**Plus Track F — ship H or keep D** (not a metric). **Recommendation as of 2026-09-05: do NOT
+ship on this evidence** (`D83`). The Mac measured **9↑ 0↓, p = 0.0039**; the lab 3060 re-ran it
+and got **6↑ 2↓, p = 0.289** with two regressions (`g030`, `g032`) the Mac never saw. Round 14's
+pass/fail rule was written before either run and it says a single regression is a hold. **What did
+reproduce is the citation effect** — uncited **67% → 10%** on the Mac, **41% → 5%** on the lab.
+See §R8.3a and §R8.9.
 
 ```
   Phase 3 closed here ─────────────────────────────┐
@@ -81,7 +84,7 @@ H-only extras **3 CORRECT / 4 PARTIAL / 0 WRONG**. See §R8.3a.
   C  code grounding "invented API in a code block?"
   D  open cell      "answered without the golden page — still correct?"
   E  prose judge    "does this sentence match the passages?"
-  F  ship H?        your call — numbers ready
+  F  ship H?        HOLD — did not reproduce on a 2nd machine (D83)
 ```
 
 ### Track A — End to end (detailed)
@@ -187,12 +190,16 @@ self-grades (`D80`).
 then every faithfulness % is provisional. Command to regenerate the sheet:
 `uv run python -m rag.faithful --agreement`.
 
-### Track F — Ship H or keep D (detailed)
+### Track F — Ship H or keep D (detailed) — **decided: hold**
 
 Not a report card — a product decision. Prompt **H** moves the citation rule into the **user
-turn** next to `ANSWER:` (same words as D; different place). Measured: end to end **0.52**,
-uncited **10%**, McNemar **9↑ 0↓**, p = 0.0039. Production `ask.SYSTEM` is still **D** until
-you change it. Full argument: §R8.3a.
+turn** next to `ANSWER:` (same words as D; different place).
+
+**On the Mac:** end to end **0.52**, uncited **10%**, **9↑ 0↓**, p = 0.0039.
+**On the lab 3060, same code and same golden set:** end to end **0.46**, uncited **5%**,
+**6↑ 2↓**, p = **0.289**. **Two regressions, so the pre-written rule says hold** (`D83`).
+Production `ask.SYSTEM` is still **D**, and now for a measured reason rather than a pending
+decision. Full argument: §R8.3a, and §R8.9 for what reproduced and what did not.
 
 ---
 
@@ -256,16 +263,32 @@ columns, the same way we never blend “did search find it?” with “did the m
 
 ---
 
-**If someone asks in an interview — one sentence each**
+**If someone asks in an interview — say this (not a slogan)**
 
-| They ask | You say |
-|---|---|
-| What’s your score? | **0.43** end to end. **0.64** is only “did search find the page.” |
-| Why did refusals go *up* after better search? | More questions now *have* the page in the prompt, so more can refuse *with it there*. Look at the **percentage**, not the raw count. |
-| What fixed citations? | Same instruction, moved to sit **right before** the answer — not shouted louder at the top. |
-| Did you fix hallucinations? | Still **2** fabrications on unanswerable items; under prompt H the dangerous *code recipes* got milder. |
-| What is “the judge”? | Five tracks. The LLM judge is only **prose faithfulness** (Track E). Citations and code grounding are scripts with no model. |
-| What’s left in Phase 4? | Ship H (your call), and mark the ten-item agreement sheet so faithfulness stops being provisional. |
+Each row is a real question. The answer is what you should be able to say out loud without
+opening the docs. Numbers are from this repo’s measured runs (`D72`–`D82`).
+
+| They ask | Say this | Do **not** say |
+|---|---|---|
+| **What’s your RAG’s accuracy?** | “I don’t quote one accuracy. Retrieval recall@5 is **0.64** — the verified page reached the five chunks in the prompt that often. End to end, with that page present *and* the model answering, is **0.43** under the shipped prompt. The **21-point** gap is generation refusing after search already won.” | “My system is 64% accurate.” / “We’re at about 50%.” |
+| **Why improve search if users still only get 0.43?** | “Phase 3 raised the ceiling from **0.49 → 0.64**. End to end moved **0.35 → 0.43**. Search bought 15 points; the user only got 8. The rest is Phase 4 — over-refusal with the page already in the prompt.” | “Search didn’t help.” / “We need better embeddings again.” |
+| **Why did over-refusals go *up* after Phase 3?** | “The cell is ‘refused *while the answer chunk was already in the prompt*.’ Better search puts that page in front of the model more often, so more items become eligible. Raw count went **13 → 19**; as a rate it was **29% → 33%**. Compare rates across a retrieval change, not raw counts.” | “The model got worse after we improved search.” |
+| **Named example of that gap?** | “Phase 3’s paired run fixed seven baseline items. Two of them — **`g044`** and **`g050`** — still refuse today with the verified page in the top 5. Retrieval correctly scores a win; the user still gets a decline.” | “Some questions are hard.” (no ids) |
+| **What fixed citations?** | “Position, not volume. Variant **E** shouted ‘citations are mandatory’ in the system message — same uncited rate as shipped **D** (~67%). Variant **H** kept D’s wording and put the cite rule in the **user turn immediately before `ANSWER:`**. Uncited fell **67% → 10%** on my Mac and **41% → 5%** on the lab 3060 — different levels, same direction, and the one Phase 4 effect that **reproduced on two machines**. H is **not shipped**: the end-to-end half did *not* reproduce (below).” | “I improved the prompt.” / “I made the instruction stronger.” / “H is in production.” |
+| **Did you fix hallucinations?** | “Fabrication count on unanswerable items stayed **2 of 9** (`g056`, `g065`) under every prompt we tried. Harm changed: under D, `g065` invents Alembic code including calls not on the desk; under H it paraphrases the real page with no code block. Code grounding (string match into retrieved pages, no judge model) went **2 ungrounded in 48 answers → 0 in 62** under H. Prose lies need a separate LLM judge — that’s Track E.” | “I fixed hallucination.” / “H eliminated fabrications.” |
+| **Is H more faithful?** | “Unpaired supported rates look like D **85%** vs H **92%**, but those are different answer sets. On the **46** questions both answered, it is **5↑ 1↓**, exact McNemar **p = 0.22** — not significant. The useful claim is: H answers **14** more questions, and **13** of those 16 extras were judged supported — so willingness did not buy answers by talking past the evidence. That claim is still **provisional** until I hand-check the ten-row agreement sheet.” | “H is more faithful because 92 > 85.” |
+| **What is ‘the judge’?** | “Phase 4 is five tracks, not one model. Citations and code grounding are deterministic scripts — no second LLM. The LLM-as-judge is only **prose faithfulness**: another model (`gemma4:e4b` on Ollama) reads one sentence against the five retrieved passages. It is a different family from the generator (`qwen2.5-coder:7b`), so it does not grade itself. Hosted free tier is **20 calls/day/model**; a D+H sweep needs ~110, so the judge is local.” | “We use an LLM judge for quality.” (which track?) / “Gemini grades our answers.” |
+| **What does UNSUPPORTED mean?** | “Not in the pages we retrieved — not ‘false.’ A true sentence from training memory with no support on the desk is UNSUPPORTED here on purpose. That is the RAG question: did the system use its sources?” | “UNSUPPORTED means the answer is wrong.” |
+| **Did your prompt win reproduce?** | “No, and that is the result I am proudest of. On my Mac H was **9↑ 0↓, p = 0.0039**. I re-ran it on a second machine, same code and same golden set, and got **6↑ 2↓, p = 0.289** — two regressions (`g030`, `g032`) the first machine never produced. My pass/fail rule was written **before** either run and says one regression is a hold, so H stays unshipped. Retrieval, by contrast, was **identical** across both boxes — recall@5 0.64, the same 17 absent items, the same ceiling of 58. So generation drifts across machines and retrieval does not (`D83`).” | “It’s significant, p < 0.005.” / “The second run was noise.” |
+| **What’s left before Phase 4 closes?** | “One human gate: fill `JUDGE-AGREEMENT.md` — ten judge verdicts I mark AGREE/DISAGREE so faithfulness stops being provisional. The ship decision is now made *against* H on the reproduction evidence, not pending.” | “Phase 4 is done.” / “We’re waiting on more retrieval work.” |
+
+**Sixty-second version if they only give you one follow-up:**
+
+> “Retrieval got to **0.64**. Users get **0.43** because the model still over-refuses with the
+> right page in the prompt. Moving the citation rule next to `ANSWER:` measured **0.52** and
+> cut uncited answers from **67% to 10%** — that candidate is not shipped until I say so. We
+> keep retrieval, end-to-end, citations, code grounding, and prose faithfulness as separate
+> report cards so a silent-refusing system cannot look ‘perfect’ on citations.”
 
 ---
 
@@ -496,7 +519,7 @@ place where the model is about to write.
 | **D** | current shipped prompt | baseline: end to end **0.43**, uncited **67%** | keep only as control |
 | **E** | shouts “citations are mandatory” in SYSTEM | same result as D; louder was not better | **No** |
 | **F** | tells the model search results are relevant | only screened on 20; not the clean full-run winner | not first |
-| **H** | repeats D’s citation rule immediately before `ANSWER:` | **0.52**, uncited **10%**, **9↑ 0↓** | **Recommended** |
+| **H** | repeats D’s citation rule immediately before `ANSWER:` | Mac **0.52**, uncited **10%**, **9↑ 0↓** · lab **0.46**, uncited **5%**, **6↑ 2↓** | **Hold** — citations reproduce, the end-to-end gain does not (`D83`) |
 | **I** | H plus F’s extra relevance instruction | **0.51**, uncited **16%**; worse than H everywhere | **No** |
 
 **Why H beats I.** I sounds like it gives the model more help: “these pages are relevant,
@@ -505,10 +528,12 @@ measured better. More instructions are not automatically more control.
 
 **What H fixes:**
 
-- end to end: **0.43 → 0.52**
-- over-refusals with the page already present: **19 → 10**
-- answers with no citation: **67% → 10%**
-- paired comparison: **9 fixed, 0 broken**, exact McNemar **p = 0.0039**
+- answers with no citation: **67% → 10%** on the Mac, **41% → 5%** on the lab — **the one effect
+  that reproduced on both machines**, and the largest in Phase 4
+- end to end: **0.43 → 0.52** on the Mac, but **0.42 → 0.46** on the lab
+- over-refusals with the page already present: **19 → 10** on the Mac, **20 → 16** on the lab
+- paired comparison: **9 fixed 0 broken, p = 0.0039** on the Mac; **6 fixed 2 broken, p = 0.289**
+  on the lab. **The second machine is why this is a hold** (`D83`)
 - open-cell H-only extras (answers D refused): **3 CORRECT / 4 PARTIAL / 0 WRONG** — did not
   invent harmful wrong answers when it was more willing (§R8.5a)
 
@@ -529,10 +554,13 @@ answers, keep D temporarily. Either is defensible; silently changing D is not.
 
 **Say this:**
 
-> “I recommend H. It keeps the shipped system prompt and moves the citation reminder into the
-> user turn immediately before the answer. On the 100-item run it improved end to end from
-> 0.43 to 0.52, reduced uncited answers from 67% to 10%, fixed nine paired items with no
-> regressions, and still leaves fabrication and the human agreement sheet open.”
+> “H moves the citation reminder into the user turn immediately before the answer, keeping the
+> shipped system prompt. On my Mac it improved end to end 0.43 → 0.52 and cut uncited answers
+> 67% → 10%, nine paired fixes and no regressions, p = 0.0039. **I then re-ran it on a second
+> machine and it did not reproduce**: 6 fixed, 2 regressions, p = 0.29. My pass/fail rule was
+> written before either run and says a single regression is a hold, so H is not shipped. What did
+> reproduce is the citation effect — 67→10% and 41→5%, same direction, both boxes. So I would
+> take the citation win and I would not claim the end-to-end one.”
 
 **Do not say this:**
 
@@ -993,14 +1021,21 @@ the three misses printed rather than quietly dropped. Same finding, smaller samp
 in on tomorrow's quota.
 
 **Look at the right-hand column of every disagreement.** All six are `PARTIAL`. The second model
-kept reaching for the middle box; the local judge almost never does — **2 `PARTIAL` in 47
-answers** for D, **3 in 61** for H.
+kept reaching for the middle box.
 
-So the weakness has a name. It is not *"the local model is worse"*, which is unfalsifiable and
-useless. It is:
+**I then wrote that our judge "has a coarser scale", on the evidence that it used `PARTIAL` only
+2 times in 47. The lab disproved it two days later** (`D83`): the same judge, the same saved
+answers, temperature 0, on a different machine used `PARTIAL` **5 times in 47**. **How often our
+judge reaches for the middle box is not a trait of the judge.** One run was never enough to call
+it one, and the claim is struck.
 
-> **The local judge has a coarser scale.** Given a three-way rubric it behaves closer to a
-> two-way one, so answers that are *partly* in the sources get pushed to whichever end is nearer.
+**What survived the second machine is narrower, and it is still worth having:**
+
+> **When our judge and a stronger one disagree, the stronger one usually picks the middle box.**
+
+Six of six on the Mac; the lab's fresh `gemini-3.8-flash` cross-check agreed on 5 of 9 with the
+disagreements still skewing `PARTIAL`. That is a claim about *disagreements*, not about our
+judge's habits — and it is the version that reproduces.
 
 **`g056` is where that costs something real.** Three readings of the same item now exist:
 
@@ -1136,23 +1171,137 @@ against the arm that changed, never only against the control.**
 
 **Do not say:** “The report is the data.” Saved JSON is the data; the report is a view.
 
-### R8.9 What is left — and what to do next
+### R8.9 The second machine — what reproduced, and what did not (`D83`)
+
+Every number in this file before now came from one laptop. On **2026-09-05** the same code, the
+same golden set and the same saved discipline ran on the lab RTX 3060. **The two halves of the
+system behaved completely differently, and that split is the most useful thing Phase 4 found.**
+
+**Retrieval was identical. Not close — identical.**
+
+| | Mac | Lab 3060 |
+|---|---|---|
+| recall@5 | 0.64 ±0.097 | **0.64 ±0.097** |
+| not in top 20 | 17 | **17** |
+| duplicate seats | 0 | **0** |
+| answer reached the prompt | 58/91 | **58/91** |
+
+That matters beyond tidiness. When a generation number moves, **retrieval is ruled out as the
+cause by measurement**, not by argument — the same pages, in the same order, reached the same
+prompts on both machines.
+
+**Generation moved everywhere — and there is a named suspect for why, which I missed on the
+first reading.**
+
+The lab's reply recorded, as a note about how long the sitting would take:
+
+```
+# ollama ps during the run reported qwen2.5-coder:7b at 52%/48% CPU/GPU (not 100% GPU).
+```
+
+Measured on the Mac afterwards, the same model under the same Ollama: **`100% GPU`**. So the two
+columns below are not "the same computation on two machines." One ran **entirely on the GPU**, the
+other **about half on the CPU**.
+
+**Why that is not a footnote.** `TEMPERATURE = 0.0` means *always pick the most likely next token*
+— it does **not** mean two computers produce the same numbers. CPU and GPU add floating-point
+values in different orders, so the probabilities come out very slightly different. Almost always
+the top token is the same anyway. Occasionally two tokens are nearly tied, the tiny difference
+flips which one wins, and **the answer goes down a different path from that word onward** — which
+is exactly how "the model answered" becomes "the model refused", the cell that moved most.
+
+So read the table as **two configurations**, differing in machine *and* in compute path. Which of
+the two caused it is untested, and Round 16 in the handoff is the experiment: same lab box, same
+sweep, generator forced fully onto the GPU.
+
+| | Mac | Lab |
+|---|---|---|
+| D end to end | 39/91 = **0.43** | 38/91 = **0.42** |
+| D over-refused with the page present | 19 | **20** |
+| D uncited | 31/46 = **67%** | 19/46 = **41%** |
+| H end to end | 47/91 = **0.52** | 42/91 = **0.46** |
+| H over-refused | 10 | **16** |
+| H uncited | 6/60 = **10%** | 3/55 = **5%** |
+| **D vs H paired** | **9↑ 0↓, p = 0.0039** | **6↑ 2↓, p = 0.289** |
+
+**The last row is the ship decision, and it went the other way.** The lab found two items —
+`g030` and `g032` — that D answers and H refuses. The Mac found no regressions at all in 100
+items.
+
+#### Why this is a clean "no" and not an argument
+
+The rule was written **before** either run, in the handoff file, and committed:
+
+> *"**H breaks anything (≥1 regression).** Do not ship on this evidence."*
+
+With 6 fixes, 2 regressions, and the direction still favouring H on both end-to-end *and*
+citations, it would have been easy to call two regressions noise. **That argument would have been
+built after seeing which way the data fell.** Writing the threshold down first is the entire
+reason the call is trustworthy — and it is the single most transferable habit in this project.
+
+#### What *did* reproduce is worth more than what didn't
+
+**The citation effect.** Uncited answers: **67% → 10%** on the Mac, **41% → 5%** on the lab.
+Different starting points, same direction, and enormous on both. That was what H was *designed*
+to do. The end-to-end gain was always the surprising half — H was aimed at citations and moved
+refusals as a side effect — and **the surprising half is the half that vanished.**
+
+There is a general lesson in that, and it is not "be pessimistic":
+
+> **The effect a change was designed to produce reproduced. The bonus effect did not.** When a
+> single experiment hands you both, believe the first more than the second.
+
+**Faithfulness split the same way.** Same local judge, same saved answers, temperature 0:
+
+| | Mac | Lab |
+|---|---|---|
+| D supported | **85%** | **77%** |
+| H supported | **92%** | **92%** |
+
+H is identical on both machines; **D moved 8 points.** Neither paired result is significant, so
+the `D82` conclusion is unchanged — *H answers more and the extras hold up* — but it now rests on
+two machines rather than one.
+
+#### What it changed about how a row is stored
+
+`D78` made every judged row carry its judge. **That turned out to be half a provenance.** When the
+lab's rows landed in `deliverables/faithfulness-phase4.json`, the scorecard began reading the
+lab's faithfulness beside the Mac's answers, **and nothing in either file said so** — the exact
+failure the report's "measured live / read from a file" labelling exists to prevent. Rows now
+carry `machine` too (`Darwin-arm64`, `Linux-x86_64` — a machine class, not a hostname), the report
+prints it, and a mixture prints a warning.
+
+#### What to say about every number in this file now
+
+**None of them is retracted. All of them gained a machine.** `0.43`, `65%`, `0.52`, `85%` were
+correct as measured on Darwin-arm64. The mistake would be to keep calling them *the system's*
+numbers. **Quote a range, or quote the machine:** end to end is **0.42–0.43**; uncited under the
+shipped prompt is **41–67%**.
+
+And `D54` widens: it said refusal behaviour is stable within a sitting and drifts across days.
+It drifts across **machines** too, and by more — two of seven items flipped across days; **nine
+paired cells moved across machines, including the sign of the ship decision.**
+
+### R8.10 What is left — and what to do next
 
 Tracks **A–D** are measured (open-cell sheet marked). What remains:
 
 | Open | Track | What you actually do |
 |---|---|---|
-| **Ship H or keep D** | **F** | Read §R8.3a. If you ship: move H’s user-turn citation line into `ask.build_prompt` / production path; leave a note in `09-DECISIONS.md`. If you keep D: write *why* (e.g. wait for agreement sheet). Production `ask.SYSTEM` is still D either way until you change it. |
-| **The judge's agreement** | **E** | Open `deliverables/JUDGE-AGREEMENT.md`. Fill all ten blanks (`AGREE`/`DISAGREE`). Regenerate with `uv run python -m rag.faithful --agreement` if the file is stale. Until then every faithfulness % is provisional. |
-| **Lab Round 13 / 14** | optional | On the lab PC, branch `phase-2/measure`: confirm recall / re-run `--refusals` or D vs H on the 3060. Mac already has both measurements; lab is a second-machine check, not a blocker. |
+| ~~**Ship H or keep D**~~ | **F** | **Decided 2026-09-05 by measurement, not by preference: HOLD.** The lab found 2 regressions (`g030`, `g032`) where the Mac found none, p = 0.289 against 0.0039, and the pre-written rule says one regression is a hold (`D83`). Production `ask.SYSTEM` stays **D**. Reopen only with a third run — and if you do, decide the threshold before you look. |
+| **The judge's agreement** | **E** | **The only human gate left.** Open `deliverables/JUDGE-AGREEMENT.md`, fill all ten blanks (`AGREE`/`DISAGREE`). It now carries a second model's opinion beside each verdict, and they disagree on several. Until it is filled, every faithfulness % is provisional. |
+| ~~**Lab Rounds 13–15**~~ | — | **Closed 2026-09-05.** 13.2 (refusals), 14.1 (D vs H) and 15 (the prose judge) all ran on the 3060. Results in `logs/HANDOFF.md` and `D83`. |
+| **A citation-only variant** | **F** | Not built. H bundles two effects and only one reproduced. A variant carrying **just** the user-turn citation line, measured on both machines, would tell you whether the citation win survives without the refusal side effect that regressed. This is the obvious next experiment and nobody has run it. |
 
 **Suggested order for your next sitting:**
 
-1. Read §R8.3a once cold — decide H or D (or “decide after agreement sheet”).
-2. Fill `JUDGE-AGREEMENT.md` (Track E human gate).
+1. Read §R8.9 once cold — the reproduction result is the thing to be able to tell.
+2. Fill `JUDGE-AGREEMENT.md` (Track E human gate) — the last one that is yours.
 3. Re-run `uv run python -m rag.judge --report` and confirm the agreement section is no longer
    blank.
-4. Only then treat `D82` faithfulness figures as non-provisional.
+4. Only then treat the faithfulness figures as non-provisional.
+5. If you want Phase 4 to keep going: the citation-only variant above, measured on both
+   machines from the start.
 
 Start map for the five tracks: top of this file, **Where to start**.
 
@@ -1163,7 +1312,13 @@ Start map for the five tracks: top of this file, **Where to start**.
 - End to end **0.43**; **0.64** is retrieval’s ceiling only.
 - Better search made over-refusal **count** rise — compare **rates** (29% → 33%).
 - Two Phase 3 search wins (`g044`, `g050`) are still refused with the page in hand.
-- **Moving** the cite rule beat **shouting** it: 0.43 → 0.52, uncited 67% → 10%.
+- **Moving** the cite rule beat **shouting** it — but say which machine: 0.43 → 0.52 on the Mac,
+  0.42 → 0.46 on the lab, uncited 67% → 10% and 41% → 5%.
+- **H is not shipped, and not because I did not get round to it.** It was 9↑ 0↓ p = 0.0039 on one
+  machine and **6↑ 2↓ p = 0.289 with two regressions** on another. The rule was written first
+  (`D83`).
+- **Retrieval reproduced exactly across machines; generation reproduced nowhere.** Same recall,
+  same 17 absents, same ceiling of 58 — and every generation cell moved.
 - First H score was wrong (`[2] The sources…`); corrected, still significant (`D76`).
 - Invented **code** can be caught with no judge model (`D77`); prose lies need a reader.
 - The hosted judge was **503 on its pinned id and capped at 20 calls a day per model** — the
@@ -1174,11 +1329,12 @@ Start map for the five tracks: top of this file, **Where to start**.
 - Prose faithfulness: D **85%** supported, H **92%** — but **on the 46 items both answered it is
   5↑ 1↓, p = 0.22.** The gap is the **16 questions only H answered**, 13 of them grounded. So:
   **H answers more, and the extra answers hold up** — not "H is more faithful" (`D82`).
-- A second model agreed with our judge on **4 of 10**, and **all six disagreements were it
-  choosing `PARTIAL`** — our judge has a **coarser scale** (2 PARTIAL in 47). On `g056` two hosted
-  models say `PARTIAL` and ours says `SUPPORTED` (`D82`).
-- Phase 4 is **five tracks + ship H** — not one “judge” chapter. Open cell done; agreement
-  sheet and ship call remain.
+- A second model agreed with our judge on **4 of 10** (Mac) and **5 of 9** (lab), and the
+  disagreements skew to `PARTIAL` on both. On `g056` two hosted models say `PARTIAL` and ours says
+  `SUPPORTED` (`D82`). **I over-read that as "our judge has a coarser scale" and the lab struck
+  it** — same judge, 2 PARTIAL in 47 on one machine and 5 in 47 on the other (`D83`).
+- Phase 4 is **five tracks + ship H** — not one “judge” chapter. Open cell done, **ship call
+  decided (hold)**; the agreement sheet is the only thing left.
 
 ## Do not say
 
@@ -1201,7 +1357,7 @@ Start map for the five tracks: top of this file, **Where to start**.
 | | |
 |---|---|
 | [`../phases/PHASE-4.md`](../phases/PHASE-4.md) | plan + measured tables |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | `D71`–`D82` |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | `D71`–`D83` |
 | [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 — search / desk pages |
 | [`14-MEASURE.md`](14-MEASURE.md) | §R6 — generation gap first seen |
 | `rag/judge.py` | citations + grounding (no model, no key) |

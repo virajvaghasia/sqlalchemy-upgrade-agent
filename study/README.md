@@ -23,8 +23,8 @@ when measured, the correction is kept rather than quietly edited out.
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
 | [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
 | [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
-| [`16-JUDGE.md`](16-JUDGE.md) | **Phase 4 — judging the answer, not the search.** End to end **0.43** against retrieval's **0.64** ceiling; 65% of answers cite nothing; moving one sentence beat rewriting it; the result that was wrong the first time; the prose judge, and the day it went 503 on its pinned id and turned out to allow **20 calls a day per model** (§R8) | §R8 |
 | [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip and boundary re-chunking both rejected with numbers. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
+| [`16-JUDGE.md`](16-JUDGE.md) | **Phase 4 — judging the answer, not the search.** End to end **0.43** against retrieval's **0.64** ceiling; 65% of answers cite nothing; moving one sentence beat rewriting it; the result that was wrong the first time; the prose judge, and the day it went 503 on its pinned id and turned out to allow **20 calls a day per model**; and **§R8.9 — the second machine**, where retrieval reproduced exactly, generation reproduced nowhere, and a p = 0.0039 prompt win became **6↑ 2↓, p = 0.289** and a hold (`D83`) | §R8 |
 
 ## By phase — which file belongs to what
 
@@ -106,7 +106,7 @@ Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D82`. All phases in one register |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D83`. All phases in one register |
 
 ### Phases 4–6
 

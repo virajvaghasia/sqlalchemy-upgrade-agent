@@ -449,3 +449,52 @@ def test_the_published_figures_are_reproduced_from_the_saved_sweep():
         assert got["n_answerable"] == 91, variant
         assert (got["delivered"], got["over_refused"], got["fabricated"]) == \
                (delivered, over, fabr), variant
+
+
+def test_the_scorecard_warns_when_a_source_file_has_no_machine(capsys):
+    """D83: generation figures do not reproduce across machines, and it is not
+    hypothetical — the lab's judge rows landed beside the Mac's answers and
+    nothing in either file said so."""
+    items = [{"id": "g001", "answerable": True}]
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
+                    "answer": "x [1]", "n_sources": 5}]}
+    judge.scorecard(items, sweep, ["D"], None, {"n": 0, "filled": 0, "rate": None},
+                    None, sweep_machine=None)
+    out = capsys.readouterr().out
+    assert "do not record which machine" in out
+    assert "D83" in out
+
+
+def test_the_scorecard_is_quiet_when_both_files_name_their_machine(capsys):
+    items = [{"id": "g001", "answerable": True}]
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
+                    "answer": "x [1]", "n_sources": 5}]}
+    faith = {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b",
+             "variants": {"D": []}}
+    judge.scorecard(items, sweep, ["D"], faith,
+                    {"n": 0, "filled": 0, "rate": None}, None,
+                    sweep_machine="Linux-x86_64")
+    assert "do not record which machine" not in capsys.readouterr().out
+
+
+def test_the_scorecard_shows_every_machines_rows_not_just_the_last(capsys):
+    """Both boxes used to write one path and the second destroyed the first
+    (D83). Two runs present is the GOOD case — it is what the finding was
+    measured from — so the report must show both rather than pick one."""
+    items = [{"id": "g001", "answerable": True}]
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
+                    "answer": "x [1]", "n_sources": 5}]}
+    rows = [{"id": "g001", "verdict": "SUPPORTED", "reason": "r", "claim": "c",
+             "judge_model": "gemma4:e4b", "machine": "Darwin-arm64"}]
+    faiths = [
+        {"_path": "faithfulness-phase4.Darwin-arm64.json", "machine": "Darwin-arm64",
+         "judge_model": "gemma4:e4b", "variants": {"D": rows}},
+        {"_path": "faithfulness-phase4.Linux-x86_64.json", "machine": "Linux-x86_64",
+         "judge_model": "gemma4:e4b", "variants": {"D": rows}},
+    ]
+    judge.scorecard(items, sweep, ["D"], faiths[0],
+                    {"n": 0, "filled": 0, "rate": None}, None,
+                    sweep_machine="Darwin-arm64", faiths=faiths)
+    out = capsys.readouterr().out
+    assert "Darwin-arm64" in out and "Linux-x86_64" in out
+    assert "Compare them item by item" in out

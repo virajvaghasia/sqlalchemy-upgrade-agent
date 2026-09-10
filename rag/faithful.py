@@ -106,6 +106,7 @@ import concurrent.futures
 import json
 import os
 import pathlib
+import platform
 import re
 import sys
 import time
@@ -247,14 +248,37 @@ def judge_claim(claim: str, passages: list[str], *, key: str,
     return stamp({"claim": claim, "verdict": verdict, "reason": reason}, model)
 
 
-def stamp(row: dict, model: str = MODEL) -> dict:
-    """Every row carries the judge that produced it.
+def machine() -> str:
+    """`Darwin-arm64`, `Linux-x86_64`. The axis that turned out to matter.
 
-    This is the property that actually matters (see the module docstring): not
-    that the model never changes, but that a row never loses track of which
-    model read it.
+    Deliberately NOT the hostname: the OS and CPU family is what separates the
+    Mac from the lab 3060, and it identifies a machine class rather than a
+    person's laptop.
     """
-    return {**row, "judge_model": model}
+    return f"{platform.system()}-{platform.machine()}"
+
+
+def stamp(row: dict, model: str = MODEL) -> dict:
+    """Every row carries the judge that produced it, AND the machine it ran on.
+
+    The judge stamp is `D78`'s: not that the model never changes, but that a
+    row never loses track of which model read it.
+
+    **The machine stamp was added 2026-09-05, because the lab measured what
+    Round 15 had written down as the second possible outcome.** Same judge
+    (`gemma4:e4b`), same saved answers, same corpus, temperature 0 — and prompt
+    D's supported rate came back **85% on the Mac and 77% on the 3060**. The
+    verdicts are not machine-independent, so a row that records only its judge
+    is under-labelled, and a scorecard reading two such files cannot tell that
+    it is mixing two machines. It was: `faithfulness-phase4.json` became the
+    lab's while `prompt-sweep-phase4.json` stayed the Mac's, and nothing in
+    either file said so.
+
+    Round 15's own pre-decided reading called for this before the data arrived:
+    *"then every faithfulness figure has to carry its machine the way rows
+    already carry their judge model."*
+    """
+    return {**row, "judge_model": model, "machine": machine()}
 
 
 # --- retrying, because a 503 is not a broken key ----------------------------
@@ -745,9 +769,18 @@ def report(by_variant: dict) -> None:
     # made stamp() mandatory to prevent.
     models = sorted({r["judge_model"] for rows in by_variant.values()
                      for r in rows})
+    machines = sorted({r.get("machine", "?") for rows in by_variant.values()
+                       for r in rows})
     print("\nFAITHFULNESS  —  prose only; code is judge.py's half (D77)")
-    print(f"  judge: {', '.join(models) or '(no rows)'}, one sitting, "
-          f"both arms, identical passages")
+    print(f"  judge: {', '.join(models) or '(no rows)'} on "
+          f"{', '.join(machines) or '?'}, one sitting, both arms, "
+          f"identical passages")
+    if len(machines) > 1:
+        # Not fatal like two judges, but it must be visible: D's supported rate
+        # measured 85% on Darwin-arm64 and 77% on Linux-x86_64 with everything
+        # else held fixed (D83).
+        print("  !! ROWS FROM MORE THAN ONE MACHINE — these verdicts do not "
+              "reproduce across machines (D83)")
     if len(models) > 1:
         # Not a warning, a disqualification. D78's tight property is one judge
         # across both arms; two ids here means the comparison is void.
@@ -1018,7 +1051,19 @@ def check(key: str, model: str = MODEL, post=_post) -> tuple[bool, str]:
 
 
 SWEEP_DEFAULT = REPO / "deliverables" / "prompt-sweep-phase4.json"
-ROWS_DEFAULT = REPO / "deliverables" / "faithfulness-phase4.json"
+# One file per machine, and the machine is IN THE NAME rather than only in the
+# rows. Stamping alone was not enough, and the proof is in the repo's history:
+# the lab's run wrote `faithfulness-phase4.json` straight over the Mac's, so
+# `--report` began reading the lab's verdicts beside the Mac's answers. The
+# Mac's rows survived only because git had them (`169e94c`: D 40/2/5 against
+# the lab's 36/5/6).
+#
+# A stamp tells you afterwards which machine a row came from. A distinct path
+# stops the second machine from destroying the first one's evidence in the
+# first place -- and comparing the two runs is the entire point of running it
+# twice (`D83`).
+ROWS_DEFAULT = REPO / "deliverables" / f"faithfulness-phase4.{machine()}.json"
+ROWS_LEGACY = REPO / "deliverables" / "faithfulness-phase4.json"
 SHEET_DEFAULT = REPO / "deliverables" / "JUDGE-AGREEMENT.md"
 CROSSCHECK_DEFAULT = REPO / "deliverables" / "JUDGE-CROSSCHECK.json"
 
@@ -1127,9 +1172,19 @@ def main() -> None:
         post = retrying(local_post) if local else retrying()
         pace = 0.0 if local else PACE_SECONDS
         out = pathlib.Path(_arg(argv, "--save", str(ROWS_DEFAULT)))
+        if out.exists() and "--resume" not in argv:
+            prior = json.loads(out.read_text()).get("machine")
+            if prior and prior != machine():
+                sys.exit(
+                    f"{out.name} holds rows from {prior}; this host is "
+                    f"{machine()}.\n"
+                    f"  Overwriting would destroy the other machine's evidence, "
+                    f"and comparing the two is the point (D83).\n"
+                    f"  Default path for this host: {ROWS_DEFAULT.name}")
 
         def save(rows):
             out.write_text(json.dumps({"judge_model": model,
+                                       "machine": machine(),
                                        "source": src_path.name,
                                        "variants": rows}, indent=1) + "\n")
 

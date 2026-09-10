@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D82`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D83`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -2501,10 +2501,18 @@ numbers are real and they are not the same denominator, which is exactly why the
 denominator.
 
 **All six disagreements are the same shape: the hosted model chose `PARTIAL` where the local
-judge chose an extreme.** The local judge barely uses the middle category at all — **2 `PARTIAL`
-in 47** for D, **3 in 61** for H — while the second model reached for it six times in ten. That is
-not "the local judge is lenient" and it is not "harsh": **it is a judge with a coarser scale**,
-and on a three-way rubric that is a specific, nameable weakness rather than a vague doubt.
+judge chose an extreme.**
+
+> **PARTIALLY RETRACTED 2026-09-05 by `D83`.** This entry went on to conclude that the local judge
+> "has a coarser scale", on the evidence of **2 `PARTIAL` in 47** for D. **The lab ran the same
+> judge over the same saved answers at temperature 0 and got 5 `PARTIAL` in 47.** PARTIAL-usage is
+> not a trait of the model; it moves with the machine, and one run was never enough to call it
+> one. **The claim is struck.**
+>
+> **What survives is narrower and did reproduce:** when our judge and a stronger one disagree,
+> the stronger one usually picks the middle box — six of six on the Mac, and the lab's fresh
+> `gemini-3.8-flash` cross-check agreed on 5 of 9 with the disagreements still skewing `PARTIAL`.
+> That is a statement about *disagreements*, not about how often our judge reaches for `PARTIAL`.
 
 **`g056` is the sharpest instance and it now has three readings.** `D78` recorded
 `gemini-3.6-flash` judging it **`PARTIAL`**. `gemini-3.5-flash` says **`PARTIAL`** on both arms.
@@ -2535,6 +2543,138 @@ not just make the model chattier?"* Because the rate and the pairing were report
 they disagree. The rate moved 85% → 92%; the paired test on the answers both prompts produced is
 5↑ 1↓, p = 0.22. **The honest claim is the smaller one**: it answers fourteen more questions and
 the extra answers are mostly grounded.
+
+### D83 — the lab reproduced retrieval exactly and generation not at all; H does not ship
+
+**Measured on the lab 3060, 2026-09-05**, one sitting (`D54`), tip `169e94c`, against the Mac's
+runs of 2026-08-22 → 09-03. Rounds 13.2, 14.1 and 15 in [`../logs/HANDOFF.md`](../logs/HANDOFF.md).
+
+> **NARROWED 2026-09-10, and the correction is mine rather than the lab's.** This entry was
+> written as *"generation does not reproduce across machines."* **There is a named confound sitting
+> in the lab's own reply and I read past it.** REPLY 14.1 records:
+>
+> ```
+> # ollama ps during the run reported qwen2.5-coder:7b at 52%/48% CPU/GPU (not 100% GPU).
+> # Recorded — sizes the sitting (~25–30 min per arm).
+> ```
+>
+> The lab logged it as a **timing** note and I took it as one. It is not. Measured on the Mac
+> 2026-09-10, the same model under the same Ollama: **`qwen2.5-coder:7b … 100% GPU`.** So the two
+> arms of every generation row below ran on **different compute paths** — all-GPU Metal on one
+> side, roughly half CPU on the other — and `TEMPERATURE = 0.0` does not make output identical
+> across backends: floating-point accumulates differently, and a single flipped token turns an
+> answer into a refusal, which is exactly the cell that moved.
+>
+> **What this does and does not change.** The **hold on H stands and is if anything firmer**: a
+> difference you cannot attribute is not a reason to ship. The **retrieval half is untouched** —
+> it reproduced exactly, and it never ran through Ollama. What changes is the claim's scope:
+>
+> | too broad (as written) | what is supported |
+> |---|---|
+> | generation does not reproduce across machines | generation did not reproduce across **these two configurations**, which differ in machine **and** in compute path |
+>
+> **And it makes the finding testable instead of mystical.** Round 16 re-runs D vs H on the lab
+> with the generator pinned fully on the GPU. If the cells converge, the variable was the compute
+> path and `D54` needs a sentence about backends rather than about machines. If they still differ
+> with both boxes at 100% GPU, *then* the broad claim is earned.
+
+**The one-line finding: everything downstream of the model reproduces, and nothing the model
+produces does — with one named suspect for why.**
+
+| | Mac (Darwin-arm64) | Lab 3060 (Linux-x86_64) | |
+|---|---|---|---|
+| `recall@5` | 0.64 ±0.097 | **0.64 ±0.097** | identical |
+| not in top-20 | 17 | **17** | identical |
+| duplicate seats | 0 | **0** | identical |
+| answer reached the prompt | 58/91 | **58/91** | identical |
+| fabricating items | `g056`, `g065` | **`g056`, `g065`** | identical |
+| **D end to end** | 39/91 = **0.43** | 38/91 = **0.42** | moved |
+| **D over-refused, page present** | 19 | **20** | moved |
+| **D uncited** | 31/46 = **67%** | 19/46 = **41%** | moved a lot |
+| **H end to end** | 47/91 = **0.52** | 42/91 = **0.46** | moved a lot |
+| **H over-refused** | 10 | **16** | moved a lot |
+| **H uncited** | 6/60 = **10%** | 3/55 = **5%** | moved |
+| **D vs H, paired** | **9↑ 0↓, p = 0.0039** | **6↑ 2↓, p = 0.289** | **the decision** |
+
+**Retrieval is deterministic across machines and that is not a small result.** Every retrieval
+cell is identical to two decimal places — the same 17 absent items, the same ceiling of 58. So
+when a generation cell moves, the retrieval half is excluded as the cause by measurement rather
+than by argument.
+
+**H DOES NOT SHIP, and the rule that says so was written before the data.** Round 14's criteria,
+committed on 2026-09-03:
+
+> *"**H breaks anything (≥1 regression).** Do not ship on this evidence. A regression that the Mac
+> did not see is `D54` drift or a machine difference, and either one has to be named before a
+> prompt ships on top of it."*
+
+The lab found **two**: `g030` and `g032` — items D answers and H refuses. The Mac found **zero**
+regressions in 100 items. **`D74`'s p = 0.0039 was a single-machine result and it did not
+reproduce**; the second machine gives p = 0.289, which is a coin.
+
+**Writing the criteria first is the only reason this is a clean call.** With 6↑ 2↓ and a direction
+still favouring H on end-to-end *and* citations, it would have been easy to argue the two
+regressions were noise — and that argument would have been constructed after seeing which way the
+data fell. `D61`'s bar and Round 14's rule both said no in advance.
+
+**What DOES reproduce about H, and it is the largest effect in Phase 4.** Uncited answers:
+**67% → 10%** on the Mac, **41% → 5%** on the lab. Different absolute levels, same direction, and
+huge on both. **The citation fix is real and machine-independent in direction.** What failed to
+reproduce is the *end-to-end* gain — which was always the more surprising half of `D74`, because
+H was aimed at citations and moved refusals as a side effect.
+
+**Faithfulness reproduced for H and not for D** (Round 15, same local judge `gemma4:e4b`, same
+saved answers, temperature 0):
+
+| | Mac | Lab |
+|---|---|---|
+| D supported | **85%** (40/47) | **77%** (36/47) |
+| H supported | **92%** (56/61) | **92%** (56/61) |
+| paired | 5↑ 1↓, p = 0.219 | 8↑ 2↓, p = 0.109 |
+
+**H's 92% is identical on both machines.** D moved 8 points. Neither paired result is significant,
+so `D82`'s conclusion stands unchanged — *H answers more and the extras hold up* — but it now
+stands on two machines instead of one.
+
+#### This corrects `D82`, and the retracted claim is the interesting one
+
+**`D82` said the local judge "has a coarser scale", evidenced by 2 `PARTIAL` in 47.** **That does
+not replicate.** The lab's D run used `PARTIAL` **5 times in 47**. Same model, same answers, same
+temperature. **PARTIAL-usage is not a property of the judge; it is a property of the judge on a
+machine**, and one run was never enough to call it a trait.
+
+**What survives is narrower and still useful.** The *disagreements* between our judge and a hosted
+one still skew to `PARTIAL` on both machines — Mac 6 of 6, lab (a fresh `gemini-3.8-flash`
+cross-check on the sheet's ten) **5 of 9 agreeing, disagreements still skewing PARTIAL**. So:
+**when our judge and a stronger one differ, the stronger one usually picks the middle box.** That
+reproduces. *"Our judge barely uses PARTIAL"* does not, and has been struck.
+
+**And it changes what a row must carry.** `D78` made every row record its judge. That is now
+insufficient: `deliverables/faithfulness-phase4.json` became the lab's rows while
+`prompt-sweep-phase4.json` stayed the Mac's, **and nothing in either file said so** — the
+scorecard was reading two machines and labelling neither, which is precisely the failure its
+"live or read from a file" labelling exists to prevent. `stamp()` now adds `machine`
+(`Darwin-arm64` / `Linux-x86_64`, a machine class rather than a hostname), the report prints it,
+and rows from more than one machine print a warning.
+
+#### What this does to every Phase 4 number already published
+
+**Nothing is retracted, and every one of them gains a machine.** `D72`'s 0.43, `D73`'s 65%,
+`D74`'s 0.52 and `D82`'s 85% are all **Darwin-arm64** figures and were correct as measured. The
+error would be to keep quoting them as *the system's* numbers. **Quote a range or quote the
+machine**: end to end is **0.42–0.43**, uncited under the shipped prompt is **41–67%**.
+
+**`D54` widens from days to machines.** It already said refusal behaviour is deterministic within a
+sitting and drifts across days. It now also drifts across machines, and by more: two of seven items
+flipped across days; **nine of the paired cells moved across machines**, including the sign of the
+ship decision.
+
+**Interview question it answers:** *"Your prompt change was significant at p = 0.0039 — why is it
+not in production?"* Because it was significant on one machine. A second machine, same code, same
+golden set, same sitting discipline, gave 6↑ 2↓ and p = 0.289 with two regressions the first
+machine never saw. **The pass/fail rule was written before either run**, and it says do not ship.
+What I would ship is the part that reproduced: the citation effect, which is 67→10% and 41→5% and
+points the same way on both boxes.
 
 ---
 

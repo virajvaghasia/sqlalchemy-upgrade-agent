@@ -479,6 +479,14 @@ Phase 2 measured whether you fetched the right pages. Now: is the final answer a
 **Done when:** one command scores the full golden set and emits a report with retrieval
 metrics, faithfulness, and citation accuracy.
 
+**Reproduced on a second machine 2026-09-05, and that is where Phase 4's sharpest result came
+from (`D83`).** Retrieval was **identical** across the Mac and the lab 3060 — recall@5 0.64, the
+same 17 absent items, the same ceiling of 58/91. **Every generation figure moved**, and the prompt
+candidate that measured **9↑ 0↓, p = 0.0039** on one machine measured **6↑ 2↓, p = 0.289** on the
+other. The pass/fail rule was written before either run, so the call is a **hold** rather than an
+argument. What reproduced is the effect the prompt was designed for — uncited answers 67% → 10%
+and 41% → 5%. **Quote a range or quote the machine.**
+
 **Built 2026-09-03 (`D81`): `uv run python -m rag.judge --report`.** Five sections, each stating
 whether it was **measured live** or **read from a saved run** — retrieval is live because it is
 only lookups; the answer-side figures come from the 300 saved generations, because re-running

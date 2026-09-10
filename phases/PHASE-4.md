@@ -442,6 +442,32 @@ published. Re-scoring cost nothing because `D75` had saved the answers.
 rather than asked it was the wrong call (2026-08-17). `ask.SYSTEM` and `build_prompt` are
 unchanged; `H` lives in `compare_prompts.py` as a measured candidate.
 
+#### CLOSED 2026-09-05 — H does not reproduce on a second machine, so it is a HOLD (`D83`)
+
+The lab 3060 re-ran the same sweep, same code, same golden set, one sitting:
+
+| | Mac | Lab 3060 |
+|---|---|---|
+| D end to end | 39/91 = 0.43 | 38/91 = **0.42** |
+| H end to end | 47/91 = 0.52 | 42/91 = **0.46** |
+| D uncited | 31/46 = 67% | 19/46 = **41%** |
+| H uncited | 6/60 = 10% | 3/55 = **5%** |
+| **paired** | **9↑ 0↓, p = 0.0039** | **6↑ 2↓, p = 0.289** |
+
+**Two regressions — `g030`, `g032` — that the Mac never produced.** Round 14's pass/fail criteria,
+committed before either run: *"H breaks anything (≥1 regression). Do not ship on this evidence."*
+**That is the reading, and it is clean precisely because the threshold predates the data.**
+
+**The citation effect reproduced and is the part worth keeping:** 67% → 10% and 41% → 5%, same
+direction, large on both. H was *designed* for citations and moved refusals as a side effect —
+**the designed effect held and the side effect did not.**
+
+**Retrieval was identical across machines** (recall@5 0.64, 17 absents, ceiling 58/91), which is
+what lets this be attributed to generation rather than to search.
+
+**Next experiment, not yet run:** a variant carrying **only** the user-turn citation line. H
+bundles two effects and one of them reproduced; separating them is the obvious follow-up.
+
 ### Step 5 — Know the judge's ceiling
 
 LLM judges agree with humans ~85–92% of the time. **Hand-check ten judgments and report the
