@@ -2627,7 +2627,61 @@ wearing one name, and the report prints `!! TWO JUDGES IN ONE RUN` rather than a
 ### REPLY 16.3
 
 ```
-(paste here)
+# lab PC, 2026-09-10. same sitting as 16.2. tip ba8c1c2 base; judge on 100% GPU.
+
+# Before: unloaded qwen2.5-coder:7b so the card holds gemma only.
+ollama ps (during run)
+NAME          ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+gemma4:e4b    c6eb396dbd59    3.2 GB    100% GPU     8192       4 minutes from now
+
+nohup uv run python -u -m rag.faithful --sweep --local --variants D,H \
+      > /tmp/round16-faith.log 2>&1 &
+
+# progress: 64/64 lines printed
+# source: prompt-sweep-phase4.json (Mac saved answers — does not regenerate)
+
+FAITHFULNESS  —  prose only; code is judge.py's half (D77)
+  judge: gemma4:e4b on ?, one sitting, both arms, identical passages
+
+  variant     answers  judged   SUPP   PART  UNSUP  UNPARSED  NO_PROSE  supported
+  -------------------------------------------------------------------------------
+  D                48      47     36      5      6         0         1       77%
+  H                62      61     56      4      1         0         1       92%
+
+  D: 11 answers not fully supported by their own sources
+    g014   PARTIAL      Passage [3] directly answers the necessity of using `scalars`, contradicting the claim's asserti
+    g019   PARTIAL      Passages [1], [2], [3], and [4] describe both the replacement context manager and the preferred 
+    g045   UNSUPPORTED  Passage [3] explicitly states that the patterns described, including using `engine.execute(t.sel
+    g065   UNSUPPORTED  None of the passages describe creating both a table and a view in the same migration, nor do the
+    g078   PARTIAL      Passages [1] and [3] support the need to set `SQLALCHEMY_WARN_20=1` and the best practices of us
+    g079   UNSUPPORTED  None of the passages demonstrate passing advanced loading options like `joinedload` directly to 
+    g080   UNSUPPORTED  Passages [2] and [3] show exactly how to use `load_only()` with related objects and collections,
+    g083   PARTIAL      Passage [1] confirms the deprecation of "connectionless" and "implicit" execution and recommends
+    g117   UNSUPPORTED  None of the passages discuss how to define or access relationships specifically within an asynch
+    g120   PARTIAL      The passages confirm that `with_polymorphic` works on joined table inheritance and accepts a bas
+    g119   UNSUPPORTED  None of the passages compare or define the specific behavior difference between `session.scalar(
+
+  H: 5 answers not fully supported by their own sources
+    g016   UNSUPPORTED  None of the passages state that `row.keys()` is deprecated from result rows and replaced by usin
+    g031   PARTIAL      Passage [1] confirms the shift of the function to `_orm.registry.map_imperatively` but does not 
+    g062   PARTIAL      The passages demonstrate using `typing.Literal` for enums in `mapped_column` (Passages [2] and [
+    g064   PARTIAL      Passage [5] supports the general concept of using union types within `type_annotation_map` but d
+    g065   PARTIAL      Passages [2] and [3] state that while SQLAlchemy can emit some DDL statements, general support f
+
+saved 110 rows to deliverables/faithfulness-phase4.Linux-x86_64.json
+
+ls -la deliverables/faithfulness-phase4.*.json
+-rw-rw-r-- ... deliverables/faithfulness-phase4.Linux-x86_64.json
+
+# AFTER:
+ollama ps
+NAME          ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+gemma4:e4b    c6eb396dbd59    3.2 GB    100% GPU     8192       ...
+
+# vs Round 15 lab (same box, same judge, wrote legacy faithfulness-phase4.json):
+#   D 36/5/6 = 77%, H 56/4/1 = 92% — IDENTICAL rates.
+# vs Mac D82: D 40/2/5 = 85%, H 56/3/2 = 92%. H matches; D still 85→77 on Linux.
+# Machine-stamped path used — Mac rows not overwritten (D83).
 ```
 
 ## How to read it — decided now, before the data
