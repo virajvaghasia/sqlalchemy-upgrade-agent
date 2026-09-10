@@ -550,15 +550,33 @@ def _sweep_citations(rows: list[dict]) -> tuple[dict, list[str]]:
 
 def scorecard(items: list[dict], sweep: dict, variants: list[str],
               faith: dict | None, agreement: dict,
-              retrieval: dict | None) -> None:
+              retrieval: dict | None, sweep_machine: str | None = None,
+              faiths: list[dict] | None = None) -> None:
     # Imported here, not at module level: rag.faithful imports THIS module,
     # so a top-level import back would make neither of them importable.
     from rag import faithful, score
 
+    faith_machine = (faith or {}).get("machine")
     n_answerable = sum(1 for i in items if i.get("answerable"))
     print("\nPHASE 4 SCORECARD  —  the whole system, one command")
     print(f"  golden set: {len(items)} items, {n_answerable} answerable, "
           f"{len(items) - n_answerable} not — all human-verified (D06)")
+
+    # D83: generation figures do not reproduce across machines, so a section
+    # read from a file that does not name its machine is under-labelled. This
+    # is not hypothetical — the lab's judge rows landed beside the Mac's
+    # answers and nothing in either file said so.
+    unstamped = [name for name, stamped in
+                 ((SWEEP_NAME, sweep_machine), (FAITH_NAME, faith_machine))
+                 if stamped is None]
+    if unstamped:
+        print(f"  !! {' and '.join(unstamped)} do not record which machine "
+              f"produced them.")
+        print(f"     Generation figures do NOT reproduce across machines "
+              f"(D83: end to end 0.43 Mac / 0.42 lab, D uncited 67% / 41%), so "
+              f"sections below")
+        print(f"     may come from different ones. Files written after "
+              f"2026-09-05 carry a machine stamp.")
 
     print("\n1  RETRIEVAL — did the right page reach the prompt?   [measured live]")
     if retrieval is None:
@@ -611,14 +629,26 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
         print("     Not zero and not a pass — unmeasured. Code grounding is "
               "measured and separate (D77).")
     else:
-        print(f"     [read: {FAITH_NAME}, judge {faith.get('judge_model', '?')}]")
-        print(f"     {'prompt':<14}{'judged':>8}{'SUPPORTED':>11}{'PARTIAL':>9}"
-              f"{'UNSUPPORTED':>13}{'supported':>11}")
-        for v, rows in faith["variants"].items():
-            a = faithful.aggregate(rows)
-            print(f"     {v:<14}{a['judged']:>8}{a['SUPPORTED']:>11}"
-                  f"{a['PARTIAL']:>9}{a['UNSUPPORTED']:>13}"
-                  f"{a['supported_rate']:>10.0%}")
+        # The machine is printed beside the judge because the verdicts move
+        # with it: D measured 85% supported on Darwin-arm64 and 77% on
+        # Linux-x86_64, same judge, same answers, temperature 0 (D83). A file
+        # written before machines were stamped says so rather than guessing.
+        for one in (faiths or [faith]):
+            where = one.get("machine") or "machine not recorded (pre-D83 file)"
+            print(f"     [read: {one.get('_path', FAITH_NAME)}, judge "
+                  f"{one.get('judge_model', '?')} on {where}]")
+            print(f"     {'prompt':<14}{'judged':>8}{'SUPPORTED':>11}"
+                  f"{'PARTIAL':>9}{'UNSUPPORTED':>13}{'supported':>11}")
+            for v, rows in one["variants"].items():
+                a = faithful.aggregate(rows)
+                print(f"     {v:<14}{a['judged']:>8}{a['SUPPORTED']:>11}"
+                      f"{a['PARTIAL']:>9}{a['UNSUPPORTED']:>13}"
+                      f"{a['supported_rate']:>10.0%}")
+            print()
+        if faiths and len(faiths) > 1:
+            # Two machines is the GOOD case — it is what D83 was measured from.
+            print("     Two runs above. Compare them item by item, not by the "
+                  "percentages: D83's finding is that these move.")
 
     print("\n5  THE JUDGE'S OWN CEILING — does it agree with a human?")
     if agreement["n"] == 0:
@@ -690,10 +720,19 @@ def main() -> None:
             chunks = score.load_chunks()
             retrieval = score.aggregate(score.score_items(items, chunks))
 
-        faith_path = DELIVERABLES / FAITH_NAME
-        faith = json.loads(faith_path.read_text()) if faith_path.exists() else None
+        # Every machine's rows, not whichever ran last. Both boxes used to
+        # write one path and the second silently destroyed the first (D83);
+        # they now write `faithfulness-phase4.<machine>.json`, and the legacy
+        # unsuffixed name is still read so older runs do not vanish.
+        faiths = []
+        for path in sorted(DELIVERABLES.glob("faithfulness-phase4*.json")):
+            data = json.loads(path.read_text())
+            data["_path"] = path.name
+            faiths.append(data)
+        faith = faiths[0] if faiths else None
         agreement = faithful.read_agreement(DELIVERABLES / AGREEMENT_NAME)
-        scorecard(items, sweep, variants, faith, agreement, retrieval)
+        scorecard(items, sweep, variants, faith, agreement, retrieval,
+                  sweep_machine=sweep.get("machine"), faiths=faiths)
         return
 
     if "--citations" not in argv:
