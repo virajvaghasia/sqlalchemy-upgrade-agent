@@ -7,24 +7,36 @@ a GUI, not something Claude can type into.
 So this file is the wire. Claude writes **ASK** blocks; Viraj runs them on the PC and
 pastes the output into the matching **REPLY** block; Claude reads it on the next pull.
 
-## Where things stand — read this first (updated 2026-09-10)
+## Where things stand — read this first (updated 2026-09-10, lab PC)
 
-**One round is open: [Round 16](#round-16--was-it-the-machine-or-was-it-the-cpu).** Everything
-else on the lab box is closed.
+**No open lab round.** Round 16 is **CLOSED on the lab** — Mac reads the LAB RESULT block below.
 
 | round | state |
 |---|---|
 | 1, 12, 13, 14, 15 | **CLOSED** — replies pasted, results folded into `D83` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Not needed for Round 16 — AnyDesk is enough |
-| **16** | **OPEN. The only thing to do on the lab PC.** ~1 hour + a 5-minute setup check |
+| **16** | **CLOSED on lab 2026-09-10** — see **LAB RESULT** under Round 16 |
 
-**What Round 16 is, in one paragraph.** Round 14 compared prompt D against prompt H on the lab and
-found two regressions the Mac never saw, which held the prompt back from shipping. On 2026-09-10
-we noticed the lab run had the generator at **52% CPU / 48% GPU** while the Mac ran it at **100%
-GPU** — so that comparison was not two machines running the same computation, it was two different
-compute paths. Round 16 re-runs it with the generator fully on the card. **If the numbers move
-toward the Mac's, the prompt ships.** If they do not, the hold is confirmed for a reason that
-survived its best challenge. Either way it is an hour.
+### LAB RESULT — Round 16 (Mac: read this, not the OPEN asks)
+
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060, tip `16064dc`), generator **`100% GPU`**
+the whole sitting. These are **lab** numbers — do not mix them with Mac `prompt-sweep-phase4.json`
+or Mac faithfulness without naming the machine (`D83`).
+
+| | Mac (all-GPU Metal) | Lab Round 14 (52/48 CPU/GPU) | **Lab Round 16 (100% GPU)** |
+|---|---|---|---|
+| D end/end | 39/91 = 0.43 | 38/91 = 0.42 | **38/91 = 0.42** |
+| H end/end | 47/91 = 0.52 | 42/91 = 0.46 | **42/91 = 0.46** |
+| paired | 9↑ 0↓, p=0.0039 | 6↑ 2↓, p=0.289 | **6↑ 2↓, p=0.289** (same IDs) |
+| H ship? | candidate | hold | **hold** — compute-path confound **not** confirmed |
+
+**Lab artifacts (machine-stamped — pull these on the Mac):**
+
+- [`../deliverables/prompt-sweep-round16.Linux-x86_64.json`](../deliverables/prompt-sweep-round16.Linux-x86_64.json) — lab D vs H generations
+- [`../deliverables/faithfulness-phase4.Linux-x86_64.json`](../deliverables/faithfulness-phase4.Linux-x86_64.json) — lab judge rows (D **77%** / H **92%**)
+
+Broken on lab both Round 14 and 16: `g030`, `g032`. Fixed both times: `g008`, `g021`, `g049`,
+`g050`, `g099`, `g106`.
 
 ## The loop
 
@@ -2335,8 +2347,11 @@ PHASE 4 SCORECARD  —  the whole system, one command
 
 # Round 16 — was it the machine, or was it the CPU?
 
-**Status: OPEN, written 2026-09-10. The only round that needs the lab box.** One environment
-variable, one re-run. It is cheap and it can flip a product decision.
+**Status: CLOSED on lab 2026-09-10.** Written as OPEN the same day; replies 16.0–16.3 are filled.
+**Mac: the LAB RESULT block at the top of this file is the summary.** Raw replies below.
+
+Original brief (kept so the asks stay readable): one environment variable, one re-run — cheap,
+and it could flip a product decision. **It did not flip:** lab at 100% GPU matched Round 14.
 
 **Read first:** [`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) `D83`, including the
 **NARROWED** block at the top of it.
