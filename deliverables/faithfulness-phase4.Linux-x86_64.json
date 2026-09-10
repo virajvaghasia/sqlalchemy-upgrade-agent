@@ -1,4 +1,6 @@
 {
+ "_lab": true,
+ "_label": "LAB PC Round 16.3 \u2014 gemma4:e4b faithfulness",
  "judge_model": "gemma4:e4b",
  "machine": "Linux-x86_64",
  "source": "prompt-sweep-phase4.json",

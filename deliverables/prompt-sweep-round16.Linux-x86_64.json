@@ -1,4 +1,13 @@
 {
+ "_lab": true,
+ "_label": "LAB PC Round 16 \u2014 D vs H with qwen2.5-coder:7b at 100% GPU",
+ "machine": "Linux-x86_64",
+ "host": "lab-xps-8950",
+ "round": 16,
+ "date": "2026-09-10",
+ "generator": "qwen2.5-coder:7b",
+ "processor": "100% GPU",
+ "vs_mac": "Mac was D 39/91 H 47/91 9\u21910\u2193; this file is lab D 38/91 H 42/91 6\u21912\u2193",
  "D": [
   {
    "refused": true,
