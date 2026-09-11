@@ -36,18 +36,15 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-11, Mac)
+## Where things stand — read this first (updated 2026-09-11, lab)
 
-**ROUND 17 IS OPEN.** Phase 5 has started and **every number in it was taken on the Mac**, which is
-the machine `D84` says does not reproduce. Round 17 re-takes them on the 3060. It is short —
-roughly 15 minutes of machine time — and it is the difference between `D87`/`D88` resting on one
-box or two.
-
-**Branch changed: the lab must now check out `phase-5/agent`**, not `phase-2/measure`.
+**ROUND 17 CLOSED on the lab.** Tip `6fec996`, branch `phase-5/agent`, Ollama **0.32.9**
+(Mac was 0.34.0), generator **100% GPU**. Artifact:
+`deliverables/agent-sweep-phase5.Linux-x86_64.json`.
 
 | round | state |
 |---|---|
-| **17** | **OPEN** — Phase 5 Step 0 on the lab. ~15 min. Branch is now `phase-5/agent` |
+| **17** | **CLOSED** — Step 0 holds on channel/`--g065`; agent end-to-end **0.02** vs lab baseline **0.42** |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
@@ -55,9 +52,35 @@ box or two.
 with the local judge. Three DISAGREE: `g080` (too harsh), both `g056` arms (too soft). Nothing
 left for the lab.
 
+### LAB RESULT — Round 17 (Mac: read this)
+
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060, tip `6fec996`), qwen at **100% GPU**.
+
+| control | Mac | **Lab Round 17** |
+|---|---|---|
+| `rag.tools --g065` | exit 0, create_view=False | **same, exit=0** |
+| toolcall synth usable | 20/20, content JSON | **20/20, content JSON, tool_calls 0** |
+| toolcall golden usable | 100/100, content JSON | **100/100, content JSON, tool_calls 0** |
+| gemma `tool_calls` channel | True | **True** (`check_api` / `Query.from_self`) |
+| Ollama | 0.34.0 | **0.32.9** — channel result still matches Mac, so **`D87` is a model fact, not a version fact** |
+
+| agent golden (17.4) | lab shipped baseline (D/Round 16) | **Lab Round 17 agent** |
+|---|---|---|
+| end to end | 38/91 = **0.42** | **2/91 = 0.02** |
+| no tool call | — | **96** |
+| one tool | — | **4** (`search_docs`×3, `check_api`×1) |
+| two or more | — | **0** |
+| over-refused / fabricated / failed | — | **0 / 5 / 0** |
+| stopped | — | all 100 `answered` |
+
+**Read against the pre-written pass/fail table:** end to end is **materially below 0.42**, and
+**`no tool call` is the story** — the model answers from memory despite tools. The two delivered
+items (`g002`, `g024`) are exactly the ones that called `search_docs`. That is the phase's finding
+for this sitting; do not tune it away on the lab.
+
 ---
 
-# Round 17 — does Phase 5's Step 0 hold on the lab? (OPEN, ~15 minutes)
+# Round 17 — does Phase 5's Step 0 hold on the lab? (CLOSED, lab 2026-09-11)
 
 **Why this round exists.** Phase 5 opened on a single measurement: `qwen2.5-coder:7b` emits a
 usable tool call **100% of the time** (20/20 synthetic, 100/100 golden), always as JSON in
@@ -202,32 +225,72 @@ lab's shipped-pipeline baseline is **38/91 = 0.42**. That is the number to put b
 ### REPLY 17.0
 
 ```
-(paste: git log -1, ollama --version)
+6fec996 feat(phase-5): Step 3's instrument, and the lab may now edit files
+ollama version is 0.32.9
+uv sync --frozen --extra embed: Checked 77 packages
+qdrant: Running
+nvidia-smi: RTX 3060, then warm → qwen2.5-coder:7b 100% GPU
 ```
 
 ### REPLY 17.1
 
 ```
-(paste the --g065 output and exit code)
+g065 — the fabricated Alembic script, checked against real alembic (D77)
+  OK alembic.operations.Operations.create_table       exists=True  (expected True)
+  OK alembic.operations.Operations.create_view        exists=False (expected False)
+  Two invented calls beside two working ones — and the tool separates them.
+exit=0
 ```
 
 ### REPLY 17.2
 
 ```
-(paste both toolcall reports in full)
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+
+TOOL CALLS — 20 synthetic questions, labelled by construction, qwen2.5-coder:7b, temperature 0.0
+  usable call      20/20 = 100%
+  right tool       20/20 = 100%  (labelled by construction)
+  ...on `tool_calls` (the MCP channel)   0
+  ...on `message.content` as JSON text   20
+  NOTE: every call arrived as content text. An agent built on this model parses
+        JSON itself; it cannot assume the MCP tool-call channel (D87).
+
+TOOL CALLS — the 100 golden questions, real developer phrasing, qwen2.5-coder:7b, temperature 0.0
+  usable call      100/100 = 100%
+  ...on `tool_calls` (the MCP channel)   0
+  ...on `message.content` as JSON text   100
+  NOTE: every call arrived as content text. An agent built on this model parses
+        JSON itself; it cannot assume the MCP tool-call channel (D87).
 ```
 
 ### REPLY 17.3
 
 ```
-(paste the two printed lines)
+has tool_calls: True
+classify     : {'outcome': 'tool_calls', 'tool': 'check_api', 'arg': 'Query.from_self'}
 ```
 
 ### REPLY 17.4
 
 ```
-(paste: rag.agent --report, and the last 20 lines of /tmp/round17-agent.log)
+AGENT — the golden set through the tool-using loop  [Linux-x86_64]
+  end to end     2/91 = 0.02   (D72's shipped pipeline: 39/91 = 0.43 on Darwin-arm64)
+  over-refused   0      fabricated 5      failed 0
+  no tool call   96      one tool 4      two or more 0
+  stopped        {'answered': 100, 'budget': 0, 'repeated_call': 0}
+  Compare item by item, not by the averages (D61) — and only against a run
+  from THIS machine (D83).
+
+# last lines of /tmp/round17-agent.log
+  [98/100] g120  steps=1 stopped=answered tools=[]
+  [99/100] g119  steps=1 stopped=answered tools=[]
+  [100/100] g121  steps=1 stopped=answered tools=[]
+
+saved 100 rows to agent-sweep-phase5.Linux-x86_64.json
+  end to end 2/91 = 0.02
 ```
+
 
 ### LAB RESULT — Round 16 (Mac: read this, not the OPEN asks)
 
