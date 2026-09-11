@@ -50,12 +50,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D87`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D88`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 380 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 393 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -372,6 +372,15 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 5 Step 1 CLOSED 2026-09-11 (`D88`): the three tools are built, `rag/tools.py`, 13 tests,
+all offline.** `check_api` is `D77` turned around — the check that proved `g065` fabricated
+*after the fact* is now callable *before* the model writes. Reproduce:
+`uv run python -m rag.tools --g065`. It runs the question in a pinned throwaway interpreter
+because this project is on 1.4.52 by design (`D04`), and it reads `PIN` out of `verify_2_0.py`
+rather than importing it — that module `sys.exit()`s at import time on 1.4, and `SystemExit`
+is not an `Exception`. **`exists: False` is an answer, not an error**, and `search_docs` calls
+the graded `index.retrieve` rather than a private retriever.
+
 **PHASE 5 Step 0 CLOSED 2026-09-11 (`D87`): the model CAN call tools — 100/100 on the golden
 questions, 20/20 right tool on a labelled set — but 0 of 120 calls used the `tool_calls` channel.
 They all arrive as JSON in `message.content`.** `gemma4:e4b` uses the native channel through the
@@ -412,7 +421,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**380 tests**, **58/58** `# runnable`, **87** decisions, **§H empty**.
+**393 tests**, **58/58** `# runnable`, **88** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -458,7 +467,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 380 passed with Qdrant up; 375 + 5 skipped without
+uv run pytest                            # 393 passed with Qdrant up; 388 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

@@ -117,8 +117,37 @@ fabricated by measuring `hasattr(Operations, "create_view") is False` on alembic
 `create_table` in the same script was real. **That check, as a tool the model can call, is the
 thing that would have caught the fabrication at generation time rather than in a post-mortem.**
 
+**CLOSED 2026-09-11. `rag/tools.py`, 13 tests, all offline.**
+
+```
+# runnable: uv run python -m rag.tools --g065
+g065 — the fabricated Alembic script, checked against real alembic (D77)
+  OK alembic.operations.Operations.create_table       exists=True  (expected True)
+  OK alembic.operations.Operations.create_view        exists=False (expected False)
+  Two invented calls beside two working ones — and the tool separates them.
+```
+
+**That is the phase's argument in four lines.** `D77` could only prove `g065` fabricated *after*
+the answer existed. The same check, callable before the model writes, is the difference between a
+post-mortem and a guardrail.
+
+**The version problem, and how it is solved rather than dodged.** This project is pinned to
+**1.4.52** on purpose (`D04`), so the process asking *"does this exist in 2.0?"* cannot import 2.0
+to find out. `check_api` runs the question in a throwaway interpreter —
+`uv run --no-project --with 'sqlalchemy==2.0.51'` — which is `verify_2_0.py`'s answer, reused
+rather than reinvented. **`PIN` is read out of that file, not copied**, and a test pins the two
+together.
+
+**And reading it is not squeamishness:** `verify_2_0` calls `sys.exit()` at module level when it
+finds itself on 1.4, and `SystemExit` does not inherit from `Exception`, so importing it here would
+kill the process past any guard. That trap is already in `CLAUDE.md`; this is the second module to
+meet it.
+
+**`exists: False` is an answer, not a failure** — the distinction the whole tool rests on. An agent
+must treat *"this API was removed"* differently from *"the lookup broke"*.
+
 **Done when:** each tool has tests, runs standalone, and `check_api_signature` reproduces the
-`g065` verdict — `create_view` absent, `create_table` present — as a `# runnable` block.
+`g065` verdict — `create_view` absent, `create_table` present — as a `# runnable` block. — **met.**
 
 ---
 

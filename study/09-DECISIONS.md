@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D87`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D88`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3092,6 +3092,66 @@ writing "the local model cannot call tools" I printed one raw response — which
 perfectly good call in the wrong field. Then I checked a second model through the same code to
 prove the harness was fine. **The measurement that nearly ended the phase was mine, not the
 model's, and the only thing that caught it was looking at the artifact instead of the count.**
+
+### D88 — the fabrication detector becomes a tool the model can call first
+
+**Built 2026-09-11**, `PHASE-5.md` Step 1. Three tools, built **before** the agent that calls
+them, because an agent standing on unmeasured tools produces failures nobody can attribute — and
+`D87` had just shown how cheap that mistake is to make.
+
+**`check_api` is the one that matters, and it is `D77` turned around.** `D77` proved `g065`
+fabricated by measuring `hasattr(Operations, "create_view") is False` on alembic while
+`op.create_table` in the same script was real. That was a **post-mortem**: the answer already
+existed and a person went looking. The same check, callable before the model writes, is a
+**guardrail**.
+
+```
+uv run python -m rag.tools --g065
+  OK alembic.operations.Operations.create_table       exists=True  (expected True)
+  OK alembic.operations.Operations.create_view        exists=False (expected False)
+```
+
+**Decided — a subprocess against a pinned interpreter, reusing `verify_2_0.py`'s answer.** This
+project is pinned to **1.4.52** on purpose (`D04`), so the process asking *"does this exist in
+2.0?"* cannot import 2.0 to find out. `uv run --no-project --with 'sqlalchemy==2.0.51'` was
+already this repo's answer to that and is reused rather than reinvented.
+
+**Rejected — unpinning the project, or a second environment.** `experiments/` is an instrument
+pointed at 1.4 and `deliverables/BREAKAGES.md` records exact error text taken at `2.0.51`.
+Unpinning to make one tool simpler would invalidate 23 measured entries.
+
+**`PIN` is READ out of `verify_2_0.py`, never copied** — and reading rather than importing is
+forced, not fastidious: that module calls `sys.exit()` at import time when it finds itself on 1.4,
+and **`SystemExit` does not inherit from `Exception`**, so a `try/except Exception` around the
+import would not catch it. That trap is already in `CLAUDE.md` from `rag/index.py`; this is the
+second module to meet it. A test pins the read value against the declaration, because one metric
+with two implementations is exactly what `D85` had to unpick.
+
+**`exists: False` is an ANSWER, not an error**, and the tool would be worthless without that
+distinction. An agent must treat *"this API was removed in 2.0"* — the single most common true
+statement in this whole problem domain — differently from *"the lookup broke"*. They are one field
+apart and one of them should end the search.
+
+**`search_docs` calls `index.retrieve`, the graded path**, rather than a private retriever. A
+second retriever would drift from the one Phase 2 measured and every recall figure in this repo
+would quietly stop describing what the agent sees. Same failure as `D85`, caught before it was
+written this time.
+
+**`get_function_source` is a separate tool, not a flag on `check_api`.** The answers differ in size
+by three orders of magnitude, and an agent that wanted a yes/no should not be handed four hundred
+lines to reason about.
+
+**Limits, stated rather than discovered later.** `PACKAGES` holds two entries because each is a
+wheel resolved on **every call** — a real latency cost inside an agent loop, and unmeasured so far.
+Alembic is there only because `g065`'s fabrication was `op.create_view`; a tool that could see only
+SQLAlchemy could not have caught the case it exists for.
+
+**Interview question it answers:** *"What would you build to stop a model inventing an API?"* Not a
+bigger prompt — the prompt work is `D74` and it moved citations while fabrications stayed at 2 under
+every wording. I took the check that had **already caught** a real fabrication in this project after
+the fact, and made it something the model can call before it answers. The measurement that proved
+the bug becomes the tool that prevents it, which is the only way I know to be sure a guardrail
+guards something real.
 
 ---
 
