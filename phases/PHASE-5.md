@@ -249,6 +249,111 @@ the lab or in one sitting, and any task-level claim names its n in the same sent
 
 ---
 
+### Step 3a — the experiment battery, written before any of it is run
+
+**Round 17.4 came back at `2/91 = 0.02` against the lab's own `38/91 = 0.42` baseline.** The
+pass/fail table written before that run says a number materially below baseline is *the phase's
+finding, and it is a real one — report it, do not tune it away.* **That still stands. But the
+headline number is not the finding, and saying it is would be wrong in a way this project has
+been wrong four times already this session.**
+
+#### What the run actually says
+
+```
+end to end     2/91 = 0.02        fabricated 5      over-refused 0
+no tool call   96      one tool 4      two or more 0
+```
+
+| of the 96 that called no tool | |
+|---|---|
+| refused outright | **43** |
+| **answered from memory** | **53** |
+| retrieved anything | **0** |
+
+**And when it did retrieve, it worked.** Of the three `search_docs` calls, two put a verified
+answer chunk in front of the model and produced a correct, sourced answer (`g002`, `g024`).
+
+> **`0.02` is measuring that the agent did not search. It is not measuring that the agent answered
+> badly.**
+
+**`end_to_end` requires `answer_in_prompt`, which for the agent requires a `search_docs` call.**
+So **53 answers are scored zero by construction**, whether they are right or wrong. Comparing
+`0.02` against `0.42` as though it were the same quantity is the apples-to-apples error this phase
+inherited a whole rule about. **The honest one-line summary is: the agent answers from memory, and
+the metric cannot see those answers at all.**
+
+#### The suspect, named before it is tested
+
+The standalone probe got a usable tool call on **100 of 100 of these same questions** (`D87`), on
+this machine, at this temperature. The only difference is the system prompt:
+
+| | |
+|---|---|
+| probe, **100/100 called a tool** | *"You have two tools. **Call exactly one of them** for the question you are given. **Do not answer from memory.**"* |
+| agent, **4/100 called a tool** | *"**You may call tools.** … When you have enough to answer, answer in prose…"* |
+
+That is the `D74` shape exactly — one permissive word against one imperative one, and a 96-point
+swing. **Which is a hypothesis, not a conclusion**, and Round 16 is the precedent for what happens
+to confident mechanisms here.
+
+#### The battery
+
+Each row states what it distinguishes and what result would mean what, **before it runs**.
+
+| # | experiment | distinguishes | cost |
+|---|---|---|---|
+| **E1** | system prompt A/B: permissive vs *must call a tool* | prompt versus model capability | ~80 generations |
+| **E2** | **structurally** force a tool call on step 1 — the loop rejects prose before any tool ran | what prompting can buy versus what only code can | ~200 |
+| **E3** | grade the **53 memory answers** with `rag.judge` for citations and faithfulness | is the agent answering *badly*, or just *unmeasurably*? | 0 new generations |
+| **E4** | the two-part failure: `check_api` says NOT FOUND, does a nudge produce the second call? | a **planning** failure versus a **stopping** failure | ~30 |
+| **E5** | replicate 17.4 unchanged on the Mac | is `96/100` a property of the system or of one box (`D84`)? | ~200 |
+| **E6** | re-run whichever variant wins on the **lab** | `D83` — nothing ships on one machine | lab sitting |
+
+**E3 is the one to run first and it costs nothing new.** The answers are already saved. If the 53
+memory answers are ungrounded and uncited, `0.02` is generous and the agent is genuinely worse. If
+they are largely correct, then the defect is **retrieval discipline**, not answer quality, and E1/E2
+are the fix rather than a rescue.
+
+#### E3 — RUN 2026-09-11, and the answer is the unwelcome one
+
+```
+answers produced with NO retrieval        53
+  carrying an [n] citation                31       <- every one OUT OF RANGE
+  containing code                         42
+  code with no source                     41/42
+answered an UNANSWERABLE item from memory  5       (g010 g056 g065 g075 g097)
+```
+
+**`n_sources` is zero on all 53, so every `[n]` in them points at a passage that was never
+fetched.** `g003` cites `[1]` against nothing at all, and so do thirty others.
+
+> **Phase 4's `D73` defect was answers that cite NOTHING. This is answers that cite something that
+> does not exist.**
+
+That settles how the rest of the battery is read. **`0.02` was generous.** The agent is not merely
+unmeasurable when it skips retrieval — **it is worse than the pipeline it replaces**, and worse in
+the one dimension `H` was chosen to improve. `D79` measured a subscript making an uncited block
+*look* cited and treated that as serious; this is the same failure without the excuse of a parser.
+
+**So E1 and E2 are no longer about rescuing a number.** Even if a prompt restores tool calls to
+100%, the thing that has to be re-measured is whether the citations then point at real retrieved
+passages — because this run proves the model will happily write `[1]` with nothing behind it.
+
+**Pass/fail, fixed now:**
+
+- **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it
+  and report both numbers, with the first one kept on the record.
+- **E1 barely moves it** → prompting is not the lever; E2 decides whether code can force it, and if
+  E2 also fails, **`0.02` is the finding and it ships as one**.
+- **E2 forces tool calls but end-to-end stays low** → the model retrieves and then ignores what it
+  retrieved, which is a different and more interesting defect than either.
+- **E5 disagrees with the lab by more than a few items** → `D84` again, and every number here needs
+  its machine before it means anything.
+
+**What will NOT be done: tuning until the number looks good.** The pre-written rule stands, `D69`
+and `D70` are the precedent for rejecting a lever with a measurement, and a variant that only wins
+on the Mac does not ship (`D83`, `D84`).
+
 ## Gate
 
 **Done when the agent completes a task needing 2+ tool calls, and visibly recovers from a tool
