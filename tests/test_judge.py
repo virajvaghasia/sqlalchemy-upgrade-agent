@@ -9,6 +9,7 @@ needs neither Ollama nor Qdrant.
 
 import contextlib
 import io
+import json
 
 import pytest
 
@@ -498,3 +499,152 @@ def test_the_scorecard_shows_every_machines_rows_not_just_the_last(capsys):
     out = capsys.readouterr().out
     assert "Darwin-arm64" in out and "Linux-x86_64" in out
     assert "Compare them item by item" in out
+
+
+def test_the_legacy_unstamped_file_is_not_counted_as_a_second_run(tmp_path):
+    """Measured 2026-09-10: `--report` printed the lab's faithfulness TWICE.
+
+    `deliverables/faithfulness-phase4.json` was the path both machines used
+    before D83 split them by machine, and the lab's last run left a copy of its
+    rows there as well as in `faithfulness-phase4.Linux-x86_64.json`. The glob
+    reads `faithfulness-phase4*.json`, so the same 47 verdicts appeared under
+    `Linux-x86_64` and again under `machine not recorded` — and a reader
+    comparing the two would have scored D's 77% as **reproduced on a second
+    machine** when it is one measurement printed twice.
+
+    The legacy name is still read, because a clone that never ran the split
+    has its only rows there. It is dropped only when its rows are a copy of a
+    file that does name its machine."""
+    rows = {"D": [{"id": "g001", "verdict": "SUPPORTED", "reason": "r",
+                   "claim": "c", "judge_model": "gemma4:e4b"}]}
+    (tmp_path / "faithfulness-phase4.Linux-x86_64.json").write_text(json.dumps(
+        {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b", "variants": rows}))
+    (tmp_path / "faithfulness-phase4.json").write_text(json.dumps(
+        {"judge_model": "gemma4:e4b", "variants": rows}))
+
+    got = judge.load_faith_files(tmp_path)
+    assert [f["_path"] for f in got] == ["faithfulness-phase4.Linux-x86_64.json"]
+
+
+def test_the_legacy_file_survives_when_it_is_the_only_copy(tmp_path):
+    """The other half of the same rule, and the reason the duplicate check is
+    by CONTENT rather than by filename: an older clone whose only rows sit at
+    the unsuffixed path must still be read, not silently dropped."""
+    (tmp_path / "faithfulness-phase4.json").write_text(json.dumps(
+        {"judge_model": "gemma4:e4b",
+         "variants": {"D": [{"id": "g001", "verdict": "SUPPORTED",
+                             "reason": "r", "claim": "c",
+                             "judge_model": "gemma4:e4b"}]}}))
+    got = judge.load_faith_files(tmp_path)
+    assert [f["_path"] for f in got] == ["faithfulness-phase4.json"]
+
+
+def test_two_files_with_different_rows_are_both_kept(tmp_path):
+    """Distinct runs are the GOOD case — D83 was measured from exactly this —
+    so the de-duplication must not collapse two machines that disagree."""
+    def row(verdict):
+        return {"D": [{"id": "g001", "verdict": verdict, "reason": "r",
+                       "claim": "c", "judge_model": "gemma4:e4b"}]}
+    (tmp_path / "faithfulness-phase4.Darwin-arm64.json").write_text(json.dumps(
+        {"machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
+         "variants": row("SUPPORTED")}))
+    (tmp_path / "faithfulness-phase4.Linux-x86_64.json").write_text(json.dumps(
+        {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b",
+         "variants": row("UNSUPPORTED")}))
+    assert len(judge.load_faith_files(tmp_path)) == 2
+
+
+def test_the_number_of_runs_in_the_footer_is_computed(capsys):
+    """It was the literal word "Two" while the report printed THREE blocks —
+    a count typed once, which is the thing this repo's measurement rule
+    forbids in scripts as much as in docs."""
+    items = [{"id": "g001", "answerable": True}]
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
+                    "answer": "x [1]", "n_sources": 5}]}
+
+    def faith(machine, verdict):
+        return {"_path": f"faithfulness-phase4.{machine}.json",
+                "machine": machine, "judge_model": "gemma4:e4b",
+                "variants": {"D": [{"id": "g001", "verdict": verdict,
+                                    "reason": "r", "claim": "c",
+                                    "judge_model": "gemma4:e4b",
+                                    "machine": machine}]}}
+    faiths = [faith("Darwin-arm64", "SUPPORTED"),
+              faith("Linux-x86_64", "UNSUPPORTED"),
+              faith("Linux-aarch64", "PARTIAL")]
+    judge.scorecard(items, sweep, ["D"], faiths[0],
+                    {"n": 0, "filled": 0, "rate": None}, None,
+                    sweep_machine="Darwin-arm64", faiths=faiths)
+    out = capsys.readouterr().out
+    assert "3 runs above" in out
+    assert "Two runs above" not in out
+
+
+def test_an_incomplete_faithfulness_file_is_labelled_not_reported_as_a_result(capsys):
+    """Seen live 2026-09-10 while a judge run was still going: the scorecard
+    printed the Mac at `D 15 judged, 100% supported` beside the lab's 47-row
+    run, in the same table, with nothing to say one of them was a third
+    finished. 100% of fifteen is what a partial run looks like, and it looks
+    exactly like a result.
+
+    The expected count is DERIVED from the sweep -- the rows the judge would
+    have judged -- rather than stored, so it works on files written before this
+    check existed."""
+    items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 4)]
+    sweep = {"D": [{"id": i["id"], "answerable": True, "answer_in_prompt": True,
+                    "answer": "a real answer with a citation [1]",
+                    "n_sources": 5} for i in items]}
+    partial = {"_path": "faithfulness-phase4.Darwin-arm64.json",
+               "machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
+               "variants": {"D": [{"id": "g001", "verdict": "SUPPORTED",
+                                   "reason": "r", "claim": "c",
+                                   "judge_model": "gemma4:e4b",
+                                   "machine": "Darwin-arm64"}]}}
+    judge.scorecard(items, sweep, ["D"], partial,
+                    {"n": 0, "filled": 0, "rate": None}, None,
+                    sweep_machine="Darwin-arm64", faiths=[partial])
+    out = capsys.readouterr().out
+    assert "INCOMPLETE" in out
+    assert "1 of 3" in out
+
+
+def test_a_complete_faithfulness_file_is_not_labelled_incomplete(capsys):
+    """The other half: a finished run must not carry a warning, or the warning
+    stops being read."""
+    items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 3)]
+    sweep = {"D": [{"id": i["id"], "answerable": True, "answer_in_prompt": True,
+                    "answer": "a real answer with a citation [1]",
+                    "n_sources": 5} for i in items]}
+    rows = [{"id": i["id"], "verdict": "SUPPORTED", "reason": "r", "claim": "c",
+             "judge_model": "gemma4:e4b", "machine": "Darwin-arm64"}
+            for i in items]
+    full = {"_path": "faithfulness-phase4.Darwin-arm64.json",
+            "machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
+            "variants": {"D": rows}}
+    judge.scorecard(items, sweep, ["D"], full,
+                    {"n": 0, "filled": 0, "rate": None}, None,
+                    sweep_machine="Darwin-arm64", faiths=[full])
+    assert "INCOMPLETE" not in capsys.readouterr().out
+
+
+def test_a_failed_judge_row_does_not_count_toward_completeness(capsys):
+    """A `FAILED` row is a missing measurement, not a judged one (D75). If it
+    counted as present, a run that gave up on an item would report itself
+    complete and the gap would never be retried."""
+    items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 3)]
+    sweep = {"D": [{"id": i["id"], "answerable": True, "answer_in_prompt": True,
+                    "answer": "a real answer with a citation [1]",
+                    "n_sources": 5} for i in items]}
+    rows = [{"id": "g001", "verdict": "SUPPORTED", "reason": "r", "claim": "c",
+             "judge_model": "gemma4:e4b", "machine": "Darwin-arm64"},
+            {"id": "g002", "verdict": "FAILED", "failed": True, "reason": "t",
+             "claim": "", "judge_model": "gemma4:e4b",
+             "machine": "Darwin-arm64"}]
+    part = {"_path": "faithfulness-phase4.Darwin-arm64.json",
+            "machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
+            "variants": {"D": rows}}
+    judge.scorecard(items, sweep, ["D"], part,
+                    {"n": 0, "filled": 0, "rate": None}, None,
+                    sweep_machine="Darwin-arm64", faiths=[part])
+    out = capsys.readouterr().out
+    assert "INCOMPLETE" in out and "1 of 2" in out

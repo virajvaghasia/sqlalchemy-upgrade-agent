@@ -639,7 +639,13 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
     # skipped only when EVERY selected variant already has it -- a half-judged
     # item would otherwise leave one arm short and turn a paired comparison
     # into two averages (D61).
-    done = {v: {r["id"]: r for r in (resume or {}).get(v, [])} for v in variants}
+    # A `FAILED` row is NOT done. It is a missing measurement (D75), and
+    # treating it as a verdict would make `--resume` skip the one item the
+    # previous run could not judge -- a permanently absent row inside a file
+    # that looks complete.
+    done = {v: {r["id"]: r for r in (resume or {}).get(v, [])
+                if r.get("verdict") != "FAILED"}
+            for v in variants}
 
     # Every id that at least one arm answered. An item nobody answered costs
     # nothing to skip and would retrieve for no reader.
@@ -667,8 +673,28 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
 
         def judge_one(v):
             row = saved_rows[v][item_id]
-            return v, judge_answer(row["answer"], passages,
-                                   key=key, model=model, post=post)
+            try:
+                return v, judge_answer(row["answer"], passages,
+                                       key=key, model=model, post=post)
+            except (urllib.error.URLError, TimeoutError) as exc:
+                # MEASURED 2026-09-10: without this the sweep died at item 63
+                # of 64 and three hours of judging survived only because
+                # checkpoints exist. `retrying()` had already done its job --
+                # it caught the `TimeoutError` that IS `D75`, retried four
+                # times, and gave up -- and then the exception walked straight
+                # out of the loop.
+                #
+                # `compare_prompts` learned this in D75 and wrote it down:
+                # retry, then record the item `failed` and continue. **The
+                # lesson never travelled to this module**, and nothing failed
+                # until a real timeout arrived. One unreachable call must cost
+                # one item, never the run.
+                #
+                # Recorded, not swallowed: a FAILED row is excluded from
+                # `judged`, printed by `report()`, and retried by `--resume`.
+                return v, stamp({"claim": "", "verdict": "FAILED",
+                                 "reason": f"{type(exc).__name__}: {exc}",
+                                 "failed": True}, model=model)
 
         # The arms of ONE item, optionally judged at the same time. Safe when
         # used: independent calls at temperature 0 against identical passages,
@@ -732,6 +758,23 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
                 "verdict": verdict["verdict"],
                 "reason": verdict["reason"],
                 "judge_model": verdict["judge_model"],
+                # Copied from the stamp rather than recomputed. Missing here
+                # for one release: `stamp()` set it and this dict, which is
+                # built field by field, silently dropped it -- so every saved
+                # row lacked a machine and `report()` printed `judge ... on ?`
+                # over a run whose machine was perfectly well known.
+                #
+                # The test that was supposed to prevent that called `stamp()`
+                # directly, so it passed while the pipeline threw the field
+                # away. **A test that pins a function instead of the path the
+                # data actually takes pins nothing.** The replacement goes
+                # through `sweep_rows`.
+                "machine": verdict.get("machine", machine()),
+                # Same trap as `machine` directly above, and it bit twice: this
+                # dict is built field by field, so anything `stamp()` sets and
+                # this list omits is silently thrown away. A FAILED row that
+                # loses its flag is a failure that reads as a verdict.
+                **({"failed": True} if verdict.get("failed") else {}),
                 "claim": verdict["claim"],
             })
         log(f"  [{n}/{len(ids)}] {item_id}  "
@@ -745,7 +788,8 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
 
 
 def aggregate(rows: list[dict]) -> dict:
-    counts = {verdict: 0 for verdict in (*VERDICTS, "UNPARSED", "NO_PROSE")}
+    counts = {verdict: 0
+              for verdict in (*VERDICTS, "UNPARSED", "NO_PROSE", "FAILED")}
     for row in rows:
         counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
     judged = sum(counts[v] for v in VERDICTS)
@@ -769,12 +813,12 @@ def report(by_variant: dict) -> None:
     # made stamp() mandatory to prevent.
     models = sorted({r["judge_model"] for rows in by_variant.values()
                      for r in rows})
-    machines = sorted({r.get("machine", "?") for rows in by_variant.values()
-                       for r in rows})
+    machines = sorted({r["machine"] for rows in by_variant.values()
+                       for r in rows if r.get("machine")})
     print("\nFAITHFULNESS  —  prose only; code is judge.py's half (D77)")
     print(f"  judge: {', '.join(models) or '(no rows)'} on "
-          f"{', '.join(machines) or '?'}, one sitting, both arms, "
-          f"identical passages")
+          f"{', '.join(machines) or 'a machine these rows do not record'}, "
+          f"one sitting, both arms, identical passages")
     if len(machines) > 1:
         # Not fatal like two judges, but it must be visible: D's supported rate
         # measured 85% on Darwin-arm64 and 77% on Linux-x86_64 with everything
@@ -802,6 +846,13 @@ def report(by_variant: dict) -> None:
         unparsed = [r["id"] for r in rows if r["verdict"] == "UNPARSED"]
         if unparsed:
             print(f"    UNPARSED (judge broke format, NOT coerced): {', '.join(unparsed)}")
+        # A failure that does not appear here is indistinguishable from an item
+        # nobody asked about -- and it is neither supported nor unsupported, so
+        # it must be visible rather than inferred from a smaller denominator.
+        failed = [r["id"] for r in rows if r["verdict"] == "FAILED"]
+        if failed:
+            print(f"    FAILED (transport, never judged — `--resume` retries "
+                  f"these): {', '.join(failed)}")
 
 
 # --- Step 5: the judge's own ceiling ----------------------------------------
@@ -906,9 +957,27 @@ def read_agreement(path: pathlib.Path) -> dict:
     statistic this repo has caught.
     """
     if not path.exists():
-        return {"n": 0, "filled": 0, "agree": 0, "rate": None}
+        return {"n": 0, "filled": 0, "agree": 0, "rate": None, "corrections": []}
     n = agree = filled = 0
+    # The corrections, not just the count. Measured 2026-09-11 on the real
+    # sheet: all three disagreements said the verdict should have been
+    # PARTIAL -- the judge was not wrong at random, it was too EXTREME, in
+    # both directions. "70% agreement" cannot say that, and the direction is
+    # the part a reader can act on.
+    corrections, item, said, pending = [], None, None, None
     for line in path.read_text().splitlines():
+        head = re.match(r"##\s*\d+\.\s*`(g\d+)`", line)
+        if head:
+            item = head.group(1)
+        verdict = re.match(r"\*\*Judge says:\*\*\s*`(\w+)`", line)
+        if verdict:
+            said = verdict.group(1)
+        if line.startswith(SHOULD_HAVE_BEEN) and pending is not None:
+            answer = line[len(SHOULD_HAVE_BEEN):].strip().strip("`_ ").upper()
+            pending["should_be"] = answer or None
+            corrections.append(pending)
+            pending = None
+            continue
         if not line.startswith(HUMAN_VERDICT):
             continue
         n += 1
@@ -916,11 +985,15 @@ def read_agreement(path: pathlib.Path) -> dict:
         # DISAGREE contains AGREE. Order matters and a test pins it.
         if "DISAGREE" in answer:
             filled += 1
+            pending = {"id": item, "judge_said": said, "should_be": None}
         elif "AGREE" in answer:
             filled += 1
             agree += 1
+    if pending is not None:                      # no correction line followed
+        corrections.append(pending)
     return {"n": n, "filled": filled, "agree": agree,
-            "rate": (agree / filled) if filled else None}
+            "rate": (agree / filled) if filled else None,
+            "corrections": corrections}
 
 
 def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,

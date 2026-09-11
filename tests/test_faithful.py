@@ -5,6 +5,7 @@ transport as an argument for exactly that reason. A test suite that needed a
 credential would be skipped in CI and would therefore pin nothing.
 """
 
+import json
 import urllib.error
 
 import pytest
@@ -479,6 +480,7 @@ def test_the_sheet_asks_for_a_verdict_and_supplies_none(tmp_path):
     assert faithful.HUMAN_VERDICT + " _______" in text
     assert "does not fill it in" in text
     assert faithful.read_agreement(out) == {"n": 1, "filled": 0, "agree": 0,
+                                           "corrections": [],
                                             "rate": None}
 
 
@@ -522,7 +524,9 @@ def test_DISAGREE_is_not_read_as_AGREE(tmp_path):
     detector bug in this phase has landed (D76, D79)."""
     f = tmp_path / "s.md"
     f.write_text(sheet_with("DISAGREE", "AGREE"))
-    assert faithful.read_agreement(f) == {"n": 2, "filled": 2, "agree": 1,
+    assert faithful.read_agreement(f) == {
+        "n": 2, "filled": 2, "agree": 1,
+        "corrections": [{"id": None, "judge_said": None, "should_be": None}],
                                           "rate": 0.5}
 
 
@@ -857,10 +861,27 @@ def test_every_row_records_the_machine_that_produced_it():
     """Measured 2026-09-05: same judge, same saved answers, same corpus,
     temperature 0 — prompt D's supported rate was 85% on the Mac and 77% on the
     lab 3060 (D83). Verdicts are not machine-independent, so a row carrying
-    only its judge is under-labelled."""
-    row = faithful.stamp({"claim": "c", "verdict": "SUPPORTED", "reason": "r"})
-    assert row["machine"] == faithful.machine()
-    assert "-" in row["machine"]              # System-arch, e.g. Darwin-arm64
+    only its judge is under-labelled.
+
+    **This goes through `sweep_rows`, not `stamp()`, and that is the point.**
+    The first version called `stamp()` directly and passed for a full release
+    while the pipeline dropped the field on the way out — `sweep_rows` builds
+    its output dict field by field and simply did not copy it. Every row the
+    lab saved on 2026-09-10 lacked a machine, and `report()` printed
+    `judge gemma4:e4b on ?` over a run whose machine was known. A test that
+    pins a function instead of the path the data takes pins nothing."""
+    rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["D"], key="k",
+                               post=fake_post("SUPPORTED\nyes"),
+                               retrieve=counting_retrieve(),
+                               log=lambda *a: None)
+    assert rows["D"], "no rows produced"
+    assert all(r["machine"] == faithful.machine() for r in rows["D"])
+    assert "-" in rows["D"][0]["machine"]     # System-arch, e.g. Darwin-arm64
+
+
+def test_stamp_itself_still_carries_the_machine():
+    """Kept as the unit-level check, but it is NOT the one that matters."""
+    assert faithful.stamp({"claim": "c"})["machine"] == faithful.machine()
 
 
 def test_the_report_flags_rows_from_more_than_one_machine(capsys):
@@ -886,3 +907,132 @@ def test_the_default_rows_path_carries_the_machine():
     only because git had them (D83)."""
     assert faithful.machine() in faithful.ROWS_DEFAULT.name
     assert faithful.ROWS_LEGACY.name == "faithfulness-phase4.json"
+
+
+# --- a transport failure must cost one item, not the run --------------------
+
+def failing_post(fail_on: str, exc=None):
+    """A transport that raises for one claim and answers every other call."""
+    def post(path, body, key, timeout=120):
+        text = json.dumps(body)
+        if fail_on in text:
+            raise exc or TimeoutError("timed out")
+        return {"candidates": [{"content": {"parts": [{"text": "SUPPORTED\nyes"}]}}]}
+    return post
+
+
+def test_one_timed_out_item_does_not_kill_the_sweep():
+    """Measured the hard way 2026-09-10: the sweep died at item 63 of 64.
+
+    `retrying()` behaved correctly -- it caught the `TimeoutError` that `D75`
+    is about and gave up after four attempts -- and then the exception
+    propagated out of `sweep_rows` and took the whole run with it. Three hours
+    of judging survived only because checkpoints exist.
+
+    **`compare_prompts` already learned this and `faithful` had not.** D75's
+    own words: one retry, then the item is recorded `failed` and the sweep
+    continues. The lesson never travelled between the two modules, and nothing
+    failed until a real timeout arrived."""
+    rows = faithful.sweep_rows(
+        saved_two_arms(), ITEMS, ["D", "H"], key="k",
+        post=failing_post("subquery in place of"),
+        retrieve=counting_retrieve(), log=lambda *a: None)
+    assert rows["H"], "the run must survive and produce rows"
+    failed = [r for r in rows["D"] + rows["H"] if r["verdict"] == "FAILED"]
+    assert failed, "the timed-out item must be recorded, not dropped silently"
+    assert all(r.get("failed") for r in failed)
+
+
+def test_a_failed_verdict_is_not_counted_as_judged():
+    """A failure is not an answer and not a verdict; it is a missing
+    measurement (D75). Counting it in the denominator would move the supported
+    rate for a reason that has nothing to do with the answers."""
+    rows = [{"id": "a", "verdict": "SUPPORTED"},
+            {"id": "b", "verdict": "FAILED", "failed": True}]
+    got = faithful.aggregate(rows)
+    assert got["judged"] == 1
+    assert got["FAILED"] == 1
+    assert got["supported_rate"] == 1.0
+
+
+def test_resume_retries_a_failed_item_rather_than_skipping_it():
+    """The opposite bug to the one above, and just as quiet: if a `FAILED` row
+    counted as done, `--resume` would treat a transport failure as a verdict
+    and the item would never be judged at all -- a permanently missing row
+    that looks like a completed run."""
+    prior = {"D": [{"id": "g002", "verdict": "FAILED", "failed": True,
+                    "reason": "timed out", "claim": "",
+                    "judge_model": "m", "machine": faithful.machine()}],
+             "H": []}
+    rows = faithful.sweep_rows(
+        saved_two_arms(), ITEMS, ["D"], key="k",
+        post=fake_post("SUPPORTED\nyes"), retrieve=counting_retrieve(),
+        resume=prior, log=lambda *a: None)
+    g002 = [r for r in rows["D"] if r["id"] == "g002"]
+    assert len(g002) == 1, "the failed row must be replaced, not duplicated"
+    assert g002[0]["verdict"] == "SUPPORTED"
+
+
+def test_the_report_names_the_items_that_failed(capsys):
+    """A failure that does not appear in the report is indistinguishable from
+    an item nobody asked about."""
+    faithful.report({"D": [{"id": "g007", "verdict": "FAILED", "failed": True,
+                            "reason": "timed out", "claim": "",
+                            "judge_model": "gemma4:e4b",
+                            "machine": "Darwin-arm64"}]})
+    out = capsys.readouterr().out
+    assert "g007" in out and "FAILED" in out
+
+
+# --- reading the filled sheet back -------------------------------------------
+
+AGREEMENT_SHEET = """# sheet
+
+## 1. `g045`  (variant `D`, breakages)
+**Judge says:** `UNSUPPORTED` — because.
+{v} AGREE
+{s} _______
+
+## 2. `g080`  (variant `D`, github)
+**Judge says:** `UNSUPPORTED` — because.
+{v} DISAGREE
+{s} PARTIAL
+
+## 3. `g056`  (variant `H`, stackoverflow)
+**Judge says:** `SUPPORTED` — because.
+{v} DISAGREE
+{s} PARTIAL
+"""
+
+
+def _sheet(tmp_path):
+    p = tmp_path / "JUDGE-AGREEMENT.md"
+    p.write_text(AGREEMENT_SHEET.format(v=faithful.HUMAN_VERDICT,
+                                        s=faithful.SHOULD_HAVE_BEEN))
+    return p
+
+
+def test_the_corrections_are_read_back_not_just_the_rate(tmp_path):
+    """A bare "70% agreement" is the least useful true sentence available.
+
+    Measured 2026-09-11 on the real sheet: all three disagreements said the
+    verdict should have been **PARTIAL** — the judge was not wrong at random,
+    it was too extreme in both directions. That is a different defect from
+    "30% inaccurate" and it needs the corrections, not the count."""
+    got = faithful.read_agreement(_sheet(tmp_path))
+    assert got["rate"] == 1 / 3
+    assert [c["id"] for c in got["corrections"]] == ["g080", "g056"]
+    assert {c["should_be"] for c in got["corrections"]} == {"PARTIAL"}
+    assert got["corrections"][0]["judge_said"] == "UNSUPPORTED"
+
+
+def test_a_disagreement_with_no_correction_is_still_a_disagreement(tmp_path):
+    """The rate must not depend on whether the reader filled the second blank."""
+    p = tmp_path / "s.md"
+    p.write_text(f"**Judge says:** `SUPPORTED` — x.\n"
+                 f"{faithful.HUMAN_VERDICT} DISAGREE\n"
+                 f"{faithful.SHOULD_HAVE_BEEN} _______\n")
+    got = faithful.read_agreement(p)
+    assert got["filled"] == 1 and got["agree"] == 0
+    assert got["corrections"] == [{"id": None, "judge_said": "SUPPORTED",
+                                   "should_be": None}]
