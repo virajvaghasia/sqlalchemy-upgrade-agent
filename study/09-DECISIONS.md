@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D86`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D87`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3028,6 +3028,70 @@ this one" — on ten rows, which makes it a hypothesis to test, not a rule to ap
 **A human now says all three misses should have been `PARTIAL`,** which confirms the direction —
 and the strike was still correct. **An argument that happens to point the right way is not thereby
 evidence**, and the difference between the two is the whole reason this register exists.
+
+### D87 — the model can call tools; it just will not use the channel MCP speaks
+
+**Measured 2026-09-11.** `PHASE-5.md` Step 0 exists to answer one question before anything is
+built: can `qwen2.5-coder:7b` emit a tool call at all? It had never been asked in this repo — every
+number here was measured on one-shot prose with the passages already in the prompt.
+
+| | synthetic, labelled | the 100 golden questions |
+|---|---|---|
+| usable call | **20/20 = 100%** | **100/100 = 100%** |
+| right tool | **20/20 = 100%** | not graded — unlabelled, by design |
+| on `message.tool_calls` | **0** | **0** |
+| on `message.content` as JSON | **20** | **100** |
+
+**So the phase proceeds, and it proceeds with a named constraint.** The model chooses correctly
+and its arguments are well formed — `Query.from_self`, `MetaData.bind`, `Table.tometadata` — but
+**every one of 120 calls arrived as JSON text in the content field**, never on the `tool_calls`
+channel. Ollama 0.34.0 reports `capabilities: ['completion', 'tools', 'insert']` for this model.
+**A declared capability is a claim, not a measurement.**
+
+**The first run of this probe reported `0 valid out of 20` and that was my parser.** It read only
+`message.tool_calls`. Every reply was in fact a correct call with the right tool and a well-formed
+argument, sitting in `message.content`.
+
+> **"The local model cannot call tools" would have ended the phase, and it would have been a claim
+> about thirty lines of my own code.**
+
+Same family as `D76`, `D79` and the `--report` row that read `48/91` — an instrument breaking in
+the direction of the thing under test. Every previous instance broke the *flattering* way; this one
+broke the other way, which is worth noting because it means the direction is not the tell. **Going
+and looking at a raw reply is the tell**, and it is the same move that caught `g002` in `D71`.
+
+**Controlled, rather than assumed.** `gemma4:e4b` through the **identical code path** returns its
+call on `tool_calls`, first attempt. So the missing channel is a property of
+`qwen2.5-coder:7b`/its template, not of the harness and not of Ollama. That is the negative control
+the chunk detectors needed (`c01480`) applied to a protocol.
+
+**Decided — the agent parses content JSON, and `qwen2.5-coder:7b` stays the model.**
+
+**Rejected — switch the agent to `gemma4:e4b` for native tool calls.** It is the tempting fix and
+it is disqualifying: **`gemma4:e4b` is the judge** (`D80`), chosen precisely because it is a
+different family from the generator so that nothing self-grades. Making it the agent would have it
+grading its own tool use, which is the property `D78` and `D80` were built to protect. **A protocol
+convenience is not worth reintroducing self-grading.**
+
+**Rejected — constrained decoding or a grammar to force the channel.** Nothing needs it: the parse
+rate is 100% on both sets. Build it if and when a malformed call is *measured*, which is `D70`'s
+precedent — do not build a fix for a defect that has not appeared.
+
+**What this does NOT license.** 100% is a parse rate on single-turn calls with two obviously
+distinct tools. It says nothing about **choosing among five**, about **reading a tool result and
+deciding what to do next**, or about the compounding `PHASE-5.md` opens on. Step 2 measures those,
+and this number must not be quoted as if it already had.
+
+**Reproduce:** `uv run python -m rag.toolcall` (20 synthetic) and `--golden` (100). Classified 17
+ways by `rag/toolcall.py`, with `tool_calls` and `content_json` kept as **separate** outcomes
+rather than merged into one `valid` — the distinction is the finding.
+
+**Interview question it answers:** *"How did you find out your model could not do the thing you
+needed?"* It could. My parser could not see it. I ran the probe, got 0 of 20, and instead of
+writing "the local model cannot call tools" I printed one raw response — which contained a
+perfectly good call in the wrong field. Then I checked a second model through the same code to
+prove the harness was fine. **The measurement that nearly ended the phase was mine, not the
+model's, and the only thing that caught it was looking at the artifact instead of the count.**
 
 ---
 

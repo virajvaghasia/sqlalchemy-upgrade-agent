@@ -75,8 +75,29 @@ emit a structured call. Count three things and nothing else:
   constrained decoding, or a smaller hand-rolled loop with a single tool. **`D70` is the
   precedent** — a lever rejected without being built, on a number.
 
+**CLOSED 2026-09-11 (`D87`). The gate opens, with a constraint.**
+
+| | synthetic, labelled | the 100 golden questions |
+|---|---|---|
+| usable call | **20/20 = 100%** | **100/100 = 100%** |
+| right tool | **20/20 = 100%** | not graded — unlabelled by design |
+| on `message.tool_calls` | **0** | **0** |
+| on `message.content` as JSON | **20** | **100** |
+
+**The model chooses correctly and its arguments are well formed. It never uses the channel MCP
+speaks.** All 120 calls arrived as JSON text in the content field. `gemma4:e4b` through the
+identical code path uses `tool_calls` first attempt, so that is the model, not the harness.
+
+**And the first run of this probe said `0 valid of 20`, which was my parser** — it read only
+`message.tool_calls`. Printing one raw reply found a perfect call in the wrong field. *"The local
+model cannot call tools"* would have ended this phase on thirty lines of my own code.
+
+**Consequences for Step 1:** the agent parses content JSON; `qwen2.5-coder:7b` stays the model;
+and **`gemma4:e4b` is not an option** however convenient its native channel, because it is the
+**judge** (`D80`) and using it would have it grading its own tool use.
+
 **Done when:** a rate exists with a decision id beside it, and the next step is chosen by it rather
-than by the roadmap's ordering.
+than by the roadmap's ordering. — **met.**
 
 ---
 

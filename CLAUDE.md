@@ -50,12 +50,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D86`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D87`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 363 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 380 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -372,6 +372,14 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 5 Step 0 CLOSED 2026-09-11 (`D87`): the model CAN call tools — 100/100 on the golden
+questions, 20/20 right tool on a labelled set — but 0 of 120 calls used the `tool_calls` channel.
+They all arrive as JSON in `message.content`.** `gemma4:e4b` uses the native channel through the
+same code, so it is the model, not the harness. **The agent parses content JSON; `gemma4:e4b` is
+NOT an option as the agent because it is the judge (`D80`).** The probe first reported `0 valid of
+20` and that was my parser — printing one raw reply is what caught it.
+Reproduce: `uv run python -m rag.toolcall` and `--golden`.
+
 **State (2026-09-11): PHASE 4 COMPLETE — all five steps closed, last human gate `D86`. PHASE 5
 OPEN**, plan written: [`phases/PHASE-5.md`](phases/PHASE-5.md). **Step 0 is a gate that can end
 it** — whether `qwen2.5-coder:7b` can emit a valid tool call has never been measured here, and an
@@ -404,7 +412,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**361 tests**, **58/58** `# runnable`, **86** decisions, **§H empty**.
+**380 tests**, **58/58** `# runnable`, **87** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -450,7 +458,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 363 passed with Qdrant up; 358 + 5 skipped without
+uv run pytest                            # 380 passed with Qdrant up; 375 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
