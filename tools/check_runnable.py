@@ -103,6 +103,9 @@ ENV_MARKERS = {
     "rag.golden": "reads corpus/chunks.jsonl, which is generated and gitignored (D11)",
     "rag.judge": "~100 Ollama generations against a gitignored corpus; ~30 min and nondeterministic",
     "rag.faithful": "needs a judge model (a key, or Ollama) plus Qdrant and the gitignored corpus; ~110 calls",
+    "rag.toolcall": "needs the Ollama model server; 20-120 generations",
+    "rag.tools": "resolves and downloads a pinned wheel into a throwaway "
+                 "interpreter; CI has no guaranteed network",
     "psql": "needs a running database",
 }
 
