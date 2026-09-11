@@ -7,18 +7,145 @@ a GUI, not something Claude can type into.
 So this file is the wire. Claude writes **ASK** blocks; Viraj runs them on the PC and
 pastes the output into the matching **REPLY** block; Claude reads it on the next pull.
 
-## Where things stand — read this first (updated 2026-09-10, lab PC)
+## Where things stand — read this first (updated 2026-09-11, Mac)
 
-**No open lab round.** Round 16 is **CLOSED on the lab** — Mac reads the LAB RESULT block below.
+**ROUND 17 IS OPEN.** Phase 5 has started and **every number in it was taken on the Mac**, which is
+the machine `D84` says does not reproduce. Round 17 re-takes them on the 3060. It is short —
+roughly 15 minutes of machine time — and it is the difference between `D87`/`D88` resting on one
+box or two.
+
+**Branch changed: the lab must now check out `phase-5/agent`**, not `phase-2/measure`.
 
 | round | state |
 |---|---|
+| **17** | **OPEN** — Phase 5 Step 0 on the lab. ~15 min. Branch is now `phase-5/agent` |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
 **Mac gate closed 2026-09-11 (`D86`):** `JUDGE-AGREEMENT.md` filled — **7 of 10 = 70%** agreement
 with the local judge. Three DISAGREE: `g080` (too harsh), both `g056` arms (too soft). Nothing
 left for the lab.
+
+---
+
+# Round 17 — does Phase 5's Step 0 hold on the lab? (OPEN, ~15 minutes)
+
+**Why this round exists.** Phase 5 opened on a single measurement: `qwen2.5-coder:7b` emits a
+usable tool call **100% of the time** (20/20 synthetic, 100/100 golden), always as JSON in
+`message.content` and **never** on the `tool_calls` channel (`D87`). Everything Step 2 will build
+stands on that.
+
+**It was taken on the Mac.** `D83` and `D84` say generation does not reproduce across these two
+boxes, and that the Mac is the one that drifts. **So the number Phase 5 is standing on is the one
+taken on the less reliable machine** — exactly the position that made prompt `H`'s `9↑ 0↓` untrustworthy.
+
+**And there is a second reason, which is not about drift at all.** The Mac runs **Ollama 0.34.0**;
+this repo last recorded the lab at **0.32.9** (`study/08-LAB.md`, Day 10). The `tool_calls` channel
+is served by the **server's** template handling, not only by the model. **If the lab's older Ollama
+lifts the call into `tool_calls`, then `D87`'s constraint is a version fact and not a model fact**,
+and Step 2's design changes.
+
+## Pass / fail, written before the data — as in Rounds 14 and 16
+
+| result on the lab | what it means | what happens next |
+|---|---|---|
+| usable calls **20/20 and 100/100**, all `content_json` | `D87` reproduces, channel is a **model** fact | Step 2 proceeds as planned; `D87` gains a second machine |
+| usable calls high, but some/all on **`tool_calls`** | the channel is an **Ollama version** fact | `D87` is narrowed the way `D83` was; Step 2 targets the native channel and the Mac upgrades |
+| usable calls **materially below 100%** | `D87` does **not** reproduce | **Step 2 stops.** The agent cannot be built on a rate that holds on one box only |
+| `--g065` disagrees with the Mac | a *deterministic* tool disagreed across machines | stop and paste it — that would be a much bigger finding than this round |
+
+**`--g065` is the control.** It runs no model at all — it resolves two symbols in a pinned
+interpreter. It **must** match the Mac exactly. If it does not, the problem is the environment and
+every other number in this round is suspect.
+
+## ASK 17.0 — sync (note the NEW branch)
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+
+git fetch origin
+git checkout phase-5/agent          # NEW — Phase 5 branched off phase-2/measure
+git pull --ff-only
+git log -1 --oneline                # expect 70703aa or newer
+
+uv sync --frozen --extra embed
+docker compose up -d qdrant         # only ASK 17.2 needs it
+ollama --version                    # RECORD THIS — the Mac is 0.34.0
+```
+
+## ASK 17.1 — the deterministic control first
+
+Run this **before** anything that involves the model. It downloads a wheel and resolves two
+symbols; no GPU, no Ollama.
+
+```bash
+uv run python -m rag.tools --g065; echo "exit=$?"
+```
+
+**Expected, exactly:**
+
+```
+g065 — the fabricated Alembic script, checked against real alembic (D77)
+  OK alembic.operations.Operations.create_table       exists=True  (expected True)
+  OK alembic.operations.Operations.create_view        exists=False (expected False)
+  Two invented calls beside two working ones — and the tool separates them.
+exit=0
+```
+
+**If this differs, stop and paste it.** Do not run 17.2 or 17.3 — a deterministic check that
+disagrees across machines makes everything after it unreadable.
+
+## ASK 17.2 — the tool-call probe, both sets
+
+```bash
+ollama ps                           # after the first call: expect 100% GPU
+uv run python -m rag.toolcall            # 20 synthetic, labelled
+uv run python -m rag.toolcall --golden   # the 100 real questions, ~5 min
+```
+
+**Paste both reports in full**, including the `...on tool_calls` / `...on message.content` lines.
+Those two lines are the round.
+
+## ASK 17.3 — the control that says model-or-server
+
+One call, a different model, the identical code path. On the Mac `gemma4:e4b` returns its call on
+`tool_calls` first attempt, which is what proved the missing channel belongs to
+`qwen2.5-coder:7b` and not to the harness.
+
+```bash
+uv run python -c "
+from rag import toolcall
+r = toolcall.ask('Does Query.from_self still exist in SQLAlchemy 2.0?', model='gemma4:e4b')
+print('has tool_calls:', bool((r.get(\"message\") or {}).get(\"tool_calls\")))
+print('classify     :', toolcall.classify(r))
+"
+```
+
+**Expected on the Mac:** `has tool_calls: True`, outcome `tool_calls`.
+
+### REPLY 17.0
+
+```
+(paste: git log -1, ollama --version)
+```
+
+### REPLY 17.1
+
+```
+(paste the --g065 output and exit code)
+```
+
+### REPLY 17.2
+
+```
+(paste both toolcall reports in full)
+```
+
+### REPLY 17.3
+
+```
+(paste the two printed lines)
+```
 
 ### LAB RESULT — Round 16 (Mac: read this, not the OPEN asks)
 

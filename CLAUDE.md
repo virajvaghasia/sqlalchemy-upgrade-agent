@@ -372,6 +372,14 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**ROUND 17 IS OPEN ON THE LAB** (`logs/HANDOFF.md`): re-take Step 0's tool-call numbers on the
+3060, because `D87` and `D88` currently rest on the **Mac**, which is the box `D84` says drifts.
+~15 minutes. **The lab must check out `phase-5/agent` now**, not `phase-2/measure`. Two things it
+can find: that `D87` reproduces (Step 2 proceeds), or that the lab's **older Ollama** (0.32.9 vs
+the Mac's 0.34.0) serves the call on the native `tool_calls` channel — which would make `D87`'s
+constraint a **version** fact rather than a model fact and change Step 2's design. Pass/fail is
+written in the round before the data.
+
 **PHASE 5 Step 1 CLOSED 2026-09-11 (`D88`): the three tools are built, `rag/tools.py`, 13 tests,
 all offline.** `check_api` is `D77` turned around — the check that proved `g065` fabricated
 *after the fact* is now callable *before* the model writes. Reproduce:
