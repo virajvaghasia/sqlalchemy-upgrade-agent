@@ -188,6 +188,23 @@ def _validate(name, args, channel: str) -> dict:
     return {"outcome": channel, "tool": name, "arg": value.strip()}
 
 
+def ask_messages(messages: list[dict], model: str = MODEL,
+                 transport=post) -> dict:
+    """A whole conversation, tools offered — what the agent loop needs.
+
+    `ask()` is the single-question probe Step 0 used; this is the same request
+    with the caller's message list, so the two cannot drift on tool schemas,
+    temperature or the offered tools.
+    """
+    return transport({
+        "model": model,
+        "messages": messages,
+        "tools": TOOLS,
+        "stream": False,
+        "options": {"temperature": TEMPERATURE},
+    })
+
+
 def classify(reply: dict) -> dict:
     """What came back, and **on which channel** -- the distinction this
     function was rewritten for on the day it was written.
@@ -219,10 +236,24 @@ def classify(reply: dict) -> dict:
         content = ((reply.get("message") or {}).get("content") or "").strip()
         if not content:
             return {"outcome": "empty", "tool": None, "arg": None}
-        # A bare JSON object naming one of our tools is a call on the wrong
-        # channel. Anything else -- prose, a fenced block, an apology -- is not.
+        # A JSON object naming one of our tools is a call on the wrong channel.
+        # Anything else -- prose, a fenced block, an apology -- is not.
+        #
+        # **A LEADING object counts even when prose follows it**, and that was
+        # measured rather than anticipated. Step 0 probed single turns and got
+        # 120 replies that were pure JSON. Inside the agent loop the same model
+        # emits the call AND then starts answering in the same field:
+        #
+        #     {"name": "search_docs", "arguments": {...}}\n\n[1] SQLAlchemy 2.0...
+        #
+        # `json.loads` on the whole string raises, so the first version scored
+        # that as `prose` -- the loop read it as an answer and **never ran the
+        # tool the model had just asked for.** Fourth instrument in this repo to
+        # break only once the thing under test started behaving differently
+        # (D76, D79, D87). `raw_decode` reads the leading value and reports
+        # where it stopped.
         try:
-            blob = json.loads(content)
+            blob, _ = json.JSONDecoder().raw_decode(content)
         except json.JSONDecodeError:
             return {"outcome": "prose", "tool": None, "arg": None}
         if not isinstance(blob, dict) or "name" not in blob:

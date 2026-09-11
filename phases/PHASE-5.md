@@ -168,9 +168,43 @@ Four recovery behaviours, each with the defect it exists for:
   Phase 4's entire refusal instrumentation works only if the agent's decline looks like the
   generator's.
 
+**BUILT 2026-09-11. `rag/agent.py`, 13 tests, all offline.** The loop reads `toolcall.classify`
+and never either message field, so **`D87`'s open question cannot invalidate it**: whichever
+channel Round 17 finds on the lab, this file is unchanged. Building it the other way would have
+meant code whose correctness depended on a measurement still in flight.
+
+**First real run found a classifier bug the Step 0 probe structurally could not.** Single-turn
+probing got 120 replies that were pure JSON. Inside the loop the same model emits the call **and
+then starts answering in the same field**:
+
+```
+{"name": "search_docs", "arguments": {"query": "from_self"}}
+
+[1] SQLAlchemy 2.0 Migration Guide says...
+```
+
+`json.loads` on the whole string raises, so it scored as `prose` and **the loop treated it as an
+answer and never ran the tool the model had just asked for.** Fixed with `raw_decode`; `D87`'s
+numbers re-measured afterwards and unchanged at 20/20. **Fourth instrument in this repo to break
+only once the thing under test started behaving differently** (`D76`, `D79`, `D87`).
+
+**And the first honest look at multi-step behaviour, which is this phase's actual risk.** Three
+questions, after the fix:
+
+| question | tools used | outcome |
+|---|---|---|
+| rewrite a `from_self` query | `search_docs` | answered |
+| was `MetaData.bind` removed, and what replaces it | `check_api` | **declined after one tool** |
+| why is my `Comment` never INSERTed | **none** | **declined with no tool call** |
+
+**One tool call, then stop.** `check_api` correctly returned NOT FOUND for `MetaData.bind` and the
+model declined instead of searching for the replacement — a two-part question answered halfway and
+then abandoned. **That is the compounding `PHASE-5.md` opened on, showing up on the third question
+ever asked**, and it is Step 3's subject rather than a loop defect: every failure path here worked.
+
 **Done when:** a deliberately injected tool failure is recovered visibly, and the injected-failure
 drill is in the doc — the same shape as the `.dockerignore` break in `study/04-DOCKER.md` §3 and
-the deliberately failing CI PR of Days 8–9.
+the deliberately failing CI PR of Days 8–9. — **met in tests; the drill on a live model is Step 3.**
 
 ---
 

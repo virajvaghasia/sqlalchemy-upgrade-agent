@@ -160,3 +160,24 @@ def test_unlabelled_questions_do_not_contribute_a_right_tool_rate():
     got = toolcall.run([(None, "anything")],
                        ask_one=lambda q: reply("search_docs", {"query": "x"}))
     assert got["labelled"] == 0 and got["right"] == 0
+
+
+def test_a_call_followed_by_prose_is_still_a_call():
+    """MEASURED 2026-09-11 inside the agent loop, not in the Step 0 probe.
+
+    Single-turn probing got 120 replies that were pure JSON. In the loop the
+    same model emits the call and then starts answering in the same field. The
+    first classifier ran `json.loads` on the whole string, scored it `prose`,
+    and **the loop never ran the tool the model had just asked for.**"""
+    content = (json.dumps({"name": "search_docs",
+                           "arguments": {"query": "from_self"}})
+               + "\n\n[1] SQLAlchemy 2.0 Migration Guide says...")
+    got = toolcall.classify(reply(content=content))
+    assert got == {"outcome": "content_json", "tool": "search_docs",
+                   "arg": "from_self"}
+
+
+def test_prose_that_merely_starts_with_a_brace_is_still_prose():
+    """raw_decode must not turn an answer into a call."""
+    assert toolcall.classify(
+        reply(content='{"a": 1} is the syntax'))["outcome"] == "prose"
