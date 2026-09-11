@@ -98,7 +98,7 @@ def _observation(name: str, result) -> str:
 
 
 def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS,
-        log=lambda *a: None) -> dict:
+        log=lambda *a: None, system: str | None = None) -> dict:
     """One question, up to `max_steps` tool calls, one answer or one decline.
 
     Returns the transcript as well as the answer, because a trace nobody can
@@ -108,7 +108,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
     generate = generate or (lambda messages: toolcall.ask_messages(messages))
     call_tool = call_tool or _default_tools
 
-    messages = [{"role": "system", "content": SYSTEM},
+    messages = [{"role": "system", "content": system or SYSTEM},
                 {"role": "user", "content": question}]
     trace, seen_calls = [], set()
 
