@@ -182,3 +182,191 @@ def _default_tools(name: str, argument: str):
         # says must exist. The alternative -- letting it propagate -- is
         # exactly the bug that killed a sweep at item 63 of 64.
         return None, f"{type(exc).__name__}: {exc}"
+
+
+# --- Step 3: run the golden set through the agent ---------------------------
+#
+# **The question this answers is the one most likely to have an unwelcome
+# answer:** does routing the same 100 questions through a tool-using agent make
+# single-answer quality WORSE than the one-shot pipeline Phase 4 measured?
+#
+# It needs no new labels. The golden set, `rag.judge --report` and every Phase 4
+# column already exist; the agent is simply a different way of producing the
+# `answer` field. That is deliberate -- a task set (Step 3's second half) costs
+# human verification (`D06`), and this half costs none.
+
+SWEEP_NAME = "agent-sweep-phase5"
+
+
+def machine() -> str:
+    """Same stamp `faithful.machine()` produces: a machine CLASS, not a
+    hostname. `D83`: generation figures do not reproduce across machines, so a
+    row that does not name its machine is under-labelled."""
+    from rag import faithful
+    return faithful.machine()
+
+
+def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
+          checkpoint=None, log=print, resume: dict | None = None) -> list[dict]:
+    """Every golden item through the agent, saved in Phase 4's row shape.
+
+    Rows carry `answer_in_prompt` computed with **`score.rank_of_first_hit`,
+    the same function `--refusals` and the prompt sweep use**, so the columns
+    are comparable with `D72`'s table rather than merely similar to it. For the
+    agent that means: *did a verified answer chunk come back from any
+    `search_docs` call this run made?* -- the agent's own equivalent of "the
+    page reached the prompt", since the agent chooses its own retrieval.
+    """
+    from rag import score
+
+    chunks = chunks if chunks is not None else score.load_chunks()
+    done = {r["id"]: r for r in (resume or {}).get("rows", [])}
+    rows = list(done.values())
+
+    for n, item in enumerate(items, 1):
+        if item["id"] in done:
+            log(f"  [{n}/{len(items)}] {item['id']}  (done, skipped)")
+            continue
+        seen_chunks: list[str] = []
+
+        def call_tool(name, argument, _seen=seen_chunks):
+            result, error = _default_tools(name, argument)
+            if name == "search_docs" and not error:
+                _seen.extend(hit["chunk_id"] for hit in result)
+            return result, error
+
+        try:
+            got = (run_one or run)(item["question"], call_tool=call_tool)
+        except Exception as exc:              # noqa: BLE001
+            # D75, and by now the rule rather than the exception: one bad item
+            # costs one item. A `failed` row is neither an answer nor a
+            # refusal, and both halves of the comparison drop it.
+            log(f"  [{n}/{len(items)}] {item['id']}  FAILED {type(exc).__name__}")
+            rows.append({"id": item["id"], "failed": True,
+                         "answerable": bool(item.get("answerable")),
+                         "answer_in_prompt": False,
+                         "provenance": item.get("provenance")})
+            if checkpoint:
+                checkpoint(rows)
+            continue
+
+        in_prompt = bool(item.get("answerable")) and seen_chunks and \
+            score.rank_of_first_hit(seen_chunks, item, chunks) is not None
+        rows.append({
+            "id": item["id"],
+            "provenance": item.get("provenance"),
+            "answerable": bool(item.get("answerable")),
+            "answer_in_prompt": bool(in_prompt),
+            "answer": got["answer"],
+            # The agent's sources ARE what it retrieved, so the citation
+            # denominator is the number of passages it actually saw. Zero when
+            # it never searched -- which is itself a measurement (an answer
+            # with no lookup behind it).
+            "n_sources": len(seen_chunks),
+            "steps": got["steps"],
+            "stopped": got["stopped"],
+            "tools": [t.get("tool") for t in got["trace"] if t["kind"] == "tool"],
+            "trace": got["trace"],
+        })
+        log(f"  [{n}/{len(items)}] {item['id']}  steps={got['steps']} "
+            f"stopped={got['stopped']} tools={rows[-1]['tools']}")
+        if checkpoint and n % 5 == 0:
+            checkpoint(rows)
+    if checkpoint:
+        checkpoint(rows)
+    return rows
+
+
+def summarise(rows: list[dict]) -> dict:
+    """Agent-specific counts. The generation and citation columns come from
+    `rag.judge`'s own functions, never from a second copy here -- `D85` is what
+    happens when one metric grows two implementations."""
+    from rag import judge
+
+    live = [r for r in rows if not r.get("failed")]
+    used = [r for r in live if r.get("tools")]
+    return {
+        **judge._sweep_generation(rows),
+        "no_tool_call": len(live) - len(used),
+        "one_tool_only": sum(1 for r in used if len(r["tools"]) == 1),
+        "multi_tool": sum(1 for r in used if len(r["tools"]) > 1),
+        "stopped": {k: sum(1 for r in live if r.get("stopped") == k)
+                    for k in ("answered", "budget", "repeated_call")},
+    }
+
+
+def main() -> None:
+    import json as _json
+    import pathlib
+    import sys
+
+    from rag import judge, score
+
+    argv = sys.argv[1:]
+    out = judge.DELIVERABLES / f"{SWEEP_NAME}.{machine()}.json"
+
+    if "--report" in argv:
+        if not out.exists():
+            sys.exit(f"no rows yet: {out.name}\n"
+                     f"  run: uv run python -m rag.agent --golden")
+        saved = _json.loads(out.read_text())
+        got = summarise(saved["rows"])
+        print(f"\nAGENT — the golden set through the tool-using loop"
+              f"  [{saved.get('machine', '?')}]")
+        print(f"  end to end     {got['delivered']}/{got['n_answerable']} = "
+              f"{got['end_to_end']:.2f}   (D72's shipped pipeline: 39/91 = 0.43 "
+              f"on Darwin-arm64)")
+        print(f"  over-refused   {got['over_refused']}"
+              f"      fabricated {got['fabricated']}"
+              f"      failed {got['failed']}")
+        print(f"  no tool call   {got['no_tool_call']}"
+              f"      one tool {got['one_tool_only']}"
+              f"      two or more {got['multi_tool']}")
+        print(f"  stopped        {got['stopped']}")
+        print("  Compare item by item, not by the averages (D61) — and only "
+              "against a run\n  from THIS machine (D83).")
+        return
+
+    if "--golden" not in argv:
+        print("usage: uv run python -m rag.agent --golden [--limit N] [--resume]\n"
+              "       uv run python -m rag.agent --report")
+        return
+
+    # score.load_golden enforces D06 in code: anything whose verified_by
+    # is not "human" is dropped, loudly, with its id named.
+    items = score.load_golden()
+    if "--limit" in argv:
+        items = items[: int(argv[argv.index("--limit") + 1])]
+
+    resume = None
+    if "--resume" in argv and out.exists():
+        prior = _json.loads(out.read_text())
+        if prior.get("machine") != machine():
+            sys.exit(f"those rows are from {prior.get('machine')}, this host is "
+                     f"{machine()}. Two machines in one file is the mistake "
+                     f"D83 cost a recovery from.")
+        resume = prior
+        print(f"resuming: {len(prior['rows'])} rows already done")
+    elif out.exists():
+        prior = _json.loads(out.read_text()).get("machine")
+        if prior and prior != machine():
+            sys.exit(f"{out.name} holds rows from {prior}; this host is "
+                     f"{machine()}. Overwriting destroys the other machine's "
+                     f"evidence (D83).")
+
+    def save(rows):
+        out.write_text(_json.dumps({"machine": machine(),
+                                    "n": len(rows), "rows": rows}, indent=1) + "\n")
+
+    print(f"agent over {len(items)} golden items — checkpointing every 5 to "
+          f"{out.name}")
+    rows = sweep(items, checkpoint=save, resume=resume)
+    save(rows)
+    print(f"\nsaved {len(rows)} rows to {out.name}")
+    main_report = summarise(rows)
+    print(f"  end to end {main_report['delivered']}/{main_report['n_answerable']}"
+          f" = {main_report['end_to_end']:.2f}")
+
+
+if __name__ == "__main__":
+    main()

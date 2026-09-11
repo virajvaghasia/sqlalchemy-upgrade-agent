@@ -179,3 +179,112 @@ def test_the_trace_records_every_step():
     assert got["trace"][0]["tool"] == "search_docs"
     assert got["trace"][0]["arg"] == "a"
     assert "observation" in got["trace"][0]
+
+
+# --- Step 3: the golden sweep ------------------------------------------------
+
+ITEMS = [
+    {"id": "g001", "question": "q one", "answerable": True,
+     "answer_chunks": ["c001"], "provenance": "breakages"},
+    {"id": "g002", "question": "q two", "answerable": False,
+     "answer_chunks": [], "provenance": "github"},
+]
+# `heading_path` is required: `dedup_key` uses it, because the embedder
+# prepends the heading before embedding and two chunks are the same vector
+# only if both heading and text match (D58).
+CHUNKS = {"c001": {"chunk_id": "c001", "text": "t",
+                   "heading_path": ["Migration"]}}
+
+
+def test_answer_in_prompt_uses_the_same_function_as_every_other_sweep():
+    """`score.rank_of_first_hit`, not a private rule. `D85` is what happens
+    when one metric grows two implementations: this column has to line up with
+    `D72`'s table, not merely resemble it."""
+    def run_one(question, call_tool=None):
+        call_tool("search_docs", "x")             # the agent looked something up
+        return {"answer": "an answer [1]", "steps": 2, "stopped": "answered",
+                "trace": [{"kind": "tool", "tool": "search_docs"}]}
+
+    import rag.agent as mod
+    real = mod._default_tools
+    mod._default_tools = lambda n, a: ([{"chunk_id": "c001", "text": "t"}], None)
+    try:
+        rows = agent.sweep(ITEMS, chunks=CHUNKS, run_one=run_one,
+                           log=lambda *a: None)
+    finally:
+        mod._default_tools = real
+    by_id = {r["id"]: r for r in rows}
+    assert by_id["g001"]["answer_in_prompt"] is True
+    # An unanswerable item can never have its answer in the prompt.
+    assert by_id["g002"]["answer_in_prompt"] is False
+
+
+def test_an_agent_that_never_searched_has_no_sources():
+    """Zero is a measurement, not a gap: an answer with no lookup behind it is
+    the thing `D73` was about, arriving by a different route."""
+    def run_one(question, call_tool=None):
+        return {"answer": "from memory", "steps": 1, "stopped": "answered",
+                "trace": []}
+
+    rows = agent.sweep(ITEMS, chunks=CHUNKS, run_one=run_one, log=lambda *a: None)
+    assert all(r["n_sources"] == 0 for r in rows)
+    assert all(r["answer_in_prompt"] is False for r in rows)
+
+
+def test_one_broken_item_costs_one_item():
+    """D75, and by now the rule rather than the exception."""
+    def boom(question, call_tool=None):
+        raise RuntimeError("boom")
+
+    rows = agent.sweep(ITEMS, chunks=CHUNKS, run_one=boom, log=lambda *a: None)
+    assert len(rows) == 2 and all(r["failed"] for r in rows)
+    assert all("answer" not in r for r in rows)
+
+
+def test_a_failed_row_is_neither_delivered_nor_a_fabrication():
+    got = agent.summarise([
+        {"id": "a", "answerable": True, "failed": True, "answer_in_prompt": False},
+        {"id": "b", "answerable": True, "answer_in_prompt": True,
+         "answer": "real [1]", "tools": ["search_docs"], "stopped": "answered"},
+    ])
+    assert got["delivered"] == 1 and got["failed"] == 1
+    assert got["n_answerable"] == 2, "the failed item stays in the denominator (D61)"
+
+
+def test_the_generation_columns_come_from_judge_not_a_second_copy():
+    """`summarise` delegates to `judge._sweep_generation`. A private copy here
+    is exactly the divergence `D85` had to unpick."""
+    from rag import judge
+    rows = [{"id": "a", "answerable": True, "answer_in_prompt": True,
+             "answer": "x [1]", "tools": [], "stopped": "answered"}]
+    assert agent.summarise(rows)["end_to_end"] == \
+        judge._sweep_generation(rows)["end_to_end"]
+
+
+def test_the_tool_use_counts_separate_none_one_and_several():
+    """The phase's actual risk is the model stopping after one tool, so that
+    has to be a column rather than something read out of traces later."""
+    rows = [
+        {"id": "a", "answerable": True, "answer_in_prompt": True, "answer": "x",
+         "tools": [], "stopped": "answered"},
+        {"id": "b", "answerable": True, "answer_in_prompt": True, "answer": "x",
+         "tools": ["check_api"], "stopped": "answered"},
+        {"id": "c", "answerable": True, "answer_in_prompt": True, "answer": "x",
+         "tools": ["check_api", "search_docs"], "stopped": "answered"},
+    ]
+    got = agent.summarise(rows)
+    assert (got["no_tool_call"], got["one_tool_only"], got["multi_tool"]) == (1, 1, 1)
+
+
+def test_resume_skips_only_what_is_already_done():
+    def run_one(question, call_tool=None):
+        return {"answer": "a [1]", "steps": 1, "stopped": "answered", "trace": []}
+
+    prior = {"rows": [{"id": "g001", "answerable": True, "answer": "old",
+                       "answer_in_prompt": True, "n_sources": 1, "tools": [],
+                       "stopped": "answered"}]}
+    rows = agent.sweep(ITEMS, chunks=CHUNKS, run_one=run_one, resume=prior,
+                       log=lambda *a: None)
+    by_id = {r["id"]: r for r in rows}
+    assert by_id["g001"]["answer"] == "old", "a done row is not re-run"
+    assert by_id["g002"]["answer"] == "a [1]"
