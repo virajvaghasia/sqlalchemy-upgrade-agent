@@ -55,7 +55,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 408 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 415 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -318,6 +318,12 @@ networking.
     ASK 16.1 gates the whole round on `ollama ps` reading `100% GPU` and says explicitly: if it
     does not, **stop and paste it** rather than running the sweep, because a second half-CPU run
     measures the same confound twice.
+  - **The lab MAY edit and commit any file, as of 2026-09-11** — it does the reproducible work,
+    so it is not restricted to pasting output. **There is no concurrency to manage:** one person,
+    one machine at a time, so edits cannot race and no append-only rule is needed. The one real
+    rule is **push before leaving a machine, pull on arriving** — that is about divergence, not
+    merges, and it has cost this project twice (a lab clone many commits behind, and Round 15
+    overwriting Mac rows that existed only locally). Full policy at the top of `logs/HANDOFF.md`.
   - **Still open on this box:** the Day 3 tunnel — blocked on Shaili sharing the
     Tailscale node, which is one person and nothing routes around it (`logs/HANDOFF.md`
     Round 3). And the reboot test, deferred.
@@ -429,7 +435,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**408 tests**, **58/58** `# runnable`, **88** decisions, **§H empty**.
+**415 tests**, **58/58** `# runnable`, **88** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -475,7 +481,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 408 passed with Qdrant up; 403 + 5 skipped without
+uv run pytest                            # 415 passed with Qdrant up; 410 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

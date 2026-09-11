@@ -223,6 +223,27 @@ benchmark and must never be quoted as one; it is an existence proof with a denom
 sized the golden set with Wilson intervals and that arithmetic applies here — at n=10 the band is
 about ±0.30, so **report which tasks flipped, never a rate**.
 
+**INSTRUMENT BUILT 2026-09-11; THE RUN IS ON THE LAB** (`logs/HANDOFF.md` ASK 17.4).
+`uv run python -m rag.agent --golden` then `--report`. Rows are machine-suffixed and the sweep
+**refuses to overwrite another machine's** — that guard exists because Round 15 silently destroyed
+the Mac's faithfulness file and it came back out of git (`D83`).
+
+**It reuses rather than reimplements, deliberately.** `answer_in_prompt` is
+`score.rank_of_first_hit`, the same function `--refusals` and the prompt sweep use, so the column
+is *comparable* with `D72`'s table rather than merely similar to it. The generation cells come from
+`judge._sweep_generation`. **`D85` is what happens when one metric grows two implementations**, and
+that mistake is not worth making twice in one project.
+
+**For the agent, `answer_in_prompt` means: did a verified answer chunk come back from any
+`search_docs` call this run made?** The agent chooses its own retrieval, so that is its equivalent
+of "the page reached the prompt". An agent that never searched scores **zero sources** — which is a
+measurement, not a gap: an answer with no lookup behind it is `D73`'s defect arriving by a
+different route.
+
+**The number to compare against is the LAB's, not the Mac's.** `D83`: the shipped pipeline is
+**39/91 = 0.43** on Darwin-arm64 and **38/91 = 0.42** on the 3060. Putting an agent measured on one
+box beside a baseline from the other is the error this whole phase inherited a rule about.
+
 **Done when:** the agent's single-answer numbers sit beside Phase 4's in one command, measured on
 the lab or in one sitting, and any task-level claim names its n in the same sentence.
 

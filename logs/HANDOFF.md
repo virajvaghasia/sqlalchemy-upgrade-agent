@@ -7,6 +7,35 @@ a GUI, not something Claude can type into.
 So this file is the wire. Claude writes **ASK** blocks; Viraj runs them on the PC and
 pastes the output into the matching **REPLY** block; Claude reads it on the next pull.
 
+## The lab may edit and commit files — added 2026-09-11
+
+**It is doing the heavy, reproducible work** (`D84`: this box reproduces and the Mac drifts), so it
+is not restricted to pasting output. **It edits and commits directly on the working branch, same as
+the Mac.** No file is off limits.
+
+**There is no concurrency to manage.** One person, one machine at a time — work happens on the lab
+or on the Mac, never both, so two edits cannot race. *(An earlier version of this note carried an
+append-don't-restructure rule for the register and the teaching files. That was solving a problem
+this setup does not have, and it is withdrawn.)*
+
+**The one rule that is real, because it has already cost this project twice: push before you leave
+a machine, pull when you arrive.** Not for merges — for *divergence*. The lab clone once sat many
+commits behind on a stale branch, and Round 15 wrote over the Mac's faithfulness rows because the
+Mac's copy existed only locally; git had to bring them back (`D83`).
+
+```bash
+git pull --ff-only          # arriving
+git push                    # leaving — before you walk away, not tomorrow
+```
+
+**Artifacts stay machine-suffixed** (`deliverables/*.Linux-x86_64.json`) and the tools refuse to
+overwrite another machine's file. That guard is about **not destroying evidence**, not about
+merges, and it stays.
+
+**If a lab measurement contradicts a decision, write the correction as a correction.** Round 16
+killed the Mac's own hypothesis and that is on the record precisely because it was written up
+rather than quietly edited away (`D84`).
+
 ## Where things stand — read this first (updated 2026-09-11, Mac)
 
 **ROUND 17 IS OPEN.** Phase 5 has started and **every number in it was taken on the Mac**, which is
@@ -123,6 +152,53 @@ print('classify     :', toolcall.classify(r))
 
 **Expected on the Mac:** `has tool_calls: True`, outcome `tool_calls`.
 
+## ASK 17.4 — the one that needs the lab rather than merely preferring it (~40-60 min)
+
+Everything above is a control. **This is the measurement**, and it is on the lab because `D84`
+says this box reproduces and the Mac does not — and because it is 100 agent runs of up to four
+generations each, which is an evening on the Mac and a sitting here.
+
+**The question, and it is the one most likely to have an unwelcome answer:** does routing the
+same 100 golden questions through the tool-using agent make single-answer quality **worse** than
+the one-shot pipeline Phase 4 measured?
+
+It needs **no new labels**. The golden set already exists, `answer_in_prompt` is computed with
+`score.rank_of_first_hit` — the same function `--refusals` and the prompt sweep use — and the
+generation columns come from `judge._sweep_generation`, not a second copy (`D85`'s lesson).
+
+```bash
+ollama ps                         # expect qwen2.5-coder:7b at 100% GPU
+
+nohup uv run python -u -m rag.agent --golden > /tmp/round17-agent.log 2>&1 &
+disown
+
+tail -f /tmp/round17-agent.log    # checkpoints every 5 items; --resume if it dies
+```
+
+When it finishes:
+
+```bash
+uv run python -m rag.agent --report
+ls -la deliverables/agent-sweep-phase5.*.json
+git add deliverables/agent-sweep-phase5.Linux-x86_64.json && git commit -m "lab: Round 17.4 agent sweep" && git push
+```
+
+**The file is machine-suffixed and the sweep REFUSES to overwrite another machine's rows** — that
+guard exists because the lab's Round 15 silently destroyed the Mac's faithfulness file and it was
+recovered from git (`D83`).
+
+### Pass / fail for 17.4, written before the data
+
+| result | meaning | next |
+|---|---|---|
+| end to end **≥ 0.43** | the agent is not worse than the shipped pipeline | Step 3's task set is worth building |
+| end to end **materially below 0.43** | tools cost more than they buy at this model size | **that is the phase's finding**, and it is a real one — report it, do not tune it away |
+| **`no tool call` is large** | the model answers from memory despite having tools | the defect is the prompt, not the loop |
+| **`one tool` ≫ `two or more`** | it stops after one call | the compounding `PHASE-5.md` predicted, now with a denominator |
+
+**Do not compare this against the Mac's 0.43 as though they were the same machine.** `D83`: the
+lab's shipped-pipeline baseline is **38/91 = 0.42**. That is the number to put beside it.
+
 ### REPLY 17.0
 
 ```
@@ -145,6 +221,12 @@ print('classify     :', toolcall.classify(r))
 
 ```
 (paste the two printed lines)
+```
+
+### REPLY 17.4
+
+```
+(paste: rag.agent --report, and the last 20 lines of /tmp/round17-agent.log)
 ```
 
 ### LAB RESULT — Round 16 (Mac: read this, not the OPEN asks)
