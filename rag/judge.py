@@ -453,6 +453,46 @@ AGREEMENT_NAME = "JUDGE-AGREEMENT.md"
 DELIVERABLES = GOLDEN_PATH.parent
 
 
+def _judgeable(rows: list[dict]) -> list[dict]:
+    """The rows a faithfulness sweep would actually judge.
+
+    Mirrors `faithful.sweep_rows`: a refusal has nothing to be faithful to and
+    a D75 failed row has no answer at all, so neither is judged. Kept here as
+    one expression rather than a second copy of the rule -- if the two drift,
+    the completeness check silently stops meaning anything.
+    """
+    return [r for r in rows
+            if not r.get("failed") and r.get("answer")
+            and not ask.refused(r["answer"])]
+
+
+def load_faith_files(directory: pathlib.Path) -> list[dict]:
+    """Every machine's faithfulness rows, each run once.
+
+    Both boxes used to write one path and the second silently destroyed the
+    first (D83); they now write `faithfulness-phase4.<machine>.json`. The
+    legacy unsuffixed name is still read, because a clone that never ran the
+    split has its only rows there.
+
+    **But it is dropped when its rows are a copy of a file that DOES name its
+    machine**, and that is not hypothetical: on 2026-09-10 the lab's rows sat
+    in both paths, so the scorecard printed D at 77% twice -- once under
+    `Linux-x86_64` and once under `machine not recorded`. Two blocks showing
+    the same 47 verdicts read as one machine confirming another. The check is
+    by CONTENT, not by filename, so a genuinely different run at the legacy
+    path survives and a duplicate under any name does not.
+    """
+    seen, out = [], []
+    for path in sorted(directory.glob("faithfulness-phase4*.json")):
+        data = json.loads(path.read_text())
+        if data.get("variants") in seen:
+            continue
+        seen.append(data.get("variants"))
+        data["_path"] = path.name
+        out.append(data)
+    return out
+
+
 # --- the scorecard ----------------------------------------------------------
 #
 # PHASE-4.md's gate, in one place:
@@ -573,7 +613,7 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
         print(f"  !! {' and '.join(unstamped)} do not record which machine "
               f"produced them.")
         print(f"     Generation figures do NOT reproduce across machines "
-              f"(D83: end to end 0.43 Mac / 0.42 lab, D uncited 67% / 41%), so "
+              f"(D83: end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
               f"sections below")
         print(f"     may come from different ones. Files written after "
               f"2026-09-05 carry a machine stamp.")
@@ -637,6 +677,21 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
             where = one.get("machine") or "machine not recorded (pre-D83 file)"
             print(f"     [read: {one.get('_path', FAITH_NAME)}, judge "
                   f"{one.get('judge_model', '?')} on {where}]")
+            # A judge run that stopped early looks EXACTLY like a result: seen
+            # live 2026-09-10, a 15-row Mac file printed "100% supported" in
+            # the same table as the lab's finished 47. The expected count is
+            # derived from the sweep rather than stored, so it works on files
+            # written before this check existed -- and a FAILED row does not
+            # count as judged, or a run that gave up would call itself done.
+            for variant, rows in one["variants"].items():
+                if variant not in sweep:
+                    continue
+                want = len(_judgeable(sweep[variant]))
+                got = sum(1 for r in rows if r.get("verdict") != "FAILED")
+                if got < want:
+                    print(f"     !! {variant} is INCOMPLETE — {got} of {want} "
+                          f"answers judged. Rates below are over what ran, not "
+                          f"over the run.")
             print(f"     {'prompt':<14}{'judged':>8}{'SUPPORTED':>11}"
                   f"{'PARTIAL':>9}{'UNSUPPORTED':>13}{'supported':>11}")
             for v, rows in one["variants"].items():
@@ -646,9 +701,12 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
                       f"{a['supported_rate']:>10.0%}")
             print()
         if faiths and len(faiths) > 1:
-            # Two machines is the GOOD case — it is what D83 was measured from.
-            print("     Two runs above. Compare them item by item, not by the "
-                  "percentages: D83's finding is that these move.")
+            # More than one machine is the GOOD case — it is what D83 was
+            # measured from. The COUNT is computed: it read the literal word
+            # "Two" while three blocks were printed above it, which is the
+            # same defect as a hand-typed number in a doc.
+            print(f"     {len(faiths)} runs above. Compare them item by item, "
+                  f"not by the percentages: D83's finding is that these move.")
 
     print("\n5  THE JUDGE'S OWN CEILING — does it agree with a human?")
     if agreement["n"] == 0:
@@ -664,6 +722,32 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
               f"{agreement['rate']:.0%} agreement"
               + (f"   ({agreement['n'] - agreement['filled']} still blank)"
                  if agreement["filled"] < agreement["n"] else ""))
+        # The rate ALONE is the least useful true sentence available here, for
+        # two reasons that both make it read worse than it is.
+        #
+        # The sample is risk-weighted (`faithful.agreement_sample`): every
+        # UNSUPPORTED and PARTIAL goes in first. So this is the rate on the
+        # hardest rows in the run, NOT the judge's accuracy over the set --
+        # quoting it as the latter is the mirror image of the flattering
+        # statistic the sheet was built to prevent.
+        #
+        # And the corrections carry the shape of the error. Measured
+        # 2026-09-11: all three disagreements said PARTIAL, so the judge was
+        # not wrong at random, it was too extreme in both directions. That is
+        # actionable and "70%" is not.
+        print("     Risk-weighted sample — every UNSUPPORTED and PARTIAL "
+              "first — so this is the rate on the")
+        print("     HARDEST rows, not the judge's accuracy over the set.")
+        fixes = agreement.get("corrections") or []
+        if fixes:
+            shape = sorted({c["should_be"] for c in fixes if c["should_be"]})
+            for c in fixes:
+                print(f"       {c['id'] or '?'}: judge said "
+                      f"{c['judge_said'] or '?'}, human says "
+                      f"{c['should_be'] or '(not stated)'}")
+            if len(shape) == 1:
+                print(f"     Every correction is {shape[0]}: the judge's error "
+                      f"is being too EXTREME, not being wrong at random.")
 
 
 def _arg(argv: list[str], flag: str, default=None):
@@ -720,15 +804,9 @@ def main() -> None:
             chunks = score.load_chunks()
             retrieval = score.aggregate(score.score_items(items, chunks))
 
-        # Every machine's rows, not whichever ran last. Both boxes used to
-        # write one path and the second silently destroyed the first (D83);
-        # they now write `faithfulness-phase4.<machine>.json`, and the legacy
-        # unsuffixed name is still read so older runs do not vanish.
-        faiths = []
-        for path in sorted(DELIVERABLES.glob("faithfulness-phase4*.json")):
-            data = json.loads(path.read_text())
-            data["_path"] = path.name
-            faiths.append(data)
+        # Every machine's rows, each run once -- see load_faith_files for why
+        # "each run once" needed saying out loud.
+        faiths = load_faith_files(DELIVERABLES)
         faith = faiths[0] if faiths else None
         agreement = faithful.read_agreement(DELIVERABLES / AGREEMENT_NAME)
         scorecard(items, sweep, variants, faith, agreement, retrieval,

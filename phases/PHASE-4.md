@@ -306,8 +306,9 @@ contain the specific code example or the detailed `upgrade`/`downgrade` function
 *"outside SQLAlchemy's scope, but they recommend Alembic."* Same verdict, different harm. **A
 count of PARTIAL is no more a measure of harm than a count of fabrications was.**
 
-**Every figure here is provisional on section 5.** The judge's agreement with a human is **0 of
-10 answered**.
+**Section 5 closed 2026-09-11 (`D86`).** Judge agreement with a human is **7 of 10 = 70%** —
+three DISAGREE (`g080` → PARTIAL; both `g056` arms → PARTIAL). Faithfulness % is no longer
+provisional on an empty sheet; it still carries that measured ceiling.
 
 #### Measured 2026-08-22, first full run — and it is worse than Phase 1 recorded (`D73`)
 
@@ -458,15 +459,49 @@ The lab 3060 re-ran the same sweep, same code, same golden set, one sitting:
 committed before either run: *"H breaks anything (≥1 regression). Do not ship on this evidence."*
 **That is the reading, and it is clean precisely because the threshold predates the data.**
 
-**The citation effect reproduced and is the part worth keeping:** 67% → 10% and 41% → 5%, same
+**The citation effect reproduced and is the part worth keeping:** 65% → 10% and 43% → 8%, same
 direction, large on both. H was *designed* for citations and moved refusals as a side effect —
 **the designed effect held and the side effect did not.**
 
 **Retrieval was identical across machines** (recall@5 0.64, 17 absents, ceiling 58/91), which is
 what lets this be attributed to generation rather than to search.
 
+#### Round 16 — the confound was tested and it was not the cause (`D84`)
+
+The obvious objection to the hold was that the lab's generator ran **52%/48% CPU/GPU** against the
+Mac's 100% GPU, so the two arms were not the same computation. Round 16 re-ran the identical sweep
+with the generator **proved at 100% GPU before, during and after**:
+
+| | Round 14 (half CPU) | **Round 16 (all GPU)** |
+|---|---|---|
+| D / H end to end | 38/91, 42/91 | **38/91, 42/91** |
+| over-refused | 20, 16 | **20, 16** |
+| paired | 6↑ 2↓, p = 0.289 | **6↑ 2↓, p = 0.289** |
+| which items | `g008 g021 g049 g050 g099 g106` ↑ · `g030 g032` ↓ | **the same eight** |
+
+**The hypothesis is dead and the hold is firmer for it.** A suspicion that survives because nobody
+checked it is worth nothing; this one was checked in one round and lost.
+
+**And it produced a finding nobody was looking for.** The two lab runs are **five days apart** and
+every refusal cell is identical. `D54`'s "drifts across days" was measured on the **Mac**, where
+two of seven items flipped overnight. **The lab's generator does not drift.** So the Mac's
+`9↑ 0↓, p = 0.0039` is a single measurement on the box whose generator is demonstrably the less
+stable of the two, while the lab's `6↑ 2↓` has been produced twice and agrees with itself to the
+item. **Say *generator*, not *machine*:** the judge was re-measured on the Mac the same week and
+drifts as well, at 3 verdicts in 110 — while the **lab's** judge re-ran the same 110 answers
+five days apart and came back **identical to the character**. Two models, two jobs: stable on the
+lab, drifting on the Mac (`D84`). **The weight of evidence puts H at
+about six fixes and two regressions.**
+
+**The citation effect has now reproduced on every run taken** — D uncited **65%** on the Mac and
+**43%** on the lab, against H's **10%** and **8%**. Different levels, same direction, enormous
+every time. (Figures restated under `D85`'s denominator; Round 14's cannot be, because its raw
+answers were never committed.)
+
 **Next experiment, not yet run:** a variant carrying **only** the user-turn citation line. H
-bundles two effects and one of them reproduced; separating them is the obvious follow-up.
+bundles two effects; the citation one reproduces everywhere and the refusal one does not.
+Separating them is the obvious follow-up, and it should be measured on **both** machines from the
+start rather than on the Mac alone.
 
 ### Step 5 — Know the judge's ceiling
 
@@ -488,10 +523,36 @@ it read them against, and a blank. **Claude renders the sheet and does not fill 
   accusing wrongly, never the judge missing something** — and a miss is exactly the `g065` failure
   mode.
 
+**MEASURED 2026-09-11: 7 of 10 = 70% (`D86`).** Below the 85–92% the literature quotes, and the
+sample is risk-weighted, so read it as **the rate on the hardest rows** rather than as accuracy
+over the set. **All three disagreements said `PARTIAL`** — the judge is not wrong at random, it is
+**too extreme in both directions** — and two of the three are `g056` in *both* arms, so they cancel
+and **the D-vs-H comparison does not move.** `g056` is `D77`'s named blind spot, flagged in advance
+as the item a code-grounding detector cannot see. **This closes the last human gate in Phase 4.**
+
 **The rate is read back out of the filled sheet**, not typed into a doc beside it, so the number
 in the scorecard is the artifact a human actually wrote in. An unanswered row counts as
 unanswered and never as agreement; the blanks are printed next to the rate, because *"9 of 10
 agree"* over one filled row is the shape of every flattering statistic this repo has caught.
+
+#### The judge's other ceiling: it does not fully agree with ITSELF (`D84`)
+
+Agreement with a human is one bound. There is a cheaper one that needed no human at all, because
+the answers were already saved: **ask the judge to re-read its own verdicts.**
+
+Same Mac, same judge, same passages, temperature 0, **seven days apart**: **110 verdicts re-read,
+107 identical, 3 changed — 2.7%.** `g080` and `g083` went `UNSUPPORTED → PARTIAL`, `g117` went
+`SUPPORTED → UNSUPPORTED`. **All three are prompt `D`; `H` was 61 of 61.**
+
+**What it changes about this step.** The human agreement rate the sheet produces is now bounded
+from below by the judge's own repeatability — a sheet filled against the 09-03 verdicts is
+grading a reading that ~3% of the time no longer exists. It does **not** invalidate the sheet;
+it means a disagreement of one or two rows is inside the judge's own noise and should not be
+read as a finding.
+
+**What it does not change.** The paired comparison is bit-identical across both readings — 5↑ 1↓
+over 46 items, same ids, same single regression `g088`. The grades moved; the cells the ship
+decision rests on did not.
 
 ---
 
@@ -525,8 +586,9 @@ answers (`D54`).
 than a phantom citation: `row[keys[0]]` made an **uncited code block look cited**. `D` yields zero
 such rows; only the complying variants do.
 
-**What is still open at the gate:** section 5's agreement rate. The sheet exists, and a human has
-not read it. The report prints that fact rather than a number.
+**Section 5 of the gate is filled (`D86`):** `JUDGE-AGREEMENT.md` → **7 of 10 = 70%** agreement.
+The report prints that rate. What remains optional: a citation-only prompt variant measured on
+both machines (`16-JUDGE.md` §R8.10).
 
 ---
 

@@ -480,12 +480,25 @@ Phase 2 measured whether you fetched the right pages. Now: is the final answer a
 metrics, faithfulness, and citation accuracy.
 
 **Reproduced on a second machine 2026-09-05, and that is where Phase 4's sharpest result came
-from (`D83`).** Retrieval was **identical** across the Mac and the lab 3060 — recall@5 0.64, the
+from (`D83`, `D84`).** Retrieval was **identical** across the Mac and the lab 3060 — recall@5 0.64, the
 same 17 absent items, the same ceiling of 58/91. **Every generation figure moved**, and the prompt
 candidate that measured **9↑ 0↓, p = 0.0039** on one machine measured **6↑ 2↓, p = 0.289** on the
 other. The pass/fail rule was written before either run, so the call is a **hold** rather than an
-argument. What reproduced is the effect the prompt was designed for — uncited answers 67% → 10%
-and 41% → 5%. **Quote a range or quote the machine.**
+argument. What reproduced is the effect the prompt was designed for — uncited answers
+**65% → 10%** on the Mac and **43% → 8%** on the lab, pointing the same way on every run taken.
+**Quote a range or quote the machine.**
+
+**The obvious objection was then tested and lost (`D84`).** The lab's generator had run half on
+CPU, so the comparison arguably was not like-for-like. Re-run at a proven 100% GPU it reproduced
+**to the item** — same six fixed, same two broken. **The compute path was not the cause**, and the
+finding that replaced it is sharper: the two lab runs are five days apart and identical, while the
+Mac's generator drifts overnight. **The box that produced the single most favourable measurement
+is the one whose generator is least stable.**
+
+**The judge was then asked the same question and answered differently.** Re-reading its own saved
+verdicts on the same Mac seven days later, `gemma4:e4b` changed **3 of 110** — so no model here is
+exactly repeatable. What *is* repeatable is the paired comparison: identical cells, identical ids,
+both readings. **The grades move; the cells the decision rests on do not** (`D84`).
 
 **Built 2026-09-03 (`D81`): `uv run python -m rag.judge --report`.** Five sections, each stating
 whether it was **measured live** or **read from a saved run** — retrieval is live because it is

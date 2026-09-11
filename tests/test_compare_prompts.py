@@ -231,13 +231,21 @@ def _ok(gid, refused, answerable=True, in_prompt=True, uncited=False):
 
 
 def test_a_failed_generation_is_neither_an_answer_nor_a_refusal(capsys):
-    """Counting it either way lets a flaky night read as a prompt effect."""
+    """Counting it either way lets a flaky night read as a prompt effect.
+
+    **Changed 2026-09-10: this test used to assert `1/1` and that was the bug.**
+    A failed row leaves the NUMERATOR, never the denominator. Dropping it from
+    both gave each arm its own ruler -- H measured 47/90 here against a
+    published 47/91 -- which is precisely what `D61` forbids and what
+    `judge._sweep_generation` had already been fixed for. The two modules
+    disagreed and only the judge side had a test."""
     results = {"D": [_ok("g001", refused=False), _failed("g002")]}
     cp._report_golden(results, ["D"])
     out = capsys.readouterr().out
     # One answerable item reached the prompt and was answered; the failed one
-    # must not appear in the ceiling or the end-to-end numerator.
-    assert "1/1" in out
+    # must not appear in the end-to-end numerator -- but it is still an
+    # answerable item, so it stays in the denominator.
+    assert "1/2" in out
 
 
 def test_pairing_drops_items_that_failed_on_either_side(capsys):
@@ -278,3 +286,89 @@ def test_a_timeout_is_not_mistaken_for_ollama_being_down(monkeypatch):
         raise AssertionError("a slow generation must not be reported as Ollama being down")
     except TimeoutError:
         pass
+
+
+def test_uncited_counts_every_answer_the_user_sees_not_just_answerable_ones():
+    """One metric, one denominator (`D85`).
+
+    This table and `judge --report` both print a column called `uncited`, and
+    they disagreed: `cells()` counted **answerable items only**, while
+    `_sweep_citations` counted **every answered row**. Same saved data, D read
+    `18/45 = 40%` in one command and `20/47 = 43%` in the other.
+
+    The two rows in the gap are answers to items marked `answerable: false` --
+    the fabrications. Excluding them excludes exactly the answers least worth
+    trusting, and a user has no idea which of their questions was unanswerable.
+    An answer on screen with no source is the defect `D73` names, whatever the
+    label on the question says."""
+    rows = [_ok("g001", refused=False, answerable=True, uncited=True),
+            _ok("g002", refused=False, answerable=False, uncited=True),
+            _ok("g003", refused=True, answerable=True)]
+    got = cp.cells(rows)
+    assert got["answered"] == 2, "the fabricated answer is still an answer"
+    assert got["uncited"] == 2
+
+
+def test_the_fabricated_answer_is_still_counted_as_a_fabrication():
+    """The other column must not double-shift: including unanswerable answers
+    in the citation denominator does not change what `fabr` means."""
+    rows = [_ok("g001", refused=False, answerable=True),
+            _ok("g002", refused=False, answerable=False)]
+    got = cp.cells(rows)
+    assert got["fabricated"] == 1
+    assert got["n_ans"] == 1
+
+
+def test_a_failed_row_is_in_no_citation_denominator():
+    """D75: a row that never got a generation is not an answer."""
+    rows = [_ok("g001", refused=False, answerable=True, uncited=True),
+            {"id": "g002", "failed": True, "answerable": True,
+             "answer_in_prompt": True}]
+    assert cp.cells(rows)["answered"] == 1
+
+
+def test_the_two_commands_report_the_same_uncited_number():
+    """The guard that would have caught `D85` on the day it appeared.
+
+    `compare_prompts --golden` and `judge --report` each print a column called
+    `uncited`, computed in different modules. They drifted apart and nothing
+    noticed, because no test ever asked them the same question. This one runs
+    both derivations over the real saved sweep and requires the answer to
+    match -- so a future private copy of the rule fails here rather than in a
+    doc six weeks later."""
+    import json
+    from rag import judge
+    sweep = json.loads(
+        (judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
+    for variant in ("D", "H", "I"):
+        mine = cp.cells(sweep[variant])
+        theirs, _ = judge._sweep_citations(sweep[variant])
+        assert mine["answered"] == theirs["n_answered"], variant
+        assert mine["uncited"] == theirs["uncited"], variant
+        assert mine["with_code"] == theirs["with_code"], variant
+        assert mine["uncited_code"] == theirs["uncited_code"], variant
+        assert mine["out_of_range"] == theirs["out_of_range"], variant
+
+
+def test_cells_reproduces_the_published_generation_figures():
+    """`D72`/`D74`: D 39/91 and H 47/91 on the Mac sweep. Reading the stored
+    `refused` field gave H 51/91 instead, because those rows predate `D76` --
+    so this pins the re-scoring, not just the arithmetic."""
+    import json
+    from rag import judge
+    sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
+    assert cp.cells(sweep["D"])["end_to_end"] == 39
+    assert cp.cells(sweep["H"])["end_to_end"] == 47
+    assert cp.cells(sweep["I"])["end_to_end"] == 46
+
+
+def test_both_arms_are_scored_against_the_same_denominator():
+    """D61: a paired comparison needs one ruler. A D75 failed row leaves the
+    numerator, never the denominator -- otherwise the arm that hit a timeout
+    is graded out of a smaller total and looks better for having failed."""
+    rows = [_ok("g001", refused=False, answerable=True),
+            {"id": "g002", "failed": True, "answerable": True,
+             "answer_in_prompt": True}]
+    got = cp.cells(rows)
+    assert got["n_ans"] == 2, "the failed item is still an answerable item"
+    assert got["end_to_end"] == 1

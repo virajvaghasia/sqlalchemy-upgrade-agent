@@ -430,30 +430,80 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
         print(f"\nsaved {sum(map(len, results.values()))} rows to {save}")
 
 
-def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
-    def cells(rows: list[dict]) -> dict:
-        # A row that never got a generation is not a refusal and not an answer.
-        # Counting it either way would let a flaky night look like a prompt effect.
-        rows = [r for r in rows if not r.get("failed")]
-        una = [r for r in rows if not r["answerable"]]
-        ans = [r for r in rows if r["answerable"]]
-        in_prompt = [r for r in ans if r["answer_in_prompt"]]
-        answered = [r for r in ans if not r["refused"]]
-        return {
-            "fabricated": sum(1 for r in una if not r["refused"]),
-            "n_una": len(una),
-            "n_ans": len(ans),
-            "ceiling": len(in_prompt),
-            # The D72 defect: the page was there and it declined anyway.
-            "over_with": sum(1 for r in in_prompt if r["refused"]),
-            "end_to_end": sum(1 for r in in_prompt if not r["refused"]),
-            "answered": len(answered),
-            "uncited": sum(1 for r in answered if r["uncited"]),
-            "with_code": sum(1 for r in answered if r["code_blocks"]),
-            "uncited_code": sum(1 for r in answered if r["uncited_code_blocks"]),
-            "out_of_range": sum(1 for r in answered if r["out_of_range"]),
-        }
+def cells(rows: list[dict]) -> dict:
+    """One variant's row of the golden-sweep table.
 
+    Module level rather than a closure inside the report so the rules can be
+    tested directly -- the same move `chunk.audit()`'s detectors needed, and
+    for the same reason: an inline rule is a rule nothing can pin.
+
+    **The citation columns count EVERY answered row, not only the answerable
+    ones (`D85`).** They used to count `ans`, which silently excluded answers
+    to `answerable: false` items -- so this table and `judge --report` printed
+    a column with the same name and different denominators, D reading
+    `18/45 = 40%` here and `20/47 = 43%` there. The excluded rows are the
+    fabrications, which are the answers least worth trusting, and a user has no
+    idea which of their questions was unanswerable. `fabr` still counts them
+    separately; that is the column that means "should not have answered".
+    """
+    # A row that never got a generation is not a refusal and not an answer.
+    # Counting it either way would let a flaky night look like a prompt effect.
+    # Imported here, not at module level, matching `golden_sweep` below: the
+    # citation rules live in `judge` and this module is the one that calls
+    # them, never the reverse.
+    from rag import judge
+
+    # The DENOMINATOR keeps every answerable item, failed rows included.
+    # Dropping them per-arm is how a paired comparison gets two rulers: D has
+    # no failures and H has one, so this reported H as 47/90 against a
+    # published 47/91 -- `judge._sweep_generation` had already been fixed for
+    # exactly this and the two modules disagreed (D61, D75).
+    n_answerable = sum(1 for r in rows if r["answerable"])
+    rows = [r for r in rows if not r.get("failed")]
+
+    # Refusal is RE-SCORED from the answer text, not read from the stored
+    # field, for the reason `D79` records about citations: stored fields go
+    # stale the moment a detector is fixed. `ask.refused` gained the
+    # leading-`[n]` strip in `D76` -- H's saved rows predate it, so reading
+    # `r["refused"]` off the 2026-08-23 sweep reports 68 answers where the
+    # published figure is 62, silently restoring the bug D76 fixed. On a fresh
+    # run the two agree; the difference only appears when re-reading, which is
+    # exactly when nobody is watching.
+    def declined(r):
+        return ask.refused(r["answer"]) if r.get("answer") else r.get("refused")
+
+    # The citation fields are re-scored from the answer for the same reason,
+    # and this is `D79` itself rather than an analogy: under H a subscript
+    # `row[keys[0]]` had been read as citing sources 0, 1 and 2, which made an
+    # UNCITED code block look cited. Rows written before that fix still carry
+    # the old values, so reading them replays the bug -- `g016` is the item.
+    def scored(r):
+        if r.get("answer") is None:
+            return r
+        return judge.citation_report(r["answer"], r.get("n_sources", 0))
+
+    una = [r for r in rows if not r["answerable"]]
+    ans = [r for r in rows if r["answerable"]]
+    in_prompt = [r for r in ans if r["answer_in_prompt"]]
+    answered = [r for r in rows if not declined(r)]
+    return {
+        "fabricated": sum(1 for r in una if not declined(r)),
+        "n_una": len(una),
+        "n_ans": n_answerable,
+        "n_judged": len(ans),
+        "ceiling": len(in_prompt),
+            # The D72 defect: the page was there and it declined anyway.
+        "over_with": sum(1 for r in in_prompt if declined(r)),
+        "end_to_end": sum(1 for r in in_prompt if not declined(r)),
+        "answered": len(answered),
+        "uncited": sum(1 for r in answered if scored(r)["uncited"]),
+        "with_code": sum(1 for r in answered if scored(r)["code_blocks"]),
+        "uncited_code": sum(1 for r in answered if scored(r)["uncited_code_blocks"]),
+        "out_of_range": sum(1 for r in answered if scored(r)["out_of_range"]),
+    }
+
+
+def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
     t = {v: cells(results[v]) for v in variants}
     n_ans = t[variants[0]]["n_ans"]
 

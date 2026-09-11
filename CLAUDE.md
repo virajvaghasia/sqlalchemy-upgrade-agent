@@ -10,7 +10,8 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`README.md`** — the front door and the map: every doc, every script, and what each proves.
   **Keep it current** — it is the only file that indexes the whole repo.
 - **`phases/ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
-- **`phases/PHASE-4.md`** — the current phase. `PHASE-3.md` is the one before, complete.
+- **`phases/PHASE-5.md`** — the current phase, opened 2026-09-11. `PHASE-4.md` is the one
+  before, complete (all five steps closed, `D86` is its last gate).
 - **`phases/PHASE-2.md`** — Phase 2 in detail. `PHASE-1.md` and `PHASE-0.md` are the
   phases before, both complete; their plan files stay as the record of how each gate closed.
 - **`study/01-CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
@@ -49,12 +50,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D83`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D86`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 343 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 363 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -300,7 +301,17 @@ networking.
     D vs H **6↑ 2↓ p = 0.289** — **two regressions the Mac never saw, so H is a hold**; 15 gave the
     prose judge **D 77% / H 92%**. All of it is `D83`. **The headline: retrieval reproduced
     exactly across machines and generation reproduced nowhere.**
-  - **`Round 16` is OPEN and is the ONLY thing the lab box is needed for.** Round 14's generator
+  - **`Round 16` CLOSED 2026-09-10, same day it was written, and it killed my own hypothesis.**
+    At a proven **100% GPU** the lab reproduced Round 14 **to the item** — 38/91, 42/91, 6↑ 2↓,
+    p = 0.289, same eight ids. **The compute path was not the cause**, so `D83`'s broad claim is
+    earned and the narrowing is withdrawn (`D84`). **New finding:** the two lab runs are five days
+    apart and identical, while `D54`'s cross-day drift was measured on the **Mac** — so the Mac's
+    **generator** is the noisy one, and its `9↑ 0↓ p = 0.0039` is one measurement on that box
+    against the lab's `6↑ 2↓` twice. Say *generator*: the Mac's **judge** was re-measured and
+    drifts too (3 in 110) **while the lab's judge re-ran the same 110 and came back identical to
+    the character** — so the drift tracks the box, across two models and two jobs. **Nothing is
+    open on the lab now.**
+  - **Superseded — the brief that opened Round 16:** Round 14's generator
     ran **52% CPU / 48% GPU** on the lab against **100% GPU** on the Mac (measured 2026-09-10), so
     the comparison that held H back carries a compute-path confound. Round 16 re-runs it with the
     generator fully on the card — ~1 hour, and **if the cells move toward the Mac's, H ships**.
@@ -361,14 +372,21 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**State (2026-09-11): PHASE 4 COMPLETE — all five steps closed, last human gate `D86`. PHASE 5
+OPEN**, plan written: [`phases/PHASE-5.md`](phases/PHASE-5.md). **Step 0 is a gate that can end
+it** — whether `qwen2.5-coder:7b` can emit a valid tool call has never been measured here, and an
+agent is three-plus generations where `0.43` was measured on one. **Nothing is open on the lab.**
+
 **State (2026-08-22):** **Phase 2 complete** (lab Round 12 CLOSED). **Phase 4 current** —
 `PHASE-4.md` written; Step 1 re-baseline CLOSED (`D72`); `rag/judge.py` citation integrity built
 (`D71`) and run (`D73`: **31 of 48** answered items cite nothing). **Prompt candidate `H`
-measured** (`D74`) and then **re-run on the lab 3060, where it did NOT reproduce** (`D83`,
-2026-09-05): Mac **9↑ 0↓ p = 0.0039**, lab **6↑ 2↓ p = 0.289** with two regressions (`g030`,
-`g032`). Round 14's pass/fail rule was written before either run — **one regression is a hold —
-so H is NOT shipped, by measurement rather than by pending decision.** What DID reproduce is the
-citation effect: uncited **67% → 10%** (Mac) and **41% → 5%** (lab). Groundedness measured too
+measured** (`D74`) and then **re-run on the lab 3060 TWICE, where it did NOT reproduce** (`D83`,
+`D84`): Mac **9↑ 0↓ p = 0.0039** once; lab **6↑ 2↓ p = 0.289** on 09-05 and **again on 09-10 at a
+proven 100% GPU, agreeing to the item** (same six fixed, same two broken — `g030`, `g032`).
+**The compute-path explanation was tested in Round 16 and is wrong.** Round 14's pass/fail rule
+was written before any run — **one regression is a hold — so H is NOT shipped**, now on weight of
+evidence rather than on a single disagreement. What DID reproduce is the
+citation effect: uncited **65% → 10%** (Mac) and **43% → 8%** (lab). Groundedness measured too
 (`D77`): H makes **0 ungrounded API calls in 62 answers** against D's 2 in 48, and turns `g065`'s
 invented Alembic recipe into a cited paraphrase. **Prose faithfulness is built and the judge is
 LOCAL** (`D80`, 2026-09-03): the pinned `gemini-3.6-flash` answered **503** all morning while three
@@ -386,16 +404,42 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**343 tests**, **58/58** `# runnable`, **83** decisions, **§H empty**.
+**361 tests**, **58/58** `# runnable`, **86** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
 (p = 0.016).
 
+**The Mac's GENERATOR drifts across days; the lab's does not** (`D84`). Two lab runs five days
+apart give identical refusal cells and identical flipped ids; `D54`'s cross-day drift was measured
+on the **Mac**, where two of seven items flipped overnight. **So prefer the lab's number when they
+disagree.** Two scope notes, both load-bearing: the citation counts DID move between the two lab
+runs (`19/46 → 18/45`, `3/55 → 5/57`, both **old-denominator** per `D85` and Round 14's not
+restatable) — **the answer/refuse decision is bit-stable, the wording is not** — and this is a claim about the **generator** (`qwen2.5-coder:7b`), not about the machine.
+
+**THE LAST HUMAN GATE IS CLOSED** (`D86`, 2026-09-11): judge agreement **7 of 10 = 70%**, and
+**all three disagreements said `PARTIAL`** — `g080` too harsh, both `g056` arms too soft. So the
+judge is **too extreme in both directions**, not wrong at random. Read 70% as the rate on the
+**hardest rows**; the sample is risk-weighted by construction. **It moves no decision** — two of
+the three are `g056` in *both* arms and cancel. `g056` is `D77`'s named blind spot, called in
+advance.
+
+**And the JUDGE was re-measured, on the Mac, and it drifts too — 3 in 110 (2.7%).** Measured
+2026-09-10: `gemma4:e4b` re-read the same saved answers it judged on 09-03. `g080` and `g083` went
+`UNSUPPORTED → PARTIAL`, `g117` went `SUPPORTED → UNSUPPORTED`. **All three are prompt `D`; `H` is
+61 of 61 identical.** **And the LAB's judge does not drift at all:** it judged the same 110
+answers twice, five days apart (Rounds 15 and 16.3), and the two files are byte-identical
+*including the free-text reason on every verdict*. So **the drift tracks the box** — two models,
+two jobs, stable on the 3060 and not on the Mac. On the Mac the judge's drift still
+**leaves the paired comparison bit-identical** (5↑ 1↓ over 46, same ids, both readings).
+**Consequences: quote `D` as 83–85% on the Mac and 77% on the lab; `H` is 92% on every run ever
+taken.** And the first 36 verdicts of that run were 36 identical — *a clean prefix is not a clean
+run.*
+
 **Retrieval reproduces across machines EXACTLY; generation reproduces nowhere** (`D83`). The lab
 3060 got identical recall@5 `0.64`, identical 17 absents, identical ceiling `58/91` — and every
 generation cell moved. So **quote a range or quote the machine**: end to end **0.42–0.43**,
-uncited under the shipped prompt **41–67%**. `D54` now covers machines as well as days.
+uncited under the shipped prompt **43–65%**. `D54` now covers machines as well as days.
 
 **Quote `0.43`, not `0.64`.** `0.64` is retrieval's **ceiling** — the answer chunk reached the
 prompt. **End to end the system delivers `39/91 = 0.43`** (`D72`, measured 2026-08-22): page in
@@ -406,7 +450,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 343 passed with Qdrant up; 338 + 5 skipped without
+uv run pytest                            # 363 passed with Qdrant up; 358 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -439,8 +483,9 @@ docs. That has happened four times and never the other way round.
 | **1** | **complete**, merged as PR #28. Both gates closed and *how* each closed is recorded — chunk gate passed with a written exception (`D56`), verification gate per `D57` | `deliverables/FAILURES.md`, 19 questions, verdicts `10/3/6` |
 | **2** | **complete** — 100 golden, signature closed, audit 100 PASS | `deliverables/golden.json`, `GOLDEN-FULLBAR-AUDIT.md` |
 | **3** | **complete (retrieval).** `D66`–`D68` shipped; `D69` strip and `D70` boundaries both rejected with numbers. Gate closed: every metrics row has a figure and a decision id | [`phases/PHASE-3.md`](phases/PHASE-3.md), `recall@5 0.64` |
-| **4** | **current.** Steps 1–3 closed and 5's instrument built. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** cite nothing; prose faithfulness built and running on a **local** judge (`D80`); the gate has its one command, `rag.judge --report` (`D81`). faithfulness measured (`D82`) and reproduced on the lab (`D83`) — H **92% on both machines**, D drifted **85% → 77%**; paired not significant either way. **Ship decision made: HOLD H.** Open: `deliverables/JUDGE-AGREEMENT.md`, **10 verdicts, 0 answered** — the last human gate | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
-| 5–6 | planned in `phases/ROADMAP.md` | — |
+| **4** | **complete 2026-09-11.** Steps 1–3 closed and 5's instrument built. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** cite nothing; prose faithfulness built and running on a **local** judge (`D80`); the gate has its one command, `rag.judge --report` (`D81`). faithfulness measured (`D82`) and reproduced on the lab (`D83`) — H **92% on both machines**, D drifted **85% → 77%**; paired not significant either way. **Ship decision made: HOLD H.** Judge agreement filled (`D86`): **7 of 10 = 70%** — three DISAGREE (`g080` too harsh → PARTIAL; both `g056` arms too soft → PARTIAL). Open: optional citation-only prompt variant; commit the dirty tree | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
+| **5** | **current, opened 2026-09-11.** The agent + MCP server. **Step 0 is a gate that can end the phase**: `qwen2.5-coder:7b` has never been asked to emit a tool call here, and an agent is 3+ generations where `0.43` was measured on one | [`phases/PHASE-5.md`](phases/PHASE-5.md) |
+| 6 | planned in `phases/ROADMAP.md` | — |
 
 ### The baseline, and the number NOT to quote
 
@@ -1556,7 +1601,81 @@ Append a dated entry each session; keep each entry to a few bullets.
   cells moved, including the sign of the ship decision.
 - **`study/16-JUDGE.md` edited while Viraj had it open** — seven passages plus his interview table
   (two rows cited results the lab overturned) and a new §R8.9. He needs to reload it.
-- **343 tests**, **58/58** `# runnable`, **83** decisions.
+- **344 tests**, **58/58** `# runnable`, **84** decisions.
+
+### 2026-09-10 (evening) — the judge re-read its own verdicts, and the instrument had three bugs
+
+- **The question `D84` left open got its number: the Mac's judge drifts at 2.7%.** `gemma4:e4b`
+  re-read the **same saved answers** it judged on 09-03 — same machine, same passages, temperature
+  0, seven days apart. **110 verdicts, 107 identical, 3 changed:** `g080` and `g083`
+  `UNSUPPORTED → PARTIAL`, `g117` `SUPPORTED → UNSUPPORTED`. **All three are prompt `D`. `H` is 61
+  of 61.**
+- **I called it stable at 36 rows and was wrong.** The first 20 items came back 36/36 identical and
+  every change is in the back half. **A clean prefix is not a clean run** — third time in this repo
+  after `D65` (three unanswerable items cannot measure a fabrication rate) and `D73` (eleven
+  answered questions cannot measure a citation rate).
+- **The drift never reached the comparison.** On `D82`'s own derivation the paired cells are **5↑
+  1↓ over 46 items on both readings, identical ids on both sides**, same regression `g088`. Two of
+  three changes move `UNSUPPORTED ↔ PARTIAL`, both *not supported*. **Individual grades move; the
+  paired cells do not** — the same shape the generator showed, where the answer/refuse decision was
+  bit-stable and the wording was not.
+- **`D` is the unstable arm in every dimension now measured**: 85% / 83% / 77% across two machines
+  and two days, against `H` at **92% on all three runs**. `D82` gained a reproduction warning
+  rather than a correction — its paired conclusion is untouched.
+- **`D54` narrowed a second time** — "drifts across days" is this machine's *generator*, not the
+  system; the judge drifts on the Mac too but **not on the lab**, so "the Mac is the noisier box"
+  is the supported claim once both models are measured. Four docs said *machine* where the evidence says *generator*; all fixed.
+- **THE GATE WAS DOUBLE-COUNTING THE LAB.** `rag.judge --report` globs
+  `faithfulness-phase4*.json`, and the pre-`D83` unsuffixed file still holds a **byte-identical**
+  copy of the lab's rows — so D's 77% printed twice, once as `Linux-x86_64` and once as *machine
+  not recorded*. **Two blocks showing the same 47 verdicts read as one machine confirming
+  another.** Now `judge.load_faith_files()` de-duplicates **by content, not by filename**, so a
+  clone whose only rows sit at the legacy path still gets read. Three tests.
+- **And the run count under it was the literal word "Two" while three blocks printed above it.** A
+  count typed once — the measurement rule applies to scripts, not just docs. Computed now, one test.
+- **A `D75`-class gap, hit for real at item 63 of 64.** `retrying()` correctly catches
+  `TimeoutError` (that *is* `D75`'s fix) and gives up after four attempts — and then the exception
+  propagates and **kills the whole sweep**. `compare_prompts` learned to record the item `failed`
+  and carry on; `faithful.sweep_rows` never did. **The lesson did not travel between the two
+  modules.** Checkpointing saved it; the cost was one relaunch. NOT yet fixed — named here so it is
+  not rediscovered.
+- **`uncited` has two denominators and they disagree.** `compare_prompts.cells()` counts
+  **answerable items only**, `judge._sweep_citations` counts **every answered row**. Same data, D
+  reads `18/45 = 40%` in one command and `20/47 = 43%` in the other; the gap is the two
+  fabrications. **Every published citation figure comes from the first** — except `D73`'s
+  **31/48 = 65%**, which came from the second. No conclusion moves; it is ±3 points in either
+  direction depending on the run. **Left alone deliberately:** which denominator is right is a
+  definition call on a published metric, and it is Viraj's.
+- **Round 14's raw answers were never committed.** They went to `/tmp/round14-DH.json` on the lab,
+  and `/tmp` there has been wiped once before (Round 15's log). So `D84`'s *wording drifted* claim
+  (`19/46 → 18/45`) compares **one re-derivable run against one pasted number**. The refusal-side
+  claim is safe — both pastes list the ids. Round 16's file **was** committed and re-derives to the
+  item: 38/91, 42/91, 20, 16, 2, 6↑ 2↓, same eight ids.
+- **My own diagnostics stalled the run.** 16 GiB, with the embedder + reranker + a 3.9 GB judge +
+  Qdrant in Docker; running the test suite and the gate alongside it filled swap to 7.7 of 8 GB and
+  the sweep dropped into uninterruptible I/O wait — **four items in 88 minutes** against 68 seconds
+  each before. Killing it freed 3.6 GB instantly. `D80` already recorded *a benchmark taken on a
+  busy machine measures the machine*; this time the load did not distort the measurement, it
+  stopped it.
+- **AND THE LAB'S JUDGE DOES NOT DRIFT — found by checking before asking the lab for anything.**
+  It judged the same 110 answers **twice, five days apart** (Round 15 on 09-05, Round 16.3 on
+  09-10) and the two committed files are **byte-identical across all 110 rows, free-text `reason`
+  included**. Against the Mac's 3 in 110. **So the hedge I wrote an hour earlier — "neither box is
+  simply the stable one" — is withdrawn:** two models, two different jobs, deterministic on the
+  3060 and not on the M4. `TEMPERATURE = 0.0` is doing what it promises on one machine only.
+  Hypothesis for why (**untested, labelled as such**): CUDA reduces in a fixed order, Metal need
+  not, and two near-tied tokens occasionally swap. **What it does not say:** determinism is
+  repeatability, not accuracy.
+- **Nothing needs to be asked of the lab.** Round 16's artifacts are committed and every cell
+  re-derives locally. Round 14's raw answers are **gone for good** — `/tmp` on the lab, wiped —
+  and are superseded by Round 16 anyway.
+- **A judge run that stopped early printed as a result.** Seen live: the half-finished Mac file
+  showed `D 15 judged, 100% supported` in the same table as the lab's finished 47, with nothing
+  saying so. The scorecard now **derives** the expected count from the sweep and labels the block
+  `INCOMPLETE — n of m`; a `FAILED` row does not count as judged, or a run that gave up would call
+  itself finished. Three tests.
+- **361 tests** (356 + 5 skipped without Qdrant — measured, not inferred), **85** decisions.
+  Nothing committed.
 
 ### 2026-09-10 — re-read the lab reply and found my own misreading (`D83` narrowed)
 
@@ -1697,7 +1816,7 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **What is deliberately NOT judged: variant `I`.** `D74` measured it worse on every column and it
   is not a ship candidate, so it would cost ~60 more judge calls to confirm a decision already
   made. Named here rather than left as a silent hole.
-- **343 tests**, **58/58** `# runnable`, **83** decisions. Nothing committed.
+- **344 tests**, **58/58** `# runnable`, **84** decisions. Nothing committed.
 
 ### 2026-08-23 (later) — groundedness without a judge (`D77`)
 

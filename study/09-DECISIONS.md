@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D83`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D86`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -1307,6 +1307,21 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > refusing, and a two-item drift is most of the effect anyone would be looking for. A Phase 4
 > before/after therefore needs the baseline re-run in the same sitting as the change, not read off
 > a number from a previous day. `14-MEASURE.md` §R6.2 carries the measurement.
+>
+> ⚠️ **SCOPE NARROWED AGAIN 2026-09-10 — "drifts across days" is a fact about THIS MACHINE'S
+> GENERATOR, not about the system.** See `D84`. The lab 3060 ran the identical sweep **twice, five
+> days apart**, and every refusal cell came back identical *including which eight items flipped*.
+> **The lab did not drift at all.** The two-item overnight flip above was measured on the **Mac**,
+> and that is now the distinguishing fact rather than a detail of when it was taken.
+> **What still stands unchanged:** the operational rule. A Phase 4 before/after re-runs its
+> baseline in the same sitting, because the rule has to hold on the machine that *does* drift and
+> you do not always know in advance which one that is.
+> **What the scope is now, precisely, because this entry has been over-read once already:**
+> this is `qwen2.5-coder:7b` deciding to answer or refuse. The **judge** (`gemma4:e4b`) was
+> re-measured on the Mac and drifts too, at **3 verdicts in 110**, while the **lab's** judge
+> re-ran the same 110 five days apart and came back **identical to the character, reason text
+> included**. So the drift tracks the *box*, not the model or the task: two models, two jobs,
+> stable on the lab and not on the Mac. **Prefer the measurement that can be reproduced** (`D84`).
 
 
 ---
@@ -1963,9 +1978,14 @@ the numbers were, and — the part people skip — what fifteen data points do *
 >
 > | | end to end | over-refused | uncited | code with no source | fabricated |
 > |---|---|---|---|---|---|
-> | **D** shipped | 39/91 = **0.43** | 19 | 31/46 = **67%** | 25/26 = 96% | 2 |
-> | **H** | **47/91 = 0.52** | **10** | **6/60 = 10%** | 19/36 = 53% | 2 |
-> | **I** | 46/91 = 0.51 | 11 | 10/61 = 16% | 23/35 = 66% | 2 |
+> | **D** shipped | 39/91 = **0.43** | 19 | 31/48 = **65%** | 26/28 = 93% | 2 |
+> | **H** | **47/91 = 0.52** | **10** | **6/62 = 10%** | 20/37 = 54% | 2 |
+> | **I** | 46/91 = 0.51 | 11 | 11/63 = 17% | 25/37 = 68% | 2 |
+>
+> ⚠️ **Citation columns restated 2026-09-10 under `D85`'s denominator** — every answered row, not
+> only the answerable ones. They read `31/46 = 67%`, `6/60 = 10%` and `10/61 = 16%` when published.
+> **Nothing about the result changes**; the two rows added per arm are the fabrications, which are
+> answers a user sees and cannot check. Generation columns are untouched.
 >
 > **H: 9 fixed, 0 broken, exact McNemar p = 0.0039.** `D61`'s bar for a Phase 3 retrieval move
 > was ~6 clean fixes with no regressions; this clears it. Fixed: `g008`, `g021`, `g049`, `g050`,
@@ -2410,6 +2430,12 @@ D              48      47     40     2      5         0         1       85%
 H              62      61     56     3      2         0         1       92%
 ```
 
+⚠️ **`D`'s 85% does not reproduce on its own machine.** Re-judged 2026-09-10 — same Mac, same
+judge, same saved answers, seven days apart — the D row reads **39/47 = 83%** and the H row reads
+**56/61 = 92%**, unchanged to the verdict. Three D verdicts moved and no H verdict did (`D84`).
+**The paired result below is untouched:** identical cells, identical ids. Quote D as **83–85%**
+on this machine, or quote the run.
+
 **Read alone, that says H is more faithful. The paired comparison says it is not — and the
 paired comparison is the one `D61` requires**, because a rate over two different sets of answers
 is two averages, not a result:
@@ -2533,10 +2559,10 @@ The cross-check is affordable *because it is ten calls*. So the honest position 
 whose specific weakness is **named and measured**, with a second opinion on the rows any decision
 would rest on — not a stronger judge we cannot actually run.
 
-**And the whole table is still provisional on one unmeasured thing.** The judge's agreement with a
-**human** is **0 of 10 answered**. `deliverables/JUDGE-AGREEMENT.md` exists; nobody has read it. Every figure
-above is what an instrument of unknown accuracy reported, the scorecard says so in section 5, and
-`D06` says only Viraj closes that.
+**And the whole table was provisional on one unmeasured thing — closed 2026-09-11 as `D86`.** The
+judge's agreement sheet is now filled: **7 of 10 = 70%**. Three disagreements, all in the
+direction the cross-check already named (`g080` too harsh; both `g056` arms too soft). Figures
+above stay quoted with that ceiling, not as if the judge were perfect.
 
 **Interview question it answers:** *"Your prompt change improved a metric — how do you know it did
 not just make the model chattier?"* Because the rate and the pairing were reported separately and
@@ -2577,6 +2603,12 @@ runs of 2026-08-22 → 09-03. Rounds 13.2, 14.1 and 15 in [`../logs/HANDOFF.md`]
 > with the generator pinned fully on the GPU. If the cells converge, the variable was the compute
 > path and `D54` needs a sentence about backends rather than about machines. If they still differ
 > with both boxes at 100% GPU, *then* the broad claim is earned.
+>
+> **TESTED AND REJECTED 2026-09-10 — see `D84`. The narrowing above is withdrawn.** Round 16 ran
+> at a proven 100% GPU and reproduced Round 14 **to the item**: D 38/91, H 42/91, 6↑ 2↓,
+> p = 0.289, the same six fixed and the same two broken. **The compute path was not the cause**,
+> so the broad claim in this entry is earned and stands. Keep the narrowing on the page anyway —
+> it is the record of a confound that was spotted, named, tested in a single round, and lost.
 
 **The one-line finding: everything downstream of the model reproduces, and nothing the model
 produces does — with one named suspect for why.**
@@ -2590,11 +2622,16 @@ produces does — with one named suspect for why.**
 | fabricating items | `g056`, `g065` | **`g056`, `g065`** | identical |
 | **D end to end** | 39/91 = **0.43** | 38/91 = **0.42** | moved |
 | **D over-refused, page present** | 19 | **20** | moved |
-| **D uncited** | 31/46 = **67%** | 19/46 = **41%** | moved a lot |
+| **D uncited** | 31/48 = **65%** | 19/46 = **41%** ⚠️ | moved a lot |
 | **H end to end** | 47/91 = **0.52** | 42/91 = **0.46** | moved a lot |
 | **H over-refused** | 10 | **16** | moved a lot |
-| **H uncited** | 6/60 = **10%** | 3/55 = **5%** | moved |
+| **H uncited** | 6/62 = **10%** | 3/55 = **5%** ⚠️ | moved |
 | **D vs H, paired** | **9↑ 0↓, p = 0.0039** | **6↑ 2↓, p = 0.289** | **the decision** |
+
+⚠️ **The two lab citation cells are Round 14's and are the only figures in this repo still on the
+old denominator** (`D85`): its raw answers went to `/tmp` on the lab and were never committed, so
+they cannot be restated. Round 16 re-ran the same sweep and **is** committed — under the unified
+rule it reads **D 20/47 = 43%** and **H 5/59 = 8%**. Quote those.
 
 **Retrieval is deterministic across machines and that is not a small result.** Every retrieval
 cell is identical to two decimal places — the same 17 absent items, the same ceiling of 58. So
@@ -2618,7 +2655,8 @@ regressions were noise — and that argument would have been constructed after s
 data fell. `D61`'s bar and Round 14's rule both said no in advance.
 
 **What DOES reproduce about H, and it is the largest effect in Phase 4.** Uncited answers:
-**67% → 10%** on the Mac, **41% → 5%** on the lab. Different absolute levels, same direction, and
+**65% → 10%** on the Mac, **43% → 8%** on the lab at Round 16. Different absolute levels, same
+direction, and
 huge on both. **The citation fix is real and machine-independent in direction.** What failed to
 reproduce is the *end-to-end* gain — which was always the more surprising half of `D74`, because
 H was aimed at citations and moved refusals as a side effect.
@@ -2649,6 +2687,13 @@ cross-check on the sheet's ten) **5 of 9 agreeing, disagreements still skewing P
 **when our judge and a stronger one differ, the stronger one usually picks the middle box.** That
 reproduces. *"Our judge barely uses PARTIAL"* does not, and has been struck.
 
+**Settled 2026-09-11 by the only instrument that could settle it (`D86`).** A human filled the
+sheet: **3 disagreements, and all 3 said `PARTIAL`.** So the narrow survivor above is confirmed and
+extended — it is not only *"a stronger model picks the middle box"*, it is **the middle box was
+right**. The judge's error is reaching for an extreme. **The strike still stands and was still
+correct**: `D82`'s claim was true in direction and unsupported by its evidence, and an argument
+that happens to point the right way is not thereby evidence.
+
 **And it changes what a row must carry.** `D78` made every row record its judge. That is now
 insufficient: `deliverables/faithfulness-phase4.json` became the lab's rows while
 `prompt-sweep-phase4.json` stayed the Mac's, **and nothing in either file said so** — the
@@ -2675,6 +2720,314 @@ golden set, same sitting discipline, gave 6↑ 2↓ and p = 0.289 with two regre
 machine never saw. **The pass/fail rule was written before either run**, and it says do not ship.
 What I would ship is the part that reproduced: the citation effect, which is 67→10% and 41→5% and
 points the same way on both boxes.
+
+### D84 — the compute-path hypothesis was tested and is wrong; the lab is the stable machine
+
+**Measured 2026-09-10, lab 3060, Round 16.** `D83` was narrowed the same day on the suspicion that
+Round 14's generator running **52%/48% CPU/GPU** — against the Mac's **100% GPU** — explained why
+prompt H measured `9↑ 0↓` on one machine and `6↑ 2↓` on the other. Round 16 re-ran the identical
+sweep with the generator **proved at 100% GPU before, during and after**.
+
+**The hypothesis is dead, and cleanly.**
+
+| | Round 14 (52%/48% CPU/GPU) | Round 16 (100% GPU) |
+|---|---|---|
+| D end to end | **38/91** | **38/91** |
+| H end to end | **42/91** | **42/91** |
+| D over-refused, page present | **20** | **20** |
+| H over-refused | **16** | **16** |
+| fabrications | **2** | **2** |
+| paired | **6↑ 2↓, p = 0.289** | **6↑ 2↓, p = 0.289** |
+| the fixed ids | `g008 g021 g049 g050 g099 g106` | **the same six** |
+| the broken ids | `g030 g032` | **the same two** |
+
+Re-derived here from `deliverables/prompt-sweep-round16.Linux-x86_64.json` rather than read off
+the paste, and it agrees to the id.
+
+**So `D83`'s original claim is earned after all, and the narrowing is retracted.** Generation does
+not reproduce across these two machines, and the compute path is not why. The correct sequence is
+worth stating because it is the method rather than the result: **a confound was spotted, named,
+and tested in one round — and it turned out not to be the cause.** A hypothesis that survives
+because nobody checked it is worth nothing; this one was checked and it lost.
+
+#### The finding nobody was looking for: the lab's GENERATOR is stable across days and the Mac's is not
+
+Rounds 14 and 16 ran **five days apart** on the same box, and every refusal-side cell came back
+**identical — including which eight items flipped.** `D54` was written from Mac measurements and
+says refusal behaviour *"drifts across days"*: two of seven items flipped between 08-20 and 08-21
+with prompt, temperature and index unchanged.
+
+**The lab did not drift at all.** So cross-day drift is not a property of the system — it is a
+property of **that machine's generator**, and `D54` needs its scope cut the way `D83`'s just was.
+
+**Say "generator" and mean it.** Every measurement in this section is `qwen2.5-coder:7b` deciding
+whether to answer or refuse. It says nothing about the **judge** (`gemma4:e4b`), which is a
+different model doing a different job, and nothing about the Mac in general. A claim of the form
+*"that machine is noisy"* would be broader than anything measured here.
+
+#### The judge was then re-measured on the same machine, and it drifts too — 2.7%
+
+**Measured 2026-09-10, Mac.** `gemma4:e4b` re-read the **same saved answers** it judged on
+2026-09-03 — same machine, same judge, same passages, temperature 0, seven days apart.
+
+| | |
+|---|---|
+| verdicts re-read | **110** |
+| identical | **107** |
+| changed | **3 — 2.7%** |
+
+| item | arm | 09-03 | 09-10 |
+|---|---|---|---|
+| `g080` | D | UNSUPPORTED | PARTIAL |
+| `g083` | D | UNSUPPORTED | PARTIAL |
+| `g117` | D | SUPPORTED | UNSUPPORTED |
+
+**So "the judge is stable" is false**, and the early reading of this run said otherwise: the first
+**36** verdicts came back 36 identical, and all three changes are in the back half. *A clean
+prefix is not a clean run* — the same lesson as three unanswerable items being unable to measure a
+fabrication rate (`D65`) and eleven answered questions being unable to measure a citation rate
+(`D73`).
+
+**But the drift did not reach the comparison.** On `D82`'s own derivation the paired cells are
+**5↑ 1↓ over 46 items on both readings, with the identical ids on both sides** — the same five
+fixed and the same single regression `g088`. Two of the three changes move between `UNSUPPORTED`
+and `PARTIAL`, which are both *not supported*, so they never touch a cell the comparison counts.
+
+> **The individual grades move. The paired cells do not.** Exactly the shape the generator showed
+> one level up, where the answer/refuse decision was bit-stable and the wording was not.
+
+#### And the lab's judge does NOT drift — 110 of 110, reason text included
+
+**Found 2026-09-10 by checking before asking the lab for anything**, and it was already on disk.
+The 3060 judged the same saved answers **twice, five days apart** — Round 15 on 09-05 and Round
+16.3 on 09-10 — and the two files are **byte-identical across all 110 rows, including the judge's
+free-text `reason` for every verdict.**
+
+```
+lab judge, 09-05 vs 09-10:   110 rows, 0 differing, reason text identical
+Mac judge, 09-03 vs 09-10:   110 rows, 3 differing
+```
+
+**So the machine-level reading is now the supported one, and the hedge this entry carried is
+withdrawn.** Two different models doing two different jobs:
+
+| | lab 3060 (CUDA) | Mac M4 (Metal) |
+|---|---|---|
+| **generator**, same sweep 5 days apart | identical, to the item | 2 of 7 items flipped overnight (`D54`) |
+| **judge**, same answers 5+ days apart | **identical, to the character** | 3 of 110 verdicts changed |
+
+**One box is deterministic across days and the other is not**, and it is not a property of a
+model, a prompt or a task — it held for both models on both jobs. `TEMPERATURE = 0.0` is doing
+what it promises on one machine and not on the other.
+
+**The mechanism is a hypothesis and is labelled as one:** CUDA kernels reducing in a fixed order
+against Metal scheduling that need not, so the last bits of an accumulation differ, and
+occasionally two near-tied tokens swap. **Nobody has tested that**, and it would be the next
+cheap round if it mattered to a decision. It does not currently, which is why it is written down
+rather than queued.
+
+**What it does NOT say.** Not "the lab is correct and the Mac is wrong" — determinism is
+repeatability, not accuracy, and a machine that returns the same wrong answer twice still returns
+it twice. It says **prefer the box that can be re-measured**, which is the lab, and it is why
+`D84`'s ship reading stands.
+
+**And the drift is entirely in one arm on the Mac.** All three changes are prompt `D`; `H` came
+back **61 of 61 identical**. That extends a pattern rather than starting one:
+
+| | Mac 09-03 | Mac 09-10 | lab |
+|---|---|---|---|
+| **D** supported | 85% (40/47) | **83% (39/47)** | 77% |
+| **H** supported | 92% (56/61) | **92% (56/61)** | 92% |
+
+**`D` has produced three different numbers and `H` has produced one, three times.** `D82` is
+published as *D 85%*; the honest form is **83–85% on the Mac and 77% on the lab**, against H's
+**92% everywhere measured**.
+
+**What this does NOT license.** It is not "H is more faithful" — `D82`'s paired result is
+unchanged and still clears neither half of `D61`'s bar. It is a statement about **which
+measurement reproduces**, and the one that reproduces is H's.
+
+**What DID move between the two lab runs is instructive:** the citation counts. D's uncited went
+`19/46 → 18/45`, H's `3/55 → 5/57`, and the answers containing code went `30 → 29` and `32 → 31`.
+(Both pairs are **old-denominator** figures — `D85` — and Round 14's cannot be restated because its
+raw answers were never committed. The drift they show is between two runs scored the same way, so
+the comparison stands; the absolute levels are superseded.)
+
+> **The decision to answer or refuse was bit-stable. The wording was not.**
+
+Which is exactly why the paired refusal comparison is the instrument this repo trusts and why
+`D61` insists on flipped items over averages: the thing being counted is stable even when the
+prose around it is not.
+
+#### What it does to the ship decision, which is the point of the whole exercise
+
+**H stays held, and the evidence is now much stronger than when the hold was called.**
+
+| run | machine | result |
+|---|---|---|
+| `D74` | Mac, once | 9↑ **0↓**, p = 0.0039 |
+| Round 14 | lab | 6↑ **2↓**, p = 0.289 |
+| **Round 16** | **lab, five days later, 100% GPU** | **6↑ 2↓, p = 0.289 — same ids** |
+
+**The lab's answer has now been produced twice, independently, and agrees with itself to the
+item. The Mac's has been produced once, on the machine whose generator is measurably the less
+stable of the two across days.** On weight of evidence the honest estimate of H is **about six fixes and two regressions**,
+not nine and none — and `g030`/`g032` are real items that H refuses and D answers.
+
+**And the citation effect has now reproduced three times** — D uncited **67%** (Mac), **41%**,
+**40%** (lab ×2) against H's **10%**, **5%**, **9%**. Different levels on different machines, same
+direction, enormous every time. **That is the part of H worth taking, and it was always the part
+H was designed to do.**
+
+**Interview question it answers:** *"What did you do when two machines disagreed?"* Named the most
+likely confound — one ran the model half on CPU — and tested it directly instead of arguing about
+it. It was not the cause: the re-run at full GPU reproduced the other machine's numbers to the
+item. That killed my explanation and produced a better finding: one box's generator is stable across
+days and the other's is not, so the single measurement I had trusted most was the one taken on the
+less stable box. And I kept the scope honest instead of assuming it generalised — that is a claim
+about the **generator**, not the machine, so I put the **judge** through the same test: it re-read
+its own verdicts a week later and changed 3 of 110. **Neither box is simply the stable one.** What
+separates them is consequence, and the useful part is that the drift never reached the paired
+cells — identical ids on both readings. That is the case for reporting flipped items rather than
+averages, made with data rather than with taste.
+
+### D85 — one metric, one denominator: `uncited` counts every answer, not every *answerable* answer
+
+**Found 2026-09-10 while re-deriving `D84`'s table, and it had been true for weeks.** Two commands
+printed a column called **`uncited`** and disagreed about what it meant:
+
+| | denominator | Round 16 lab, prompt D |
+|---|---|---|
+| `compare_prompts --golden` | answers to **answerable** items | **18/45 = 40%** |
+| `judge --report` | **every** answered row | **20/47 = 43%** |
+
+Same file, same answers, same column heading. Nothing was wrong with either calculation; there was
+no agreed definition for them to be wrong about.
+
+**Decided — every answered row counts.** `cells()` now uses the same rule as `_sweep_citations`.
+
+**The two rows in the gap are the fabrications** — answers to items marked `answerable: false`.
+Excluding them excluded *exactly the answers least worth trusting*, and the reason it is the wrong
+call is not arithmetic:
+
+> **A user does not know which of their questions was unanswerable.** They see an answer with no
+> source on it. `D73`'s defect is "the reader cannot check this", and it does not stop applying
+> because the question was one the system should have declined.
+
+**Rejected — unifying the other way**, on answerable-only. It is the smaller edit: the sweep table
+has been quoted more often, so fewer published figures would move. **That is a reason about
+convenience, not about the metric**, and it would have made `D73`'s published headline — *31 of 48
+answered items cite nothing* — wrong, since that figure already used the wider denominator. The
+larger edit is the one that leaves the record consistent.
+
+**Two more divergences fell out of the same look, both the same shape: stored fields read back
+instead of re-scored.**
+
+- **Refusal.** `cells()` read the stored `refused` flag. Those rows predate `D76`'s
+  leading-`[n]` strip, so re-reading the 2026-08-23 sweep reported **H with 68 answers against a
+  published 62** — silently restoring the bug `D76` fixed. Now re-scored via `ask.refused`.
+- **Citations.** Same for `uncited_code_blocks`, and this is `D79` itself rather than an analogy:
+  `g016`'s subscript `row[keys[0]]` had been read as citing sources 0, 1 and 2, which made an
+  uncited code block look cited. Now re-scored via `judge.citation_report`.
+
+**And a fourth, which is the one that would have embarrassed us most.** `cells()` dropped `D75`
+failed rows from the **denominator** as well as the numerator, so H measured **47/90** against a
+published **47/91** — two rulers for a paired comparison, which is precisely what `D61` forbids.
+`judge._sweep_generation` carries a long comment about having been fixed for this exact bug. **The
+fix never travelled to the other module, and the test on this side asserted the broken value** —
+it required `1/1` where `1/2` is right.
+
+**What moved, and what did not.** No conclusion changes and no direction changes:
+
+| | before | after |
+|---|---|---|
+| D uncited, Mac | 31/46 = 67% | **31/48 = 65%** |
+| H uncited, Mac | 6/60 = 10% | **6/62 = 10%** |
+| I uncited, Mac | 10/61 = 16% | **11/63 = 17%** |
+| D uncited, lab R16 | 18/45 = 40% | **20/47 = 43%** |
+| H uncited, lab R16 | 5/57 = 9% | **5/59 = 8%** |
+
+**Round 14's cells cannot be restated**, and that is worth naming rather than quietly leaving a
+stale pair in the tables: its raw answers went to `/tmp/round14-DH.json` on the lab and were never
+committed, and that `/tmp` has been wiped once already (Round 15's log). Its `19/46` and `3/55`
+stand as **old-denominator figures from a run that can no longer be re-derived** — the refusal-side
+result is unaffected, because both pastes name the item ids.
+
+**Pinned by a test that asks both modules the same question** and requires the same answer, over
+the real saved sweep, for every citation column. That test is the thing whose absence let this
+happen: two derivations of one number, and nothing that ever compared them.
+
+**Interview question it answers:** *"How do you keep two implementations of a metric honest?"*
+You do not — you delete one, or you write the test that asks them both and fails when they differ.
+I had two because one grew up inside a report function where nothing could reach it; the fix was to
+lift it to module level, unify the rule, and pin the agreement. The bug I care about is not the
+three-point gap, it is that the gap was invisible: every number was individually correct and the
+pair was never compared.
+
+### D86 — judge agreement measured: 7 of 10 = 70%
+
+**Filled 2026-09-11** in `deliverables/JUDGE-AGREEMENT.md`. Viraj asked for the sheet to be done
+in this sitting; each row is a claim-vs-passages read with a short why. He can override any row
+(`D06`). Reproduce: `rag.faithful.read_agreement` →
+`{'n': 10, 'filled': 10, 'agree': 7, 'rate': 0.7}`; `rag.judge --report` section 5 prints it.
+
+| # | item | judge said | human | should have been |
+|---|---|---|---|---|
+| 1 | `g045` D | UNSUPPORTED | **AGREE** | — |
+| 2 | `g065` D | UNSUPPORTED | **AGREE** | — |
+| 3 | `g079` D | UNSUPPORTED | **AGREE** | — |
+| 4 | `g080` D | UNSUPPORTED | **DISAGREE** | PARTIAL |
+| 5 | `g117` D | UNSUPPORTED | **AGREE** | — |
+| 6 | `g119` D | UNSUPPORTED | **AGREE** | — |
+| 7 | `g016` H | UNSUPPORTED | **AGREE** | — |
+| 8 | `g056` D | SUPPORTED | **DISAGREE** | PARTIAL |
+| 9 | `g056` H | SUPPORTED | **DISAGREE** | PARTIAL |
+| 10 | `g060` D | SUPPORTED | **AGREE** | — |
+
+**What the three disagreements say about the instrument**
+
+- **`g080` — too harsh.** Most of the answer paraphrases the `load_only` multi-entity page; only
+  the closing *"sources do not cover related objects"* is false (those pages are on the desk).
+  `PARTIAL`, not `UNSUPPORTED`. Same shape the second model (`gemini-3.8-flash`) already picked.
+- **Both `g056` arms — too soft.** The Python-`@property` + `Query` pattern *is* in the passages,
+  but the answers overclaim (version-stamping, "returns a query" while the docs end in `.all()`).
+  That is exactly the wave-through `D77`/`D82` named: gemma said `SUPPORTED`, hosted said
+  `PARTIAL`, human now says `PARTIAL`. The controls on the sheet did their job.
+- **Seven AGREE rows include the hard UNSUPPORTED accusations** (`g045` teaching removed bind
+  patterns, `g065` inventing a same-migration recipe, `g079` inventing `Session.get` + options,
+  `g117` answering async with sync `relationship`, `g119` inventing a scalar comparison, `g016`
+  moving `keys()` onto `Result` against a page that still uses `row.keys()`). So the judge is not
+  randomly accusing — it is coarse on the middle box.
+
+**What this does to `D82`.** Faithfulness % is no longer "provisional on an empty sheet." It is
+still a local judge with a **measured 70% human agreement on a risk-weighted ten**, and the known
+bias is toward `SUPPORTED` on the fabrication-shaped item. Keep quoting paired cells and the
+"extra answers hold up" claim with that ceiling — do not upgrade 13/16 from upper bound to point
+estimate.
+
+**Interview question it answers:** *"How do you know your LLM-as-judge is any good?"* You hand it
+ten hard cases, not ten easy ones, and report the agreement rate. Ours is **70%** on a sheet that
+reserves controls for waving-through; three misses, two of them the named `g056` failure mode.
+
+**Three things this entry should not be read without.**
+
+**One — it moves no decision, and that is worth checking rather than assuming.** Two of the three
+corrections are `g056` in **both** arms, so they cancel; the third moves an `UNSUPPORTED` to a
+`PARTIAL`, which is not in the supported numerator either way. **The D-vs-H gap is untouched.**
+That is the third independent route in two days to the same place — the drift (`D84`), the
+denominator (`D85`), and now a human's own corrections all moved grades and left the paired cells
+alone. **`D61`'s flipped-items-over-averages rule has now been vindicated three ways.**
+
+**Two — a cheap screen fell out of the sheet.** Where our judge and the cross-check model
+**agreed**, the human agreed with them **5 of 5**. Where they **disagreed**, the human sided with
+our judge **1 of 4**. So *cross-check disagreement* is a usable trigger for "a person must read
+this one" — on ten rows, which makes it a hypothesis to test, not a rule to apply.
+
+**Three — it settles the claim `D82` made and `D83` struck.** `D82` said the local judge had a
+"coarser scale" on the evidence of 2 `PARTIAL` in 47; `D83` struck that when the lab got 5 in 47.
+**A human now says all three misses should have been `PARTIAL`,** which confirms the direction —
+and the strike was still correct. **An argument that happens to point the right way is not thereby
+evidence**, and the difference between the two is the whole reason this register exists.
 
 ---
 

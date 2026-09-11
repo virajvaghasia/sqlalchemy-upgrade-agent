@@ -13,9 +13,12 @@ pastes the output into the matching **REPLY** block; Claude reads it on the next
 
 | round | state |
 |---|---|
-| 1, 12, 13, 14, 15 | **CLOSED** — replies pasted, results folded into `D83` |
-| 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Not needed for Round 16 — AnyDesk is enough |
-| **16** | **CLOSED on lab 2026-09-10** — see **LAB RESULT** under Round 16 |
+| 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
+| 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
+
+**Mac gate closed 2026-09-11 (`D86`):** `JUDGE-AGREEMENT.md` filled — **7 of 10 = 70%** agreement
+with the local judge. Three DISAGREE: `g080` (too harsh), both `g056` arms (too soft). Nothing
+left for the lab.
 
 ### LAB RESULT — Round 16 (Mac: read this, not the OPEN asks)
 
@@ -29,6 +32,18 @@ or Mac faithfulness without naming the machine (`D83`).
 | H end/end | 47/91 = 0.52 | 42/91 = 0.46 | **42/91 = 0.46** |
 | paired | 9↑ 0↓, p=0.0039 | 6↑ 2↓, p=0.289 | **6↑ 2↓, p=0.289** (same IDs) |
 | H ship? | candidate | hold | **hold** — compute-path confound **not** confirmed |
+
+**Mac read of that table (`D84`), added 2026-09-10.** The two lab runs are **five days apart and
+agree to the item** — same six fixed, same two broken, same p. `D54` says refusal behaviour drifts
+across days, but that was measured on the **Mac**, where two of seven items flipped overnight.
+**The lab did not drift at all**, so the drift is a property of that machine rather than of the
+system. What did move between the lab runs is the *citation* counts (D `19/46 → 18/45`, H
+`3/55 → 5/57`): **the decision to answer or refuse was bit-stable; the wording was not.**
+
+**Consequence for the ship call:** the Mac's `9↑ 0↓` was measured **once, on the box whose
+generator drifts**;
+the lab's `6↑ 2↓` **twice, agreeing**. The honest estimate of H is about **six fixes and two
+regressions**, so the hold is the weight of evidence rather than a technicality.
 
 **Lab artifacts (machine-stamped — pull these on the Mac):**
 
