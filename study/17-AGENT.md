@@ -424,7 +424,61 @@ end to end       0.43         0.47               0.43
 ```
 
 **0.47 against 0.43.** Paired against the agent's own default it is 4↑ 0↓, p = 0.125 — no
-regressions, and not significant at this size. **Say "ahead, not proven ahead".**
+regressions, and not significant at this size.
+
+### Then the lab ran the same thing, and the headline did not survive
+
+```
+                ceiling  delivered    e2e   conv  over-ref  no-tool  two+
+Mac default          45         39   0.43    87%         6       23     0
+Mac levers           54         43   0.47    80%        11        1     6
+lab default          25         25   0.27   100%         0       51     0
+lab levers           45         33   0.36    73%        12        4     7
+one-shot pipeline    58         39   0.43    67%        19        —     —
+```
+
+> **"The agent matches the one-shot pipeline" is a MAC claim. It is withdrawn** (`D94`).
+
+The pass/fail for that round was written before the data and named this outcome in advance:
+*lands well below 0.42 → a Mac effect*. It landed at **0.27**.
+
+**What reproduced is everything except the level, and that list is longer than the headline was:**
+
+| | Mac | lab |
+|---|---|---|
+| levers, paired | 4↑ 0↓, p = 0.125 | **8↑ 0↓, p = 0.0078** |
+| chaining, from 1 in 80 runs | 6 | 7 |
+| forcing: no-tool-call | 23 → 1 | 51 → 4 |
+| **over-refusals** vs the pipeline's **19** | **6** | **0** |
+
+**The lever the Mac could barely show is the one the lab needed most.** And the lab's agent
+converted **25 of 25** — every page it retrieved, it answered.
+
+### The whole level gap is one number
+
+The lab calls no tool on **51** of 100 questions. The Mac, on **23**. Same prompt, same model, same
+items. Fewer searches → lower ceiling → fewer answers, and everything follows.
+
+**That is R9.6's coin-flip arriving with consequences.** The agent's *score* is governed by a
+decision the two machines cannot agree on. Its *behaviours* — chaining, refusing less, responding
+to the levers — are the same on both.
+
+> **The score is the machine-dependent part. The findings are not.**
+
+**So which system is actually best? The one-shot pipeline**, and it is not close: **0.43 and 0.42**,
+the only configuration that holds on both machines. A system whose score halves depending on the
+box is not better than one that does not, whatever its best day looks like.
+
+### And the policy that came out of it (`D95`)
+
+**The Mac screens, the lab rules, and both stay.** Measuring only on the lab is the obvious
+simplification and it would have destroyed the most useful class of result here — five register
+entries exist *because* two machines disagreed. With one machine you get a number and no way to
+know its scope.
+
+**Anything quoted names the lab, or names both.** A Mac-only figure is labelled a screen **the
+moment it is written**, not after the lab disagrees — which is exactly what I got wrong for a few
+hours with `0.43`.
 
 ### The drill: break a tool on purpose and watch
 
@@ -453,6 +507,13 @@ stopped: answered
 ---
 
 ## R9.8 — Say this out loud
+
+**"I was wrong three times in one night, and the register says so."**
+I predicted the single-tool ceiling was a planning failure — it was a stopping failure, 0 → 7 of 10.
+I predicted the levered run at ceiling 58 / delivered ~50 — it came in at 54 / 43. I predicted it
+again the second time and was optimistic again. And the headline I most wanted, the agent matching
+the pipeline, was withdrawn when the lab measured 0.27. **Every one of those predictions was
+written down before the run**, which is the only reason any of them is worth quoting.
 
 **"The agent looked 18 points worse than the pipeline, and it was four characters of my own code."**
 0.25 against 0.43. What did not fit was the refusal rate: 49% of retrieved pages against the
