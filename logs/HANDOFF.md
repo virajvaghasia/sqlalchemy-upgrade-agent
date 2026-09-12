@@ -44,6 +44,7 @@ rather than quietly edited away (`D84`).
 
 | round | state |
 |---|---|
+| **18** | **OPEN** — E1 on the lab: does the must-call prompt reproduce? ~25 min |
 | **17** | **CLOSED** — Step 0 holds on channel/`--g065`; agent end-to-end **0.02** vs lab baseline **0.42** |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
@@ -51,6 +52,78 @@ rather than quietly edited away (`D84`).
 **Mac gate closed 2026-09-11 (`D86`):** `JUDGE-AGREEMENT.md` filled — **7 of 10 = 70%** agreement
 with the local judge. Three DISAGREE: `g080` (too harsh), both `g056` arms (too soft). Nothing
 left for the lab.
+
+---
+
+# Round 18 — does the must-call prompt reproduce? (OPEN, ~25 minutes)
+
+**Why.** Round 17.4 found the agent calling **no tool on 96 of 100** questions. The suspect was the
+system prompt, and on the Mac the fix works: obligation instead of permission takes no-tool-call
+from **9/20 to 2/20**, and out-of-range citations from **3 to 0** — because an agent that retrieves
+has real sources to point at.
+
+**Then the same data found something that puts that result behind a rule.** Same 20 items, **same
+shipped prompt**, temperature 0:
+
+| | no tool call |
+|---|---|
+| Mac | 9/20 |
+| **lab** | **19/20** |
+
+**Ten of the twenty flip.** Whether a tool gets called **does not reproduce across these machines**
+(`D89`). So the Mac's verdict on this candidate is worth exactly what the Mac's verdict on prompt
+`H` was — which is why `H` is still held.
+
+## Pass / fail, written before the data
+
+| result on the lab | meaning | next |
+|---|---|---|
+| candidate takes no-tool-call from ~19/20 down to ~2/20 | the fix reproduces | ship `SYSTEM_MUSTCALL`, re-run 17.4 with it, report both numbers |
+| candidate barely moves it | the fix is a **Mac** effect | **do not ship** — `D83`/`D84` applied to my own candidate rather than only to someone else's |
+| tool calls rise but `two+` stays 0 | expected; no wording has reached chaining on either box | structural forcing (E2) is next, not more prompting |
+| `bad cites` stays above 0 once tools are called | retrieval did **not** fix citation integrity | a bigger finding than the prompt |
+
+## ASK 18.0 — sync
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git pull --ff-only && git log -1 --oneline
+docker compose up -d qdrant
+ollama ps                                  # qwen2.5-coder:7b should be 100% GPU
+```
+
+## ASK 18.1 — E1, both arms, one sitting
+
+**The arms alternate within each item**, so a slow drift over the hour lands on both equally. The
+Mac's run did not do that and is the weaker design of the two; this is the better one.
+
+```bash
+nohup uv run python -u -m rag.agent --e1 --n 20 > /tmp/round18-e1.log 2>&1 &
+disown
+tail -f /tmp/round18-e1.log
+```
+
+Paste the final table in full, then commit the rows:
+
+```bash
+git add deliverables/e1-phase5.Linux-x86_64.json
+git commit -m "lab: Round 18 — E1 both arms on the 3060" && git push
+```
+
+**If it dies partway, just re-run it** — E1 is 40 short runs and has no checkpoint, deliberately:
+a half-interleaved comparison is worse than none.
+
+### REPLY 18.0
+
+```
+(paste git log -1, ollama ps)
+```
+
+### REPLY 18.1
+
+```
+(paste the E1 table and the last 10 log lines)
+```
 
 ### LAB RESULT — Round 17 (Mac: read this)
 

@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D88`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D89`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3152,6 +3152,77 @@ every wording. I took the check that had **already caught** a real fabrication i
 the fact, and made it something the model can call before it answers. The measurement that proved
 the bug becomes the tool that prevents it, which is the only way I know to be sure a guardrail
 guards something real.
+
+### D89 — whether the agent calls a tool at all does not reproduce across machines
+
+**Measured 2026-09-11.** Phase 5's agent sweep ran on the lab and came back **`2/91 = 0.02`** end to
+end against that box's own `38/91 = 0.42` baseline. The number that explains it is not the score:
+
+```
+no tool call   96      one tool 4      two or more 0
+```
+
+**The agent answered 96 of 100 questions without calling a single tool**, and chained two on none.
+
+**First: `0.02` is partly definitional and saying otherwise would be dishonest.** `end_to_end`
+requires `answer_in_prompt`, which for the agent requires a `search_docs` call, so **53 answers are
+scored zero by construction** whether they are right or wrong. Comparing `0.02` with `0.42` as one
+quantity is the apples-to-apples error this phase inherited a rule about.
+
+**Second: `0.02` was nevertheless generous, and this is what settles it.** Of those 53 memory
+answers, **31 carry an `[n]` citation against zero retrieved sources** — every one out of range —
+**42 contain code and 41 of those cite nothing**, and fabrications on unanswerable items went
+**2 → 5**.
+
+> **`D73`'s defect was answers that cite NOTHING. This is answers that cite something that does not
+> exist.**
+
+**Third, and this is the entry's title.** The same 20 items, the same shipped prompt, the same
+model at temperature 0:
+
+| | no tool call |
+|---|---|
+| Mac | **9/20** |
+| lab | **19/20** |
+
+**Ten of twenty flip.** A **50% disagreement on a binary decision** — larger than anything `D83` or
+`D84` measured, and those were about wording and about two items in seven.
+
+**So `96/100` is the lab's number and not the system's**, and the pattern `D84` established holds
+one level deeper: **the coarse decision reproduces and nothing else does** — except here the coarse
+decision *is* the thing that stopped reproducing. That is a genuine extension rather than a
+restatement: refusal survived a machine change, tool-choice does not.
+
+**What this does to the prompt candidate.** `SYSTEM_MUSTCALL` — permission made obligation, plus
+*"do not answer from memory"*, the probe's own words — measured on the Mac at n=20:
+
+| | no tool | one | two+ | in prompt | delivered | bad cites |
+|---|---|---|---|---|---|---|
+| shipped | 9 | 11 | **0** | 9 | 7 | 3 |
+| candidate | **2** | 18 | **0** | 13 | 6 | **0** |
+
+**It fixes what it was aimed at** — tool calls, and with them the out-of-range citations, which go
+to zero because an agent that retrieves has real sources to cite. **It does not move `delivered`**
+(7 against 6 at n=20), so *"does not search"* and *"does not answer"* are two defects and only the
+first has a prompt-shaped fix.
+
+**And `two or more` is ZERO under both prompts, on both machines.** No wording tested reaches it.
+**That is the compounding this phase opened on, and it is the one number that has reproduced
+everywhere.**
+
+**Decided — nothing ships.** `SYSTEM` stays. The candidate is a Mac result on the machine whose
+tool-choice has just been shown not to reproduce, which is **exactly** where prompt `H` stood when
+`D83` and `D84` held it. Applying the rule I already wrote, rather than discovering an exception for
+the case I happen to like, is the only thing that makes the earlier hold mean anything.
+
+**Interview question it answers:** *"Your agent scored 0.02. What did you do?"* First I refused to
+report it as the finding, because the metric requires a retrieval the agent never performed — 53
+answers were zero by construction. Then I checked whether those answers were actually fine, and
+they were worse than the score suggested: a majority cited passages that were never fetched. Then I
+found the prompt that fixes the tool calls, and then I found that whether a tool gets called at all
+disagrees between two machines on half the items — which put my own fix back behind the same rule
+that is already holding a different prompt. **The result is three separate findings and zero
+shipped changes, and I would rather have that than one number that moved.**
 
 ---
 

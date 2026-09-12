@@ -288,3 +288,60 @@ def test_resume_skips_only_what_is_already_done():
     by_id = {r["id"]: r for r in rows}
     assert by_id["g001"]["answer"] == "old", "a done row is not re-run"
     assert by_id["g002"]["answer"] == "a [1]"
+
+
+def test_the_system_prompt_is_overridable_and_defaults_to_the_shipped_one():
+    """E1 needs to swap the system message without touching the loop. The
+    shipped prompt stays the default: `D74`'s precedent is that a candidate
+    which wins on one machine is still not what ships."""
+    seen = {}
+
+    def generate(messages):
+        seen["system"] = messages[0]["content"]
+        return prose("done")
+
+    agent.run("q", generate=generate, call_tool=lambda n, a: (None, None))
+    assert seen["system"] == agent.SYSTEM
+
+    agent.run("q", generate=generate, call_tool=lambda n, a: (None, None),
+              system=agent.SYSTEM_MUSTCALL)
+    assert seen["system"] == agent.SYSTEM_MUSTCALL
+
+
+def test_the_candidate_changes_only_the_two_things_it_claims_to():
+    """A variant that quietly changed the citation clause too would make any
+    difference unattributable -- `D74` measured `I` being worse than `H`
+    precisely because it carried a second instruction."""
+    assert "MUST call a tool" in agent.SYSTEM_MUSTCALL
+    assert "do not answer from memory" in agent.SYSTEM_MUSTCALL.lower()
+    assert "You may call tools" not in agent.SYSTEM_MUSTCALL
+    # unchanged in both
+    for prompt in (agent.SYSTEM, agent.SYSTEM_MUSTCALL):
+        assert "cite sources as [1], [2]" in prompt
+        assert agent.DECLINE in prompt
+
+
+def test_e1_interleaves_the_arms_per_item():
+    """One sitting is not enough on its own (`D54`); the arms are interleaved
+    per item so a machine that drifts over an hour drifts through both arms
+    equally. `D89` makes that sharper — whether a tool is called disagrees 50%
+    across machines, so it is not a quantity to measure twice at different
+    times."""
+    order = []
+
+    def run_one(question, call_tool=None, system=None):
+        order.append("B" if system == agent.SYSTEM_MUSTCALL else "A")
+        return {"answer": "x", "steps": 1, "stopped": "answered", "trace": []}
+
+    agent.e1(ITEMS[:1] + [dict(ITEMS[0], id="g003")], chunks=CHUNKS,
+             run_one=run_one, log=lambda *a: None)
+    assert order == ["A", "B", "A", "B"], "arms must alternate within each item"
+
+
+def test_e1_reports_both_arms_over_the_same_items():
+    def run_one(question, call_tool=None, system=None):
+        return {"answer": "x [1]", "steps": 1, "stopped": "answered", "trace": []}
+
+    got = agent.e1(ITEMS[:1], chunks=CHUNKS, run_one=run_one, log=lambda *a: None)
+    assert set(got) == set(agent.E1_ARMS)
+    assert [r["id"] for r in got["A_shipped"]] == [r["id"] for r in got["B_mustcall"]]

@@ -30,11 +30,11 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-415 tests collected in 22.84s
+419 tests collected in 22.84s
 ```
 
-**Collected, not passed — and the difference is the point.** `uv run pytest` reports *415 passed*
-with Qdrant up and *410 passed, 5 skipped* without, because five checks skip when no Qdrant
+**Collected, not passed — and the difference is the point.** `uv run pytest` reports *419 passed*
+with Qdrant up and *414 passed, 5 skipped* without, because five checks skip when no Qdrant
 is reachable. A headline number that changes with the environment is not a headline number, so
 the block counts what is collected, which does not move. The CI job that verifies every
 `# runnable` block found this; reading never would have.
@@ -43,7 +43,7 @@ Nineteen files, and the Phase 0 trio still do not check that SQLAlchemy works:
 
 ```
 # runnable: uv run pytest --collect-only -q | grep '^tests/'
-tests/test_agent.py: 20
+tests/test_agent.py: 24
 tests/test_ask.py: 14
 tests/test_chunk.py: 37
 tests/test_compare_prompts.py: 28

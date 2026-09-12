@@ -339,6 +339,54 @@ the one dimension `H` was chosen to improve. `D79` measured a subscript making a
 100%, the thing that has to be re-measured is whether the citations then point at real retrieved
 passages — because this run proves the model will happily write `[1]` with nothing behind it.
 
+#### E1 and E5 — RUN 2026-09-11 on the Mac, one sitting (`D54`), n=20 answerable
+
+```
+              no tool   one  two+  in prompt  delivered  bad cites
+A_shipped           9    11     0          9          7          3
+B_mustcall          2    18     0         13          6          0
+```
+
+**The prompt hypothesis is supported, on this machine.** Making the permission an obligation takes
+no-tool-call from **9 to 2** and **bad citations from 3 to 0** — because an agent that retrieves has
+real sources to point at. That second column is the one E3 said would matter.
+
+**Two things it did NOT move, and they are the more useful half.**
+
+**`delivered` is 7 against 6.** Retrieval discipline did not buy end-to-end answers at n=20. So
+*"the agent does not search"* and *"the agent does not answer"* are **two defects, not one**, and
+only the first has a prompt-shaped fix.
+
+**`two or more` is ZERO in both arms.** The model never chains tools whatever it is told. **That is
+not a prompt effect**, it is the compounding `PHASE-5.md` opened on, and no wording tested reaches
+it.
+
+#### E5 fell out of E1, and it is the bigger finding
+
+The same 20 items, the **same shipped prompt**, the same model at temperature 0:
+
+| | no tool call |
+|---|---|
+| Mac | **9/20** |
+| lab | **19/20** |
+
+**Ten of the twenty flip.** `g004`, `g005`, `g007`, `g008`, `g009`, `g011`, `g014`, `g018`, `g019`,
+`g021`.
+
+> **The decision to call a tool does not reproduce across machines at all.** Fifty per cent
+> disagreement on a binary decision — larger than anything `D83` or `D84` measured.
+
+**One honest limitation of the Mac E1 above:** it ran arm A to completion and then arm B, not
+interleaved. One sitting, but not the strongest design — on a box that drifts, a slow drift over
+the hour lands unevenly on the two arms. `rag.agent --e1` now **alternates the arms within each
+item**, so the lab's run is the better-designed one and the Mac's should be read as the weaker
+of the two when they are compared.
+
+**So `96/100` is not a property of the system.** It is the lab's number, and the Mac's is `9/20` on
+the same items. And it puts **E1's result back in the same position prompt `H` was in**: a
+candidate that looks strong on the Mac, on one machine, with the other machine unmeasured.
+`D83`/`D84` already wrote the rule for that, and it applies here without amendment.
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it
