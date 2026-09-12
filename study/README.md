@@ -25,6 +25,7 @@ when measured, the correction is kept rather than quietly edited out.
 | [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
 | [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip and boundary re-chunking both rejected with numbers. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
 | [`16-JUDGE.md`](16-JUDGE.md) | **Phase 4 — judging the answer, not the search.** End to end **0.43** against retrieval's **0.64** ceiling; 65% of answers cite nothing; moving one sentence beat rewriting it; the result that was wrong the first time; the prose judge, and the day it went 503 on its pinned id and turned out to allow **20 calls a day per model**; and **§R8.9 — the second machine**, where retrieval reproduced exactly, generation reproduced nowhere, and a p = 0.0039 prompt win became **6↑ 2↓, p = 0.289** and a hold (`D83`) — and then the obvious explanation for that gap (the lab ran the model half on CPU) was **tested and disproved**, leaving a sharper finding about which model reproduces — and the judge re-reading its own verdicts a week later changed **3 of 110**, moving grades without moving the paired cells (`D84`) | §R8 |
+| [`18-PRODUCTION.md`](18-PRODUCTION.md) | **Phase 6 — production.** The CI quality gate: paired by golden id, one broken item fails, the ruler read from the base branch; removing the reranker blocked by name (`g017`); why generation is not in CI; the reranker that was never pinned (§R10) | §R10 |
 | [`17-AGENT.md`](17-AGENT.md) | **Phase 5 — the agent.** Opens with what `R9.x` vs scores like `0.02` mean; every section has plain job / picture / named example / say–don’t-say. Tools = function + paragraph; `check_api` = `g065` post-mortem; `0.02` ≠ “20× worse”; Mac↔lab call-or-not coin flip; NOT FOUND nudge **0→7/10**; `[:600]` bug; lab withdrew “matches pipeline” (§R9) | §R9 |
 
 ## By phase — which file belongs to what
@@ -107,15 +108,17 @@ Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D96`. All phases in one register |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D97`. All phases in one register |
 
 ### Phases 4–6
 
-**No study files yet for these.** Phase 4 judges answers (faithfulness / citations), Phase 5 is
-the agent and MCP, Phase 6 is production polish — see
-[`../phases/ROADMAP.md`](../phases/ROADMAP.md). Teaching material is written *after* the thing
-it teaches has been measured here. Lab start for Phase 4: [`../logs/HANDOFF.md`](../logs/HANDOFF.md)
-**Round 13**.
+| file | § | what it was for |
+|---|---|---|
+| [`16-JUDGE.md`](16-JUDGE.md) | §R8 | Phase 4 — grading the answer rather than the search |
+| [`17-AGENT.md`](17-AGENT.md) | §R9 | Phase 5 — the agent, the tools, the single-tool ceiling; §R9.7d is Phase 6 Step 1 (`D96`) |
+| [`18-PRODUCTION.md`](18-PRODUCTION.md) | §R10 | Phase 6 — the CI quality gate (`D97`) |
+
+*(This section said "no study files yet" until 2026-09-12, three phases after the files existed.)*
 
 ## Three numbering families, and why
 

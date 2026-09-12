@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D96`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D97`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3732,6 +3732,100 @@ page was missing — three of them unsupported. **The prompt made the model more
 not better at using the page, and I only saw that because I counted the items where refusing was the
 right thing to do.**
 
+
+### D97 — the CI gate grades retrieval, paired by id, and one lost golden answer fails the check
+
+**Decided 2026-09-12.** Phase 6 Step 2. Code `rag/gate.py`, workflow `.github/workflows/gate.yml`,
+baseline `deliverables/gate-baseline.json`, demo `deliverables/gate-demo-no-rerank.json`, teaching
+`study/18-PRODUCTION.md` §R10.
+
+**What the gate does.** On every PR that touches retrieval: build the corpus, embed (cached), load
+Qdrant, score the 100 golden questions, and join the rows to the base branch's baseline on id. Any
+answerable item whose answer page was in the top 5 and is not any more **fails the check**.
+
+**The ROADMAP's demo, measured** (committed rows, reproduces with no Qdrant; `PHASE-6.md` block):
+removing the reranker takes recall@5 **58/91 → 57/91**, and the gate says **BLOCKED, `g017`,
+exit 1**. `g017` is `D68`'s only fix. For `g017` the reranker is one swap at the seat 5/6
+boundary: `c01603` (the answer) and `c00970` trade places.
+
+**Rejected — gate on the average.** 0.64 → 0.63 is inside the **±0.097** band, so an average gate
+calls the demo noise and passes it. `D61` already said Phase 3 is judged by flipped items; the gate
+applies that to every PR.
+
+**Rejected — gate on McNemar p < 0.05.** The demo is 0 fixed, 1 broken, **p = 1.000**. A loss the
+test cannot distinguish from noise is still a question that no longer gets its page. p is printed
+for context only.
+
+**Rejected — let net gains through (fixed > broken).** Round 14's rule, one regression is a hold,
+is what still holds `H` (`D83`) and what rejected framing (`D96`: `g043`). The gate does not forbid
+a trade; it forbids an unseen one. A human reads `broken` and decides.
+
+**Rejected — grade generation in CI.** No Ollama on a runner, and `D83` measured generation not
+reproducing across machines while retrieval reproduced exactly. A check that flips with the runner
+gets switched off.
+
+**Rejected — commit the vectors so CI skips embedding.** `D11`/`D36`: vectors are generated, and a
+committed array can silently disagree with the chunks it indexes. **The cache is keyed on exactly
+what the vectors are a function of**: `chunks.jsonl` bytes, model id and revision, window,
+normalisation, and the source of `embedding_input()`. Not `rag/embed.py` whole: a comment edit
+would cost a cold embed.
+
+**Rejected — compare against base code re-run on the same runner.** It removes every
+machine-difference question, and it was the more principled design under `D95`. It fails on
+bootstrap: `main` is Phase 1 and has no `rag/score.py` to run, so the first PR it would ever grade
+could not be graded. It also doubles the job. **Revisit it if the reproduction test below ever
+fails on a real runner.**
+
+**Two guards against moving the ruler** (both tested): the baseline is read from the **base branch**
+(`git show origin/<base>:…`), never the PR's copy, or a PR could rewrite the baseline to match what
+it broke; and an answerable item that is **missing** or **relabelled** fails as `ruler changed`, or
+a PR could delete the item it broke. New items pass as `unpaired`. `D06` in CI.
+
+**Found building it: the reranker was never pinned.** `rerank.py` said *"Pinned like
+embed.MODEL_REVISION"* from 2026-08-21 and passed no revision to `CrossEncoder`. On a runner a cold
+cache downloads whatever `main` is that day, and a new upload could flip `g017`, failing an
+innocent PR. Pinned to `2cfc18c9…` (the only snapshot in the Mac's cache, which `refs/main` names);
+a test asserts the **load** receives it. **Re-scored after pinning: recall@5 0.64, 7↑ 0↓, p = 0.016
+against the Phase 1 baseline, the same seven ids** (`g017 g024 g038 g044 g046 g047 g050`).
+
+**Found reviewing the workflow: `actions/cache` saves only when the job succeeds.** A gate exists to
+fail, so a blocked PR would discard a cold embed and the next push would pay it again. Restore and
+save are separate steps, each save right after the step that filled the cache.
+
+**Mutation-checked:** seven mutations against `rag/gate.py`; the first pass MISSED two (grading
+unanswerable items as `moved`; a relabel to answerable counting as a free fix). Two tests added,
+seven of seven caught.
+
+**The machine question, measured: does a CPU reproduce the MPS baseline?** The baseline was taken
+on MPS; a runner has only a CPU; a phantom `broken` on every PR would kill the gate. Test on the
+Mac: re-embed all 3284 chunks with `device="cpu"` into a throwaway Qdrant collection, then score
+the 100 questions with query embedding and reranker also on CPU.
+
+```
+CPU embed, 10-core M4, batch 16          1106 s   (MPS: 566 s)
+vectors bit-identical to MPS             0 of 3284     max |difference| 1.3e-05
+top-20 chunk lists identical             100 of 100
+ranks identical                          100 of 100
+gate vs MPS baseline                     fixed 0  broken 0  moved 0  -> PASSED
+```
+
+**Every vector differs and no ranking moves.** That is the useful shape: the floats are not the
+same, and on this corpus and these 100 questions the differences are too small to swap any two
+chunks, including at `g017`'s seat 5/6 boundary. It extends `D83` (MPS = CUDA) to a third backend.
+
+**What it does not cover: a Linux x86 CPU**, which uses a different BLAS from Apple's. That is the
+runner, and it is unmeasured until the workflow runs. The job uploads its rows either way, and the
+first thing to read on a surprising result is `moved`.
+
+**Not done, and not Claude's to do:** open a PR so the workflow runs on a real GitHub runner, and
+make the check *required* in branch protection. Until the first, every claim about the runner
+above is a Mac measurement of a CPU, not a runner measurement.
+
+**Interview question it answers:** *"How do you stop someone making your RAG system worse?"* Every
+PR that touches retrieval re-scores the golden set on a CI runner and fails if a single question
+loses its page from the top five. Removing my reranker costs one point of recall, which is inside
+the noise band, so an average-based gate would pass it; mine names the question it broke. It grades
+retrieval only, because that is the half I measured reproducing across machines.
 ---
 
 ## Where the rest of the repo lives

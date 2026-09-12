@@ -289,8 +289,8 @@ Dockerfile                          yes
 .dockerignore                       yes
 entrypoint.sh                       yes
 docker-compose.yml                  yes
-tests/                              24 files
-.github/workflows/                  1 workflows
+tests/                              25 files
+.github/workflows/                  2 workflows
 ```
 
 **`.github/workflows/` is the remaining work on this machine.** It comes last for a reason:

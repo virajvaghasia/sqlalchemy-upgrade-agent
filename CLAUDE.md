@@ -10,8 +10,8 @@ Meta, Google, Apple, Anthropic, and startups).
 - **`README.md`** — the front door and the map: every doc, every script, and what each proves.
   **Keep it current** — it is the only file that indexes the whole repo.
 - **`phases/ROADMAP.md`** — the full ~4-month arc, six phases, plus a glossary of every AI term.
-- **`phases/PHASE-5.md`** — the current phase, opened 2026-09-11. `PHASE-4.md` is the one
-  before, complete (all five steps closed, `D86` is its last gate).
+- **`phases/PHASE-6.md`** — the current phase: framing rejected (`D96`), the CI quality gate
+  (`D97`). `PHASE-5.md` is the one before, closed on measurement (`D94`).
 - **`phases/PHASE-2.md`** — Phase 2 in detail. `PHASE-1.md` and `PHASE-0.md` are the
   phases before, both complete; their plan files stay as the record of how each gate closed.
 - **`study/01-CONCEPTS.md`** — §0–§15: the relational model, the ORM layer, the session at runtime.
@@ -31,7 +31,7 @@ Meta, Google, Apple, Anthropic, and startups).
   `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard), `15-IMPROVE.md` §R7 (Phase 3 retrieval
   levers — what shipped and what was rejected), `16-JUDGE.md` §R8 (Phase 4 — grading the
   answer rather than the search), `17-AGENT.md` §R9 (Phase 5 — the agent, the tools, and the
-  single-tool ceiling). One `R` run across all eight — it stands
+  single-tool ceiling), `18-PRODUCTION.md` §R10 (Phase 6 — the CI quality gate). One `R` run across all of them — it stands
   for RAG, not Retrieval (`D47`). Phase 1 ends at §R5; §R6 is Phase 2's measured result
   (`D64`); §R7 is Phase 3's.
 - **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,
@@ -48,15 +48,15 @@ Meta, Google, Apple, Anthropic, and startups).
   `cache/` and the machine-specific `.graphify_*` paths are not.
 - **`study/`** — all teaching material, numbered in reading order; `study/README.md` is the
   index and explains the three § numbering families (§0–§22 SQLAlchemy, §1–§6 infrastructure,
-  §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
+  §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D96`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D97`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 449 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 462 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,15 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 2 BUILT: THE CI QUALITY GATE (`D97`), on branch `phase-6/production`.** A PR that
+touches retrieval re-scores the 100 golden questions on a runner and **fails if any answer page
+leaves the top 5**. The ROADMAP's demo is measured and reproduces from committed rows with no
+Qdrant: **removing the reranker → recall 0.64 → 0.63 (inside ±0.097) → BLOCKED, `g017`, exit 1.**
+Found building it: **the reranker was never pinned** despite its comment (now `2cfc18c9…`;
+re-scored 0.64, 7↑ 0↓, same seven ids), and **`actions/cache` does not save on a failed job**,
+which a gate is designed to be. **CPU reproduces the MPS baseline exactly on the Mac:** 0 of 3284 vectors bit-identical, 100 of 100 top-20 lists identical, gate `moved 0` — Linux x86 unmeasured. **Not done, and Viraj's:** open a PR so it runs on a
+real runner, and make the check required. Plan `phases/PHASE-6.md`; sitting `study/18-PRODUCTION.md`.
+
 **PHASE 6: ROUND 21 CLOSED (`D96`), THE SHIPPED PROMPT STAYS. Nothing is open on the lab.**
 `rag/framing.py` asked whether the SHAPE of the prompt moves `D72`'s over-refusals: arm A is the
 shipped prompt, arm B the agent's conversation shape with no tools and one call. **Both machines:**
@@ -565,7 +574,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**449 tests**, **58/58** `# runnable`, **96** decisions, **§H empty**.
+**462 tests**, **60/60** `# runnable`, **97** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -611,8 +620,8 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 449 passed with Qdrant up; 444 + 5 skipped without
-uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
+uv run pytest                            # 462 passed with Qdrant up; 457 + 5 skipped without
+uv run python -m tools.check_runnable    # 60/60 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
@@ -1763,6 +1772,23 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **`study/16-JUDGE.md` edited while Viraj had it open** — seven passages plus his interview table
   (two rows cited results the lab overturned) and a new §R8.9. He needs to reload it.
 - **344 tests**, **58/58** `# runnable`, **84** decisions.
+
+### 2026-09-12 (afternoon) — Round 21 closed (`D96`), then the CI gate (`D97`)
+
+- **Framing re-read before the lab answered.** `rag.framing`'s report counted page-present refusals
+  only; the page-ABSENT rows flipped the same way (B answered 6 A honestly declined) and the
+  instrument ran no unanswerable items. Rules for both rows written into Round 21 first, then run.
+- **Lab closed it:** arm A = Round 16's same 20 ids; shared core 4↑ 1↓ plus 4 page-absent guesses.
+  `D96`, taught in `17-AGENT.md` §R9.7d.
+- **Cut `phase-6/production`** per the one-branch-per-phase convention (his open question, cheap to
+  reverse).
+- **The gate:** `rag/gate.py` (12 tests, 7/7 mutations after two misses), `gate.yml`, committed
+  baseline and no-reranker demo rows. Demo: **BLOCKED `g017`**.
+- **Two latent bugs found:** reranker unpinned since 08-21; `actions/cache` post-save skipped on a
+  failed job.
+- **Swap hit 9.5 of 10 GB** running a CPU embed and a scoring run together — killed the embed,
+  re-ran alone at 7.4 s/batch against 20. Same lesson as 09-10; it still had to be relearned.
+- **CPU vs MPS measured, not assumed:** every vector differs (max 1.3e-5), no ranking moves (100/100 top-20 identical). CPU embed 1106 s against MPS 566 s.
 
 ### 2026-09-10 (evening) — the judge re-read its own verdicts, and the instrument had three bugs
 

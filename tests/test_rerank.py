@@ -49,3 +49,27 @@ def test_constants_match_measured_zero_regression_point():
     assert rerank.MARGIN == 0.8
     assert rerank.TAIL_END == 10
     assert rerank.CANDIDATE_DEPTH == 20
+
+
+def test_the_reranker_is_pinned_to_a_revision_and_the_load_uses_it(monkeypatch):
+    """The comment said 'pinned' for three weeks while CrossEncoder got no
+    revision (D97). Assert the load, not the constant, or the same gap reopens."""
+    import sys, types
+    seen = {}
+
+    class FakeCE:
+        def __init__(self, model_id, **kw):
+            seen.update(kw, model_id=model_id)
+
+    from rag import embed
+    monkeypatch.setitem(sys.modules, "sentence_transformers",
+                        types.SimpleNamespace(CrossEncoder=FakeCE))
+    # CI's tests job installs no torch; pick_device(None) would import it.
+    monkeypatch.setattr(embed, "pick_device", lambda requested: "cpu")
+    rerank.reset_model()
+    try:
+        rerank.get_model()
+    finally:
+        rerank.reset_model()
+    assert len(rerank.MODEL_REVISION) == 40
+    assert seen["revision"] == rerank.MODEL_REVISION
