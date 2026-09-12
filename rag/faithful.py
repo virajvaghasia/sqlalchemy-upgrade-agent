@@ -506,6 +506,49 @@ def local_post(path: str, body: dict, key: str, timeout: int = 300) -> dict:
         {"text": data["message"]["content"]}]}}]}
 
 
+NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+NVIDIA_KEY_VAR = "NVIDIA_API_KEY"
+# A judge from outside Google (Gemini, gemma) and Alibaba (qwen), chosen in
+# PHASE-6.md Step 3b before it read any answer.
+# mistral-large-2 was the first choice and returns 404 on this key (PHASE-6.md).
+NVIDIA_JUDGE = "openai/gpt-oss-20b"
+
+
+def env_key(var: str) -> str | None:
+    """`api_key()` for any variable name: environment first, then `.env`."""
+    if os.environ.get(var):
+        return os.environ[var]
+    if not ENV_FILE.exists():
+        return None
+    for line in ENV_FILE.read_text().splitlines():
+        name, sep, value = line.strip().partition("=")
+        if sep and name.strip() == var:
+            return value.strip().strip("'\"") or None
+    return None
+
+
+def nvidia_post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
+    """NVIDIA's OpenAI-compatible endpoint wearing the Gemini transport's shape.
+
+    Same contract as `local_post`, for the same reason: every judge function
+    stays untouched when the judge changes. Wrap it in `retrying()` like the
+    others -- a 429 here is the free-credit rate limit.
+    """
+    model = path.removeprefix("models/").removesuffix(":generateContent")
+    payload = json.dumps({
+        # Reasoning model: the budget covers thinking before the one-word verdict.
+        "model": model, "temperature": 0.0, "max_tokens": 4096,
+        "messages": [{"role": "user", "content": body["contents"][0]["parts"][0]["text"]}],
+    }).encode()
+    request = urllib.request.Request(
+        NVIDIA_URL, data=payload,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        data = json.loads(response.read())
+    return {"candidates": [{"content": {"parts": [
+        {"text": data["choices"][0]["message"].get("content") or ""}]}}]}
+
+
 # --- judging a whole answer -------------------------------------------------
 #
 # `judge_claim` grades one sentence. What a run needs to grade is an ANSWER,

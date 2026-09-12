@@ -2,7 +2,7 @@
  "rows": [
   {
    "id": "g006",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c01574",
     "c01551",
@@ -10,17 +10,17 @@
     "c00070",
     "c01573"
    ],
-   "answer": "In SQLAlchemy 2.0, direct/raw SQL strings are no longer supported by `execute()` methods [1, 5]. \n\n### How to Fix\nWrap the textual SQL string in the `text()` construct [1, 2, 5]:\n\n```python\nfrom sqlalchemy import text\n\n# Instead of session.execute(\"SELECT * FROM table\")\nresult = session.execute(text(\"SELECT * FROM table\"))\n```\n\n### Background\n* Direct SQL string execution was removed to establish consistency across execution methods, enforce named parameter formatting rather than positional parameters, and provide an explicit security boundary for untrusted user input via `text()` [1].\n* For driver-level raw SQL strings on connections, `Connection.exec_driver_sql()` is available as an alternative [2, 5].",
-   "prompt_tokens": 2613,
-   "output_tokens": 168,
+   "answer": "Based on the provided sources, I can explain the changes to `Connection.execute()` regarding raw SQL strings, but the sources do not explicitly document the behavior of `Session.execute()` with raw strings in SQLAlchemy 2.0.\n\n**What the sources cover:**\n\n1. **`Connection.execute()` no longer accepts raw SQL strings** \u2014 In SQLAlchemy 2.0, passing a plain string to `Connection.execute()` is removed. You must use `text()` or `exec_driver_sql()` instead [1][5].\n\n2. **Historical inconsistency** \u2014 Source [1] explains that in 1.x, `Session.execute()` would automatically convert a raw string to a `text()` construct, while `Connection.execute()` passed it to the driver raw. The 2.0 change \"resolves an inconsistency\" by \"allowing only `text()`\" \u2014 but the text focuses on `Connection.execute()`.\n\n3. **Deprecation warnings** \u2014 Source [2] shows warnings for `Engine.execute()` and for passing strings to `Connection.execute()`, but does not show a warning for `Session.execute()` with a string.\n\n**What the sources do not cover:**\n\n- Whether `Session.execute(\"raw sql\")` raises `ArgumentError` (or any error) in 2.0, or whether it still implicitly wraps the string in `text()` as it did in 1.x.\n- Any explicit migration guidance for `Session.execute()` callers passing raw strings.\n\n**In short:** The sources document that `Connection.execute()` rejects raw strings in 2.0, and they note that 1.x `Session.execute()` behaved differently (auto-wrapping to `text()`). They do not state the 2.0 behavior for `Session.execute()` with a raw string. If you are seeing an `ArgumentError` from `Session.execute(\"...\")`, that would be a behavior not described in these excerpts.",
+   "prompt_tokens": 2566,
+   "output_tokens": 948,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passages [1], [2], and [5] all state that direct string SQL is no longer supported by `execute()` methods in SQLAlchemy 2.0.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] and\u202f[5] describe the removal of raw\u2011string support in `Connection.execute`, while no passage explicitly states how `Session.execute` handles raw strings in SQLAlchemy\u202f2.0."
   },
   {
    "id": "g008",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c01585",
     "c01594",
@@ -28,17 +28,17 @@
     "c02025",
     "c00453"
    ],
-   "answer": "In SQLAlchemy 2.0, column and table expressions must be passed **positionally** to the `select()` construct rather than enclosed in a Python list [3], [4], [5].\n\nInstead of the legacy list form:\n```python\nselect([User.id, User.name])\n```\n\nThe 2.0 calling style is:\n```python\nselect(User.id, User.name)\n```\n\nAny additional modifiers (such as `where()` or `order_by()`) should be added using generative method chaining [3], [4], [5].",
-   "prompt_tokens": 3102,
-   "output_tokens": 123,
+   "answer": "In SQLAlchemy 2.0, the `select()` construct no longer accepts a list of columns. Columns must be passed **positionally** as separate arguments.\n\n**Old (legacy) style:**\n```python\nselect([User.id, User.name])\n```\n\n**New (2.0) style:**\n```python\nselect(User.id, User.name)\n```\n\nThis change is part of making `select()` use only the \"generative\" style where structural elements (columns, tables) are passed positionally, and modifiers like `.where()` are chained as methods [3].\n\nThe same applies when selecting from a table/entity:\n```python\n# Old\nselect([User])\n\n# New\nselect(User)\n```\n\nSources [4] and [5] show the same transition in error messages, contrasting the legacy `select([table1.c.myid])` with the modern `select(table1.c.myid)`.",
+   "prompt_tokens": 2894,
+   "output_tokens": 490,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passages [3], [4], and [5] all describe the shift to the \"generative\" style, requiring positional arguments for structural elements and method chaining for modifiers.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The passages (especially [3] and the excerpts in [4] and [5]) state that in SQLAlchemy\u202f2.0 the `select()` construct accepts columns only positionally, not as a list."
   },
   {
    "id": "g013",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c02904",
     "c02903",
@@ -46,17 +46,17 @@
     "c02902",
     "c01601"
    ],
-   "answer": "In SQLAlchemy 2.0, passing string attribute names to relationship loading options (such as `subqueryload` or `joinedload`) has been removed [3]. The string calling form was ambiguous and required internal extra work to resolve the target property, whereas directly passing ORM-mapped attributes is typed and provides the necessary information up front [3].\n\nTo fix this in SQLAlchemy 2.0 (and modern 1.4 cross-compatible code), pass the mapped class attribute instead of a string [3]:\n\n**Before (removed in 2.0):**\n```python\n# String forms are removed\nstmt = select(User).options(subqueryload(\"addresses\"))\n```\n\n**2.0 / Modern usage:**\n```python\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import subqueryload\n\nstmt = select(User).options(subqueryload(User.addresses))\nresults = session.scalars(stmt).all()\n```\n[2, 3]\n\n*(Note: In SQLAlchemy 2.0, `subqueryload` is also considered mostly legacy and is generally superseded by `selectinload`, which offers simpler design, better performance in most cases, and compatibility with features like `yield_per` [1, 4].)*",
-   "prompt_tokens": 2347,
-   "output_tokens": 265,
+   "answer": "Based on the provided sources, the SQLAlchemy 2.0 migration guide states that **string forms for loader options are removed in 2.0**. Source [3] explicitly covers this for \"query options like :func:`_orm.joinedload`\" and says \"The string forms will all be removed in 2.0\". While the examples in [3] show `joinedload`, the text refers to \"query options like joinedload\" broadly, which includes `subqueryload` (also a loader option).\n\nThe correct 2.0-compatible pattern is to use the mapped attribute directly:\n\n```python\n# SQLAlchemy 1.4 / 2.0 cross compatible use\nstmt = select(User).options(subqueryload(User.addresses))\n```\n\nThe sources do not specifically mention an `AttributeError` for `subqueryload` with a string; they state the string forms are removed. If you are seeing an `AttributeError`, it may be because the string form is no longer recognized and the internal lookup fails, but the documentation only confirms the removal of string forms, not the exact exception type.",
+   "prompt_tokens": 2271,
+   "output_tokens": 731,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passage [3] details the removal of string attribute names in favor of mapped attributes.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage [3] states that string forms for loader options such as joinedload are removed in 2.0, but it does not explicitly mention subqueryload or an AttributeError."
   },
   {
    "id": "g021",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c02179",
     "c02180",
@@ -64,17 +64,17 @@
     "c02618",
     "c01328"
    ],
-   "answer": "`back_populates` is not strictly required, but `backref` is now considered **legacy** in SQLAlchemy 2.0, and using `back_populates` with explicit `relationship()` constructs on both classes is preferred [1].\n\nIn SQLAlchemy 2.0:\n* The `backref` keyword is still functional and works by automatically generating a new `relationship()` using a `back_populates` configuration against the original relationship [1]. (In 1.4 documentation, it was noted that `backref` \"hasn't gone anywhere and will always remain available\" [5]).\n* However, defining explicit `relationship(..., back_populates=...)` on both classes is preferred because [1]:\n  * Attributes are present upfront on both ORM mapped classes upon class construction (rather than created dynamically as a deferred step) [1].\n  * All configuration arguments are explicit and more straightforward [1].\n  * SQLAlchemy 2.0 PEP 484 type hinting features benefit from attributes being explicitly declared in the source code rather than dynamically generated [1].\n\n### Example of Migrating `backref` to `back_populates`\n\n**Legacy (`backref`):**\n```python\nclass User(Base):\n    __tablename__ = \"user\"\n    # ...\n    addresses = relationship(\"Address\", backref=\"user\")\n\n\nclass Address(Base):\n    __tablename__ = \"address\"\n    # ...\n```\n[2]\n\n**Preferred (`back_populates`):**\n```python\nclass User(Base):\n    __tablename__ = \"user\"\n    # ...\n    addresses = relationship(\"Address\", back_populates=\"user\")\n\n\nclass Address(Base):\n    __tablename__ = \"address\"\n    # ...\n    user = relationship(\"User\", back_populates=\"addresses\")\n```\n[2]",
-   "prompt_tokens": 2468,
-   "output_tokens": 404,
+   "answer": "Based on the SQLAlchemy 2.0 documentation, **`backref` is considered legacy and `back_populates` with explicit `relationship()` constructs is now preferred**, though `backref` remains available.\n\n**From SQLAlchemy 2.0.51 [1]:**\n> The `:paramref:`_orm.relationship.backref` keyword should be considered legacy, and use of `:paramref:`_orm.relationship.back_populates` with explicit `:func:`_orm.relationship` constructs should be preferred.\n\n**Advantages of `back_populates` [1]:**\n- Both ORM mapped classes include their attributes up front during class construction (not as a deferred step)\n- Configuration is more straightforward with all arguments explicit\n- PEP 484 typing features in SQLAlchemy 2.0 work better with explicitly declared attributes\n\n**Equivalent pattern [2]:**\n```python\n# Legacy backref (still works but discouraged)\nclass User(Base):\n    addresses = relationship(\"Address\", backref=\"user\")\n\n# Preferred back_populates (explicit on both sides)\nclass User(Base):\n    addresses = relationship(\"Address\", back_populates=\"user\")\n\nclass Address(Base):\n    user = relationship(\"User\", back_populates=\"addresses\")\n```\n\n**Note on SQLAlchemy 1.4 [3,5]:** In 1.4, `backref` was not deprecated \u2014 the 1.4 tutorial [5] states \"The `:paramref:`_orm.relationship.backref` parameter hasn't gone anywhere and will always remain available!\" The shift to \"legacy\" status is specific to 2.0.\n\n**Bottom line:** For new code in SQLAlchemy 2.0, use `back_populates` with explicit relationships on both sides. `backref` still works but is discouraged for the reasons above.",
+   "prompt_tokens": 2290,
+   "output_tokens": 858,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passage [1] states that `backref` should be considered legacy and that using `back_populates` with explicit constructs is preferred.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage\u202f[1] states that `backref` is legacy and `back_populates` is preferred, but it does not say that `backref` remains available."
   },
   {
    "id": "g029",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c01580",
     "c01802",
@@ -82,17 +82,17 @@
     "c02792",
     "c01192"
    ],
-   "answer": "In SQLAlchemy 2.0, the constructors for `insert()`, `update()`, and `delete()` (as well as `Table.update()` and `Table.delete()`) no longer accept keyword or positional arguments other than the target table or entity; they must now be configured using generative methods [1].\n\n### How to Migrate\n\n1. **`insert()` and `update()` values and modifiers:**\n   * **1.4 style (removed):** `insert(table, values={\"x\": 10, \"y\": 15}, inline=True)`\n   * **2.0 style:** `insert(table).values(x=10, y=15).inline()` (or pass a dictionary: `.values({\"x\": 10, \"y\": 15})`) [1].\n   * **1.4 style (removed):** `insert(table, values={\"x\": 10}, returning=[table.c.x])`\n   * **2.0 style:** `insert(table).values({\"x\": 10}).returning(table.c.x)` [1].\n\n2. **`delete()` and `update()` WHERE clauses:**\n   * **1.4 style (removed):** `table.delete(table.c.x > 15)`\n   * **2.0 style:** `table.delete().where(table.c.x > 15)` [1].\n\n3. **Preserving parameter order in `update()`:**\n   * **1.4 style (removed):** `table.update(table.c.x < 15, preserve_parameter_order=True).values(...)`\n   * **2.0 style:** Use `.ordered_values()` along with `.where()`:\n     ```python\n     stmt = (\n         table.update()\n         .where(table.c.x < 15)\n         .ordered_values((table.c.y, 20), (table.c.x, table.c.y + 10))\n     )\n     ```\n     [1]\n\n4. **ORM Updates/Deletes:**\n   * In 2.0 style, use generative methods with `update()` and execute via `session.execute()`:\n     ```python\n     stmt = (\n         update(User)\n         .where(User.name == \"squidward\")\n         .values(name=\"spongebob\")\n         .execution_options(synchronize_session=\"fetch\")\n     )\n     session.execute(stmt)\n     ```\n     [5]",
-   "prompt_tokens": 1969,
-   "output_tokens": 568,
+   "answer": "Based on the provided sources, the breaking change you're referring to is documented in source [1]. In SQLAlchemy 2.0, the `insert()`, `update()`, and `delete()` constructors **no longer accept keyword arguments** other than the table argument. This includes parameters like `values`, `inline`, `returning`, `whereclause`, and `preserve_parameter_order`.\n\n**What's no longer supported (from [1]):**\n```python\n# No longer supported\nstmt = insert(table, values={\"x\": 10, \"y\": 15}, inline=True)\nstmt = insert(table, values={\"x\": 10, \"y\": 15}, returning=[table.c.x])\nstmt = table.delete(table.c.x > 15)\nstmt = table.update(table.c.x < 15, preserve_parameter_order=True).values(...)\n```\n\n**New generative method style (from [1]):**\n```python\n# Use generative methods\nstmt = insert(table).values(x=10, y=15).inline()\nstmt = insert(table).values({\"x\": 10, \"y\": 15}).returning(table.c.x)\nstmt = table.delete().where(table.c.x > 15)\nstmt = (\n    table.update()\n    .where(table.c.x < 15)\n    .ordered_values((table.c.y, 20), (table.c.x, table.c.y + 10))\n)\n```\n\n**Key points:**\n- Use `.values()` method for setting values (accepts both `**kwargs` and dictionaries)\n- Use `.where()` for WHERE clauses\n- Use `.inline()` instead of `inline=True` constructor argument\n- Use `.returning()` instead of `returning=` constructor argument\n- Use `.ordered_values()` instead of `preserve_parameter_order=True` (for ordered parameter handling)\n\nSource [5] also shows the 2.0 style for ORM-enabled UPDATE: `update(User).where(...).values(...).execution_options(...)`.\n\nThe sources do not mention any workaround to re-enable the old constructor keyword style \u2014 the migration requires rewriting to the generative method chain.",
+   "prompt_tokens": 1884,
+   "output_tokens": 668,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passage [1] states that constructor arguments to `_sql.insert`, `_sql.update`, and `_sql.delete` are essentially removed.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] (and [5]) documents the removal of keyword arguments and the new generative method style."
   },
   {
    "id": "g044",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c01562",
     "c01568",
@@ -100,17 +100,17 @@
     "c00952",
     "c01552"
    ],
-   "answer": "In SQLAlchemy 2.0, \"bound metadata\" and implicit connectivity have been removed, requiring an explicit `Engine` or `Connection` to be passed for table autoloading [2]. \n\nThe 2.0 way to reflect an individual table is to use the `autoload_with` parameter, passing either an engine or a connection [2]:\n\n**Using an Engine:**\n```python\nt = Table(\"t\", metadata_obj",
-   "prompt_tokens": 2266,
-   "output_tokens": 138,
+   "answer": "Based on the provided sources, the SQLAlchemy 2.0 way to reflect a table is to use **`autoload_with`** with an explicit `Engine` or `Connection` \u2014 the old pattern of using `autoload=True` on a `Table` with a bound `MetaData` (i.e., without `autoload_with`) is no longer supported because **\"bound metadata\" has been removed** [2].\n\nSource [2] states:\n> For schema level patterns, explicit use of an :class:`_engine.Engine` or :class:`_engine.Connection` is required.   The :class:`_engine.Engine` may still be used directly as the source of connectivity for a :meth:`_schema.MetaData.create_all` operation or autoload operation.\n\nAnd it shows the new pattern:\n```python\n# engine level:\nt = Table(\"t\", metadata_obj, autoload_with=engine)\n\n# connection level:\nwith engine.connect() as connection:\n    t = Table(\"t\", metadata_obj, autoload_with=connection)\n```\n\nThe section title explicitly notes: **\"Implicit\" and \"Connectionless\" execution, \"bound metadata\" removed** [2]. Therefore, you must pass `autoload_with=engine` or `autoload_with=connection`; you cannot rely on `MetaData.bind` and `autoload=True` alone.",
+   "prompt_tokens": 2197,
+   "output_tokens": 942,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passage [2] details the requirement for explicit use of an Engine or Connection for autoloading and reflection.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage [2] states that explicit use of an Engine or Connection is required for reflection, but it does not mention that bound metadata has been removed."
   },
   {
    "id": "g048",
-   "model": "gemini-3.7-flash",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
    "hits": [
     "c01593",
     "c01347",
@@ -118,13 +118,239 @@
     "c02889",
     "c00967"
    ],
-   "answer": "In SQLAlchemy 2.0, passing a string relationship name to `joinedload()` (such as `joinedload(\"addresses\")`) has been **removed** [1]. \n\nInstead, you must pass the mapped class attribute directly (e.g., `joinedload(User.addresses)`) [1]:\n\n```python\n# SQLAlchemy 2.0 / 1.4 cross-compatible syntax\nstmt = select(User).options(joinedload(User.addresses))\nresult = session.execute(stmt)\n```\n\n*(Note: While the sources explicitly confirm that string usage is removed in 2.0 [1], they do not specify whether calling it with a string raises a `TypeError` specifically or another exception type.)*",
-   "prompt_tokens": 2505,
-   "output_tokens": 154,
+   "answer": "Based on the provided sources, **string relationship names in `joinedload` are removed in SQLAlchemy 2.0**, not that they raise a `TypeError`.\n\nSource [1] (SQLAlchemy 2.0.51 Migration Guide) explicitly states:\n\n> \"The string forms will all be removed in 2.0\"\n>\n> ```python\n> # string use removed\n> q = session.query(User).options(joinedload(\"addresses\"))\n> ```\n\nThe guide shows the required migration to using mapped attributes directly:\n\n```python\n# compatible with all modern SQLAlchemy versions\nq = session.query(User).options(joinedload(User.addresses))\n\n# SQLAlchemy 1.4 / 2.0 cross compatible use\nstmt = select(User).options(joinedload(User.addresses))\n```\n\nThe other sources ([2], [3], [4], [5]) demonstrate `joinedload` usage with attributes (e.g., `joinedload(User.addresses)`) in both 1.x and 2.0 styles, but do not show string usage as valid in 2.0.\n\n**Summary:** In SQLAlchemy 2.0, passing a string relationship name to `joinedload()` (e.g., `joinedload(\"addresses\")`) is **removed entirely** \u2014 you must use the mapped attribute (e.g., `joinedload(User.addresses)`). The sources do not mention a `TypeError` being raised; they state the string forms \"will all be removed.\"",
+   "prompt_tokens": 2411,
+   "output_tokens": 585,
+   "empty": false,
    "refused": false,
-   "verdict": "SUPPORTED",
-   "reason": "Passage [1] confirms that string forms will be removed in 2.0 and recommends using mapped attributes instead.",
-   "judge": "gemma4:e4b"
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that string forms of `joinedload` will be removed in SQLAlchemy\u202f2.0."
+  },
+  {
+   "id": "g049",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01577",
+    "c01578",
+    "c02278",
+    "c02687",
+    "c02025"
+   ],
+   "answer": "Based on the provided sources, the `case()` construct in SQLAlchemy 2.0 no longer accepts a **list** of WHEN conditions. The list form emits a deprecation warning in SQLAlchemy 1.4 and is removed in 2.0. Instead, WHEN conditions must be passed as **positional arguments** (tuples).\n\n**Old (deprecated) form \u2014 list of tuples:**\n```python\ncase_clause = case(\n    [(table.c.x == 5, \"five\"), (table.c.x == 7, \"seven\")],\n    else_=\"neither five nor seven\",\n)\n# list emits a deprecation warning [1][2]\n```\n\n**New (2.0) form \u2014 positional tuples:**\n```python\ncase_clause = case(\n    (table.c.x == 5, \"five\"), (table.c.x == 7, \"seven\"),\n    else_=\"neither five nor seven\"\n)\n# case conditions passed positionally [1][2]\n```\n\nThe migration guide explains that this change aligns `case()` with SQLAlchemy's convention: **structural elements** (like WHEN clauses that form the statement structure) are passed **positionally**, while **data elements** (parameterized values) are passed as lists [2].",
+   "prompt_tokens": 2093,
+   "output_tokens": 649,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passages [1] and [2] show the positional form and deprecation warning, but do not state that the list form is removed in 2.0."
+  },
+  {
+   "id": "g050",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00456",
+    "c01567",
+    "c02028",
+    "c01569",
+    "c01573"
+   ],
+   "answer": "In SQLAlchemy 2.0, `engine.execute()` has been removed entirely. You must now use a `Connection` object explicitly. The correct pattern is to obtain a connection from the engine (typically via a context manager) and call `execute()` on that connection.\n\n**What changed:**\n- `engine.execute(statement)` is no longer supported [2].\n- The \"connectionless\" execution pattern (including `MetaData(bind=engine)` and `statement.execute()`) is removed [2][4].\n\n**Correct usage (SQLAlchemy 2.0):**\n```python\nwith engine.connect() as conn:\n    result = conn.execute(stmt)\n```\nThis applies to both Core and ORM (where `session.execute(stmt)` is used) [1][3].\n\n**Additional notes from the migration guide:**\n- The old `engine.execute()` relied on \"application level autocommit\" and left cursor results unconsumed, which was inefficient and implicit [4].\n- `Connection.execute()` in 2.0 has a stricter API: it accepts a single statement with a single dictionary of parameters, or a list of dictionaries for `executemany`; positional parameters, `**kwargs`, and raw strings are no longer accepted (use `text()` for raw SQL) [5].\n\n**Summary:** Replace `engine.execute(select(...))` with a `with engine.connect() as conn:` block and call `conn.execute(select(...))`.",
+   "prompt_tokens": 2221,
+   "output_tokens": 492,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [2] state that `engine.execute()` is removed in SQLAlchemy\u202f2.0 and that statements must be executed via a `Connection` obtained from the engine."
+  },
+  {
+   "id": "g051",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01180",
+    "c02704",
+    "c01055",
+    "c01589",
+    "c03127"
+   ],
+   "answer": "Based on the provided sources, here's what they show about `session.execute(statement).scalars().all()` and `session.execute(statement).all()` in SQLAlchemy 1.4 (with `future=True`) and 2.0:\n\n## Return Types and Usage\n\n**SQLAlchemy 1.4 with `future=True`** [1]:\n- `session.execute(statement).scalars().all()` \u2192 returns a **list of the first element of each row** (e.g., `User` objects when selecting `select(User)`)\n- `session.execute(statement).all()` \u2192 returns a **list of tuples** (each tuple is a row)\n\n**SQLAlchemy 2.0** [4, 5]:\n- `session.execute(select(User)).scalars().all()` \u2192 list of `User` objects\n- `session.execute(select(User)).scalar_one()` \u2192 single `User` object (raises if not exactly one)\n- `session.execute(select(User).limit(1)).scalars().first()` \u2192 first `User` or `None`\n- `session.scalars(select(User)).first()` \u2192 convenience method returning first scalar directly [5]\n- `session.execute(select(User.name, User.fullname)).all()` \u2192 list of tuples `('name', 'fullname')` [5]\n- When using `joinedload()` on collections, you must call `.unique()` before `.all()`: `session.execute(select(User).options(joinedload(User.addresses))).unique().all()` [4]\n\n## Key Differences Between Versions\n\n| Aspect | 1.4 (future=True) | 2.0 |\n|--------|-------------------|-----|\n| `Session` creation | `Session(engine, future=True)` | `Session(engine)` (future behavior is default) |\n| String execution | `session.execute(\"sql\", params)` [3] | `session.execute(text(\"sql\"), params)` [2] |\n| `get()` method | On `Query` | On `Session` directly: `session.get(User, 5)` [4] |\n\n## What the Sources Do Not Cover\n\nThe sources **do not describe a specific \"problem converting results\"** \u2014 they only demonstrate correct usage patterns. They don't mention:\n- Type conversion errors\n- Serialization issues\n- Problems with `.scalars()` vs `.all()` return types\n- Migration-specific conversion failures\n\nIf you're encountering a specific error (e.g., `AttributeError`, `TypeError`, unexpected tuple vs object), the sources don't address it. You would need to provide the exact error message or behavior for further guidance.",
+   "prompt_tokens": 1911,
+   "output_tokens": 1093,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [4] (with supporting details from [5]) provide the information summarized in the claim."
+  },
+  {
+   "id": "g064",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01551",
+    "c02135",
+    "c01544",
+    "c01563",
+    "c02400"
+   ],
+   "answer": "The sources do not answer this. I looked for information about the specific IDE/type-checker warning \"Expected type 'Mapped[bool | None]', got 'bool' instead\" when using SQLAlchemy 2.0 Declarative style with `Mapped` type annotations, but none of the provided sources discuss IDE warnings, type checker errors, or the interaction between `Mapped[...]` annotations and union types like `bool | None` in that context.",
+   "prompt_tokens": 2933,
+   "output_tokens": 388,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g084",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01576",
+    "c00321",
+    "c01558",
+    "c01563",
+    "c01180"
+   ],
+   "answer": "The sources do not answer this. I looked for any mention of `row._get_by_key_impl_mapping()` in the provided SQLAlchemy 2.0 migration documentation (sources [1], [3], [4]) and the 1.4 tutorial (source [2]), but none of them reference this method. The sources discuss `row._mapping` for dictionary-like access [1][2], but not `_get_by_key_impl_mapping()`.",
+   "prompt_tokens": 2211,
+   "output_tokens": 281,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g087",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00150",
+    "c00792",
+    "c01786",
+    "c01063",
+    "c02715"
+   ],
+   "answer": "Based on the provided sources, columns with `server_default` are **not populated in the instance's `__dict__` immediately after flushing** because they are marked as \"expired\" by default. The database-generated values are fetched only when the attribute is first accessed (triggering a `SELECT`), or immediately after the `INSERT` if you enable `eager_defaults` on the mapper.\n\n**Key points from the sources:**\n\n1.  **Default behavior (lazy loading):** After an `INSERT`, the `server_default` columns \"remain empty, and will be fetched via a second SELECT statement when they are first accessed after the flush, e.g. they are marked as 'expired'\" [4]. Source [2] confirms this for asyncio: \"The `server_default` value on the `created_at` column will not be refreshed by default after an INSERT; instead, it is normally expired so that it can be loaded when needed.\"\n\n2.  **Eager loading option:** You can force the values to be fetched immediately during the flush by setting `__mapper_args__ = {\"eager_defaults\": True}` on the model class [2, 4]. However, on backends without `RETURNING` support (like MySQL in the 1.4 docs [4]), this emits an additional `SELECT` per row, which \"is often undesirable as it adds additional SELECT statements to the flush process that may not be needed\" [4]. The 2.0 docs [5] similarly advise that `eager_defaults` \"is not performant\" without `RETURNING`/`insertmanyvalues` support because it emits a \"SELECT-per-row\".\n\n**Version note:** The behavior is consistent between 1.4 [2, 4] and 2.0 [5]. The 2.0 example uses `mapped_column` and mentions `insertmanyvalues` as a factor.\n\n**What the sources do not cover:** They do not explicitly show the `__dict__` state, but the description of columns remaining \"empty\" and \"expired\" until accessed directly explains why the key would be absent from `__dict__` (or present with a sentinel value) until the lazy load occurs.",
+   "prompt_tokens": 2104,
+   "output_tokens": 979,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [2] and [4] state that server_default columns are expired after an INSERT and are fetched only when accessed (or immediately if eager_defaults is set)."
+  },
+  {
+   "id": "g090",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02766",
+    "c02765",
+    "c01607",
+    "c01593",
+    "c01605"
+   ],
+   "answer": "Based on the provided sources, I can see information about how `load_only()` works with attributes in SQLAlchemy 2.0, but **the sources do not specifically address typing issues with `load_only` or an `attrs` parameter**.\n\nWhat the sources do show:\n\n1. **`load_only()` takes column attributes directly** \u2014 not strings. Examples show `load_only(Book.title)` used with relationship loaders:\n   - `defaultload(User.books).load_only(Book.title)` [1]\n   - `selectinload(User.books).load_only(Book.title)` [2]\n\n2. **String-based relationship loading is removed in 2.0** \u2014 you must use mapped attributes, not strings [4]:\n   ```python\n   # Removed in 2.0\n   joinedload(\"addresses\")\n   \n   # Required in 2.0\n   joinedload(User.addresses)\n   ```\n\n3. The sources demonstrate `load_only()` being called with a single column attribute (`Book.title`), but don't show an `attrs` parameter or multiple arguments.\n\nWhat the sources **do not cover**:\n- Any `attrs` parameter for `load_only()`\n- Typing/annotation issues with `load_only()`\n- How to pass multiple columns to `load_only()` (though the method likely accepts multiple positional arguments)\n- Specific migration issues for SQLAlchemy 2.0.0b4\n\nThe sources indicate that `load_only()` works with ORM-mapped attributes directly (like `Book.title`), consistent with the broader 2.0 requirement to use attributes instead of strings. If you're encountering typing errors, they may relate to how your IDE/type checker interprets the column attributes, but the documentation excerpts provided don't address this.\n\n**The sources do not answer this specific question about `load_only` `attrs` typing issues in 2.0.0b4.** They cover usage patterns but not typing concerns or an `attrs` parameter.",
+   "prompt_tokens": 2378,
+   "output_tokens": 878,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1], [2] and [4] show load_only usage with attributes and do not mention typing or an attrs parameter."
+  },
+  {
+   "id": "g095",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01124",
+    "c02746",
+    "c01538",
+    "c02747",
+    "c01125"
+   ],
+   "answer": "Based on the provided sources, I can partially answer this question, but there's a specific gap regarding \"unloaded previously loaded relations.\"\n\n**What the sources do say:**\n\n- `populate_existing=True` causes \"the corresponding instances in the Session [to] be fully refreshed, erasing any existing data within the objects (including pending changes) and replacing with the data loaded from the result\" [1][2].\n- When used with loader options like `selectinload`, it \"indicates that the loader option we are using should **replace** the existing contents of collections on the objects, **if they are already loaded**\" [3].\n- It works with various attribute-loading options (`with_expression`, `contains_eager`, `with_loader_criteria`, `load_only`, etc.) to change how attributes are loaded on a per-query basis [4][5].\n\n**What the sources do not cover:**\n\nNone of the sources explicitly describe the behavior for **relationships that were previously loaded but are currently unloaded/expired** at the time the `populate_existing` query executes. The documentation only addresses:\n- Objects/collections that are **currently loaded** in the session (they get replaced/refreshed)\n- The general \"fully refreshed\" behavior for the main object attributes\n\nThe sources do not state whether `populate_existing` will:\n- Also load/un-expire previously loaded but now-unloaded relationships automatically\n- Only affect relationships explicitly included via loader options in the same query\n- Leave unloaded relationships in their unloaded state\n\n**Versions agree:** Both SQLAlchemy 1.4 [1][3][5] and 2.0 [2][4] describe the same behavior regarding `populate_existing`.",
+   "prompt_tokens": 1715,
+   "output_tokens": 769,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The passages discuss only refreshing already\u2011loaded objects and collections, and do not address unloaded or expired relationships."
+  },
+  {
+   "id": "g099",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01795",
+    "c00159",
+    "c01801",
+    "c02073",
+    "c02074"
+   ],
+   "answer": "Based on the provided sources, the error `Column [...] has no Python-side or server-side default generator` when using `MappedAsDataclass` in SQLAlchemy 2.0 likely stems from the changed meaning of the `default` parameter in `mapped_column` when dataclasses are enabled.\n\n**Key changes in SQLAlchemy 2.0 with `MappedAsDataclass`:**\n\n1. **`default` only accepts constant values** \u2014 When using `MappedAsDataclass`, the `default` parameter of `mapped_column` **must be a constant value** (e.g., a string, number, or `None`) and is applied to the object **immediately upon construction** (per PEP\u2011681 dataclass semantics). It is **not** allowed to be a callable. [5]\n\n2. **Use `default_factory` for callables** \u2014 If you need a callable (e.g., a function or lambda) to generate a default value **at object construction time**, you must use `default_factory` instead of `default`. [5]\n\n3. **`default` and `insert_default` are mutually exclusive** \u2014 With `MappedAsDataclass`, the value given to `default` is also propagated to the underlying `Column.default` (so it will be used in an INSERT if the attribute is not set). However, you **cannot** use `insert_default` at the same time as `default`. [5]\n\n4. **Without `MappedAsDataclass`, `default` and `insert_default` are synonyms** \u2014 In classic (non\u2011dataclass) mappings, `default` and `insert_default` are interchangeable and can be callables; they only take effect when an INSERT is emitted, not at object construction. [4]\n\n**Practical resolution for the error:**\n\n- If you were previously passing a callable to `default` (e.g., `default=uuid.uuid4`), change it to `default_factory=uuid.uuid4`.\n- If you need a **Python\u2011side default that only fires at INSERT time** (not at object construction), you cannot use `default` (because it applies at construction) and you cannot combine it with `insert_default`. Instead, consider using a **server\u2011side default** such as `server_default` (e.g., `server_default=func.gen_random_uuid()`) or an `Identity` column for auto\u2011incrementing primary keys. [1], [3]\n- If the column is a primary key that should be generated by the database, use `Identity` (for PostgreSQL, Oracle, SQL Server, etc.) or a `Sequence` with `server_default=seq.next_value()` (PostgreSQL only). [1], [3]\n\n**What the sources do not cover:**  \nThe exact error message `Column [...] has no Python-side or server-side default generator` is not explicitly mentioned in the provided excerpts. The answer above infers the cause from the documented behavior of `default`, `default_factory`, and `insert_default` with `MappedAsDataclass`. If the error persists after adjusting these parameters, further investigation into the specific column configuration (e.g., `nullable=False`, `autoincrement`, ORM\u2011level `init=False`) may be needed.",
+   "prompt_tokens": 2487,
+   "output_tokens": 2071,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage [5] explains the changed meaning of `default` in `MappedAsDataclass`."
+  },
+  {
+   "id": "g100",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01088",
+    "c02489",
+    "c01090",
+    "c01086",
+    "c01087"
+   ],
+   "answer": "The sources do not directly answer whether `bulk_save_objects` is available on `AsyncSession` in SQLAlchemy 2.0. They only document the method on the synchronous `Session` in SQLAlchemy 1.4 [1][4][5].\n\nHowever, source [2] (SQLAlchemy 2.0.51) shows the recommended pattern for running synchronous ORM code\u2014including bulk operations\u2014within an async context: using `await session.run_sync(fetch_and_update_objects)` where `fetch_and_update_objects` receives a traditional synchronous `Session` and can call any synchronous ORM method [2].\n\nThe sources do not cover:\n- Whether `AsyncSession` has a native `bulk_save_objects` method in 2.0\n- Any async-specific bulk operation methods\n- Performance differences between `run_sync` and native async bulk operations\n\nIf you need to use bulk operations in async code, the documented approach in these sources is to wrap them in a synchronous function and call it via `session.run_sync()`.",
+   "prompt_tokens": 1962,
+   "output_tokens": 525,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1], [4] and [5] document bulk_save_objects only on the synchronous Session, and passage [2] shows the run_sync pattern, with no mention of AsyncSession bulk methods."
+  },
+  {
+   "id": "g103",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00946",
+    "c02775",
+    "c02773",
+    "c00940",
+    "c02778"
+   ],
+   "answer": "The sources do not answer this. I looked for any mention of `AsyncAttrs` or async functionality in combination with `mapped_column(deferred=True, deferred_raiseload=True)` across all five sources, but none of them discuss `AsyncAttrs` at all. The sources only cover deferred column loading, raiseload behavior, and deferred groups in both SQLAlchemy 1.4 and 2.0, without any reference to async attributes or async ORM usage.",
+   "prompt_tokens": 2012,
+   "output_tokens": 486,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g106",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01347",
+    "c00881",
+    "c00983",
+    "c00903",
+    "c00967"
+   ],
+   "answer": "Based on the provided sources, when using `joinedload` on a polymorphic relationship (inheritance hierarchy), child-class columns are not loaded by default because `joinedload` only loads the base class columns unless you explicitly include the subclass tables using `with_polymorphic`.\n\n**Key points from the documentation:**\n\n1. **Polymorphic loading requires explicit configuration** \u2014 Source [2] states: \"When an attribute of a particular subclass is queried up front, we can use it in our query as something to filter on, and it also will be loaded when we get our objects back. If it's not queried up front, it gets loaded later when we first need to access it. Basic control of this behavior is provided using the `with_polymorphic` function...\" [2]\n\n2. **`with_polymorphic` must be used with `joinedload` for polymorphic relationships** \u2014 Source [4] explicitly addresses this: \"When using `with_polymorphic` in conjunction with `joinedload`, the `with_polymorphic` object must be against an 'aliased' object, that is an instance of `Alias`...\" It shows the pattern:\n   ```python\n   session.query(Company).options(\n       joinedload(Company.employees.of_type(manager_and_engineer)).\\\n       subqueryload(manager_and_engineer.Engineer.computers)\n   )\n   ```\n   Here `manager_and_engineer` is a `with_polymorphic` object (with `aliased=True` or `flat=True`), and `of_type()` targets the specific subtype. [4]\n\n3. **`joinedload` creates anonymous aliases** \u2014 Source [1] and [5] explain that `joinedload` creates anonymously aliased joins that \"do not affect the query results\" and cannot be referenced directly. This is by design so that eager loading doesn't change the result set. [1, 5]\n\n**Therefore, to load child-class columns in a polymorphic `joinedload`:**\n- Create a `with_polymorphic` object (using `aliased=True` or `flat=True`) that includes the desired subclasses.\n- Use `relationship.of_type(polymorphic_object)` as the target of `joinedload`.\n- You can then chain further loaders (like `subqueryload`) on specific subclass attributes via the polymorphic object's namespace.\n\n**What the sources do not cover:** The sources do not provide a complete minimal code example showing the exact `with_polymorphic` construction (e.g., `with_polymorphic(Employee, [Manager, Engineer], aliased=True)`) nor do they explain the behavior when using `selectinload`/`subqueryload` instead of `joinedload` for polymorphic collections. They also do not discuss SQLAlchemy 2.0 API changes (all sources are 1.4.52).",
+   "prompt_tokens": 2235,
+   "output_tokens": 1241,
+   "empty": false,
+   "refused": false,
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage\u202f[4] shows that you must use `with_polymorphic` with `joinedload` to include subclass tables, but it does not explicitly state that `joinedload` alone only loads base\u2011class columns."
+  },
+  {
+   "id": "g116",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00457",
+    "c01279",
+    "c02029",
+    "c02096",
+    "c00523"
+   ],
+   "answer": "The sources do not answer this. I looked for the error message \"A transaction is already begun on this Session\" in the provided SQLAlchemy 1.4 and 2.0 documentation sources, but none of them mention this specific error. The sources only cover two other transaction-related errors: \"This connection is on an inactive transaction. Please rollback() fully before proceeding\" [1][3] and \"This Session's transaction has been rolled back due to a previous exception during flush.\" [4][5].",
+   "prompt_tokens": 2240,
+   "output_tokens": 550,
+   "empty": false,
+   "refused": true
   }
  ]
 }
