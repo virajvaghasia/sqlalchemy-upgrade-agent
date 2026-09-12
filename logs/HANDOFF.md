@@ -38,40 +38,55 @@ rather than quietly edited away (`D84`).
 
 ## Where things stand — read this first (updated 2026-09-11, lab)
 
-**ROUND 18 CLOSED on the lab.** Tip `43e178d` → this commit, branch `phase-5/agent`,
-Ollama **0.32.9**, generator **100% GPU**. Artifact:
-`deliverables/e1-phase5.Linux-x86_64.json`.
+**ROUND 19 CLOSED on the lab.** Tip `dfbb90c` → this sitting, branch `phase-5/agent`,
+Ollama **0.32.9**, generator **100% GPU**. Artifacts: `e4-` / `e2-phase5.Linux-x86_64.json`,
+`agent-sweep-phase5.Linux-x86_64.json` (new default; Round 17 rows still in git at `76f6ad6`).
 
 | round | state |
 |---|---|
-| **19** | **OPEN** — E2/E4 on the lab: does *forcing* a tool call beat *asking* for one? ~35 min |
-| **18** | **CLOSED** — E1 must-call: no-tool **19→7**, bad cites **9→0**, delivered **0→6**; not Mac's 9→2 |
-| **17** | **CLOSED** — Step 0 holds on channel/`--g065`; agent end-to-end **0.02** vs lab baseline **0.42** |
+| **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** |
+| **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
+| **17** | **CLOSED** — Step 0 / `D87` holds; old-prompt agent **0.02** |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-**Mac gate closed 2026-09-11 (`D86`):** `JUDGE-AGREEMENT.md` filled — **7 of 10 = 70%** agreement
-with the local judge. Three DISAGREE: `g080` (too harsh), both `g056` arms (too soft). Nothing
-left for the lab.
+### LAB RESULT — Round 19 (Mac: read this)
 
-### LAB RESULT — Round 18 (Mac: read this)
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**.
 
-Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060, tip `43e178d`), qwen at **100% GPU**.
-Arms interleaved per item (better design than Mac's sequential A-then-B).
+**E4 — `D91` reproduces (same shape as Mac):**
+
+| | no tool | one | two+ | check_api first |
+|---|---|---|---|---|
+| plain | 0 | 10 | **0** | **9** |
+| nudged | 0 | 3 | **7** | **9** |
+
+**E2 — forcing clears residual no-tool; delivered barely moves:**
+
+| | no tool | one | two+ | in prompt | delivered | bad cites |
+|---|---|---|---|---|---|---|
+| B_default | **8** | 12 | 0 | 8 | **6** | 1 |
+| C_forced | **0** | 20 | 0 | 11 | **7** | 1 |
+| D_forced_nudge | 0 | 19 | 1 | 11 | 7 | 0 |
+
+**Golden under must-call default vs this box’s Round 17:**
+
+| | Round 17 (old prompt) | **Round 19 (must-call)** |
+|---|---|---|
+| end to end | 2/91 = **0.02** | **17/91 = 0.19** |
+| no tool call | 96 | **53** |
+| one tool | 4 | **47** |
+| two or more | 0 | **0** |
+| over-refused / fabricated | 0 / 5 | **7 / 3** |
+
+Still below lab pipeline baseline **0.42**. Chaining on golden remains **0**.
+
+### LAB RESULT — Round 18 (kept)
 
 | | no tool | one | two+ | in prompt | delivered | bad cites |
 |---|---|---|---|---|---|---|
 | **A_shipped** | **19** | 0 | 1 | 1 | 0 | 9 |
 | **B_mustcall** | **7** | 13 | 0 | 8 | 6 | 0 |
-
-Against the Mac E1 (same n=20, same prompts): Mac shipped **9** no-tool → mustcall **2**; lab
-**19 → 7**. Direction reproduces; magnitude does **not** hit the pre-written “~2/20” ship bar.
-`bad cites` **9→0** and `delivered` **0→6** move with tools. `two+` stays effectively zero
-(A had one fluke; B zero) — chaining still unreproduced.
-
-**Read against the pass/fail table:** not a clean ship (~2) and not a null (~barely). Mac decides
-whether “direction + bad-cites cleared” is enough to re-run 17.4 with `SYSTEM_MUSTCALL`, or
-whether E2 is next without shipping the prompt.
 
 ---
 
@@ -167,7 +182,7 @@ saved to e1-phase5.Linux-x86_64.json
 
 ---
 
-# Round 19 — does FORCING a tool call beat ASKING for one? (OPEN, ~35 minutes)
+# Round 19 — does FORCING a tool call beat ASKING for one? (CLOSED, lab 2026-09-11)
 
 **Why this needs the lab and is not optional.** `D89`: whether the agent calls a tool at all
 **disagrees between these two machines on half the items**. `D90`: E1 measured `0↑ 1↓` on the Mac
@@ -267,25 +282,54 @@ uv run python -m rag.agent --report
 ### REPLY 19.0
 
 ```
-(paste)
+dfbb90c feat(phase-5): E2 and E4 — the single-tool ceiling is a stopping failure (D91)
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+qdrant: Running
 ```
 
 ### REPLY 19.1
 
 ```
-(paste the E4 table — both arms — and the last 10 log lines)
+======================================================================
+E4 — does a nudge after NOT FOUND produce the second call? [Linux-x86_64]
+======================================================================
+            no tool   one  two+   check_api first
+plain             0    10     0                 9
+nudged            0     3     7                 9
+
+saved to e4-phase5.Linux-x86_64.json
+
+# last log lines
+  plain [9] tools=['check_api']
+  nudged [9] tools=['check_api', 'search_docs']
+  plain [10] tools=['search_docs']
+  nudged [10] tools=['search_docs']
 ```
 
 ### REPLY 19.2
 
 ```
-(paste the E2 table)
+==================================================================
+E1 — system prompt A/B, one sitting (D54), n=20   [Linux-x86_64]
+==================================================================
+              no tool   one  two+  in prompt  delivered  bad cites
+B_default           8    12     0          8          6          1
+C_forced            0    20     0         11          7          1
+D_forced_nudge        0    19     1         11          7          0
+
+saved to e2-phase5.Linux-x86_64.json
 ```
 
 ### REPLY 19.3
 
 ```
-(paste rag.agent --report)
+# Round 17 artifact confirmed in git: 76f6ad6
+AGENT — the golden set through the tool-using loop  [Linux-x86_64]
+  end to end     17/91 = 0.19   (D72's shipped pipeline: 39/91 = 0.43 on Darwin-arm64)
+  over-refused   7      fabricated 3      failed 0
+  no tool call   53      one tool 47      two or more 0
+  stopped        {'answered': 99, 'budget': 0, 'repeated_call': 1}
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)
