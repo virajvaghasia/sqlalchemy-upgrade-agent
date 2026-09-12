@@ -38,13 +38,13 @@ rather than quietly edited away (`D84`).
 
 ## Where things stand — read this first (updated 2026-09-11, lab)
 
-**ROUND 17 CLOSED on the lab.** Tip `6fec996`, branch `phase-5/agent`, Ollama **0.32.9**
-(Mac was 0.34.0), generator **100% GPU**. Artifact:
-`deliverables/agent-sweep-phase5.Linux-x86_64.json`.
+**ROUND 18 CLOSED on the lab.** Tip `43e178d` → this commit, branch `phase-5/agent`,
+Ollama **0.32.9**, generator **100% GPU**. Artifact:
+`deliverables/e1-phase5.Linux-x86_64.json`.
 
 | round | state |
 |---|---|
-| **18** | **OPEN** — E1 on the lab: does the must-call prompt reproduce? ~25 min |
+| **18** | **CLOSED** — E1 must-call: no-tool **19→7**, bad cites **9→0**, delivered **0→6**; not Mac's 9→2 |
 | **17** | **CLOSED** — Step 0 holds on channel/`--g065`; agent end-to-end **0.02** vs lab baseline **0.42** |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
@@ -53,9 +53,28 @@ rather than quietly edited away (`D84`).
 with the local judge. Three DISAGREE: `g080` (too harsh), both `g056` arms (too soft). Nothing
 left for the lab.
 
+### LAB RESULT — Round 18 (Mac: read this)
+
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060, tip `43e178d`), qwen at **100% GPU**.
+Arms interleaved per item (better design than Mac's sequential A-then-B).
+
+| | no tool | one | two+ | in prompt | delivered | bad cites |
+|---|---|---|---|---|---|---|
+| **A_shipped** | **19** | 0 | 1 | 1 | 0 | 9 |
+| **B_mustcall** | **7** | 13 | 0 | 8 | 6 | 0 |
+
+Against the Mac E1 (same n=20, same prompts): Mac shipped **9** no-tool → mustcall **2**; lab
+**19 → 7**. Direction reproduces; magnitude does **not** hit the pre-written “~2/20” ship bar.
+`bad cites` **9→0** and `delivered` **0→6** move with tools. `two+` stays effectively zero
+(A had one fluke; B zero) — chaining still unreproduced.
+
+**Read against the pass/fail table:** not a clean ship (~2) and not a null (~barely). Mac decides
+whether “direction + bad-cites cleared” is enough to re-run 17.4 with `SYSTEM_MUSTCALL`, or
+whether E2 is next without shipping the prompt.
+
 ---
 
-# Round 18 — does the must-call prompt reproduce? (OPEN, ~25 minutes)
+# Round 18 — does the must-call prompt reproduce? (CLOSED, lab 2026-09-11)
 
 **Why.** Round 17.4 found the agent calling **no tool on 96 of 100** questions. The suspect was the
 system prompt, and on the Mac the fix works: obligation instead of permission takes no-tool-call
@@ -116,13 +135,33 @@ a half-interleaved comparison is worse than none.
 ### REPLY 18.0
 
 ```
-(paste git log -1, ollama ps)
+43e178d feat(phase-5): E1 and E5 — the prompt fixes tool calls, and tool calls do not reproduce (D89)
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+qdrant: Running
 ```
 
 ### REPLY 18.1
 
 ```
-(paste the E1 table and the last 10 log lines)
+==================================================================
+E1 — system prompt A/B, one sitting (D54), n=20   [Linux-x86_64]
+==================================================================
+              no tool   one  two+  in prompt  delivered  bad cites
+A_shipped          19     0     1          1          0          9
+B_mustcall          7    13     0          8          6          0
+
+bad cites = [n] pointing at a source that was never retrieved (E3)
+two+      = chained tools. ZERO under both prompts on both machines
+            so far — the one number that has reproduced everywhere.
+
+saved to e1-phase5.Linux-x86_64.json
+
+# last log lines
+  A_shipped [19/20] g021 tools=[]
+  B_mustcall [19/20] g021 tools=['search_docs']
+  A_shipped [20/20] g022 tools=[]
+  B_mustcall [20/20] g022 tools=[]
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)
