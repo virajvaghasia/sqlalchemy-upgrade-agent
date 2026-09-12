@@ -55,31 +55,35 @@ Ollama **0.32.9**, generator **100% GPU**. Artifact:
 ### LAB RESULT — Round 21 (Mac: read this — the ids)
 
 Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**, interleaved arms,
-retrieval once per item.
+retrieval once per item. Unanswerable rows merged after (`--unanswerable`, no answerable regen).
 
 ```
-                  page present  answered  over-refused
-A_block                     58        38            20
-B_conversation              58        41            17
-```
+                 page present over-refused page absent answered unans. fabr
+A_block                    58           20          33        7      9    2
+B_conversation             58           17          33       11      9    2
 
-**Paired: B fixes 5, breaks 2** (exact McNemar two-sided p ≈ 0.45).
+paired, B against A:
+  present       fixed  5  broken  2  p = 0.4531
+    fixed   g021 g029 g049 g050 g100
+    broken  g019 g043
+  absent        fixed  0  broken  4  p = 0.1250
+    broken  g005 g016 g113 g114
+  unanswerable  fixed  0  broken  0  p = 1.0000
+```
 
 | | lab | Mac (`D95` screen) |
 |---|---|---|
-| fixed | `g021 g029 g049 g050 g100` | `g008 g021 g049 g050 g100 g116` |
-| broken | `g019 g043` | `g043` |
+| present fixed | `g021 g029 g049 g050 g100` | `g008 g021 g049 g050 g100 g116` |
+| present broken | `g019 g043` | `g043` |
+| fabrications | **2 = 2** (`g056`/`g065` both arms) | **2 = 2** same ids |
+| page-absent answered | A **7** → B **11** | A **7** → B **12** |
 
-**Overlap with Mac's six fixed: 4 of 6** (`g021 g049 g050 g100`). Lab-only fix `g029`; Mac-only
-fixes `g008 g116` both stayed over-refused here. **`g043` breaks on both boxes.** Extra lab break:
-`g019`.
+**Overlap with Mac's six present-fixed: 4 of 6.** `g043` breaks on both. **Fabrications equal —
+gain not bought with them** (pre-written rule passes). **Page-absent rise matches Mac's shape**
+(willingness shift: B answers more where declining is honest).
 
-**Control:** A over-refused **20** of 58 — near `D72`'s **19**, not exact-to-the-item the way the
-Mac's A arm was.
-
-**Against the pre-written id table:** **not** “same six / same `g043`.” Counts move in the same
-direction (20→17 vs 19→14) while the id sets only partially agree — the row that says framing is
-shuffling which items refuse, **not shippable**. Shipped prompt stays as it is on this evidence.
+**Against the pre-written id table:** still **not** “same six / same `g043`.” Counts move; sets
+only partially agree — **not shippable**. Shipped prompt stays as it is on this evidence.
 
 ### LAB RESULT — Round 20 (kept)
 
@@ -771,27 +775,23 @@ qdrant: Running
 ### REPLY 21.1
 
 ```
-==============================================================
+# after --unanswerable merge (answerable rows not regenerated)
+======================================================================
 SOURCE FRAMING — does the shape of the prompt move the refusals?
-==============================================================
-                  page present  answered  over-refused
-A_block                     58        38            20
-B_conversation              58        41            17
+======================================================================
+                 page present over-refused page absent answered unans. fabr
+A_block                    58           20          33        7      9    2
+B_conversation             58           17          33       11      9    2
 
-paired: 5↑ 2↓  p≈0.45
-fixed:  g021 g029 g049 g050 g100
-broken: g019 g043
-(Mac was fixed g008 g021 g049 g050 g100 g116 / broken g043)
+paired, B_conversation against A_block:
+  present       fixed  5  broken  2  p = 0.4531
+    fixed   g021 g029 g049 g050 g100
+    broken  g019 g043
+  absent        fixed  0  broken  4  p = 0.1250
+    broken  g005 g016 g113 g114
+  unanswerable  fixed  0  broken  0  p = 1.0000
 
 saved to framing-phase6.Linux-x86_64.json
-
-# last log lines
-  A_block [89/91] g120 answered
-  B_conversation [89/91] g120 answered
-  A_block [90/91] g119 answered
-  B_conversation [90/91] g119 answered
-  A_block [91/91] g121 answered
-  B_conversation [91/91] g121 answered
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)
