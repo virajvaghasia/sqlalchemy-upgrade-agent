@@ -694,6 +694,39 @@ failure that was deliberately injected** — the roadmap's bar, unchanged.
 3. **Step 0's tool-call rate is written down whichever way it came out.** A phase that can only be
    closed by success is not a measurement.
 
+### CLOSED 2026-09-12 — every row, with where it was met
+
+| gate | met | evidence |
+|---|---|---|
+| 2+ tool calls | **yes** | chaining **6** (Mac) and **7** (lab) of 100, from 1 in 80 runs (`D91`, `D92`) |
+| recovers from an injected failure | **yes, live** | `check_api` forced to time out: error shown in words, prose-before-any-tool refused, **the other tool reached for unprompted**, answered correctly |
+| does not make single-answer quality worse | **yes, and better on one axis** | over-refusals **6 / 0** against the one-shot pipeline's **19**; end to end level on the Mac (0.43), below on the lab (0.27) |
+| every number carries its machine | **yes** | `D94`'s table is two-machine throughout; `D95` makes it a standing rule |
+| Step 0's rate written down either way | **yes** | `D87`: **100% usable calls, 0% on the MCP channel** — and the first run of that probe said `0/20`, which was my parser, and that is on the page too |
+
+**The phase's honest one-line result:** *a 7B local model uses tools reliably, stops after one step
+unless told the first was partial, does not inherit the one-shot pipeline's refusal defect, and its
+end-to-end score does not reproduce across machines.*
+
+**What is NOT claimed:** that the agent beats the pipeline. It does on one machine (0.47 vs 0.43)
+and not on the other (0.36 vs 0.42), and `D94` withdraws the general form.
+
+**What ships:** `SYSTEM_MUSTCALL` as the agent's prompt (`D90`). **Nothing else** — the levers are
+`8↑ 0↓, p = 0.0078` on the reproducible box and still cost conversion, so their net is a Phase 6
+cost/quality call rather than a default added at the end of a phase.
+
+### The finding Phase 6 should open on
+
+**The one-shot pipeline over-refuses 19 times with the page already in the prompt. The agent does
+it 6 times, and 0 on the lab.** Same model, same corpus, same pages. The only structural difference
+is **how the pages arrive**: numbered, one tool result at a time, *after being asked for* — instead
+of five at once in a block the model never requested.
+
+**That is testable on the shipped path with no agent, no tools and no loop.** One prompt change,
+scored by instruments that already exist, against a baseline that already reproduces on both
+machines, aimed at a defect that survived every wording Phase 4 tried (`D74`). **It is the cheapest
+experiment in the project with the largest measured target.**
+
 ---
 
 ## What this phase does NOT inherit
