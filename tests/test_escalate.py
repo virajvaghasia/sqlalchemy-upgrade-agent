@@ -107,3 +107,17 @@ def test_an_empty_answer_is_neither_answered_nor_refused():
     s = escalate.summarise(rows, expected=1)
     assert rows[0]["empty"] and not rows[0]["refused"]
     assert s["answered"] == [] and s["refused"] == [] and s["empty"] == ["g1"]
+
+
+def test_the_two_escalation_sets_are_disjoint_and_together_are_every_refusal():
+    """A cascade escalates every refusal (D98: 53). 3b took the 20 it can fix;
+    3c takes the rest. Overlap would double-count, a gap would hide a cost."""
+    present, rest = escalate.escalation_ids("present"), escalate.escalation_ids("rest")
+    assert not set(present) & set(rest)
+    assert (len(present), len(rest)) == (20, 33)
+
+
+def test_shadow_cost_multiplies_counted_tokens_by_the_snapshot_price():
+    prices = {"models": {escalate.MODEL: {"pricing": {"prompt": "0.000001", "completion": "0.000002"}}}}
+    rows = [{"prompt_tokens": 1000, "output_tokens": 500}, {"prompt_tokens": None, "output_tokens": 10}]
+    assert abs(escalate.shadow_cost(rows, prices) - (0.001 + 0.001 + 0.00002)) < 1e-12
