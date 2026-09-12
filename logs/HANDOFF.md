@@ -36,26 +36,15 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-11, lab)
+## Where things stand — read this first (updated 2026-09-12, lab)
 
-**→ ROUND 20 CLOSED on the lab.** Whole pages re-taken. Tip this commit, branch `phase-5/agent`,
-Ollama **0.32.9**, generator **100% GPU / 8192 ctx**. Artifacts:
-`agent-sweep-phase5.Linux-x86_64.json`, `agent-sweep-phase5-forced-nudged.Linux-x86_64.json`,
-`agent-sweep-phase5-trunc600.Linux-x86_64.json` (Round 19 evidence kept).
-
-**NOTHING IS OPEN ON THE LAB.** Mac read of Round 20 is **`D94`**, which has the two-machine table.
-**Headline: the agent's LEVELS are machine-dependent and its EFFECTS reproduce.** *"The agent
-matches the one-shot pipeline"* was a Mac claim (0.43/0.47 there against 0.27/0.36 here) and is
-**withdrawn** — Round 20's pre-written table named that row before the data. What reproduced:
-the levers **8↑ 0↓, p = 0.0078** here against 4↑ 0↓ on the Mac, **zero regressions on either**;
-chaining **7** here and **6** there, from 1 in 80 runs; forcing taking no-tool **51→4**. And the
-result this box makes starkest — **its agent refused 0 times with the page in hand**, converting
-**25 of 25**, against the one-shot pipeline's **19** over-refusals. **The whole level gap is one
-number:** 51 no-tool-calls here against the Mac's 23, which is `D89`'s coin-flip.
+**→ ROUND 21 CLOSED on the lab.** Source framing A/B, tip this commit, branch `phase-5/agent`,
+Ollama **0.32.9**, generator **100% GPU**. Artifact:
+`deliverables/framing-phase6.Linux-x86_64.json`.
 
 | round | state |
 |---|---|
-| **21** | **OPEN** — Phase 6 source framing: does the prompt's SHAPE move `D72`'s 19 over-refusals? ~1h |
+| **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); ids overlap but do **not** match; **not shippable** |
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
 | **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** (retracted as comparison, `D93`) |
 | **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
@@ -63,7 +52,36 @@ number:** 51 no-tool-calls here against the Mac's 23, which is `D89`'s coin-flip
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-### LAB RESULT — Round 20 (Mac: read this)
+### LAB RESULT — Round 21 (Mac: read this — the ids)
+
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**, interleaved arms,
+retrieval once per item.
+
+```
+                  page present  answered  over-refused
+A_block                     58        38            20
+B_conversation              58        41            17
+```
+
+**Paired: B fixes 5, breaks 2** (exact McNemar two-sided p ≈ 0.45).
+
+| | lab | Mac (`D95` screen) |
+|---|---|---|
+| fixed | `g021 g029 g049 g050 g100` | `g008 g021 g049 g050 g100 g116` |
+| broken | `g019 g043` | `g043` |
+
+**Overlap with Mac's six fixed: 4 of 6** (`g021 g049 g050 g100`). Lab-only fix `g029`; Mac-only
+fixes `g008 g116` both stayed over-refused here. **`g043` breaks on both boxes.** Extra lab break:
+`g019`.
+
+**Control:** A over-refused **20** of 58 — near `D72`'s **19**, not exact-to-the-item the way the
+Mac's A arm was.
+
+**Against the pre-written id table:** **not** “same six / same `g043`.” Counts move in the same
+direction (20→17 vs 19→14) while the id sets only partially agree — the row that says framing is
+shuffling which items refuse, **not shippable**. Shipped prompt stays as it is on this evidence.
+
+### LAB RESULT — Round 20 (kept)
 
 Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**, `LOCAL_CONTEXT=8192`,
 no `[:600]` truncation (`D93` fix present). Lab one-shot baseline remains **38/91 = 0.42**.
@@ -558,7 +576,7 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
 
 ---
 
-# Round 21 — does the prompt's SHAPE move the over-refusals? (OPEN, ~1 hour)
+# Round 21 — does the prompt's SHAPE move the over-refusals? (CLOSED, lab 2026-09-12)
 
 **The finding this comes from.** Same model, same corpus, same retrieved pages — the shipped
 pipeline refuses **19** times with the answer page in the prompt (`D72`), and the Phase 5 agent
@@ -644,13 +662,36 @@ git commit -m "lab: Round 21 — source framing" && git push
 ### REPLY 21.0
 
 ```
-(paste)
+4ad1763 docs(handoff): Round 21 — read the ids, not just the count
+tests/test_framing.py: 6 passed
+qwen2.5-coder:7b 100% GPU (8192 ctx during run)
+qdrant: Running
 ```
 
 ### REPLY 21.1
 
 ```
-(paste the framing table and the last 10 log lines)
+==============================================================
+SOURCE FRAMING — does the shape of the prompt move the refusals?
+==============================================================
+                  page present  answered  over-refused
+A_block                     58        38            20
+B_conversation              58        41            17
+
+paired: 5↑ 2↓  p≈0.45
+fixed:  g021 g029 g049 g050 g100
+broken: g019 g043
+(Mac was fixed g008 g021 g049 g050 g100 g116 / broken g043)
+
+saved to framing-phase6.Linux-x86_64.json
+
+# last log lines
+  A_block [89/91] g120 answered
+  B_conversation [89/91] g120 answered
+  A_block [90/91] g119 answered
+  B_conversation [90/91] g119 answered
+  A_block [91/91] g121 answered
+  B_conversation [91/91] g121 answered
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)
