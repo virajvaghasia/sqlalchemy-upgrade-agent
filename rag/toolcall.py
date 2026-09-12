@@ -57,6 +57,18 @@ HOST = "http://127.0.0.1:11434"
 # re-run in one sitting or run on the lab.
 TEMPERATURE = 0.0
 
+# **PINNED, not left to the default, and this is `D80`'s lesson arriving in a
+# second module.** Ollama truncates at `num_ctx` **in silence**, and the default
+# is 4096. Measured 2026-09-11: one tool observation carrying five FULL passages
+# is ~5861 chars, so a two-call agent conversation is ~12675 chars, about 3168
+# tokens -- under 4096, and a third call is not. A run that silently loses the
+# end of its own evidence would look like a model that ignored it.
+#
+# `rag/ask.py` is deliberately NOT changed: its single prompt measures ~6500
+# chars (~1600 tokens) and has always fit, and touching the shipped path would
+# move `D72`'s published baseline for no measured reason.
+LOCAL_CONTEXT = 8192
+
 TOOLS = [
     {
         "type": "function",
@@ -169,7 +181,7 @@ def ask(question: str, model: str = MODEL, transport=post) -> dict:
                      {"role": "user", "content": question}],
         "tools": TOOLS,
         "stream": False,
-        "options": {"temperature": TEMPERATURE},
+        "options": {"temperature": TEMPERATURE, "num_ctx": LOCAL_CONTEXT},
     })
 
 
@@ -201,7 +213,7 @@ def ask_messages(messages: list[dict], model: str = MODEL,
         "messages": messages,
         "tools": TOOLS,
         "stream": False,
-        "options": {"temperature": TEMPERATURE},
+        "options": {"temperature": TEMPERATURE, "num_ctx": LOCAL_CONTEXT},
     })
 
 

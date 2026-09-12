@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D92`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D93`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3434,6 +3434,67 @@ ten out of ten agreement on whether to take a second step once the first is know
 **So I stopped treating cross-machine agreement as a property of the system and started treating it
 as a property of the question**, which also told me what to build: remove the ambiguity rather than
 argue with it in a prompt.
+
+### D93 — the agent was reading half of every page, and that invalidates the comparison it was losing
+
+**Found 2026-09-11 while chasing a refusal rate.** Every *"the agent is worse than the one-shot
+pipeline"* number taken before this entry was partly measuring **a shorter corpus**.
+
+`agent._observation` formatted each retrieved passage as `hit["text"][:600]`.
+
+| | |
+|---|---|
+| median chunk | **1299 chars** |
+| chunks over 600 chars | **2755 of 3284** |
+| one five-passage observation, truncated | 3073 chars |
+| the same one, full text | **5861 chars — 1.91×** |
+
+**So the agent saw roughly half of each page while `ask.build_prompt` shows all of it.** The
+comparison was never agent-versus-pipeline; it was **agent-with-half-pages** versus
+**pipeline-with-whole-pages**.
+
+**How it surfaced, which is the part worth copying.** Not by reading the code. The Mac's hundred
+decomposed like this:
+
+| | agent | one-shot |
+|---|---|---|
+| page reached the model | 45/91 | 58/91 |
+| **refused with the page present** | **22 of 45 = 49%** | **19 of 58 = 33%** |
+
+**A 16-point gap in refusals, with the page in front of it either way.** That needed a cause, and
+*"the model is shown less than half the page"* is a very good one — a page whose answer lies in the
+cut half looks, to the model, exactly like a page that does not answer the question.
+
+**Fixed, and the fix needed a second fix to be safe.** Widening to full text nearly doubles an
+observation, and neither `ask.py` nor `toolcall.py` set `num_ctx` — Ollama's default is **4096 and
+it truncates in silence**, which is `D80`'s lesson arriving in a second module. Measured: a
+two-call conversation with full passages is ~12675 chars, about **3168 tokens**; a third call
+exceeds 4096. **Truncation would have moved from my code into Ollama's, invisibly.** So
+`LOCAL_CONTEXT = 8192` is pinned on the agent path.
+
+**`rag/ask.py` is deliberately NOT changed.** Its single prompt measures ~6500 chars (~1600
+tokens) and has always fit, and editing the shipped path would move `D72`'s published baseline for
+no measured reason.
+
+**What is retracted, and what is not.**
+
+- **RETRACTED as a comparison:** the Mac's `0.25` and `0.29`, and the ceiling figure `45/91`. They
+  are real measurements of a system reading half-pages.
+- **KEPT — both files are preserved** as `agent-sweep-phase5-trunc600.*` and
+  `...-forced-nudged-trunc600.*`, because the confound is only demonstrable while they exist. That
+  is the lesson of Round 14's citation cells, whose raw answers went to `/tmp` and cannot be
+  re-derived (`D85`).
+- **UNAFFECTED:** `D87` (re-measured at the new window: still 20/20, 100% content-channel), `D91`
+  and `D92` — E4 chains or it does not, and truncation cannot manufacture a second tool call.
+- **The lab's `0.02` and `0.19` carry the same confound** and are being re-taken.
+
+**Interview question it answers:** *"How did you catch a bug that made your own system look bad?"*
+I did not go looking for it. I had a number I could not explain — the agent refused 49% of the time
+with the page present against the pipeline's 33%, and there was no reason for the same model to
+behave differently on the same page. Chasing the cause found a `[:600]` I had written myself. **The
+useful habit is not code review, it is refusing to accept a gap you cannot account for** — and
+noticing that fixing it needed `num_ctx` pinned, or the truncation would simply have moved
+somewhere I could not see.
 
 ---
 

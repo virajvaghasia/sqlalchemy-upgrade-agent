@@ -136,8 +136,17 @@ def _observation(name: str, result) -> str:
     if name == "search_docs":
         if not result:
             return "search_docs: no passages matched. Try different wording once."
+        # FULL text, not truncated. **This was `[:600]` and it invalidated the
+        # agent-versus-pipeline comparison**, measured 2026-09-11: the median
+        # chunk is 1299 chars and 2755 of 3284 exceed 600, so the agent was
+        # shown less than half of each page while `ask.build_prompt` shows all
+        # of it. Every "the agent is worse" number taken before this was the
+        # agent reading a different, shorter corpus.
+        #
+        # Safe to widen because the window is now pinned (`toolcall.
+        # LOCAL_CONTEXT`, 8192) rather than left at Ollama's silent 4096.
         return "\n\n".join(
-            f"[{n}] ({hit['chunk_id']}) {hit['text'][:600]}"
+            f"[{n}] ({hit['chunk_id']}) {hit['text']}"
             for n, hit in enumerate(result, 1))
     return json.dumps(result)[:2000]
 

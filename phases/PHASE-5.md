@@ -542,6 +542,54 @@ thing that makes every item search. If the refusal rate then holds at the **49%*
 **Writing the number down first is the point.** `D91` is on the page as a prediction I got wrong,
 and that only means something because it was recorded before the run rather than after.
 
+#### The levered run, the prediction, and then the bug that voids both (`D93`)
+
+**Measured, Mac, 100 items, forcing + nudge against the default:**
+
+| | default | forced + nudged | **predicted** |
+|---|---|---|---|
+| ceiling | 45 | **54** | 58 |
+| delivered | 23 | **26** | ~30 |
+| no tool call | 23 | **1** | ~0 |
+| **two or more tools** | **0** | **7** | — |
+| fabricated | 3 | **0** | — |
+| paired | — | **3↑ 0↓, p = 0.25** | — |
+
+**The prediction was directionally right and optimistic in magnitude.** Recorded as such: the
+ceiling reached 54 not 58, and delivered 26 not ~30, because the refusal rate got *worse* (49% →
+52%) as more pages arrived.
+
+**Two results stand on their own.** Fabrications went to **zero** — forcing a lookup stops the
+model answering unanswerable questions from memory. And **chaining appeared on the real golden set**
+(0 → 7), which is `D91`/`D92` outside the synthetic set built for it.
+
+#### And then the refusal rate turned out to be a bug of mine
+
+| | agent | one-shot |
+|---|---|---|
+| refused **with the page present** | 22 of 45 = **49%** | 19 of 58 = **33%** |
+
+Sixteen points, same model, same page. That gap needed a cause, and it had one:
+**`_observation` truncated every passage to `[:600]`.** Median chunk **1299** chars, **2755 of
+3284** over 600 — so the agent was shown **half of each page** while the one-shot pipeline shows
+all of it.
+
+> **The comparison was never agent-versus-pipeline. It was agent-with-half-pages versus
+> pipeline-with-whole-pages** — and a page whose answer sits in the cut half looks exactly like a
+> page that does not answer the question.
+
+**Fixed, and the fix needed a second fix.** Full text nearly doubles an observation, and nothing on
+this path set `num_ctx` — Ollama's default is 4096 and it truncates **silently** (`D80`). A
+two-call conversation with full passages measures ~3168 tokens and a third exceeds it, so
+truncation would have moved from my code into Ollama's where I could not see it.
+`LOCAL_CONTEXT = 8192` is pinned. `rag/ask.py` is untouched: ~1600 tokens, always fitted, and
+editing it would move `D72`'s baseline for no reason.
+
+**Retracted as comparisons: `0.25`, `0.29`, and the `45/91` ceiling.** Both run files are kept as
+`*-trunc600.*` because the confound is only demonstrable while they exist — Round 14's lost raw
+answers are the precedent (`D85`). **Unaffected:** `D87` (re-measured, still 20/20), `D91` and
+`D92` — truncation cannot manufacture a second tool call.
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it

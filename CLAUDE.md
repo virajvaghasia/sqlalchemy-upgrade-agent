@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D92`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D93`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 436 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 438 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,25 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**⚠️ `D93`: THE AGENT WAS READING HALF OF EVERY PAGE.** `agent._observation` truncated each
+retrieved passage to `[:600]`; the median chunk is **1299** chars and **2755 of 3284** exceed 600,
+so the agent saw about **half** of what `ask.build_prompt` shows. **Every "the agent is worse"
+number is retracted as a comparison** — the Mac's `0.25`/`0.29`, its `45/91` ceiling, and the lab's
+`0.02`/`0.19`. It surfaced from a gap I could not explain: the agent refused **49%** of the time
+with the page present against the one-shot pipeline's **33%**, same model, same page.
+**Fixed (full text) plus a second fix it needed:** nothing on this path set `num_ctx` and Ollama
+truncates at 4096 **in silence** (`D80`), so `toolcall.LOCAL_CONTEXT = 8192` is now pinned —
+otherwise the truncation would just have moved somewhere invisible. `rag/ask.py` untouched (~1600
+tokens, always fitted; editing it moves `D72`'s baseline). Both old runs kept as `*-trunc600.*`
+because the confound is only demonstrable while they exist. **Unaffected: `D87` (re-measured, still
+20/20), `D91`, `D92`.** Re-runs in progress.
+
+**What the levered run said before the bug was found** (so: directionally, not as figures):
+forcing takes no-tool-call to **1**, **fabrications to 0**, and **chaining 0 → 7 on the real golden
+set** — `D91`/`D92` outside the synthetic set built for them. Paired 3↑ 0↓. My pre-registered
+prediction (ceiling 58, delivered ~30) was directionally right and **optimistic**, and is recorded
+as such.
+
 **ROUND 19 CLOSED (`D92`), and the nudge reproduced to the item.** E4 on the lab: plain chains
 **0 of 10**, nudged **7 of 10**, `p = 0.0156` — **identical to the Mac, and agreeing question by
 question 10 of 10.** Honest denominator is **7 of 9 eligible** (one question never reached the
@@ -487,7 +506,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**436 tests**, **58/58** `# runnable`, **92** decisions, **§H empty**.
+**438 tests**, **58/58** `# runnable`, **93** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -533,7 +552,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 436 passed with Qdrant up; 431 + 5 skipped without
+uv run pytest                            # 438 passed with Qdrant up; 433 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
