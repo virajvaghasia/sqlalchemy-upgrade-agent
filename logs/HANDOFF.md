@@ -573,9 +573,26 @@ asking for a lookup, then the passages as the **result** of that request.
 written, not generated, so both arms cost exactly one call. **If refusals fall anyway, the fix is a
 prompt change to the shipped path** and none of Phase 5's machinery is needed to get it.
 
-**Mac screen, n=25** (`D95` — a screen, not a result): over-refusals **4 → 2**, **2 fixed 0 broken,
-p = 0.50** on the 14 items whose page was present. **Underpowered and not significant.** The Mac's
-n=100 run is going now; this round is the same thing here.
+**MAC, FULL 100 — the reference this round is compared against** (`D95`: a screen until the lab
+agrees):
+
+```
+                  page present  answered  over-refused
+A_block                     58        39            19
+B_conversation              58        44            14
+```
+
+**Paired: B fixes 6, breaks 1, exact McNemar p = 0.1250.**
+Fixed `g008 g021 g049 g050 g100 g116`; broken `g043`.
+
+**The control worked, and that is the part to trust first.** Arm A returned **19 over-refusals of
+58 — `D72`'s published figure, to the item.** So arm A really is the shipped path and the
+comparison is between framings rather than between a prompt and a rewrite of it.
+
+**It does NOT clear this project's bar.** `D61` asks for ~6 clean fixes **with no regressions**,
+and Round 14's pre-decided rule — the one still holding prompt `H` — is *one regression is a hold*.
+This is 6 and **1**. **So it is not shippable on the Mac's evidence**, and the question for this
+round is whether the lab sees the same six, the same one, or something else.
 
 ## Pass / fail, written before the data
 
