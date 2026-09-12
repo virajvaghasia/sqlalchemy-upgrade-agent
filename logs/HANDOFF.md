@@ -36,11 +36,30 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-11, lab)
+## Where things stand — read this first (updated 2026-09-11, Mac)
 
-**ROUND 19 CLOSED on the lab.** Tip `dfbb90c` → this sitting, branch `phase-5/agent`,
-Ollama **0.32.9**, generator **100% GPU**. Artifacts: `e4-` / `e2-phase5.Linux-x86_64.json`,
-`agent-sweep-phase5.Linux-x86_64.json` (new default; Round 17 rows still in git at `76f6ad6`).
+**→ ROUND 20 IS OPEN AND IT IS THE ONLY THING OUTSTANDING.** One chained command, ~1h45
+unattended: **ASK 20.A**. Branch `phase-5/agent`.
+
+**Why it exists, in one line:** the agent was reading **half of every retrieved page** (`D93`), so
+**both** of this box's hundred-item numbers — `0.02` and `0.19` — are retracted as comparisons and
+have to be re-taken.
+
+**What changed on the Mac since you last sat down**, and it is the reason the round is worth the
+sitting. Removing four characters of truncation took the agent from **0.25 → 0.43**, identical to
+the one-shot pipeline, **16↑ 0↓, p = 0.00003** — and with both levers on, **0.47, ahead of the
+pipeline for the first time in this phase.** The full table is under **THE MAC'S NUMBERS** below.
+
+**It also reversed a conclusion:** the agent's over-refusals are **6** against the pipeline's
+**19**, so its *generation* is better and *retrieval discipline* was the whole gap. That is the
+claim Round 20 confirms or kills.
+
+**Before you start:** `grep -c "hit\['text'\]}" rag/agent.py` must print **1**, and `ollama ps`
+must read **100% GPU**. Either one wrong wastes the sitting silently.
+
+**Round 19's state, for the record.** CLOSED on the lab, tip `dfbb90c`, Ollama **0.32.9**,
+generator 100% GPU. Artifacts: `e4-` / `e2-phase5.Linux-x86_64.json`,
+`agent-sweep-phase5.Linux-x86_64.json` (Round 17 rows still in git at `76f6ad6`).
 
 | round | state |
 |---|---|
