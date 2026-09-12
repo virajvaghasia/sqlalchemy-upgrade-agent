@@ -634,6 +634,106 @@ A count that matches while the ids scatter would look like a confirmation and be
 one. `D61` exists for exactly this reason, and `D84` is the round where reading ids rather than
 totals is what made the result trustworthy.
 
+## Added 2026-09-12 afternoon (Mac), before the lab ran — the row the table above does not read
+
+**Stated honestly: the first half of this was SEEN before a rule was written.** Reading the Mac's
+saved rows for the seven flipped ids, the items **without** the answer page in the prompt flip
+too, and in the same direction:
+
+```
+page PRESENT   B answers 6 that A refused   (g008 g021 g049 g050 g100 g116)   <- the headline
+page ABSENT    B answers 6 that A refused   (g005 g016 g028 g085 g113 g114)   <- never printed
+               B refuses 1 that A answered  (g117)
+```
+
+**Why that matters, plainly.** When the page is absent, refusing is the *honest* outcome (`D72`'s
+split: that refusal is retrieval's, not generation's). So "B answers more when the page is there"
+and "B answers more when the page is NOT there" are the same shift seen twice. That is what a
+**more willing** prompt looks like, not a prompt that reads its pages better — and it is exactly
+the shape prompt `H` had, which Phase 4 only trusted after checking the extra answers held up
+(`D82`).
+
+**And the instrument could not see the cost.** `main()` took answerable items only, so the 9
+unanswerable items — where extra willingness turns into fabrication — were never run. A shipped
+prompt change is judged on both.
+
+**So `rag.framing` now also runs the 9 unanswerable items and prints the page-absent row.** The
+lab command below is unchanged; it just measures more. **Rules for the new rows, written before
+the unanswerable items ran on either machine:**
+
+| new row | result | meaning |
+|---|---|---|
+| unanswerable, fabricated | B **more** than A | B's willingness costs fabrications — **not shippable, whatever the page-present row says** |
+| unanswerable, fabricated | B **equal or fewer** | the page-present gain is not bought with fabrications |
+| page absent, answered | B roughly **matches** its page-present gain (as on the Mac) | a willingness shift — B's page-present fixes are **not evidence the shape helps the model read**; they need a quality check before counting as fixes |
+| page absent, answered | B **no higher** than A | the page-present gain is specific to having the page, which is the claim this round was written to test |
+
+**If the lab and Mac agree on a willingness shift, the page-present row alone does not decide
+shipping** — the extra answers get the same citation and faithfulness reading `H`'s got.
+
+### Mac screen of those rows (2026-09-12 afternoon) — `D95`: a screen, not a result
+
+Unanswerable items: both arms, one sitting, merged into the Mac file (answerable rows NOT
+regenerated). `uv run python -m rag.framing --report` prints all of this.
+
+```
+                 page present over-refused page absent answered unans. fabr
+A_block                    58           19          33        7      9    2
+B_conversation             58           14          33       12      9    2
+
+  present       fixed  6  broken  1  p = 0.1250
+  absent        fixed  1  broken  6  p = 0.1250
+  unanswerable  fixed  0  broken  0  p = 1.0000
+```
+
+- **Fabrications: 2 and 2, same ids (`g056`, `g065`) — `D72`'s two.** Per the rule above, the
+  page-present gain is **not bought with fabrications.**
+- **Page absent: B answers 6 more, A declined all 6.** Per the rule above, this is a
+  **willingness shift**, so the six page-present fixes need a quality reading before counting.
+- **Citations do not move at all** (deterministic, `judge.citations`): A cites nothing on
+  **31/46 = 67%** of answered answerable items — **`D74`'s published D row exactly**, a second
+  control reproducing — and B on **38/56 = 68%**. Of B's six page-present fixes, **3 cite nothing**
+  (`g021 g049 g116`) and **3 put code on screen with no source** (`g008 g050 g116`). **So B is
+  half of prompt `H`**: `H` moved refusals *and* took uncited to 10%; B moves only refusals.
+
+**Faithfulness rule, written before the judge ran** (local `gemma4:e4b`, same judge as `D82`,
+over the 14 flipped answers only — B's 12 answers A declined, A's `g043` and `g117`):
+
+| B's six page-present fixes judged `SUPPORTED` | meaning |
+|---|---|
+| **5 or 6** | the fixes hold in prose (they still fail citations, above) |
+| **4** | mixed — no conclusion from six items |
+| **3 or fewer** | the "fixes" are answers talking past the page — **not fixes**, and the page-present row overstates B |
+
+Reference: `H`'s 16 extra answers were **13 `SUPPORTED`** (`D82`), and `D86` measured this judge
+**too extreme in both directions** on its hardest rows, so read single verdicts with that in mind.
+
+**The judge's verdicts (Mac, `gemma4:e4b`, rows in `deliverables/framing-judge-phase6.Darwin-arm64.json`,
+produced by `faithful.sweep_rows` over exactly the ids `framing.flips` returns):**
+
+```
+B, page present, the six "fixes"   g008 S   g021 S   g049 S   g116 S   g050 P   g100 P   -> 4 SUPPORTED
+A, page present, the one B broke   g043 S
+B, page absent, the six extra      g005 S   g085 S   g028 P   g016 U   g113 U   g114 U   -> 2 SUPPORTED
+A, page absent, the one B declined g117 U
+```
+
+- **4 of 6 → the pre-written "mixed, no conclusion from six items" row.** Not 5–6, so the fixes
+  are not shown to hold; not ≤3, so they are not shown to be empty either.
+- **The regression is a real cost:** `g043` was a `SUPPORTED` answer and B refused it.
+- **The page-absent extras are mostly bad — 2 of 6 `SUPPORTED`, 3 `UNSUPPORTED`.** No rule was
+  written for this row's quality, so it is recorded, not scored: it is what the willingness shift
+  costs where the evidence is missing, and it is invisible to the fabrication column because these
+  items are answerable.
+- **Mac reading of the whole of Round 21 so far:** B moves refusals in both directions of honesty,
+  moves no citations and no fabrications, and its net page-present gain is 6 fixes (4 supported)
+  against 1 supported answer lost. **Not shippable on the Mac's evidence** — the lab decides (`D95`).
+
+**LAB: if you pulled before this commit, pull again** — the version before it runs no unanswerable
+items. If the run already started on the old code, let it finish and then add them without
+regenerating anything: `uv run python -m rag.framing --unanswerable` (18 calls, a few minutes), then
+`uv run python -m rag.framing --report` and paste that.
+
 ## ASK 21.0
 
 ```bash
