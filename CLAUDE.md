@@ -30,7 +30,8 @@ Meta, Google, Apple, Anthropic, and startups).
   `13-VERIFICATION.md` §R5 (defending it under questioning; Phase 1's last gate),
   `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard), `15-IMPROVE.md` §R7 (Phase 3 retrieval
   levers — what shipped and what was rejected), `16-JUDGE.md` §R8 (Phase 4 — grading the
-  answer rather than the search). One `R` run across all seven — it stands
+  answer rather than the search), `17-AGENT.md` §R9 (Phase 5 — the agent, the tools, and the
+  single-tool ceiling). One `R` run across all eight — it stands
   for RAG, not Retrieval (`D47`). Phase 1 ends at §R5; §R6 is Phase 2's measured result
   (`D64`); §R7 is Phase 3's.
 - **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,

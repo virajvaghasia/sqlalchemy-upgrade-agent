@@ -1,7 +1,8 @@
 # Phase 5 — The agent, and the tools it is allowed to be wrong with
 
-Part of [`sqlalchemy-upgrade-agent`](../README.md). Follows
-[`PHASE-4.md`](PHASE-4.md), which closed with **end to end `0.43`** against a **`0.64`** retrieval
+Part of [`sqlalchemy-upgrade-agent`](../README.md). **Teaching file:
+[`../study/17-AGENT.md`](../study/17-AGENT.md) (§R9) — read that first;** this file is the measured
+plan, that one is the sitting. Follows [`PHASE-4.md`](PHASE-4.md), which closed with **end to end `0.43`** against a **`0.64`** retrieval
 ceiling, a judge measured at **70% human agreement** (`D86`), and prompt `H` **held** rather than
 shipped (`D83`, `D84`). Spec: [`ROADMAP.md`](ROADMAP.md) Phase 5.
 
