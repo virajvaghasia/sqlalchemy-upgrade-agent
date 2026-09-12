@@ -51,7 +51,7 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D94`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D95`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -392,6 +392,12 @@ tokens, always fitted; editing it moves `D72`'s baseline). Both old runs kept as
 because the confound is only demonstrable while they exist. **Unaffected: `D87` (re-measured, still
 20/20), `D91`, `D92`.** Re-runs in progress.
 
+**MEASUREMENT POLICY (`D95`): the Mac SCREENS, the lab RULES — both stay.** Claude can drive the
+Mac unattended and cannot drive the lab (RustDesk is a GUI), so hunts and long overnight runs
+happen here; **anything quoted names the lab or names both machines**, and **a Mac-only figure is
+labelled a screen the moment it is written**, not after the lab disagrees. Disagreement is a
+result: `D83`, `D84`, `D89`, `D92`, `D94` all exist because two boxes differed.
+
 **PHASE 5 CLOSED ON MEASUREMENT (`D94`, Round 20, both machines).**
 
 ```
@@ -545,7 +551,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**438 tests**, **58/58** `# runnable`, **94** decisions, **§H empty**.
+**438 tests**, **58/58** `# runnable`, **95** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50

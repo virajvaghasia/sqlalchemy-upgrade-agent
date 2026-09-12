@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D94`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D95`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3592,6 +3592,52 @@ score is not the finding** — what reproduced is that the agent stops early and
 and that it does not inherit the refusal defect the one-shot system has. I wrote the pass/fail
 before the run, it landed on the row that says *Mac effect*, and I withdrew the claim rather than
 quoting the machine that agreed with me.
+
+### D95 — the Mac screens, the lab rules; two machines stay, and the reason is not access
+
+**Decided 2026-09-12**, after Round 20 withdrew a claim the Mac had supported (`D94`).
+
+**Rejected — measure only on the lab.** It is the reproducible box (`D84`), so it looks like the
+obvious simplification. It would have destroyed the most valuable class of result in this project:
+`D83`, `D84`, `D89`, `D92` and `D94` **all exist because two machines disagreed.** With one machine
+you cannot tell whether `0.27` is *the* answer or *that box's* answer — you get a number and no way
+to know its scope. Every one of those entries would have shipped as an unqualified claim.
+
+**Rejected — measure only on the Mac.** It drifts (`D84`), and `D94` is what that costs: a
+headline of *"the agent matches the pipeline"* that survived a few hours and then did not.
+
+**Decided — both, with different jobs:**
+
+| | job | why it gets that job |
+|---|---|---|
+| **Mac** | screen, hunt, iterate | **Claude can drive it unattended.** Six hours of sweeps ran overnight with nobody awake; the `[:600]` bug, `D91`'s nudge and both levers came out of that |
+| **lab** | rule | it reproduces, and `D84` says prefer it when they disagree |
+
+**The constraint is autonomy, not access — and I had this wrong until Viraj corrected it.** I argued
+the lab was costly because it needed him present. **RustDesk makes it reachable any time.** What
+does not change is that a remote desktop is a GUI: **Claude cannot type into it**, so every lab run
+waits for a human to launch it while Mac runs do not. The trade is *work that proceeds without you*
+versus *work that waits for you* — which is a smaller gap than I claimed, and still a real one.
+
+**The consequence of that correction:** the lab should now take the **paired long runs**, not just
+short confirmations. Round 20 was 1h45 and cost one launch. That is cheap enough that the
+important pairs belong there, with the Mac screening first.
+
+**The standing rules:**
+
+1. **Anything quoted in a doc, a decision or a CV is the lab's number, or names both machines.**
+2. **A Mac-only figure is labelled a screen from the moment it is written** — not after the lab
+   disagrees. `D94` sat in the state block as a headline for a few hours before Round 20 landed,
+   and under this rule it would have carried its scope immediately.
+3. **Disagreement is a result, not a nuisance.** It gets written down rather than resolved by
+   picking the machine that agrees with the hypothesis.
+
+**Interview question it answers:** *"You had two machines disagreeing constantly — why not just
+standardise on one?"* Because the disagreement was the most informative signal I had. Standardising
+would have converted five findings about the *scope* of my results into five unqualified claims,
+and the one I most wanted to be true is the one the second machine killed. **The cost of two
+machines is that half my numbers come with a caveat. That is not a cost, it is the caveat being
+visible instead of absent.**
 
 ---
 
