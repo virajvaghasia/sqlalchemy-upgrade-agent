@@ -314,9 +314,11 @@ ESCALATION — nvidia/nemotron-3-ultra-550b-a55b on the cascade's page-present r
   refused     4   g064 g084 g103 g116
   SUPPORTED  10 of 16 judged = 62%   rule >= 80%  -> FAIL
   judge      openai/gpt-oss-20b
+  judges agree on 11 of 14 (gemma4:e4b vs openai/gpt-oss-20b)
   not SUPPORTED  g013=PARTIAL g021=PARTIAL g044=PARTIAL g049=PARTIAL g099=PARTIAL g106=PARTIAL
 
   tokens, as returned by the API: prompt 45015, output 15624  (over 20 calls)
+  shadow cost at the price snapshot: $0.0770 total, $0.00385 per escalation  (calls were free credits)
 ```
 
 **Against the rules written before the first call:**
@@ -340,5 +342,48 @@ creates fabrications.
 **Tokens** (as returned; reasoning included): **45015 prompt + 15624 output over 20 calls.** A price
 per token for this model, with a source and date, is the one input the shadow cost still needs.
 
-**Not done:** the `gemma4:e4b` agreement pass (`rag.escalate --judge`, ~15 min on the Mac), and a
-human read of the six `PARTIAL`s.
+**Second judge, 16:10 — incomplete, 14 of 16.** `gemma4:e4b` agrees with `gpt-oss-20b` on **11 of
+14**. On those 14 it counts 10 `SUPPORTED` against gpt-oss's 9: nearly the same rate, **different
+items** (`g006`: gemma UNSUPPORTED, gpt-oss SUPPORTED; `g021`, `g099`: gemma SUPPORTED, gpt-oss
+PARTIAL). The last two (`g100`, `g106`) timed out: the Mac was at 10 GB of swap with ~7 GB wired
+(Docker's VM and the GPU), and the run was stopped rather than left to crawl. **The first timeout
+killed the run** — the gap the 2026-09-10 notes named and left open; both judge loops now skip a
+timed-out item and leave it unjudged for a resume.
+
+**Shadow cost, computed from the committed snapshot** (`deliverables/prices-phase6.json`, OpenRouter
+list price fetched 2026-09-12 22:51 UTC; one reseller's price, not NVIDIA's; the calls were free):
+**$0.0770 for the 20 calls, $0.00385 per escalation.** By hand: 45015 × $0.000000625 + 15624 ×
+$0.000003125 = $0.0281 + $0.0488.
+
+**Human read:** `deliverables/ESCALATE-PARTIAL-REVIEW.md` — the six `PARTIAL`s with question, full
+answer, judge's reason and all five pages; verdict column blank for Viraj (`D06`).
+---
+
+## Step 3c — the escalations a real cascade cannot tell apart (pre-registered 2026-09-12, 15:55)
+
+**Why 3b is not the whole router.** `D99` sent only the 20 page-present refusals, because they are the
+ones a stronger model can fix. **A running cascade does not know which refusals those are.** It
+escalates every refusal: `D98` counted **53 of 100** — the 20, plus **26 page-absent** answerable
+refusals, plus **7 unanswerable** items the local model correctly declined. The 33 are where
+escalation can *cost* quality, and nothing has measured them.
+
+**Setup:** identical to 3b — same model (`nvidia/nemotron-3-ultra-550b-a55b`), same prompt, same pages,
+same scored judge (`openai/gpt-oss-20b`). Ids derived by `rag.route`, never typed. Rows go to their
+own file, `deliverables/escalate-rest-phase6.json`, so 3b's result cannot be overwritten.
+
+**Rules:**
+
+| row | result | meaning |
+|---|---|---|
+| **unanswerable**, answered | **≥ 2 of 7** | escalating blindly **buys fabrications** — the cascade needs a gate before escalation, not after |
+| unanswerable, answered | 0–1 of 7 | escalation keeps the local model's honest refusals honest |
+| **page absent**, answered | reported | answered without the verified page: a guess or a lucky neighbour page |
+| page absent, `SUPPORTED` | reported | supported by *those* pages, which is not "correct" — the verified answer page was not among them |
+
+**The shadow cost is computed, not typed**, from the API's token counts over **all 53** escalations and
+the committed price snapshot `deliverables/prices-phase6.json` (OpenRouter list price, fetched
+2026-09-12 22:51 UTC — one reseller's price, not NVIDIA's; the calls themselves were free credits).
+
+**My prediction:** the stronger model answers **3 of the 7** unanswerable items (it answered 16 of 20
+refusals, so it is willing) — so the first rule fires — and **15 of the 26** page-absent ones. Cost
+about **$2 per 1000 queries** at a 53% escalation rate.

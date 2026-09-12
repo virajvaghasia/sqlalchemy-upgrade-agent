@@ -16,7 +16,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] and\u202f[5] describe the removal of raw\u2011string support in `Connection.execute`, while no passage explicitly states how `Session.execute` handles raw strings in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passage\u202f[1] and\u202f[5] describe the removal of raw\u2011string support in `Connection.execute`, while no passage explicitly states how `Session.execute` handles raw strings in SQLAlchemy\u202f2.0.",
+   "verdict": "UNSUPPORTED",
+   "reason": "Source [1] explicitly states that `Session.execute()` converts raw strings to a `text()` construct.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g008",
@@ -34,7 +37,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passages (especially [3] and the excerpts in [4] and [5]) state that in SQLAlchemy\u202f2.0 the `select()` construct accepts columns only positionally, not as a list."
+   "reason_nvidia": "The passages (especially [3] and the excerpts in [4] and [5]) state that in SQLAlchemy\u202f2.0 the `select()` construct accepts columns only positionally, not as a list.",
+   "verdict": "SUPPORTED",
+   "reason": "Sources [3], [4], and [5] all state that the \"new\" style requires passing column expressions positionally.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g013",
@@ -52,7 +58,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage [3] states that string forms for loader options such as joinedload are removed in 2.0, but it does not explicitly mention subqueryload or an AttributeError."
+   "reason_nvidia": "Passage [3] states that string forms for loader options such as joinedload are removed in 2.0, but it does not explicitly mention subqueryload or an AttributeError.",
+   "verdict": "PARTIAL",
+   "reason": "Source [3] confirms the removal of string forms for query options like `joinedload`, but it does not explicitly state that this removal applies to all loader options, including `subqueryload`.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g021",
@@ -70,7 +79,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[1] states that `backref` is legacy and `back_populates` is preferred, but it does not say that `backref` remains available."
+   "reason_nvidia": "Passage\u202f[1] states that `backref` is legacy and `back_populates` is preferred, but it does not say that `backref` remains available.",
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] states that `backref` should be considered legacy and that `back_populates` should be preferred, while Passage [5] confirms that `backref` remains available.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g029",
@@ -88,7 +100,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] (and [5]) documents the removal of keyword arguments and the new generative method style."
+   "reason_nvidia": "Passage\u202f[1] (and [5]) documents the removal of keyword arguments and the new generative method style.",
+   "verdict": "SUPPORTED",
+   "reason": "Passages [1] and [5] detail the removal of constructor arguments and provide the corresponding generative method replacements.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g044",
@@ -106,7 +121,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage [2] states that explicit use of an Engine or Connection is required for reflection, but it does not mention that bound metadata has been removed."
+   "reason_nvidia": "Passage [2] states that explicit use of an Engine or Connection is required for reflection, but it does not mention that bound metadata has been removed.",
+   "verdict": "PARTIAL",
+   "reason": "Source [2] shows the required use of `autoload_with` but does not state that \"bound metadata\" has been removed.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g048",
@@ -124,7 +142,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that string forms of `joinedload` will be removed in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passage [1] states that string forms of `joinedload` will be removed in SQLAlchemy\u202f2.0.",
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] explicitly states that the string forms will all be removed in 2.0.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g049",
@@ -142,7 +163,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [1] and [2] show the positional form and deprecation warning, but do not state that the list form is removed in 2.0."
+   "reason_nvidia": "Passages [1] and [2] show the positional form and deprecation warning, but do not state that the list form is removed in 2.0.",
+   "verdict": "PARTIAL",
+   "reason": "Passages [1] and [2] confirm that the `case()` construct now accepts WHEN criteria positionally rather than as a list, but they do not specify that the list form is deprecated in 1.4 and removed in 2.0.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g050",
@@ -160,7 +184,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that `engine.execute()` is removed in SQLAlchemy\u202f2.0 and that statements must be executed via a `Connection` obtained from the engine."
+   "reason_nvidia": "Passages [1] and [2] state that `engine.execute()` is removed in SQLAlchemy\u202f2.0 and that statements must be executed via a `Connection` obtained from the engine.",
+   "verdict": "SUPPORTED",
+   "reason": "Passages [1], [2], [3], and [4] all confirm the removal of `engine.execute()` and mandate the use of `Connection.execute()` within a context manager.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g051",
@@ -178,7 +205,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [4] (with supporting details from [5]) provide the information summarized in the claim."
+   "reason_nvidia": "Passages [1] and [4] (with supporting details from [5]) provide the information summarized in the claim.",
+   "verdict": "SUPPORTED",
+   "reason": "All passages [1], [2], [3], [4], and [5] support the usage patterns and differences described.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g064",
@@ -228,7 +258,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [2] and [4] state that server_default columns are expired after an INSERT and are fetched only when accessed (or immediately if eager_defaults is set)."
+   "reason_nvidia": "Passages [2] and [4] state that server_default columns are expired after an INSERT and are fetched only when accessed (or immediately if eager_defaults is set).",
+   "verdict": "SUPPORTED",
+   "reason": "Passages [2] and [4] state that the server_default values are marked as \"expired\" and must be fetched later, confirming the lazy loading mechanism.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g090",
@@ -246,7 +279,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1], [2] and [4] show load_only usage with attributes and do not mention typing or an attrs parameter."
+   "reason_nvidia": "Passages [1], [2] and [4] show load_only usage with attributes and do not mention typing or an attrs parameter.",
+   "verdict": "SUPPORTED",
+   "reason": "The passages demonstrate usage of `load_only()` but do not mention an `attrs` parameter or discuss typing issues related to it.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g095",
@@ -264,7 +300,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passages discuss only refreshing already\u2011loaded objects and collections, and do not address unloaded or expired relationships."
+   "reason_nvidia": "The passages discuss only refreshing already\u2011loaded objects and collections, and do not address unloaded or expired relationships.",
+   "verdict": "SUPPORTED",
+   "reason": "The passages accurately summarize the scope of `populate_existing` and correctly identify the gap regarding expired relationships.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g099",
@@ -282,7 +321,10 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage [5] explains the changed meaning of `default` in `MappedAsDataclass`."
+   "reason_nvidia": "Passage [5] explains the changed meaning of `default` in `MappedAsDataclass`.",
+   "verdict": "SUPPORTED",
+   "reason": "Passages [4] and [5] detail the changes in behavior for `default`, `default_factory`, and the relationship between `default` and `insert_default` when using `MappedAsDataclass`.",
+   "judge": "gemma4:e4b"
   },
   {
    "id": "g100",
