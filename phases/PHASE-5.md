@@ -501,6 +501,47 @@ tool** under a prompt that orders them to — forcing in code reaches what askin
 **8 → 0**). **The full 100 under forcing is the next measurement and is not yet taken on either
 machine.**
 
+#### The Mac's hundred, and where the agent actually loses (2026-09-11)
+
+`SYSTEM_MUSTCALL`, 100 items, Mac: **23/91 = 0.25** end to end, against the lab's 0.19 and the
+one-shot pipeline's 0.43. Decomposed, the deficit is not where the headline suggests:
+
+| | agent | one-shot pipeline |
+|---|---|---|
+| answerable | 91 | 91 |
+| **page reached the model** (the ceiling) | **45 = 0.49** | **58 = 0.64** |
+| …and it answered | 23 | 39 |
+| …and it declined anyway | **22** | 19 |
+
+**Two separate losses, and only one of them is new.**
+
+**The ceiling is down 15 points**, and that is the agent's own doing: 23 items got no search at
+all, and the ones it did search were searched with a query it chose rather than the question as
+asked. **This is the loss forcing targets.**
+
+**The other loss is `D72`'s, unchanged.** 22 refusals with the page already in front of it, against
+the one-shot pipeline's 19. Same defect, same size — **the agent neither caused it nor fixed it**,
+and no amount of tool discipline will touch it.
+
+> **The agent's problem is retrieval discipline. Its generation defect is the one Phase 4 already
+> measured and is the same size.**
+
+#### Prediction, written before the levered run finished
+
+Forcing should take the ceiling toward the one-shot's **58/91**, because forcing is exactly the
+thing that makes every item search. If the refusal rate then holds at the **49%** measured above
+(22 of 45), delivered lands near **30/91 ≈ 0.33** — **better than 0.25 and still short of 0.43.**
+
+| outcome | what it would mean |
+|---|---|
+| ceiling ≈ 58, delivered ≈ 30 | the model is exactly as described: the ceiling was the agent's fault, the refusals are Phase 4's |
+| ceiling ≈ 58, delivered **≥ 39** | forcing fixed refusals too — unexpected, and the more interesting result |
+| ceiling stays ≈ 45 | forcing does not produce useful searches, only searches — a defect in the tool, not the loop |
+| delivered **falls** | forcing costs answers it does not buy — reject the lever |
+
+**Writing the number down first is the point.** `D91` is on the page as a prediction I got wrong,
+and that only means something because it was recorded before the run rather than after.
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it
