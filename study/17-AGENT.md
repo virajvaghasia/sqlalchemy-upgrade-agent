@@ -335,7 +335,84 @@ planning one — before running it, and I was wrong.
 
 ---
 
+## R9.7b — The bug that made my own system look broken, and how it surfaced
+
+This is the part of the phase I would actually want to be asked about.
+
+The agent was losing to the one-shot pipeline: **0.25 against 0.43**. The obvious story wrote
+itself — an agent adds steps, steps lose things, a 7B model is not up to it.
+
+**One number in that story did not fit.** Of the items where the right page *did* reach the model:
+
+| | refused anyway |
+|---|---|
+| agent | 22 of 45 = **49%** |
+| one-shot pipeline | 19 of 58 = **33%** |
+
+Same model. Same pages. Same machine. **Sixteen points of difference with no mechanism behind it.**
+A model does not become more cowardly because a function called it differently.
+
+So I went looking for a mechanism, and found one I had written myself:
+
+```python
+f"[{n}] ({hit['chunk_id']}) {hit['text'][:600]}"      # <- four characters
+```
+
+**The median chunk is 1299 characters. 2755 of 3284 are over 600.** The agent had been reading
+**about half of every page**, while the one-shot pipeline reads all of it.
+
+> A page whose answer sits in the cut half looks — to the model — exactly like a page that does
+> not answer the question. It was not refusing out of caution. It was refusing correctly, about a
+> page it had not been shown.
+
+### What happened when it was fixed
+
+```
+                     ceiling      delivered     conversion
+agent, half pages     45/91      23/91 = 0.25      51%
+agent, whole pages    45/91      39/91 = 0.43      87%
+one-shot pipeline     58/91      39/91 = 0.43      67%
+```
+
+**16 items fixed, 0 broken, p = 0.00003.** And notice what did *not* change: the ceiling. The same
+45 items got the page. **Deleting four characters changed nothing about retrieval and everything
+about what the model did with it.**
+
+### The conclusion it reversed
+
+Two hours earlier I had written that the agent's problem was retrieval discipline, and that its
+refusal defect was the same one Phase 4 measured, at the same size. **The second half was exactly
+backwards.** Over-refusals: agent **6**, pipeline **19**.
+
+`D72`'s defect — refusing with the page already in the prompt — is Phase 4's headline finding, 19
+items of it. **The agent, handed the same pages in full, largely does not have it.** The likely
+reason is structural rather than clever: its pages arrive one tool result at a time, numbered,
+*after it asked for them*, instead of five at once in a block it never requested.
+
+**So the honest shape of the phase is the opposite of the intuition.** The agent's *generation* is
+better than the pipeline's. Its *retrieval* is worse, because 23 of 100 questions get no lookup at
+all. And the two cancel to the same 0.43.
+
+### The habit, not the bug
+
+The bug is boring. The habit is not:
+
+**A gap you cannot explain is a bug until proven otherwise.** I did not find this by reviewing code
+or by being careful. I found it because 49% against 33% had no mechanism, and I refused to write it
+down as *"agents are lossy"* — which is a sentence that would have sounded fine, fitted the data,
+and been wrong.
+
+---
+
 ## R9.8 — Say this out loud
+
+**"The agent looked 18 points worse than the pipeline, and it was four characters of my own code."**
+0.25 against 0.43. What did not fit was the refusal rate: 49% of retrieved pages against the
+pipeline's 33%, same model, same page, no mechanism. I chased that instead of accepting it, and
+found `hit["text"][:600]` — the agent was reading half of every page. Fixed: **0.43, 16 items up, 0
+down, p = 0.00003.** And it reversed my conclusion, because over-refusals went to **6 against the
+pipeline's 19** — *its generation is better than the pipeline's; retrieval discipline is the whole
+gap.*
 
 **"My agent scored 0.02 and I did not report that as the finding."**
 The metric requires a retrieval the agent never performed, so 53 answers were zero by construction.

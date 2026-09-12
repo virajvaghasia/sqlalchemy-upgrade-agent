@@ -3488,6 +3488,34 @@ no measured reason.
   and `D92` — E4 chains or it does not, and truncation cannot manufacture a second tool call.
 - **The lab's `0.02` and `0.19` carry the same confound** and are being re-taken.
 
+#### The re-run, and the conclusion it reverses
+
+**Mac, 100 items, same prompt, only the truncation removed:**
+
+| | ceiling | delivered | **conversion** | over-refused |
+|---|---|---|---|---|
+| agent, half pages | 45/91 | 23/91 = 0.25 | **51%** | 22 |
+| **agent, whole pages** | 45/91 | **39/91 = 0.43** | **87%** | **6** |
+| one-shot pipeline | 58/91 | 39/91 = 0.43 | **67%** | 19 |
+
+**Paired: 16↑ 0↓, p = 0.00003.** Sixteen items fixed by deleting four characters, none broken.
+
+**The ceiling did not move at all** — the same 45 items got the page either way. What moved is what
+the model *did* with them.
+
+> **The agent converts its ceiling BETTER than the one-shot pipeline (87% against 67%) and reaches
+> a lower ceiling (45 against 58). The two cancel to the same 0.43.**
+
+**And this reverses the conclusion I had written two hours earlier.** I said the agent's problem was
+retrieval discipline and its generation defect was `D72`'s, same size. Wrong on the second half:
+**its over-refusals are 6 against the pipeline's 19.** `D72`'s defect — refusing with the page in
+hand — is Phase 4's headline, and the agent given the same pages in full **largely does not have
+it.** The plausible reason is structural: its pages arrive one tool result at a time, numbered,
+*after it asked for them*.
+
+**So the retraction in this entry is not "some numbers were low".** It is that the truncation
+inverted which half of the system looked broken.
+
 **Interview question it answers:** *"How did you catch a bug that made your own system look bad?"*
 I did not go looking for it. I had a number I could not explain — the agent refused 49% of the time
 with the page present against the pipeline's 33%, and there was no reason for the same model to

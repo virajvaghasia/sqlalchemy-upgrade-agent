@@ -590,6 +590,47 @@ editing it would move `D72`'s baseline for no reason.
 answers are the precedent (`D85`). **Unaffected:** `D87` (re-measured, still 20/20), `D91` and
 `D92` — truncation cannot manufacture a second tool call.
 
+#### With whole pages, the agent matches the pipeline exactly — and the reason is not the one expected
+
+**Re-run after `D93`, Mac, 100 items, same default prompt, only the truncation removed:**
+
+| | ceiling | delivered | **conversion** |
+|---|---|---|---|
+| agent, half pages | 45/91 = 0.49 | 23/91 = 0.25 | **51%** |
+| **agent, whole pages** | 45/91 = 0.49 | **39/91 = 0.43** | **87%** |
+| one-shot pipeline | 58/91 = 0.64 | 39/91 = 0.43 | **67%** |
+
+**Paired: 16↑ 0↓, p = 0.00003.** Sixteen items fixed by deleting `[:600]`, none broken.
+
+**The fix moved conversion, not retrieval.** The ceiling did not budge — the same 45 items got the
+page either way — but what the model *did* with those pages went from 51% to 87%.
+
+> **The agent now converts its ceiling far better than the one-shot pipeline does — 87% against
+> 67% — and reaches a lower ceiling, 45 against 58. The two cancel to the same 0.43.**
+
+**And the over-refusal count inverted the story it was telling.** With half pages the agent refused
+**22** times with the page present against the pipeline's 19; with whole pages it refuses **6**.
+The one-shot pipeline's 19 over-refusals are `D72`'s defect and Phase 4's headline — **and the
+agent, given the same pages in full, largely does not have it.** The difference is that its pages
+arrive one tool result at a time, numbered, after it asked for them.
+
+**So the earlier conclusion was exactly backwards.** I wrote that the agent's problem was retrieval
+discipline and its generation defect was Phase 4's, same size. The truth: **its generation is
+better than the pipeline's, and retrieval discipline is the whole gap.**
+
+#### Prediction for the levered re-run, written before it starts
+
+23 items still call no tool. Forcing took that to **1** in the truncated run. If forcing lifts the
+ceiling toward the pipeline's 58 and conversion holds near **87%**, delivered lands near
+**50/91 ≈ 0.55** — **above the one-shot pipeline for the first time in this phase.**
+
+| outcome | meaning |
+|---|---|
+| ceiling ≈ 58, delivered ≈ 50 | forcing closes the only remaining gap; the agent beats the pipeline |
+| ceiling rises, conversion **falls** | forced searches are worse searches — the model's own query is the cost |
+| ceiling stays ≈ 45 | forcing produces searches that retrieve nothing new |
+| delivered falls | reject the lever |
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it

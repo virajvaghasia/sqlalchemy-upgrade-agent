@@ -392,6 +392,15 @@ tokens, always fitted; editing it moves `D72`'s baseline). Both old runs kept as
 because the confound is only demonstrable while they exist. **Unaffected: `D87` (re-measured, still
 20/20), `D91`, `D92`.** Re-runs in progress.
 
+**⚠️ AND THE FIX REVERSED THE CONCLUSION.** Re-run with whole pages, same prompt, Mac, 100 items:
+**39/91 = 0.43 — identical to the one-shot pipeline** — with **16↑ 0↓, p = 0.00003** against the
+truncated run. **The ceiling did not move** (45/91 both ways); **conversion went 51% → 87%**. So the
+agent **converts its ceiling BETTER than the pipeline (87% vs 67%)** and reaches a **lower ceiling
+(45 vs 58)**, and the two cancel. **Over-refusals 22 → 6, against the pipeline's 19** — `D72`'s
+defect is Phase 4's headline and the agent, given whole pages, largely does not have it. **I had
+written the opposite two hours earlier** (that its generation defect was `D72`'s, same size).
+**Retrieval discipline is the whole remaining gap**, and 23 items still call no tool.
+
 **What the levered run said before the bug was found** (so: directionally, not as figures):
 forcing takes no-tool-call to **1**, **fabrications to 0**, and **chaining 0 → 7 on the real golden
 set** — `D91`/`D92` outside the synthetic set built for them. Paired 3↑ 0↓. My pre-registered
