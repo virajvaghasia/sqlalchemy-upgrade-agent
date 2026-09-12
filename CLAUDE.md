@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D97`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D98`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 462 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 468 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,16 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 3a CLOSED (`D98`): THE ROUTER IS A CASCADE ON REFUSAL.** `rag.route --report`, no
+model. Of the lab's 53 local failures only **20 have the page in the prompt** — the only kind a
+stronger model can fix. **Predictive routing on max cross-encoder score FAILS** its pre-written bar
+(20 of 53 at a 30% budget, bar 27; exact random P = 0.057) and catches **3 of the 20 fixable**,
+fewer than random — low scores mark missing pages. **Cascade (escalate refusals) catches 20 of 20**
+at the price of escalating **53 of 100**. My first random baseline was a binomial (0.14, not
+0.057); the instrument computes it exactly. Next, 3b: pre-register *escalate a refusal only when
+its best page looks relevant* (exploration AUC 0.71), then a strong model's answers and a sourced
+price. Taught in `study/18-PRODUCTION.md` §R10.8b.
+
 **PHASE 6 STEP 2 BUILT: THE CI QUALITY GATE (`D97`), on branch `phase-6/production`.** A PR that
 touches retrieval re-scores the 100 golden questions on a runner and **fails if any answer page
 leaves the top 5**. The ROADMAP's demo is measured and reproduces from committed rows with no
@@ -574,7 +584,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**462 tests**, **60/60** `# runnable`, **97** decisions, **§H empty**.
+**468 tests**, **62/62** `# runnable`, **98** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -620,8 +630,8 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 462 passed with Qdrant up; 457 + 5 skipped without
-uv run python -m tools.check_runnable    # 60/60 RUN blocks reproduce
+uv run pytest                            # 468 passed with Qdrant up; 463 + 5 skipped without
+uv run python -m tools.check_runnable    # 62/62 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
@@ -1788,6 +1798,8 @@ Append a dated entry each session; keep each entry to a few bullets.
   failed job.
 - **Swap hit 9.5 of 10 GB** running a CPU embed and a scoring run together — killed the embed,
   re-ran alone at 7.4 s/batch against 20. Same lesson as 09-10; it still had to be relearned.
+- **Routing 3a (`D98`):** predictive router failed its bar and picks unfixable questions; cascade on
+  refusal decided. Scratch random baseline was a binomial — committed instrument caught it.
 - **CPU vs MPS measured, not assumed:** every vector differs (max 1.3e-5), no ranking moves (100/100 top-20 identical). CPU embed 1106 s against MPS 566 s.
 
 ### 2026-09-10 (evening) — the judge re-read its own verdicts, and the instrument had three bugs

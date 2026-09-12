@@ -242,6 +242,92 @@ retrieval code, that is this question coming back, and `D97` names the fallback 
 
 ---
 
+## R10.8b — Routing: which questions are worth sending to a bigger model? (`D98`)
+
+**Plain job.** A router keeps most questions on the free local model and sends some to a stronger,
+paid one. The ROADMAP wants the sentence *"routing saves $X at a Y-point quality cost."* Before any
+dollar figure there is a simpler question: **does the router send the right questions?**
+
+**Start from the two ways a question fails here**, in the lab's run of the shipped prompt:
+
+```
+page ABSENT   33 answerable questions: retrieval never put the answer page in the prompt.
+              Send one to a stronger model and it gets the same five wrong pages.
+              It can only answer from memory -- the move that produced g065's invented
+              op.create_view on 2026-08-21.
+
+page PRESENT  g050, "engine.execute select gone AttributeError use connection instead":
+              the answer page WAS in the prompt, and the local model replied
+              "The sources do not answer this."  One of D72's over-refusals.
+              A stronger model reading the same page plausibly answers it.
+```
+
+**Routing can only fix the second kind.** That sentence decides everything below.
+
+**Two designs, rules written before the numbers** (`PHASE-6.md` Step 3a):
+
+- **A, predictive:** before generating, score the five pages with the cross-encoder, and send the 30
+  questions whose best page scores lowest.
+- **B, cascade:** let the local model answer first; send only the questions it refused.
+
+```
+# runnable: uv run python -m rag.route --report
+local pipeline (lab, Round 16, prompt D): 38/91 delivered, 53 failures, 20 of them with the page PRESENT
+
+A  predictive, route 30 lowest max-CE
+   failures caught      20 of 53   bar 27  -> FAIL
+   random routing       median 16, 95th percentile 20, P(>= 20) = 0.057  (exact hypergeometric)
+   caught, page present 3 of 20
+   routed but delivered locally 6, routed unanswerable 4
+
+B  cascade, escalate on refusal
+   escalated            53 of 100
+   answerable, page present 20 of 20   page absent 26
+   unanswerable escalated   7
+   failures never escalated 7  (answered without the page)
+```
+
+**Read it line by line:**
+
+- **`53 failures, 20 with the page PRESENT`.** Only those 20 are the kind a stronger model can fix.
+- **A catches 20 of 53; the bar was 27.** Random picking of 30 questions catches 16 on average, and
+  catches 20 or more 5.7% of the time. So the score is a weak real signal, and it fails the bar.
+- **A's `caught, page present 3 of 20`.** This is the damning line. Random picking would catch about
+  6 of those 20. **A low retrieval score is exactly what a missing page looks like**, so the
+  predictive router sends the questions no model can fix and keeps the ones one could.
+- **B's `page present 20 of 20`.** Every fixable failure is a refusal, by definition, so the cascade
+  catches all of them.
+- **B's `escalated 53 of 100`.** The price: 26 are honest refusals with the page absent, and 7 are
+  unanswerable questions the local model correctly declined. Escalating those invites a
+  fabrication.
+- **B's `failures never escalated 7`.** Questions answered without the page. A cascade on refusal
+  cannot see a confident wrong answer.
+
+**What did NOT happen.** No strong model answered anything and nothing was priced. This step decides
+*which* questions a router should send. Whether sending them helps, and what it costs, is Step 3b.
+
+**The bug in my own first version.** The first random baseline re-drew a sample for every failure,
+which is a binomial, not "pick 30 of 100". It said 14% where the truth is 5.7%, and made a weak
+signal look like no signal. Side by side:
+
+```
+binomial     each failure independently caught with probability 0.3    P(>= 20) = 0.1408
+hypergeometric   exactly 30 questions picked from 100                  P(>= 20) = 0.0571   <- right
+```
+
+The committed instrument computes the second exactly, and `test_the_random_baseline_is_hypergeometric_not_binomial`
+pins 0.0571.
+
+**Say this:** “I don't predict which questions are hard. I tested that: routing on retrieval scores
+mostly picked questions whose answer page was missing, which a bigger model can't fix from the same
+pages. So the router is a cascade. The free model answers first, and only a refusal gets escalated.
+That catches every case where the page was there and the small model declined.”
+
+**Do not say:** “Routing improves quality by X.” No strong model has answered a single escalated
+question yet. The measured claim is *which* questions to send, not what sending them buys.
+
+---
+
 ## R10.9 — Say this out loud
 
 **Say this:** “Every PR that touches retrieval rebuilds the index on a CI runner, scores the 100

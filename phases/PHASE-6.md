@@ -17,7 +17,7 @@ quality-degrading PR gets auto-blocked.**
 |---|---|---|
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
-| 3 | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | not started |
+| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal, not a predictor; 3b (strong-model answers + price) not started |
 | 4 | deploy + package — a demo link and a README that opens with the product | not started |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
 
@@ -103,3 +103,86 @@ bit-identical to MPS (max difference 1.3e-5), and 100 of 100 top-20 lists identi
 
 **Not done, and not Claude's to do:** open a PR so the workflow runs on a real runner, and mark the
 check *required* in branch protection. Both are actions on the GitHub repository.
+
+---
+
+## Step 3a — can routing know which questions to send? (pre-registered 2026-09-12, 14:30)
+
+**The ROADMAP's sentence** is *"routing saves $X per 1000 queries at a Y-point quality cost."* Before
+any price, a router needs a reason to send one question and not another. This step measures only
+that, with **no generation and no API call**: lab outcomes already on disk (Round 16, prompt `D`,
+the shipped path, `38/91` delivered) and retrieval signals recomputed on the Mac. Mixing the two is
+legitimate for one reason: `D83` measured retrieval **identical** across the two machines.
+
+**The distinction that decides what routing can buy:**
+
+| local failure | what a stronger generator gets | can routing fix it? |
+|---|---|---|
+| page **absent** from the prompt | the same five wrong pages | only from memory, which is `g065`'s failure mode |
+| page **present**, model refused or missed it | the right page | **plausibly** — unmeasured until a strong model answers |
+
+**Two designs, both measured the same way:**
+
+- **A — predictive.** Before generating, score the five shipped pages with the cross-encoder the
+  reranker already loads, and route the **30%** of questions (30 of 100) whose **best page scores
+  lowest**. One signal chosen in advance: `max CE over the five pages`. Other signals may be printed
+  as exploration and decide nothing.
+- **B — cascade.** Generate locally; escalate only if the answer is a refusal (`ask.refused`). No
+  predictor.
+
+**Rules, written before the numbers:**
+
+| check | pass | meaning of a fail |
+|---|---|---|
+| A captures local failures at a 30% budget | **≥ 27 of the 53** answerable items not delivered (random routing expects ~16) | the signal cannot see failure; a predictive router is a coin toss with a bill |
+| A's routed failures with the page **present** | reported, no threshold | this is the share routing could actually fix |
+| B's escalations with the page **present** | reported, no threshold | same, for the cascade |
+
+**My prediction, recorded so it can be wrong:** A passes the capture bar, but mostly by finding
+**page-absent** failures, which a stronger generator cannot fix; B escalates fewer questions and a
+larger share of them have the page present. So the cascade is the better design here, and the
+predictive router looks good on capture and bad on what it can actually fix.
+
+### Result (`D98`)
+
+```
+# runnable: uv run python -m rag.route --report
+local pipeline (lab, Round 16, prompt D): 38/91 delivered, 53 failures, 20 of them with the page PRESENT
+
+A  predictive, route 30 lowest max-CE
+   failures caught      20 of 53   bar 27  -> FAIL
+   random routing       median 16, 95th percentile 20, P(>= 20) = 0.057  (exact hypergeometric)
+   caught, page present 3 of 20
+   routed but delivered locally 6, routed unanswerable 4
+
+B  cascade, escalate on refusal
+   escalated            53 of 100
+   answerable, page present 20 of 20   page absent 26
+   unanswerable escalated   7
+   failures never escalated 7  (answered without the page)
+```
+
+**Against the rules:**
+
+| check | result |
+|---|---|
+| A captures ≥ 27 of 53 | **FAIL — 20.** Better than random picking (median 16, P = 0.057), not by enough to route on |
+| A's catches with the page present | **3 of 20.** Random picking would expect ~6. The signal finds the failures a stronger model cannot fix |
+| B's escalations with the page present | **20 of 46 answerable escalations**, and all 20 of the page-present failures |
+
+**My prediction, scored:** *"A passes the capture bar"* — **wrong**. *"Mostly page-absent"* — right
+(17 of 20). *"B escalates fewer questions"* — **wrong**: 53 against A's 30. *"A larger share of B's
+have the page"* — right (43% against 15%). Two of four, recorded as written.
+
+**Found while measuring it: my first random baseline was wrong.** The scratch version re-drew the
+random sample once per failure, which is a binomial (P(≥ 20) = 0.14), not "pick 30 of 100"
+(hypergeometric, P = 0.057). It made a marginal signal look like pure chance, and I had already
+said so in chat before the committed instrument disagreed. The instrument now computes the exact
+distribution instead of simulating it, and a test pins 0.0571.
+
+**What this does NOT measure:** whether a stronger model would answer the 20 page-present
+escalations, and what it would cost. Both are Step 3b, and neither is a number yet.
+
+**Exploration, decides nothing:** within B's 46 answerable escalations, max CE separates
+page-present from page-absent at AUC **0.71** (median 0.92 against 0.67). That is the hypothesis
+Step 3b can pre-register: *escalate a refusal only when its best page looks relevant.*

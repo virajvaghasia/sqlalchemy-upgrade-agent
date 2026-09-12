@@ -30,11 +30,11 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-462 tests collected in 22.84s
+468 tests collected in 22.84s
 ```
 
-**Collected, not passed — and the difference is the point.** `uv run pytest` reports *462 passed*
-with Qdrant up and *457 passed, 5 skipped* without, because five checks skip when no Qdrant
+**Collected, not passed — and the difference is the point.** `uv run pytest` reports *468 passed*
+with Qdrant up and *463 passed, 5 skipped* without, because five checks skip when no Qdrant
 is reachable. A headline number that changes with the environment is not a headline number, so
 the block counts what is collected, which does not move. The CI job that verifies every
 `# runnable` block found this; reading never would have.
@@ -61,6 +61,7 @@ tests/test_judge.py: 51
 tests/test_models.py: 6
 tests/test_probe.py: 18
 tests/test_rerank.py: 6
+tests/test_route.py: 6
 tests/test_score.py: 37
 tests/test_seed.py: 6
 tests/test_textnorm.py: 5

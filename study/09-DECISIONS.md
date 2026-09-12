@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D97`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D98`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3826,6 +3826,71 @@ PR that touches retrieval re-scores the golden set on a CI runner and fails if a
 loses its page from the top five. Removing my reranker costs one point of recall, which is inside
 the noise band, so an average-based gate would pass it; mine names the question it broke. It grades
 retrieval only, because that is the half I measured reproducing across machines.
+
+### D98 — the router is a cascade on refusal, not a predictor on retrieval scores
+
+**Decided 2026-09-12.** Phase 6 Step 3a. Instrument `rag/route.py`, signals
+`deliverables/route-signals-phase6.Darwin-arm64.json`, outcomes the lab's Round 16 `D` rows.
+Reproduce with no model: `uv run python -m rag.route --report` (block in `PHASE-6.md`). Rules and
+prediction written into `PHASE-6.md` before the numbers.
+
+**The question.** Routing sends some questions to a stronger model. It pays only if it sends the
+ones the local pipeline fails, *and* the stronger model can fix them. Our 53 local failures (lab,
+91 answerable, 38 delivered) come in two kinds, and a stronger generator can only fix one:
+
+```
+page ABSENT   33 answerable items   same five wrong pages for any model -> answering means memory (g065)
+page PRESENT  20 of the failures    the local model refused the right page -> plausibly fixable
+```
+
+**Why the join of two machines is allowed:** outcomes are the lab's (`D95`), cross-encoder signals
+were computed on the Mac, and retrieval is identical across the two (`D83`). The instrument checks
+it: **0 page-present flags differ**, and it refuses to print a router result if one does.
+
+**Rejected — A, predictive routing on max cross-encoder score.** Routing the 30 questions whose best
+page scores lowest catches **20 of 53** failures; the pre-registered bar was 27. Exact random
+routing gives median 16, P(≥ 20) = 0.057, so the signal is real and weak. **Worse, it catches 3 of
+the 20 fixable failures**, fewer than random picking (~6): low retrieval scores mark exactly the
+questions where the page is missing, which a stronger model cannot fix. It also routes 6 questions
+the local model already delivered and 4 unanswerable ones.
+
+**Decided — B, cascade: generate locally, escalate on refusal.** It catches **all 20** fixable
+failures, because an over-refusal is by definition a refusal. Its costs, stated with it:
+
+- **It escalates 53 of 100.** 26 of those are page-absent refusals (honest; a stronger model gets the
+  same wrong pages) and 7 are unanswerable items refused correctly, which escalation would put at
+  risk of fabrication.
+- **It never sees 7 failures** that answered without the page, and never sees `D72`'s two
+  fabrications (`g056`, `g065`), because nothing refused.
+- **Every escalated question pays two generations**, one of them free and local.
+
+**Found measuring it — the random baseline I first quoted was a binomial.** A scratch script drew a
+fresh sample per failure (P(≥ 20) = 0.14); the committed instrument drew 30 of 100 and disagreed
+(0.06); exact hypergeometric settles it at **0.0571**, and a test pins it. I had already told Viraj
+"indistinguishable from chance"; the correct reading is "marginal, and fails the bar".
+
+**Mutation-checked, six mutations against `rag/route.py`: five caught.** The sixth (counting
+unanswerable escalations as page-present) is **equivalent**: an unanswerable item has no answer
+chunks, so its page-present flag is always false and no input can tell the two versions apart.
+Recorded as equivalent rather than tested against an impossible row.
+
+**Prediction scored 2 of 4** (`PHASE-6.md`): A passing — wrong; A mostly page-absent — right; B
+escalating fewer — wrong; B's larger page-present share — right.
+
+**Not measured, and the reason this is 3a not 3:** whether a stronger model answers the 20, and at
+what price. Zero paid calls stands; a free tier was measured at 20 calls a day per model (`D80`),
+which is enough for 20 escalations once. The shadow cost needs published per-token rates with a
+date and a source, not a remembered number.
+
+**Next hypothesis, from exploration and so not a decision:** max CE separates page-present from
+page-absent *among the escalations* at AUC 0.71. *Escalate a refusal only when its best page looks
+relevant* would cut escalations toward the fixable 20. Pre-register it before measuring.
+
+**Interview question it answers:** *"How does your router decide what goes to the expensive model?"*
+It does not predict. I tested predicting from retrieval scores and it mostly flagged questions whose
+answer page was missing, which no stronger model can fix from the same pages. So the router is a
+cascade: the free local model answers first, and only a refusal is escalated, which catches every
+case where the page was there and the small model declined it.
 ---
 
 ## Where the rest of the repo lives
