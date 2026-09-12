@@ -205,7 +205,41 @@ ever asked**, and it is Step 3's subject rather than a loop defect: every failur
 
 **Done when:** a deliberately injected tool failure is recovered visibly, and the injected-failure
 drill is in the doc — the same shape as the `.dockerignore` break in `study/04-DOCKER.md` §3 and
-the deliberately failing CI PR of Days 8–9. — **met in tests; the drill on a live model is Step 3.**
+the deliberately failing CI PR of Days 8–9. — **MET, live, 2026-09-11.**
+
+#### The drill — `check_api` made to time out on its first call
+
+```
+  [1] check_api('MetaData.bind') FAILED: TimeoutError: timed out after 120s
+  [2] refused prose before any tool ran
+  [3] search_docs('MetaData.bind removed in SQLAlchemy 2.0')
+
+  tool_error  check_api('MetaData.bind')  ERROR: TimeoutError: timed out after 120s
+  forced
+  tool        search_docs('MetaData.bind removed in SQLAlchemy 2.0')
+  answer
+
+stopped: answered   steps: 4
+answer : To replace the `MetaData.bind` functionality in SQLAlchemy 2.0, you should
+         directly associate the `Engine` with the `sessionmaker` or `Session`...
+```
+
+**Three recovery behaviours fired in one run, and none of them is the same behaviour.**
+
+1. **The tool raised and the loop did not.** The timeout became a `tool_error` row and was **shown
+   to the model in words** — `D75`'s rule, and the reason it is shown rather than silently retried
+   is that a model which cannot see the error cannot route around it.
+2. **The model then tried to answer from memory, and was refused.** That is E2 doing exactly what
+   it was built for, on the one occasion where giving up would have looked most reasonable.
+3. **It reached for the other tool**, unprompted — `search_docs` rather than retrying the one that
+   had just failed — and answered correctly from the page it found.
+
+> **The failure path is not decoration and this is the evidence.** The question was answered
+> *because* the loop refused two different kinds of giving up, twenty seconds apart.
+
+**Worth stating plainly: nothing here was tuned for the drill.** The injected failure is a
+one-line wrapper around `_default_tools`; the loop, the prompts and the levers are the ones
+measured above.
 
 ---
 
