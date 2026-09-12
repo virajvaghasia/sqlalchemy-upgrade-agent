@@ -464,6 +464,43 @@ no system-prompt change, no new tool.
 disagreeing across machines on half the items and `D90` watched E1's direction invert. Round 19
 now leads with this.
 
+#### Round 19 — the lab agreed, and one rule got sharper (`D92`)
+
+**E4 reproduced to the item.** Plain chains **0 of 10** on both machines, nudged chains **7 of 10**
+on both, paired `7↑ 0↓, p = 0.0156` on both — **and it agrees question by question, 10 of 10.**
+The honest denominator is **7 of 9 eligible**: one question went to `search_docs` first on both
+boxes, so `check_api` never returned NOT FOUND and the nudge could not fire.
+
+**So the stopping-failure finding holds on two machines.** It is the first thing in this phase to
+move the number nothing had moved.
+
+**`D89` needed a distinction, not a retraction:**
+
+| decision | agreement across machines |
+|---|---|
+| *is this how-to question worth a lookup?* | **10 of 20** |
+| *the symbol is gone — is the question also asking what replaces it?* | **10 of 10** |
+
+> **Ambiguous decisions diverge across machines. Unambiguous ones do not.**
+
+**The design consequence is the useful part: remove ambiguity rather than add instruction.** The
+nudge works because it turns *"is there more to do?"* into a question with one answer, and
+`SYSTEM_MUSTCALL` works because *"you MUST"* has no judgement in it where *"you may"* does.
+
+**And the hundred-item score moved:**
+
+| lab, 100 items | old prompt | `SYSTEM_MUSTCALL` |
+|---|---|---|
+| end to end | 2/91 = **0.02** | **17/91 = 0.19** |
+| no tool call | 96 | **53** |
+| two or more | 0 | **0** |
+| fabricated | 5 | **3** |
+
+**Nine times the score and still well under the one-shot `0.42`.** And **53 of 100 still call no
+tool** under a prompt that orders them to — forcing in code reaches what asking does not (lab n=20:
+**8 → 0**). **The full 100 under forcing is the next measurement and is not yet taken on either
+machine.**
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it

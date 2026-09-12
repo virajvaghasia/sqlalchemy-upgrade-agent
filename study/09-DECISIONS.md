@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D91`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D92`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3360,6 +3360,80 @@ triggered the condition, and two identical result rows are what tipped me off. W
 was wrong: one sentence, fired only after the tool that settles half the question, took chaining
 from 0 to 7 of 10. **The finding is that it stops, not that it cannot continue — and I would not
 have got there by tuning the prompt I started with.**
+
+### D92 — the nudge reproduces exactly, and `D89` needs a distinction rather than a retraction
+
+**Round 19, lab 3060, 2026-09-11.** Three results, and the first one is the phase's.
+
+#### The nudge reproduced to the item
+
+| E4, two-part questions, n=10 | Mac | lab |
+|---|---|---|
+| plain — chained | **0** | **0** |
+| nudged — chained | **7** | **7** |
+| paired | **7↑ 0↓, p = 0.0156** | **7↑ 0↓, p = 0.0156** |
+| `check_api` chosen first | 9 | 9 |
+
+**And it agrees question by question: 10 of 10.** The same seven chained, the same three did not,
+on both boxes.
+
+**The honest denominator is `7 of 9`, not 7 of 10.** One question — *"Was connectionless execution
+removed…"* — went to `search_docs` first on both machines, so `check_api` never returned NOT FOUND
+and **the nudge could not fire**. Of the nine where it could, seven chained. Leaving that
+unsaid would inflate the result with an item the experiment never reached, which is precisely how
+E4's first attempt failed (`D91`).
+
+**So `D91` is confirmed rather than screened: the single-tool ceiling is a STOPPING failure.** It
+holds on two machines, and it is the first thing in Phase 5 to move the number nothing had moved.
+
+#### `D89` is not wrong; it was missing a distinction
+
+`D89` measured whether a tool gets called disagreeing across machines **on half the items**. Here
+the machines agree **10 of 10** — on a different decision.
+
+| decision | agreement across machines |
+|---|---|
+| *"is this how-to question worth a lookup?"* (`D89`) | **10 of 20 — coin-flip** |
+| *"this symbol is gone; is the question also asking what replaces it?"* (`D92`) | **10 of 10** |
+
+> **Ambiguous decisions diverge across machines. Unambiguous ones do not.**
+
+That is a better rule than either measurement alone, and it explains the whole run of them:
+retrieval is deterministic and reproduces exactly (`D83`); the answer/refuse decision is bit-stable
+on the lab and drifts two-in-seven on the Mac (`D84`); tool-choice on how-to questions is a
+coin-flip (`D89`); chaining on a question explicitly built to have two parts is identical (`D92`).
+**The gradient is how much the decision was ever in doubt.**
+
+**The practical consequence, and it is not academic:** an agent design should **remove ambiguity
+rather than add instruction**. The nudge works because it converts *"is there more to do?"* into a
+question with one answer. `SYSTEM_MUSTCALL` works for the same reason — *"you MUST call a tool"*
+has no judgement in it, where *"you may"* does.
+
+#### The prompt took the hundred-item score from `0.02` to `0.19`
+
+| lab, 100 golden items | old prompt (Round 17) | `SYSTEM_MUSTCALL` (Round 19) |
+|---|---|---|
+| end to end | 2/91 = **0.02** | **17/91 = 0.19** |
+| no tool call | 96 | **53** |
+| one tool | 4 | **47** |
+| two or more | 0 | **0** |
+| fabricated | 5 | **3** |
+
+**Nine times the score, and still less than half the one-shot pipeline's `0.42`.** `D90` is
+vindicated as a default and is nowhere near a solution.
+
+**And `53 of 100` still call no tool** under a prompt that orders them to. Forcing in code reaches
+what asking does not — at n=20 on the lab it took no-tool-call **8 → 0**, where on the Mac it was
+only 2 → 1 because the prompt had already done the work there. **The full-100 run with forcing is
+the obvious next measurement** and is not yet taken on either machine.
+
+**Interview question it answers:** *"You found two machines disagreeing. Did that invalidate your
+results?"* It invalidated one and sharpened the rest. The disagreement is on decisions that were
+genuinely ambiguous — is this question worth a lookup — and vanishes on decisions that are not:
+ten out of ten agreement on whether to take a second step once the first is known to be partial.
+**So I stopped treating cross-machine agreement as a property of the system and started treating it
+as a property of the question**, which also told me what to build: remove the ambiguity rather than
+argue with it in a prompt.
 
 ---
 

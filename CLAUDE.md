@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D91`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D92`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 434 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 436 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,7 +379,24 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**ROUND 19 IS OPEN AND IT LEADS WITH `D91`, the best result in Phase 5 so far.** The agent had
+**ROUND 19 CLOSED (`D92`), and the nudge reproduced to the item.** E4 on the lab: plain chains
+**0 of 10**, nudged **7 of 10**, `p = 0.0156` — **identical to the Mac, and agreeing question by
+question 10 of 10.** Honest denominator is **7 of 9 eligible** (one question never reached the
+nudge condition). **So the single-tool ceiling is a STOPPING failure, confirmed on two machines.**
+
+**`D89` gained a distinction rather than a retraction:** *is this how-to question worth a lookup?*
+agrees **10/20** across machines; *the symbol is gone, is the question also asking what replaces
+it?* agrees **10/10**. **Ambiguous decisions diverge across machines; unambiguous ones do not** —
+which explains every reproducibility result here in order, and says the design move is to **remove
+ambiguity, not add instruction**.
+
+**The prompt moved the hundred-item score `0.02 → 0.19`** on the lab (no-tool 96 → 53, fabricated
+5 → 3) — nine times, and still well under the one-shot **0.42**. **53 of 100 still call no tool**
+under a prompt that orders them to; forcing in code took no-tool **8 → 0** at n=20 on the lab.
+**The full 100 under forcing is the next measurement and is taken on neither machine yet** — it is
+running on the Mac now.
+
+**(superseded) Round 19's brief, which led with `D91`:** The agent had
 chained tools **once in 80 runs**; nothing moved it. Measured on the Mac: one sentence appended to
 a tool result **only** when `check_api` returns NOT FOUND takes chaining **0 → 7 of 10** on
 two-part questions, paired, **p = 0.0156**. **So the single-tool ceiling is a STOPPING failure, not
@@ -470,7 +487,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**434 tests**, **58/58** `# runnable`, **91** decisions, **§H empty**.
+**436 tests**, **58/58** `# runnable`, **92** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -516,7 +533,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 434 passed with Qdrant up; 429 + 5 skipped without
+uv run pytest                            # 436 passed with Qdrant up; 431 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

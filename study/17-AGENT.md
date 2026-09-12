@@ -220,7 +220,7 @@ real sources to point at.
 
 ---
 
-## R9.6 — The finding nobody was looking for: tool calls do not reproduce across machines
+## R9.6 — Tool calls do not reproduce across machines — until you look closer
 
 While checking the prompt, the same 20 items were run with the **same shipped prompt** on both
 boxes, at temperature 0:
@@ -242,6 +242,29 @@ reproducing.**
 **Why it matters more than it sounds.** It means `96/100` is *the lab's number*, not the system's.
 And it put my own prompt fix in exactly the position prompt `H` was in: a strong result on one
 machine, with the other one unmeasured. Which is why Round 18 existed at all.
+
+### The rule that came out of it, once a second measurement existed
+
+The nudge experiment in R9.7 agrees across machines on **10 of 10** questions. The same two boxes,
+the same model, the same day. So *"tool calls don't reproduce"* is too blunt. Put the two side by
+side:
+
+| the decision | agreement across machines |
+|---|---|
+| *is this how-to question worth a lookup at all?* | **10 of 20** — a coin flip |
+| *the symbol is gone; is the question also asking what replaces it?* | **10 of 10** |
+
+> **Ambiguous decisions diverge across machines. Unambiguous ones do not.**
+
+That single rule explains every reproducibility result in this project, in order: retrieval is
+arithmetic and reproduces exactly; answer-or-refuse is mostly settled and drifts a little; *is this
+worth a lookup* is a genuine judgement call and lands on a coin flip; *is half an answer the whole
+answer* has one right answer and lands identically twice.
+
+**And it tells you what to build.** Not a firmer instruction — **less ambiguity**. The nudge works
+because it turns *"is there more to do?"* into a question with one answer. The must-call prompt
+works for the same reason: *"you MUST call a tool"* contains no judgement, where *"you may"* is an
+invitation to decide.
 
 ---
 
@@ -295,9 +318,17 @@ nudged            0     3     7
 > **It stops. It cannot not-continue.** The ceiling that nothing had moved in eighty runs came
 > down to one sentence, fired at the one moment the model has half an answer and does not know it.
 
+**The lab then saw the same thing — and not merely the same summary.** Plain 0 of 10, nudged 7 of
+10, `p = 0.0156`, on both boxes, **agreeing question by question, ten out of ten.** The same seven
+chained and the same three did not.
+
+**And the honest denominator is 7 of 9.** One question went to the docs first on both machines, so
+the API check never returned NOT FOUND and the nudge could not fire at all. Counting it in the
+denominator would inflate the result with an item the experiment never reached — which is exactly
+how the first version of this experiment fooled me.
+
 **What that is NOT.** Not "the agent chains now". It chains on questions *built* to need two steps,
-when *told* the first was partial, on *one machine*, ten times. It says nothing about three steps,
-and `D89` is the reason the lab has to see it before any of this is a claim.
+when *told* the first was partial. It says nothing about three steps.
 
 **The honest part I would say in an interview:** I wrote down which explanation I expected — the
 planning one — before running it, and I was wrong.
