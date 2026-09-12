@@ -44,7 +44,7 @@ Ollama **0.32.9**, generator **100% GPU**. Artifact:
 
 | round | state |
 |---|---|
-| **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); ids overlap but do **not** match; **not shippable** |
+| **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
 | **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** (retracted as comparison, `D93`) |
 | **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
@@ -84,6 +84,29 @@ gain not bought with them** (pre-written rule passes). **Page-absent rise matche
 
 **Against the pre-written id table:** still **not** “same six / same `g043`.” Counts move; sets
 only partially agree — **not shippable**. Shipped prompt stays as it is on this evidence.
+
+### MAC READ of Round 21 (2026-09-12) — agrees, and the ids say a little more → `D96`
+
+**The lab's control is exact:** its arm A's 20 over-refused ids are **the same 20 as Round 16's `D`**,
+two days apart (60 of 100 answers byte-identical — decision stable, wording not, `D84`). Lab A and
+Mac A differ by one item, `g029`.
+
+```
+                       both machines              Mac only        lab only
+page present  fixed    g021 g049 g050 g100        g008 g116       g029
+page present  broken   g043                       --              g019
+page absent   extra    g005 g016 g113 g114        g028 g085       --
+```
+
+- **Every Mac-only extra stays refused under B on the lab**: the Mac's B is more willing, same
+  direction. `g029` is lab-only because the lab's *arm A* refused it.
+- **Reproducible core: 4↑ 1↓, p = 0.375** on page-present, plus 4 page-absent extras. Mac judge
+  (screen): shared fixes `g021 g049` SUPPORTED, `g050 g100` PARTIAL; the lost `g043` was SUPPORTED;
+  3 of 4 shared page-absent extras UNSUPPORTED.
+- **Lab citations get worse under B**: uncited **33% → 44%** (Round 16's D re-derived the same way
+  reads 40%). Mac 67% → 68%.
+
+**Decision `D96`: the shipped prompt stays. Nothing is open on the lab.**
 
 ### LAB RESULT — Round 20 (kept)
 

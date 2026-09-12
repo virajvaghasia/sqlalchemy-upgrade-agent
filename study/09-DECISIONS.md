@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D95`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D96`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3638,6 +3638,99 @@ would have converted five findings about the *scope* of my results into five unq
 and the one I most wanted to be true is the one the second machine killed. **The cost of two
 machines is that half my numbers come with a caveat. That is not a cost, it is the caveat being
 visible instead of absent.**
+
+### D96 — the prompt's SHAPE is not shipped: what reproduces is a willingness shift, not better reading
+
+**Decided 2026-09-12**, on Round 21 (lab) against the Mac screen, both machines, 100 items each.
+Instrument: `rag/framing.py`. Rows: `deliverables/framing-phase6.{Darwin-arm64,Linux-x86_64}.json`.
+Reproduce either table with `uv run python -m rag.framing --report` on that machine.
+
+**The question.** The shipped pipeline refuses **19–20** times with the answer page in the prompt
+(`D72`); the Phase 5 agent refuses 6 (Mac) and 0 (lab). Phase 4's five wordings could not move
+those (`D74`). The only structural difference is how the pages arrive:
+
+```
+arm A (shipped)        system | user: SOURCES [1]..[5] --- QUESTION --- ANSWER:
+arm B (agent's shape)  system | user: QUESTION
+                              | assistant: "Let me look that up in the SQLAlchemy documentation."   <- written, not generated
+                              | user: SOURCES [1]..[5] --- QUESTION --- ANSWER:
+```
+
+Same system prompt, same five passages, same numbering, one model call each. **No tools, no loop.**
+
+**What was measured, both machines:**
+
+```
+                       Mac (screen)                     lab (rules)
+page present           A 19 over-refused -> B 14         A 20 -> B 17
+                       6 fixed 1 broken  p = 0.125        5 fixed 2 broken  p = 0.453
+page absent answered   A 7 -> B 12                        A 7 -> B 11
+unanswerable fabr      2 -> 2 (g056 g065)                 2 -> 2 (g056 g065)
+uncited (answered)     67% -> 68%                         33% -> 44%
+```
+
+The lab's uncited figures are `judge.citations` over answered answerable rows. Its arm A and Round
+16's `D` refuse the **same 20 items** yet only **60 of 100 answers are byte-identical**, so Round
+16 re-derived the same way reads **18/45 = 40%**: the decision is stable and the wording is not
+(`D84`). **B's 44% is above both.** On neither machine does B cite more; on the lab it cites less.
+
+**The controls held to the item, which is why the rest can be read at all.** Mac arm A: `D72`'s
+19 and `D74`'s 31/46 uncited exactly. Lab arm A: **the same 20 over-refused ids as Round 16's `D`,
+two days apart.** The two arm As differ by one item, `g029` — the item `D54` already named as
+drifting.
+
+**Read by id, the part that reproduces is smaller than either machine's count:**
+
+```
+                       both machines              Mac only        lab only
+page present  fixed    g021 g049 g050 g100        g008 g116       g029
+page present  broken   g043                       --              g019
+page absent   broken   g005 g016 g113 g114        g028 g085       --
+```
+
+Every Mac-only extra (`g008 g116 g028 g085`) stays refused under B on the lab. **The Mac's B is
+more willing than the lab's B — and the direction is the same on both.** `g029` is lab-only because
+the lab's *arm A* refused it, not because B did anything different.
+
+**Why this is a willingness shift and not a reading improvement.** When the page is absent,
+declining is the honest outcome (`D72`'s split). B answers **4 such items on both machines** that
+A declined. A prompt that helped the model read its pages would move the page-present row and leave
+that one alone. It moved both, in the "answer more" direction.
+
+**And the reproducible fixes are not clean** (Mac judge, `gemma4:e4b`, a screen — `D86` measured it
+too extreme both ways): of the four shared fixes, `g021` and `g049` are `SUPPORTED`, `g050` and
+`g100` `PARTIAL`. The shared break `g043` was a **`SUPPORTED`** answer. Of the four shared
+page-absent extras, **three are `UNSUPPORTED`** (`g016 g113 g114`). Three of B's six Mac fixes cite
+nothing.
+
+**Against the rules written before the data (Round 21):**
+
+| rule | result |
+|---|---|
+| same six fixed, same `g043` → real and specific | **no** — 4 of 6 shared, plus a second break on the lab |
+| fewer fixes, more breaks → reject | **yes** — lab 5↑ 2↓ against the Mac's 6↑ 1↓ |
+| B fabricates more → not shippable | no — 2 = 2, same ids, both machines |
+| page-absent rises like the page-present gain → willingness; fixes need a quality reading | **yes**, both machines |
+| judge: 4 of 6 fixes `SUPPORTED` → mixed, no conclusion | Mac only, recorded as mixed |
+
+**Decided: the shipped prompt stays as it is.** `ask.build_prompt` is untouched and `D72`'s 19–20
+stand. `rag/framing.py` stays as the instrument.
+
+**Rejected — ship B because both machines moved the page-present row the right way.** Two p-values
+of 0.125 and 0.453 do not add up to one below 0.05, the reproducible core is 4↑ 1↓ (p = 0.375), and
+Round 14's rule — one regression is a hold — is broken on both machines by the same item.
+
+**What it does say about Phase 5.** The agent's low over-refusal count (6 / 0) is **not explained by
+the conversation shape alone**: replaying the shape with no tool gives a smaller, noisier move that
+brings unsupported answers with it. Whatever the agent does differently — choosing its own query,
+deciding to look, or seeing a result it asked for — is the remaining suspect, and it is untested.
+
+**Interview question it answers:** *"Your agent refused far less than your pipeline — why not just
+copy its prompt structure into the pipeline?"* I tried exactly that, with no tools, and the part that
+reproduced across two machines was four fixes, one lost good answer, and four new answers where the
+page was missing — three of them unsupported. **The prompt made the model more willing to answer,
+not better at using the page, and I only saw that because I counted the items where refusing was the
+right thing to do.**
 
 ---
 

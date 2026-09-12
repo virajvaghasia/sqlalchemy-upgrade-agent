@@ -51,7 +51,7 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D95`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D96`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -379,18 +379,19 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**PHASE 6 STARTED — ROUND 21 IS OPEN ON THE LAB, and it is the only open item.** `rag/framing.py`
-asks whether the SHAPE of the prompt moves `D72`'s 19 over-refusals: arm A is the shipped prompt,
-arm B the agent's conversation shape with no tools and one call. **Mac screen (`D95`), both arms,
-one sitting:** page-present over-refusals **19 → 14**, fixed `g008 g021 g049 g050 g100 g116`,
-broken `g043`, **p = 0.125** — does NOT clear `D61`, and one regression is a hold (Round 14's rule).
-Arm A reproduced `D72`'s **19 of 58** and `D74`'s **67% uncited** exactly, so the control is sound.
-**Found reading the rows, 2026-09-12:** the page-ABSENT items flip the same way — B answers **6**
-that A honestly declined — so B is **more willing**, not a better reader. Fabrications on the 9
-unanswerable items: **2 and 2, same ids**. Citations: **67% vs 68% uncited** — B is half of prompt
-`H` (refusals move, citations do not). The rules for all of that were written into Round 21 before
-the unanswerable items and the judge ran; `rag.framing --report` prints every row. **Read the lab's
-ids, not its counts.** Open question for Viraj: cut `phase-6/…` or keep sharing `phase-5/agent`.
+**PHASE 6: ROUND 21 CLOSED (`D96`), THE SHIPPED PROMPT STAYS. Nothing is open on the lab.**
+`rag/framing.py` asked whether the SHAPE of the prompt moves `D72`'s over-refusals: arm A is the
+shipped prompt, arm B the agent's conversation shape with no tools and one call. **Both machines:**
+page-present over-refusals Mac **19 → 14** (6↑ 1↓, p = 0.125), lab **20 → 17** (5↑ 2↓, p = 0.453).
+**Controls exact:** Mac A = `D72`'s 19 and `D74`'s 67% uncited; lab A = Round 16's same 20 ids.
+**Read by id, the reproducible core is 4↑ 1↓** (`g021 g049 g050 g100` fixed, `g043` broken on
+both), and B also answers **4 page-ABSENT items on both machines** that A honestly declined
+(`g005 g016 g113 g114`), 3 of them UNSUPPORTED (Mac judge). **So it is a willingness shift, not
+better reading.** Fabrications 2 = 2, same ids; citations flat (Mac) or worse (lab, 33% → 44%).
+The agent's low refusals are **not** explained by the shape alone; its own query and its own
+decision to look are the untested remainder. Taught in `study/17-AGENT.md` §R9.7d.
+**Open question for Viraj:** cut `phase-6/…` or keep sharing `phase-5/agent`. **Next per ROADMAP:**
+CI gating on the golden set, then routing with shadow cost, then deploy, then Langfuse last.
 
 **⚠️ `D93`: THE AGENT WAS READING HALF OF EVERY PAGE.** `agent._observation` truncated each
 retrieved passage to `[:600]`; the median chunk is **1299** chars and **2755 of 3284** exceed 600,
@@ -564,7 +565,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**449 tests**, **58/58** `# runnable`, **95** decisions, **§H empty**.
+**449 tests**, **58/58** `# runnable`, **96** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50

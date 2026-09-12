@@ -624,6 +624,99 @@ reproduced; the level did not. One-shot still wins as the portable system.”
 
 ---
 
+## R9.7d — Was it just the shape of the conversation? (`D96`)
+
+**Plain job.** The agent refused far less than the pipeline when the right page was in front of it
+(6 on the Mac, 0 on the lab, against the pipeline's 19–20). Before crediting the tools, check the
+cheaper explanation: maybe it is only *how the pages arrive*.
+
+### The two prompts, side by side
+
+Same model, same system prompt, same five pages, same `[1]`…`[5]` numbering. One call each.
+
+```
+arm A — what ships                      arm B — the agent's shape, no tools
+--------------------------------        --------------------------------------------------
+system: SYSTEM                          system: SYSTEM
+user:   SOURCES [1]..[5]                user:   QUESTION: row.keys() AttributeError ...
+        ---                             assistant: Let me look that up in the SQLAlchemy
+        QUESTION: ...                              documentation.        <- we wrote this line
+        ANSWER:                         user:   SOURCES [1]..[5] --- QUESTION --- ANSWER:
+```
+
+**What did NOT happen in arm B.** No tool was called. The model did not choose a query, did not
+decide to look anything up, and did not generate that assistant line. We typed it. It is the agent's
+conversation with every agent-like part removed. `rag/framing.py`, `as_conversation`.
+
+### The count that looked like a win
+
+```
+                 page present   over-refused
+arm A                      58             19      <- D72's number, to the item: the control works
+arm B                      58             14      Mac: 6 fixed, 1 broken, p = 0.125
+```
+
+Five fewer refusals with the page in hand. That is the number Phase 4 could not move with five
+wordings (`D74`).
+
+### The row nobody had printed
+
+"Over-refused" only looks at items **where the answer page was in the prompt**. When the page was
+**not** there, refusing is the honest outcome, so a prompt that answers *more* there is not
+improving. It is guessing more.
+
+```
+                         page present: answered more   page ABSENT: answered more
+Mac, B vs A              6   (g008 g021 g049 g050 ...)   6   (g005 g016 g028 g085 g113 g114)
+lab, B vs A              5   (g021 g029 g049 g050 g100)  4   (g005 g016 g113 g114)
+```
+
+**Same shift on both sides of the line.** That is what "more willing to answer" looks like. A
+prompt that helped the model *read* would move the left column and leave the right one alone.
+
+Take `g114`: *"Why am I getting 'Class sqlalchemy.engine.row.Row is not mapped'…"*. The page that
+answers it was not retrieved. Arm A said *"The sources do not answer this."*, which is correct.
+Arm B answered anyway on **both** machines. On the Mac the answer had two code blocks and no
+citation, and the judge found it `UNSUPPORTED`. On the lab it had one code block citing `[3]`,
+which is a page that does not hold the answer (the lab's answer was not judged).
+
+### Read the ids, not the counts
+
+```
+                       both machines              Mac only     lab only
+page present  fixed    g021 g049 g050 g100        g008 g116    g029
+page present  broken   g043                       --           g019
+page absent   extra    g005 g016 g113 g114        g028 g085    --
+```
+
+- **What reproduces is four fixes and one break**, not six and one. `g008` and `g116` were Mac
+  extras. On the lab, B still refused them.
+- **`g043` is a real loss.** Arm A answered it (*"select() no longer accepts keyword arguments…"*),
+  and the judge read that answer as `SUPPORTED`. Arm B refused it on both machines.
+- **Of the four shared fixes, two are `SUPPORTED`** (`g021 g049`) **and two `PARTIAL`** (`g050
+  g100`). Three of the four shared page-absent extras are `UNSUPPORTED`. (Mac judge, a screen.)
+- **Fabrications did not move:** `g056` and `g065`, both arms, both machines.
+- **Citations did not improve:** uncited 67% → 68% on the Mac, 33% → 44% on the lab.
+
+### What it is, and what it is not
+
+- It **is** a measured rejection. The shipped prompt stays; `D72`'s 19–20 stand.
+- It is **not** "framing does nothing". Framing moved refusals in both directions, and the part
+  that moved is mostly willingness.
+- It is **not** an explanation of the agent's low refusals. With the tools removed, the shape
+  alone gave a small, noisy move that came with unsupported answers. What the agent does
+  differently (its own query, its own decision to look) is still the suspect, and it is untested.
+
+**Say this:** “I copied the agent's conversation shape into the pipeline with no tools. Refusals
+with the page present fell on both machines, but the items answered *without* the page rose just as
+much. Read by id, what reproduced was four fixes against one lost good answer and four new unsupported
+guesses, so I didn't ship it.”
+
+**Do not say:** “Conversation framing cuts over-refusals by a quarter.” That is one machine's count
+of one row. The second machine and the second row both disagree.
+
+---
+
 ## R9.8 — Say this out loud
 
 **Plain job.** Five spoken claims + the follow-ups that kill soft answers.
