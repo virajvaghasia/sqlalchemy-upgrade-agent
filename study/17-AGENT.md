@@ -2,89 +2,216 @@
 
 Phase 5's sitting. The measured plan is [`../phases/PHASE-5.md`](../phases/PHASE-5.md); this file
 is the read. Continues the `R` run after [`16-JUDGE.md`](16-JUDGE.md) (§R8) — one run across all
-of it, `R` for RAG, not Retrieval (`D47`).
+of it, `R` for RAG, not Retrieval (`D47`). Decisions: **`D87`–`D95`**.
 
 **Read this before the plan.** The plan says what was run. This says what any of it means.
 
 ---
 
+## Stop — three kinds of “number” in this file
+
+This file mixes three naming systems. They are not the same thing. Read this once or every
+heading will feel like a score.
+
+### 1. Section labels like `R9.4` — chapter headings, not scores
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§R9`** | This whole file. `R` = RAG teaching series. `9` = ninth sitting after §R1…§R8. | A grade out of 9 |
+| **`R9.0` … `R9.8`** | Subsections *inside* this file (like §R8.1 in `16-JUDGE.md`) | Metrics, versions, or priorities |
+| **`R9.7b`, `R9.7c`** | Extra subsections that grew under R9.7 (bug story, then landing) | Separate phases |
+| **`D87`, `D95`…** | Decision IDs in [`09-DECISIONS.md`](09-DECISIONS.md) | Section numbers |
+| **File `17-…`** | Reading-order filename (`01`…`17`) | Related to §R9’s digit |
+
+So **`R9.4` means “section 4 of the Phase 5 study notes.”** Not “score 9.4,” not “SQLAlchemy 9.4.”
+
+### 2. Scores like `0.02` and `0.42` — measured rates
+
+| Number | Plain meaning | Where it lives |
+|---|---|---|
+| **`0.42` / `0.43`** | One-shot RAG (Phase 4): right page in the prompt **and** the model answered | Lab / Mac |
+| **`0.02`** | Same *definition* of end-to-end for the **agent** on the lab’s first full run — almost always zero because the agent skipped search | R9.5 |
+| **`96/100`**, **`4/100`** | How often the agent called a tool (or didn’t) | R9.5 |
+| **`0.25` → `0.43`** | Agent after the `[:600]` truncation bug was fixed (Mac) | R9.7b |
+| **`0.47`** | Agent with force+nudge levers (Mac screen — lab did **not** match the level) | R9.7c |
+
+When a title says *“the result: `0.02`”*, that **`0.02` is a score**. The **`R9.5`** in front is
+only the heading.
+
+### 3. Map of this file
+
+| Section | One sentence | Read when |
+|---|---|---|
+| **R9.0** | Interview skim list | Starting cold |
+| **R9.1** | Before: one lookup always. Now: the model chooses when to look up. | First |
+| **R9.2** | A “tool” = Python function + description. Model writes JSON; our code runs it. | First |
+| **R9.3** | Three tools; `check_api` is the `g065` / `op.create_view` check offered *before* writing. | First |
+| **R9.4** | Why we cannot `import` 2.0 from this 1.4 env — reuses an *old spawn trick*, not the breakages runner. | Before tools code |
+| **R9.5** | Lab score `0.02` — and why “20× worse than 0.42” is the wrong story. | Core result |
+| **R9.6** | Same prompt, Mac vs lab: call-a-tool-or-not flipped on half the items. | Reproducibility |
+| **R9.7** | Almost never chains two tools — until a NOT FOUND nudge; then 7/10 on two-part questions. | Agency limit |
+| **R9.7b** | Our own `[:600]` truncation made the agent look worse than it was. | The bug story |
+| **R9.7c** | Where Phase 5 landed; lab withdrew the Mac headline; drill. | Closing |
+| **R9.8** | What to say out loud in an interview. | Before interviews |
+
+**If you have ten minutes:** R9.2 → R9.5 → R9.7b → R9.8.
+
+---
+
 ## R9.0 — Where to start
 
-If you have ten minutes before an interview, read **R9.2** (what an agent actually is here),
-**R9.5** (the 0.02, and why the number is not the finding) and **R9.8** (the three things to say
-out loud). Everything else is evidence for those.
+**Plain job.** Point you at the three sections that carry the interview, so you do not drown in
+R9.7c’s tables on day one.
+
+**Say this:** “Phase 5 measured a tool-using loop on the same 7B model. The headline is not a
+score — it is what the model would and would not do with tools.”
+
+**Do not say:** “We built an agent and it got 2%.” (That sentence is how R9.5 starts, and R9.5
+exists to kill it.)
 
 ---
 
-## R9.1 — What changed, in one sentence with no jargon in it
+## R9.1 — What changed (and what did not)
 
-Up to Phase 4 the system did one thing: you asked a question, it looked in the docs **once**, and
-it wrote an answer.
+**Plain job.** Name the upgrade in one breath, then name three things people will wrongly assume
+moved.
 
-Now it can **decide for itself** what to look up, look, read what came back, and decide again.
+**Picture — before (Phases 1–4):**
 
-That is the whole difference, and it is worth being blunt about what did *not* change:
+```
+  Question  →  retrieve top-5 once (code always does this)  →  one LLM answer
+```
 
-- **You did not train anything.** Same model file, same weights, same `qwen2.5-coder:7b`.
-- **The corpus did not change.** Same 3284 chunks, same Qdrant collection.
-- **Retrieval did not change.** The agent calls `index.retrieve` — the exact function Phase 2
-  graded and Phase 3 improved. Not a copy of it.
+**Picture — now (Phase 5 agent):**
 
-**What changed is who decides.** Before, the code decided: *every* question got exactly one
-lookup, always, whether it needed one or not. Now the model decides. That is the entire upgrade,
-and R9.5 is about what it did with the freedom.
+```
+  Question  →  LLM may write {"name":"search_docs",...}
+            →  our code runs the tool, pastes the result back
+            →  LLM may call another tool, or write the final answer
+            →  …until it stops or hits a step budget
+```
+
+**What did NOT change:**
+
+| Claim people make | Reality |
+|---|---|
+| “You fine-tuned the model for tools” | **No.** Same `qwen2.5-coder:7b` weights. |
+| “You rebuilt search for the agent” | **No.** `search_docs` calls `index.retrieve` — the same function Phase 2 graded and Phase 3 improved. |
+| “The corpus grew” | **No.** Same 3284 chunks, same Qdrant collection. |
+
+**What DID change:** **who decides whether to look up.** Before, the code always retrieved once.
+Now the model chooses. That freedom is the whole experiment — and R9.5 is what it did with it.
+
+**Named example of “who decides.”** Under the first agent prompt (*“You may call tools”*), the
+lab called a tool on **4 of 100** questions. Same model, forced probe (*“Call exactly one… Do not
+answer from memory”*) got **100 of 100**. The lookup machinery was fine; the *decision* to use it
+was not.
+
+**Say this:** “We did not train anything. We changed who chooses the lookup — from hard-coded
+once to the model.”
+
+**Do not say:** “We added an agent layer so retrieval got smarter.” (Retrieval is identical.)
 
 ---
 
-## R9.2 — A "tool" is a Python function and a paragraph describing it
+## R9.2 — What a “tool” actually is
 
-There is no magic here and the word makes it sound like there is.
+**Plain job.** Kill the idea that the model “runs code.” A tool is boring on purpose.
 
-A tool is two things:
+**Picture:**
 
-**One — a normal function.** `rag/tools.py` has three. `check_api("Query.from_self")` returns
-`{"exists": False}`. That is it. You could call it from a shell.
+```
+  ┌─────────────────────────────┐
+  │  Model (only writes text)   │
+  │  "... {"name":"check_api",  │
+  │        "arguments":{...}} " │
+  └──────────────┬──────────────┘
+                 │  our loop parses that JSON
+                 ▼
+  ┌─────────────────────────────┐
+  │  Python in rag/tools.py     │
+  │  actually runs check_api()  │
+  └──────────────┬──────────────┘
+                 │  result pasted back as another message
+                 ▼
+  ┌─────────────────────────────┐
+  │  Model writes again         │
+  │  (answer, or another call)  │
+  └─────────────────────────────┘
+```
 
-**Two — a paragraph the model is shown**, telling it the function exists and when to use it:
+**A tool is two things glued together:**
+
+**1. A normal function** you could call from a shell:
+
+```
+uv run python -m rag.tools --check Query.from_self
+```
+
+**2. A paragraph in the system prompt** that lists the name, when to use it, and the argument
+shape:
 
 ```json
 {"name": "check_api",
- "description": "Check whether a symbol still exists in SQLAlchemy 2.0 and what its
-                 signature is. Use to confirm whether something was removed, renamed,
-                 or is still available.",
+ "description": "Check whether a symbol still exists in SQLAlchemy 2.0 …",
  "parameters": {"symbol": "A dotted symbol, e.g. 'Query.from_self'"}}
 ```
 
-The model reads that paragraph and writes back, in text:
+The model’s “tool call” is **more text that looks like JSON**. If it writes garbage JSON, the loop
+fails that step — the model did not “crash a function”; it failed to write a parseable request.
+
+**Named example.** Model writes:
 
 ```json
 {"name": "check_api", "arguments": {"symbol": "Query.from_self"}}
 ```
 
-**The model does not run anything.** It writes a string. Our loop reads the string, calls the real
-function, and pastes the result back into the conversation as if a person had typed it. Then the
-model writes again.
+Our code runs `check_api`, gets `exists=False`, pastes that back. The model never imported
+SQLAlchemy.
 
-> **An LLM with tools is still only writing text. The text just sometimes looks like a function
-> call, and something else does the calling.**
+**What it is not.**
 
-That is worth saying plainly because the failure in R9.5 is *exactly* a text-writing failure and
-makes no sense if you think the model is executing anything.
+- Not fine-tuning.
+- Not the model executing Python.
+- Not MCP / plugins / a separate “agent runtime” product — it is a `for` loop in `rag/agent.py`.
+
+**Why this section exists before the results.** R9.5’s failure (*answers from memory with fake
+citations*) is a **text-writing** failure. It makes no sense if you think the model was already
+“using tools” in some magical sense.
+
+**Say this:** “The model only emits text. Sometimes the text is a JSON tool request. Our loop runs
+the function and feeds the result back.”
+
+**Do not say:** “The LLM calls APIs.” (Our process does. The LLM asks.)
+
+**Code.** `rag/tools.py` (functions), `rag/agent.py` (`run()` loop).
 
 ---
 
-## R9.3 — The three tools, and why one of them is the whole argument
+## R9.3 — The three tools (and why one of them is the argument)
+
+**Plain job.** Show the menu, then spend the time on `check_api` — the only tool that exists
+because a Phase 4 bug was measured.
 
 | tool | what it does | where it came from |
 |---|---|---|
-| `search_docs` | the corpus, through `index.retrieve` | Phases 1–3, unchanged |
-| `get_function_source` | real source out of real SQLAlchemy 2.0.51 | new |
-| **`check_api`** | **does this symbol exist in 2.0, and what is its signature** | **`D77`, turned around** |
+| `search_docs` | Corpus lookup via `index.retrieve` | Phases 1–3, **unchanged** |
+| `get_function_source` | Real source from real SQLAlchemy **2.0.51** | New |
+| **`check_api`** | Does this symbol exist in 2.0, and what is its signature? | **`D77`, turned around** |
 
-**`check_api` is the one that matters, and here is the argument for it in full.**
+### Picture for `check_api`
 
-Back in Phase 4, prompt `D` answered an unanswerable question — `g065` — with an Alembic migration
-script. The script called four things. Two are real:
+```
+  Phase 4 (after the fact)          Phase 5 (before the answer)
+  ─────────────────────             ──────────────────────────
+  Bad answer already written   →    Model may call check_api first
+  Human runs hasattr(...)      →    Same check, as a tool
+  Post-mortem                  →    Guardrail
+```
+
+### Named example — `g065`
+
+Prompt D answered an unanswerable “table + view in one migration” question with an Alembic script:
 
 ```python
 op.create_table(...)      # real
@@ -93,17 +220,7 @@ op.create_view(...)       # DOES NOT EXIST
 op.drop_view(...)         # DOES NOT EXIST
 ```
 
-We proved the last two were invented by running one line:
-
-```python
-hasattr(Operations, "create_view")   # False
-hasattr(Operations, "create_table")  # True
-```
-
-**That was a post-mortem.** The bad answer already existed; a person went looking, afterwards, and
-found it.
-
-`check_api` is that same line, offered to the model **before it writes**. Reproduce it:
+Proved, not guessed:
 
 ```
 uv run python -m rag.tools --g065
@@ -111,76 +228,115 @@ uv run python -m rag.tools --g065
   OK alembic.operations.Operations.create_view        exists=False (expected False)
 ```
 
-> **The measurement that caught the bug becomes the tool that prevents it.** That is the only way
-> I know to be sure a guardrail guards something real, rather than something imagined.
+> **The measurement that caught the bug becomes the tool that prevents it.** That is how you know
+> a guardrail guards something real, not something imagined.
 
-**What it is NOT.** It is not a fact-checker for prose — it reads symbols, not claims. `g056`
-fabricated in *sentences*, not code, and `check_api` is structurally blind to it, exactly as `D77`
-said it would be.
+**Alembic is official** — the SQLAlchemy project’s migration tool, separate package. The
+fabrication is not “Alembic is fake”; it is “`create_view` is not on `Operations`.”
+
+**What `check_api` is NOT.**
+
+- Not a prose fact-checker. `g056` lied in *sentences*; this tool is blind to that (`D77`).
+- Not “does this advice help the user?” — only “does this dotted name resolve in the pinned 2.0
+  (or alembic) install?”
+- Not `verify_2_0.py` (that script runs breakages patterns). See R9.4.
+
+**Say this:** “`check_api` is the `g065` post-mortem offered to the model before it writes.”
+
+**Do not say:** “The agent verifies every answer against SQLAlchemy.” (Only if it chooses this
+tool, and only for symbols.)
 
 ---
 
-## R9.4 — The version problem, which is the interesting engineering bit
+## R9.4 — The version problem (and what `verify_2_0` is *not* doing)
 
-**This project is pinned to SQLAlchemy 1.4.52 on purpose.** `experiments/` is an instrument
-pointed at 1.4; that is the whole point of it (`D04`).
+**Plain job.** Explain why “just `import sqlalchemy` and check” is illegal in this repo, and how
+that relates to Phase 0 without merging the two jobs.
 
-So: the process that needs to answer *"does this exist in 2.0?"* **cannot import 2.0 to find out.**
-It is running on 1.4.
+**Picture:**
 
-The answer is to ask a **different interpreter**:
+```
+  This project's normal Python          A throwaway Python we spawn
+  (SQLAlchemy 1.4.52 on purpose)        (--with sqlalchemy==2.0.51)
+
+        rag/tools.py  ──asks──►   "does Operations.create_view exist?"
+              ▲                              │
+              │                              ▼
+              └──────── JSON yes/no ◄────────┘
+```
+
+**Why two Pythons.** `experiments/` is an instrument pointed at **1.4.52** (`D04`). The process
+asking “does this exist in **2.0**?” cannot import 2.0 in-process — it would be a different
+library fighting the project pin. So:
 
 ```
 uv run --no-project --with 'sqlalchemy==2.0.51' python -c "...one JSON in, one JSON out..."
 ```
 
-That was already this repo's answer — `verify_2_0.py` has done it since Phase 0 — so `tools.py`
-reuses it rather than inventing a second one.
+### Wasn’t `verify_2_0` only for breakages?
 
-**And there is a trap in reusing it that is worth knowing.** You cannot `from verify_2_0 import
-PIN`, because that module calls `sys.exit()` at import time when it finds itself on 1.4 — which is
-always, here. Worse:
+**Yes — as a program, that is all it does.**
 
-> **`SystemExit` does not inherit from `Exception`.** A `try/except Exception` around the import
-> would not catch it. Your process just ends.
+| | `verify_2_0.py` (Phase 0) | `rag/tools.py` `check_api` (Phase 5) |
+|---|---|---|
+| **Job** | Run 1.4 patterns on real 2.0; fill `BREAKAGES.md` | “Does this *symbol* exist in 2.0?” |
+| **Does the LLM call it?** | Never | Only if the agent chooses `check_api` — and even then it calls `tools.py`, **not** `verify_2_0` |
+| **Shared** | Pin `PIN = "2.0.51"` + “spawn a 2.0 interpreter from a 1.4 process” | Same pin + same spawn trick |
 
-So `PIN` is **read out of the file as text**. One source of truth, no import, and a test ties the
-two together.
+Same *how do I ask 2.0 from a 1.4 process?*, different *question*. **Breakages tool ≠ agent tool.**
+
+### The import trap (why PIN is read as text)
+
+You cannot `from verify_2_0 import PIN` here: that module calls `sys.exit()` at import time when it
+finds itself on 1.4 — which is always. Worse:
+
+> **`SystemExit` does not inherit from `Exception`.** `try/except Exception` does not catch it.
+> Your process just ends.
+
+So `PIN` is **read out of the file as text**. One source of truth, no import, test ties them.
+
+**Say this:** “We reuse verify_2_0’s pin and subprocess pattern. We do not run the breakages suite
+for the LLM.”
+
+**Do not say:** “The agent uses verify_2_0.” / “We upgraded the project to 2.0 for tools.”
+
+**Code.** `rag/tools.py` `_pin()`, `PIN`; `experiments/.../verify_2_0.py` owns the string.
 
 ---
 
-## R9.5 — The result: `0.02`, and why the number is not the finding
+## R9.5 — Score `0.02`: why that number is not the finding
 
-The lab ran all 100 golden questions through the agent.
+*(Heading `R9.5` ≠ score. `0.02` below is the rate.)*
 
-```
-end to end     2/91 = 0.02        (the shipped one-shot pipeline, same box: 38/91 = 0.42)
-```
+**Plain job.** Separate three stories that look like one bad score: metric definition, citation
+harm, and a one-word prompt cause.
 
-**Twenty times worse. And reporting it that way would be wrong.** Three separate things are going
-on and they have to be separated before anything means anything.
-
-### First — most of that gap is the metric's definition, not the answer's quality
-
-`end_to_end` means *a verified answer page reached the model **and** the model answered*. For the
-agent, "reached the model" requires a `search_docs` call.
+**Picture — what “end to end” requires:**
 
 ```
+  One-shot (Phase 4):   code ALWAYS retrieves  →  page may be present  →  model answers
+  Agent (first lab run): model MUST call search_docs or the page is absent by construction
+```
+
+Lab, 100 golden questions through the agent:
+
+```
+end to end     2/91 = 0.02        (one-shot on same box: 38/91 = 0.42)
 no tool call   96      one tool 4      two or more 0
 ```
 
-**The agent answered 96 of 100 questions without looking anything up.** Of those, 43 declined and
-**53 answered from memory**.
+**“Twenty times worse” is the wrong sentence.** Three separate facts:
 
-> Those 53 answers are scored **zero by construction**. Not because they are wrong — because the
-> metric cannot see an answer that had no lookup behind it.
+### First — definition, not quality
 
-So `0.02` against `0.42` is not "twenty times worse at answering". Comparing them as one quantity
-is the mistake this project has a whole rule about.
+For the agent, “right page reached the model” requires a `search_docs` call. **96 of 100** got no
+tool call. Of those, 43 declined and **53 answered from memory**. Those 53 are scored **zero by
+construction** — not because they were graded wrong, because the metric cannot see an answer with
+no lookup.
 
-### Second — the 53 answers are worse than the score suggests, not better
+> Comparing `0.02` to `0.42` as one quantity is the blending mistake this project keeps killing.
 
-The obvious next thought is *"maybe those 53 memory answers were fine"*. They were not:
+### Second — those 53 were not secretly fine
 
 | of the 53 answers with no retrieval | |
 |---|---|
@@ -189,123 +345,116 @@ The obvious next thought is *"maybe those 53 memory answers were fine"*. They we
 | containing code | 42 |
 | …code with no source at all | 41 |
 
-**`n_sources` is zero on all 53**, so every `[1]` in them refers to a passage that was never
-fetched. `g003` cites `[1]` against nothing.
+**`n_sources` is zero on all 53**, so every `[1]` points at a passage that was never fetched.
+Named example: **`g003` cites `[1]` against nothing.**
 
-> **Phase 4's defect was answers that cite NOTHING. This is answers that cite something that does
-> not exist.**
+> Phase 4’s defect was answers that cite **nothing**. This is answers that cite **something that
+> does not exist.** Worse on the axis the citation work was about. So `0.02` was *generous*.
 
-That is worse, and it is worse in precisely the dimension the whole citation effort was about. So
-`0.02` was *generous*.
+### Third — cause was one word (permission vs obligation)
 
-### Third — the cause was one word, and finding that took one A/B
+Standalone probe on the **same** questions: **100/100** tool calls. Agent: **4/100**. Difference:
 
-The standalone probe had already got a tool call on **100 of 100 of these same questions**. Same
-model, same machine, same temperature. The only difference was the instruction:
-
-| | |
+| | instruction |
 |---|---|
-| probe → **100/100 called a tool** | *"Call **exactly one** of them. **Do not answer from memory.**"* |
-| agent → **4/100 called a tool** | *"You **may** call tools."* |
+| probe → **100/100** | *“Call **exactly one**. **Do not answer from memory.**”* |
+| agent → **4/100** | *“You **may** call tools.”* |
 
-**A permission against an obligation.** Changing that one thing, and nothing else:
+Must-call A/B on lab, n=20: **6↑ 0↓**, p = 0.031 on delivered; bad citations **9 → 0**.
 
-| lab, paired, n=20 | delivered | bad citations |
-|---|---|---|
-| shipped prompt | — | **9 wrong** |
-| must-call prompt | **6↑ 0↓**, p = 0.031 | **0 wrong** |
+**Say this:** “0.02 meant the agent skipped search, so end-to-end could not fire — and the memory
+answers fabricated citations. The fix was obligation, not a new retriever.”
 
-**Nine fabricated-citation items fixed, none broken.** Because an agent that actually retrieves has
-real sources to point at.
+**Do not say:** “The agent is 20× worse than RAG.” / “Tools don’t work on 7B.”
 
 ---
 
-## R9.6 — Tool calls do not reproduce across machines — until you look closer
+## R9.6 — Tool calls across machines (the coin flip)
 
-While checking the prompt, the same 20 items were run with the **same shipped prompt** on both
-boxes, at temperature 0:
+**Plain job.** Show that *whether to call a tool* is not a stable system property on ambiguous
+questions — then show what *does* reproduce.
 
-| | no tool call |
+**Picture:**
+
+```
+  Same prompt, same model, temperature 0, same 20 items
+
+       Mac:  no tool on  9/20
+       Lab:  no tool on 19/20
+
+       10 of 20 items FLIP which box skips the tool
+```
+
+> Whether the agent calls a tool at all disagrees between two machines on **half** the items.
+
+**Compared to earlier drift:**
+
+| Finding | What drifted |
 |---|---|
-| Mac | **9 / 20** |
-| lab | **19 / 20** |
+| `D83` | Generation *wording*; answer/refuse mostly held |
+| `D84` | 2 of 7 items overnight on Mac generator |
+| **R9.6** | The **coarse** decision: call a tool or don’t |
 
-**Ten of the twenty flip.**
+**Why it matters.** `96/100` is *the lab’s* no-tool rate, not “the system.” And it put the
+must-call prompt in the same hole as prompt H: strong on one box until the other is measured.
 
-> **Whether the agent calls a tool at all disagrees between two machines on half the items.**
-
-This is larger than anything earlier in the project. `D83` found generation wording drifting while
-the answer/refuse decision held; `D84` found two items in seven flipping overnight on the Mac.
-**Here the coarse decision itself — call a tool, or don't — is the thing that stopped
-reproducing.**
-
-**Why it matters more than it sounds.** It means `96/100` is *the lab's number*, not the system's.
-And it put my own prompt fix in exactly the position prompt `H` was in: a strong result on one
-machine, with the other one unmeasured. Which is why Round 18 existed at all.
-
-### The rule that came out of it, once a second measurement existed
-
-The nudge experiment in R9.7 agrees across machines on **10 of 10** questions. The same two boxes,
-the same model, the same day. So *"tool calls don't reproduce"* is too blunt. Put the two side by
-side:
+### The refinement (after R9.7’s nudge existed)
 
 | the decision | agreement across machines |
 |---|---|
-| *is this how-to question worth a lookup at all?* | **10 of 20** — a coin flip |
-| *the symbol is gone; is the question also asking what replaces it?* | **10 of 10** |
+| *is this how-to worth a lookup at all?* | **10 of 20** — coin flip |
+| *symbol is gone; does the question also ask what replaces it?* | **10 of 10** |
 
 > **Ambiguous decisions diverge across machines. Unambiguous ones do not.**
 
-That single rule explains every reproducibility result in this project, in order: retrieval is
-arithmetic and reproduces exactly; answer-or-refuse is mostly settled and drifts a little; *is this
-worth a lookup* is a genuine judgement call and lands on a coin flip; *is half an answer the whole
-answer* has one right answer and lands identically twice.
+That rule orders the whole project: retrieval (arithmetic) reproduces exactly; answer/refuse drifts
+a little; *worth a lookup?* is a judgement and flips; *half an answer ≠ whole answer* has one right
+reading and matched twice.
 
-**And it tells you what to build.** Not a firmer instruction — **less ambiguity**. The nudge works
-because it turns *"is there more to do?"* into a question with one answer. The must-call prompt
-works for the same reason: *"you MUST call a tool"* contains no judgement, where *"you may"* is an
-invitation to decide.
+**What to build from that.** Not a louder prompt — **less ambiguity**. “You MUST call a tool”
+removes the judgement. The NOT FOUND nudge turns “is there more?” into a question with one answer.
+
+**Say this:** “Call-or-not disagreed on half my items across Mac and lab. I stopped quoting a single
+no-tool rate as a system property.”
+
+**Do not say:** “Temperature 0 means identical across machines.” (`D84` already killed that.)
 
 ---
 
-## R9.7 — What no prompt fixed, and what that probably means
+## R9.7 — Single-tool stop, then the nudge that moved it
 
-One number has been the same everywhere: **two machines, two prompts, eighty runs, tools were
-chained exactly once.**
+**Plain job.** Separate “cannot plan two steps” from “does not know the first step was incomplete.”
 
-The named example is the clearest way to see it. Asked *"Was `MetaData.bind` removed in 2.0, and
-how do I replace it?"* — a two-part question — the agent:
+**Picture — the failure mode:**
 
-1. called `check_api("MetaData.bind")`,
-2. got back **NOT FOUND**, which is correct and is half the answer,
-3. and then **declined**, instead of searching for the replacement.
+```
+  Q: "Was MetaData.bind removed in 2.0, and how do I replace it?"
 
-It answered the first half and abandoned the second. Every failure path in the loop worked
-correctly; the model simply stopped.
+  [1] check_api("MetaData.bind")  →  NOT FOUND   ← correct, half the answer
+  [2] model DECLINES                ← abandoned the "how do I replace it?" half
+```
 
-> **The measured answer so far is that this model does single-tool lookup, not multi-step agency.**
+Across **two machines, two prompts, eighty runs**: tools were chained **exactly once** before the
+nudge work. Measured read: this 7B setup does **single-tool lookup**, not multi-step agency — until
+told otherwise at the right moment.
 
-**What that is NOT.** It is not "agents don't work" and it is not "this model is bad". It is a
-statement about **a 7B local model on this task with these tools**, and the honest form of it names
-all three. A larger model may well chain; nothing here measures that.
+**What that is NOT.** Not “agents don’t work.” Not “this model is bad.” It names **7B + this task +
+these tools**. A larger model is unmeasured here.
 
-### And then it turned out to be the other explanation
+### Two explanations that look the same from outside
 
-There were two stories that fit, and from outside they look the same:
+| Story | If true, what fixes it |
+|---|---|
+| Never plans a second step | Need a different model |
+| Does not know step 1 wasn’t the end | **Tell it** when step 1 is partial |
 
-- **It never planned a second step.** Then nothing you say will produce one, and you need a
-  different model.
-- **It does not know the first step was not the end.** Then telling it is enough.
+Golden how-to items almost never call `check_api` (0 times in 60 runs on first 20) — they route to
+docs. So: **ten two-part questions** built on purpose (gone symbol + replacement).
 
-To tell them apart you need questions that *require* two steps. The golden set will not do —
-measured, `check_api` was called **zero** times in 60 runs over the first twenty golden items,
-because those are how-to questions and route to the docs. So: ten questions built to be two-part, a
-symbol that is gone plus what replaces it.
+Nudge text, appended **only** when `check_api` returns NOT FOUND:
 
-Then one sentence, added to the tool result **only** when `check_api` comes back NOT FOUND:
-
-> *"That settles whether the symbol exists. If the question also asks what to use instead, search
-> the docs before answering."*
+> *“That settles whether the symbol exists. If the question also asks what to use instead, search
+> the docs before answering.”*
 
 ```
             no tool   one  two+
@@ -313,59 +462,52 @@ plain             0    10     0
 nudged            0     3     7
 ```
 
-**Zero to seven out of ten. Paired, p = 0.0156.**
+**0 → 7 of 10**, paired p = 0.0156. Lab matched Mac **question by question** (same seven chained).
 
-> **It stops. It cannot not-continue.** The ceiling that nothing had moved in eighty runs came
-> down to one sentence, fired at the one moment the model has half an answer and does not know it.
+**Honest denominator: 7 of 9.** One item searched docs first on both boxes, so NOT FOUND never
+happened and the nudge never fired. Counting it would inflate a result the experiment never
+reached.
 
-**The lab then saw the same thing — and not merely the same summary.** Plain 0 of 10, nudged 7 of
-10, `p = 0.0156`, on both boxes, **agreeing question by question, ten out of ten.** The same seven
-chained and the same three did not.
+**What that is NOT.** Not “the agent chains now” in general. It chains on questions *built* for two
+steps, when *told* the first was partial. Says nothing about three steps.
 
-**And the honest denominator is 7 of 9.** One question went to the docs first on both machines, so
-the API check never returned NOT FOUND and the nudge could not fire at all. Counting it in the
-denominator would inflate the result with an item the experiment never reached — which is exactly
-how the first version of this experiment fooled me.
+**Interview honesty.** Expected explanation written down first: planning failure. **Wrong.** It was
+a stopping failure.
 
-**What that is NOT.** Not "the agent chains now". It chains on questions *built* to need two steps,
-when *told* the first was partial. It says nothing about three steps.
+**Say this:** “It stopped after a correct NOT FOUND. One sentence at that moment took chaining
+0 → 7/10 on both machines.”
 
-**The honest part I would say in an interview:** I wrote down which explanation I expected — the
-planning one — before running it, and I was wrong.
+**Do not say:** “We solved multi-hop agents.” / “Prompting fixed planning.”
 
 ---
 
-## R9.7b — The bug that made my own system look broken, and how it surfaced
+## R9.7b — The `[:600]` bug (why the agent looked broken)
 
-This is the part of the phase I would actually want to be asked about.
+**Plain job.** Show a gap with no mechanism, then the four characters that created it — and the
+conclusion that reversed.
 
-The agent was losing to the one-shot pipeline: **0.25 against 0.43**. The obvious story wrote
-itself — an agent adds steps, steps lose things, a 7B model is not up to it.
+**Picture:**
 
-**One number in that story did not fit.** Of the items where the right page *did* reach the model:
+```
+  One-shot pipeline:  full chunk text in the prompt
+  Agent (buggy):      hit["text"][:600]   ← median chunk is 1299 chars
+                                          ← 2755 of 3284 chunks exceed 600
+
+  Answer sitting in characters 601…1299  →  model never saw it
+                                         →  correctly "refuses" a page that looks empty
+```
+
+**The suspicious table** (same model, same machine, page *did* reach the agent):
 
 | | refused anyway |
 |---|---|
 | agent | 22 of 45 = **49%** |
-| one-shot pipeline | 19 of 58 = **33%** |
+| one-shot | 19 of 58 = **33%** |
 
-Same model. Same pages. Same machine. **Sixteen points of difference with no mechanism behind it.**
-A model does not become more cowardly because a function called it differently.
+Sixteen points with **no mechanism** if you believe both saw the same page. A model does not get
+more cowardly because a different function called it.
 
-So I went looking for a mechanism, and found one I had written myself:
-
-```python
-f"[{n}] ({hit['chunk_id']}) {hit['text'][:600]}"      # <- four characters
-```
-
-**The median chunk is 1299 characters. 2755 of 3284 are over 600.** The agent had been reading
-**about half of every page**, while the one-shot pipeline reads all of it.
-
-> A page whose answer sits in the cut half looks — to the model — exactly like a page that does
-> not answer the question. It was not refusing out of caution. It was refusing correctly, about a
-> page it had not been shown.
-
-### What happened when it was fixed
+**After deleting the slice:**
 
 ```
                      ceiling      delivered     conversion
@@ -374,44 +516,41 @@ agent, whole pages    45/91      39/91 = 0.43      87%
 one-shot pipeline     58/91      39/91 = 0.43      67%
 ```
 
-**16 items fixed, 0 broken, p = 0.00003.** And notice what did *not* change: the ceiling. The same
-45 items got the page. **Deleting four characters changed nothing about retrieval and everything
-about what the model did with it.**
+**16↑ 0↓**, p = 0.00003. Ceiling unchanged (same 45 items retrieved). Generation conversion
+exploded.
 
-### The conclusion it reversed
+### Conclusion reversed
 
-Two hours earlier I had written that the agent's problem was retrieval discipline, and that its
-refusal defect was the same one Phase 4 measured, at the same size. **The second half was exactly
-backwards.** Over-refusals: agent **6**, pipeline **19**.
+Before the fix: “agent refusal ≈ Phase 4 over-refusal.” **Backwards.** After full pages:
+over-refusals agent **6** vs pipeline **19**.
 
-`D72`'s defect — refusing with the page already in the prompt — is Phase 4's headline finding, 19
-items of it. **The agent, handed the same pages in full, largely does not have it.** The likely
-reason is structural rather than clever: its pages arrive one tool result at a time, numbered,
-*after it asked for them*, instead of five at once in a block it never requested.
+> Agent *generation* (with full pages) refuses less than the one-shot. Agent *retrieval discipline*
+> is worse (many questions never look up). On the Mac those cancelled to the same **0.43**.
 
-**So the honest shape of the phase is the opposite of the intuition.** The agent's *generation* is
-better than the pipeline's. Its *retrieval* is worse, because 23 of 100 questions get no lookup at
-all. And the two cancel to the same 0.43.
+**The habit worth keeping:** a gap you cannot explain is a bug until proven otherwise. “Agents are
+lossy” would have fitted the data and been wrong.
 
-### The habit, not the bug
+**Say this:** “0.25 vs 0.43 was my truncation of every retrieved chunk to 600 characters.”
 
-The bug is boring. The habit is not:
+**Do not say:** “Agents naturally over-refuse more than RAG.”
 
-**A gap you cannot explain is a bug until proven otherwise.** I did not find this by reviewing code
-or by being careful. I found it because 49% against 33% had no mechanism, and I refused to write it
-down as *"agents are lossy"* — which is a sentence that would have sounded fine, fitted the data,
-and been wrong.
+**Code.** Comment in `rag/agent.py` next to the full-text path — the `[:600]` is gone on purpose.
 
 ---
 
-## R9.7c — Where it ended up, and the drill that shows the loop earns its keep
+## R9.7c — Where it landed (levers, lab, policy, drill)
 
-Two levers, both measured before they were kept:
+**Plain job.** Show what shipped as levers, what the Mac headline claimed, what the lab withdrew,
+and the failure-path drill.
 
-- **force** — if the model writes prose before any tool has run, the loop refuses it **once** and
-  says so. A cap, not a loop: unbounded refusal turns a non-complying model into an infinite one.
-- **nudge** — after `check_api` returns NOT FOUND, one sentence saying that settles half the
-  question. Fires *only* there, which is what made R9.7 readable.
+### The two levers (kept because measured)
+
+| Lever | What it does | Constraint |
+|---|---|---|
+| **force** | If the model writes prose before any tool ran, refuse **once** and say so | Cap, not a loop — unbounded refusal → infinite retry |
+| **nudge** | After `check_api` → NOT FOUND, one sentence that half the question may remain | Fires *only* there |
+
+### Mac screen (not the final claim)
 
 ```
               default  force+nudge   one-shot pipeline
@@ -423,10 +562,9 @@ two or more         0            6                  —
 end to end       0.43         0.47               0.43
 ```
 
-**0.47 against 0.43.** Paired against the agent's own default it is 4↑ 0↓, p = 0.125 — no
-regressions, and not significant at this size.
+Mac levers vs Mac default: **4↑ 0↓**, p = 0.125 (no regressions; not significant at this n).
 
-### Then the lab ran the same thing, and the headline did not survive
+### Lab — headline withdrawn (`D94`)
 
 ```
                 ceiling  delivered    e2e   conv  over-ref  no-tool  two+
@@ -437,53 +575,35 @@ lab levers           45         33   0.36    73%        12        4     7
 one-shot pipeline    58         39   0.43    67%        19        —     —
 ```
 
-> **"The agent matches the one-shot pipeline" is a MAC claim. It is withdrawn** (`D94`).
+> **“The agent matches the one-shot pipeline” is a MAC claim. Withdrawn.** Lab default **0.27**.
+> Pass/fail named that outcome before the run.
 
-The pass/fail for that round was written before the data and named this outcome in advance:
-*lands well below 0.42 → a Mac effect*. It landed at **0.27**.
-
-**What reproduced is everything except the level, and that list is longer than the headline was:**
+**What reproduced (behaviours), what did not (level):**
 
 | | Mac | lab |
 |---|---|---|
 | levers, paired | 4↑ 0↓, p = 0.125 | **8↑ 0↓, p = 0.0078** |
-| chaining, from 1 in 80 runs | 6 | 7 |
-| forcing: no-tool-call | 23 → 1 | 51 → 4 |
-| **over-refusals** vs the pipeline's **19** | **6** | **0** |
+| chaining after levers | 6 | 7 |
+| force: no-tool-call | 23 → 1 | 51 → 4 |
+| over-refusals vs pipeline’s 19 | **6** | **0** |
 
-**The lever the Mac could barely show is the one the lab needed most.** And the lab's agent
-converted **25 of 25** — every page it retrieved, it answered.
+Lab no-tool **51/100** vs Mac **23/100** — R9.6’s coin flip with score consequences.
 
-### The whole level gap is one number
+> **The score is machine-dependent. The findings (levers help, chaining appears, fewer over-refusals
+> than one-shot) are not.**
 
-The lab calls no tool on **51** of 100 questions. The Mac, on **23**. Same prompt, same model, same
-items. Fewer searches → lower ceiling → fewer answers, and everything follows.
+**Best system that holds on both boxes:** one-shot pipeline (**0.43 / 0.42**). An agent whose score
+halves by machine is not “better” on its best day.
 
-**That is R9.6's coin-flip arriving with consequences.** The agent's *score* is governed by a
-decision the two machines cannot agree on. Its *behaviours* — chaining, refusing less, responding
-to the levers — are the same on both.
+### Policy (`D95`)
 
-> **The score is the machine-dependent part. The findings are not.**
+**Mac screens, lab rules, both stay.** Measuring only on the lab would delete the disagreement
+class that produced several register entries. Quote the lab, or quote both. A Mac-only figure is
+labelled a **screen when written**, not after the lab disagrees.
 
-**So which system is actually best? The one-shot pipeline**, and it is not close: **0.43 and 0.42**,
-the only configuration that holds on both machines. A system whose score halves depending on the
-box is not better than one that does not, whatever its best day looks like.
+### Drill — break a tool on purpose
 
-### And the policy that came out of it (`D95`)
-
-**The Mac screens, the lab rules, and both stay.** Measuring only on the lab is the obvious
-simplification and it would have destroyed the most useful class of result here — five register
-entries exist *because* two machines disagreed. With one machine you get a number and no way to
-know its scope.
-
-**Anything quoted names the lab, or names both.** A Mac-only figure is labelled a screen **the
-moment it is written**, not after the lab disagrees — which is exactly what I got wrong for a few
-hours with `0.43`.
-
-### The drill: break a tool on purpose and watch
-
-Every failure path in R9.5 was tested with fake models. That proves the code, not the system. So:
-make `check_api` time out on its first call, against the real model, and watch.
+Fake models prove the loop’s code paths. Real model + forced timeout:
 
 ```
 [1] check_api('MetaData.bind') FAILED: TimeoutError: timed out after 120s
@@ -492,60 +612,71 @@ make `check_api` time out on its first call, against the real model, and watch.
 stopped: answered
 ```
 
-**Three different recoveries, twenty seconds apart.**
+Three recoveries: error written **in words** into the conversation; force blocks memory answer;
+model switches to the **other** tool and answers.
 
-1. The tool raised; **the loop did not.** The error was written into the conversation **in words**
-   — because a model that cannot see the error cannot route around it.
-2. The model tried to answer from memory. **The forcing lever refused it** — on the one occasion
-   where giving up would have looked entirely reasonable.
-3. It reached for **the other tool**, unprompted, instead of retrying the broken one. And answered
-   correctly.
+> An agent with no failure path is decoration — shown, not asserted.
 
-> The question got answered *because* the loop refused two different kinds of giving up. That is
-> what "an agent with no failure path is decoration" means, shown rather than asserted.
+**Say this:** “On the Mac the levered agent tied 0.43; on the lab default it was 0.27. Behaviours
+reproduced; the level did not. One-shot still wins as the portable system.”
+
+**Do not say:** “Our agent beats RAG at 0.47.” (Mac screen; withdrawn as a cross-machine claim.)
 
 ---
 
 ## R9.8 — Say this out loud
 
+**Plain job.** Five spoken claims + the follow-ups that kill soft answers.
+
 **"I was wrong three times in one night, and the register says so."**
-I predicted the single-tool ceiling was a planning failure — it was a stopping failure, 0 → 7 of 10.
-I predicted the levered run at ceiling 58 / delivered ~50 — it came in at 54 / 43. I predicted it
-again the second time and was optimistic again. And the headline I most wanted, the agent matching
-the pipeline, was withdrawn when the lab measured 0.27. **Every one of those predictions was
-written down before the run**, which is the only reason any of them is worth quoting.
+Predicted single-tool ceiling = planning failure — it was stopping; nudge **0 → 7/10**. Predicted
+levered ~50 delivered at ceiling 58 — got 54/43. Wanted “agent matches pipeline” — lab **0.27**,
+withdrawn. **Predictions written before the runs.**
 
 **"The agent looked 18 points worse than the pipeline, and it was four characters of my own code."**
-0.25 against 0.43. What did not fit was the refusal rate: 49% of retrieved pages against the
-pipeline's 33%, same model, same page, no mechanism. I chased that instead of accepting it, and
-found `hit["text"][:600]` — the agent was reading half of every page. Fixed: **0.43, 16 items up, 0
-down, p = 0.00003.** And it reversed my conclusion, because over-refusals went to **6 against the
-pipeline's 19** — *its generation is better than the pipeline's; retrieval discipline is the whole
-gap.*
+**0.25** vs **0.43** until `[:600]` died. Then **16↑ 0↓**, and over-refusals **6 vs 19** — generation
+better, retrieval discipline worse.
 
 **"My agent scored 0.02 and I did not report that as the finding."**
-The metric requires a retrieval the agent never performed, so 53 answers were zero by construction.
-Then I checked whether those answers were fine anyway, and they were worse than the score — a
-majority cited passages that had never been fetched. Then I found the one-word prompt cause, fixed
-it, and measured 9 fabricated-citation items fixed and none broken.
+Metric needed a retrieval the agent skipped; 53 zeros by construction; those answers also cited
+missing passages; must-call fixed fabricated citations **9 → 0** on the A/B.
 
 **"Whether it calls a tool at all disagrees across my two machines on half the items."**
-Same prompt, same model, temperature 0, ten of twenty flip. So I stopped quoting `96/100` as a
-property of the system, and I put my own prompt fix behind the same cross-machine rule that is
-currently holding a *different* prompt I would rather have shipped.
+Same prompt, temperature 0, **10/20** flip. Stopped quoting `96/100` as a system constant.
 
 **"It stopped after one tool, and I found out why rather than tuning around it."**
-`MetaData.bind`: it checks the API, correctly learns the symbol is gone, and stops without looking
-up the replacement — eighty runs, two machines, two prompts, one chained call. I wrote down the
-explanation I expected, designed the test to *distinguish* it from the alternative rather than
-confirm it, and was wrong: one sentence fired only after a NOT FOUND took chaining **0 → 7 of 10**,
-p = 0.0156. It is a stopping failure, not a planning one.
+`MetaData.bind`: correct NOT FOUND, then stop. Distinguishing experiment → stopping failure, not
+planning; nudge **p = 0.0156**, both boxes item-identical.
 
-### The follow-ups these attract, and what kills them
+### Follow-ups
 
 | they say | you say |
 |---|---|
-| *"So the agent is a failure."* | It fixed a real defect — fabricated citations to zero, both machines, zero regressions. It has not yet shown multi-step behaviour, which is a different claim and I have the number for it. |
-| *"Why not just use a bigger model?"* | Nothing here measures a bigger model, so I would not claim it. The constraint is the project's: zero paid API calls, a 12 GiB card. |
-| *"Isn't 0.02 vs 0.42 just bad?"* | They are not the same quantity. One requires a retrieval that the other performs unconditionally. Comparing them directly is the error I avoided, and the citation numbers are where the real comparison is. |
-| *"You changed the prompt after seeing the result — isn't that tuning?"* | The threshold was written before the run, and **it was not met** — 7 of 20, not the ~2 I predicted. I recorded that it was not met rather than moving it, and the change went in on a different argument, which is in the register. |
+| *“So the agent is a failure.”* | It zeroed fabricated citations when it retrieved; it has not shown general multi-step agency — different claims, both numbered. |
+| *“Why not a bigger model?”* | Unmeasured. Constraint is zero paid APIs + 12 GiB card. |
+| *“Isn’t 0.02 vs 0.42 just bad?”* | Different quantities: one assumes unconditional retrieval. Real comparison was citation harm, then the must-call A/B. |
+| *“You changed the prompt after seeing results — tuning?”* | Thresholds written first; several were **missed** and recorded as misses; changes argued in the register (`D87`…). |
+| *“Does the LLM use verify_2_0?”* | No. Breakages runner is Phase 0. Tools reuse its **pin + subprocess**; the model never imports it. |
+
+---
+
+## After this you can say
+
+- A tool is a function + a paragraph; the model only writes text.
+- `check_api` is the `g065` / `op.create_view` post-mortem as a guardrail.
+- `0.02` was skipped search + fake citations — not “20× worse RAG.”
+- Call-or-not flipped on half the items across Mac/lab (ambiguous decisions).
+- Chaining moved with a NOT FOUND nudge on two-part questions (**7/10**, both boxes).
+- `[:600]` made 0.25; full text made 0.43 on the Mac and reversed the refusal story.
+- Lab withdrew “agent matches pipeline”; portable winner stays the one-shot (**~0.43**).
+
+**Commands:**
+
+```
+uv run python -m rag.tools --g065
+uv run python -m rag.tools --check Query.from_self
+# agent sweeps: see phases/PHASE-5.md and rag/agent.py (e1/e2/e4)
+```
+
+**Plan / decisions:** [`../phases/PHASE-5.md`](../phases/PHASE-5.md), [`09-DECISIONS.md`](09-DECISIONS.md)
+`D87`–`D95`.

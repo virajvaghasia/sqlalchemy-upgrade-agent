@@ -55,6 +55,7 @@ number:** 51 no-tool-calls here against the Mac's 23, which is `D89`'s coin-flip
 
 | round | state |
 |---|---|
+| **21** | **OPEN** — Phase 6 source framing: does the prompt's SHAPE move `D72`'s 19 over-refusals? ~1h |
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
 | **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** (retracted as comparison, `D93`) |
 | **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
@@ -553,6 +554,73 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
   over-refused 12  fabricated 6  failed 0
   no tool 4  one 89  two+ 7
   stopped {'answered': 97, 'budget': 0, 'repeated_call': 3}
+```
+
+---
+
+# Round 21 — does the prompt's SHAPE move the over-refusals? (OPEN, ~1 hour)
+
+**The finding this comes from.** Same model, same corpus, same retrieved pages — the shipped
+pipeline refuses **19** times with the answer page in the prompt (`D72`), and the Phase 5 agent
+refuses **6** on the Mac and **0** here. Phase 4 threw five wordings at those 19 and moved almost
+nothing (`D74`).
+
+**The suspect is not the tools. It is how the pages arrive.** Shipped: one `SOURCES` block, five
+passages at once, in a prompt the model never asked for. Agent: the question alone, then a turn
+asking for a lookup, then the passages as the **result** of that request.
+
+**Arm B replays that shape with no tools, no loop and no extra generation** — the assistant turn is
+written, not generated, so both arms cost exactly one call. **If refusals fall anyway, the fix is a
+prompt change to the shipped path** and none of Phase 5's machinery is needed to get it.
+
+**Mac screen, n=25** (`D95` — a screen, not a result): over-refusals **4 → 2**, **2 fixed 0 broken,
+p = 0.50** on the 14 items whose page was present. **Underpowered and not significant.** The Mac's
+n=100 run is going now; this round is the same thing here.
+
+## Pass / fail, written before the data
+
+| result | meaning |
+|---|---|
+| B fixes ~6+ with **0 broken** | the shape is the lever `D74` could not find — **change the shipped prompt** |
+| B fixes a few, breaks a few | framing moves *which* items refuse, not *how many* — interesting, not shippable |
+| **no movement** | the agent's low refusals come from something else (the tool loop, or the machine), and `D72`'s 19 stand |
+| B **breaks** items | reject, and say so — the shipped path stays as it is |
+
+## ASK 21.0
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git pull --ff-only && git log -1 --oneline
+docker compose up -d qdrant && ollama ps        # expect 100% GPU
+uv run pytest -q tests/test_framing.py          # 6 passed, no model needed
+```
+
+## ASK 21.1 — both arms, one sitting, all 100
+
+```bash
+nohup uv run python -u -m rag.framing --n 100 > /tmp/round21.log 2>&1 &
+disown
+tail -f /tmp/round21.log
+```
+
+Arms alternate within each item and **retrieval runs once per item**, so both arms see identical
+hits — two lookups of one query is how a framing difference becomes a retrieval difference.
+
+```bash
+git add deliverables/framing-phase6.Linux-x86_64.json
+git commit -m "lab: Round 21 — source framing" && git push
+```
+
+### REPLY 21.0
+
+```
+(paste)
+```
+
+### REPLY 21.1
+
+```
+(paste the framing table and the last 10 log lines)
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)

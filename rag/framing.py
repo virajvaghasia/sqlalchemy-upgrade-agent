@@ -127,3 +127,30 @@ def report(out: dict) -> None:
               f"{len(over):>14}")
     print("\nover-refused = the answer page WAS in the prompt and it declined")
     print("(D72's defect: 19 of 58 on the shipped path over the full 100)")
+
+
+def main() -> None:
+    """`--n` items, both arms, one sitting. Rows saved machine-suffixed (`D83`)."""
+    import json as _json
+    import sys
+
+    from rag import judge, score
+
+    argv = sys.argv[1:]
+    n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 25
+    items = [i for i in score.load_golden() if i.get("answerable")][:n]
+    out = run(items)
+    report(out)
+    path = judge.DELIVERABLES / f"framing-phase6.{_machine()}.json"
+    path.write_text(_json.dumps({"machine": _machine(), "n": len(items),
+                                 "arms": out}, indent=1) + "\n")
+    print(f"\nsaved to {path.name}")
+
+
+def _machine() -> str:
+    from rag import faithful
+    return faithful.machine()
+
+
+if __name__ == "__main__":
+    main()
