@@ -205,7 +205,7 @@ answers faithful to those pages?
 | strong model | `gemini-3.7-flash`, hosted, **free tier** — the pinned id `D80` measured answering; 20 calls is one day's per-model quota, so **no `--check` call is spent** |
 | prompt | `ask.SYSTEM` as the system instruction, `ask.build_prompt(question, hits)` as the user turn, temperature 0 — the shipped prompt, unchanged |
 | pages | `index.retrieve(question, limit=5)` on the Mac; 3a's join check proved these match the lab's flags |
-| judge | local `gemma4:e4b` via `faithful.judge_answer`, a different family from the generator, so nothing grades itself. **A Mac screen** (`D95`; `D86`: too extreme both ways on hard rows) |
+| judge | local `gemma4:e4b` via `faithful.judge_answer`. **A Mac screen** (`D95`; `D86`: too extreme both ways on hard rows). *Corrected 15:10, after the calls, on Viraj's question:* this row first said "a different family from the generator, so nothing grades itself". True against qwen, **not clean here** — Gemma and Gemini are both Google models, so this is a Google model grading a Google model. Not the same weights, and a weaker form of the self-grading problem `D78` avoided; any `SUPPORTED` count from this step carries it |
 | tokens | the API's own `usageMetadata`, recorded per call — counted, not estimated |
 
 **Rules:**
@@ -227,3 +227,44 @@ answers faithful to those pages?
 **My prediction:** it answers **14 of 20** and about **85%** of those are `SUPPORTED`. The local model
 refuses these with the page in hand; a larger model should read past a Sphinx-heavy passage more
 often, but not always, because some of `D72`'s pages answer the question only obliquely.
+
+### Status 2026-09-12 15:05 — INCOMPLETE, 7 of 20, no verdict
+
+```
+# runnable: uv run python -m rag.escalate --report
+ESCALATION — gemini-3.7-flash on the cascade's page-present refusals (INCOMPLETE — 7 of 20)
+
+  answered    7 of 7   rule >= 15  -> no verdict on an incomplete run
+  refused     0   -
+  SUPPORTED   7 of 7 judged = 100%   rule >= 80%  -> no verdict on an incomplete run   (local judge, Mac screen)
+  not SUPPORTED  -
+
+  tokens, as returned by the API: prompt 17270, output 1820  (over 7 calls)
+```
+
+**What happened.** Call 2 hit HTTP 503 and the first version of the instrument stopped on it (fixed:
+`faithful.retrying`, plus resume). The resumed run got 503s again, retried through them, and stopped
+on **HTTP 429 at item 8**, most likely today's per-model daily quota, since the 503 attempts may
+have counted against it. Not re-checked, because checking costs a call.
+
+**What is and is not said.** Per the rule written before the calls: **no verdict and no scaling.**
+"7 of 7" is not "20 of 20", and the seven are the first seven ids alphabetically, not a sample.
+Recorded as observations only:
+
+- all 7 answered, all 7 judged `SUPPORTED` by the local judge. Two caveats travel with that: it is
+  a Mac screen with a judge `D86` measured as too extreme both ways, and **the judge is a Google
+  model grading a Google model** (see the judge row above). So a clean 7 was read, not believed:
+  `g044` and `g029` were opened and are correct, specific, cited migrations
+- every one of the 7 cites at least one source (`judge.citations`), against the shipped local
+  path's 67% citing nothing — but **9 of their 14 code blocks carry no citation**
+- tokens as returned by the API: **17270 prompt + 1820 output over 7 calls**
+
+**Before the full 20 are judged, the judge question should be settled**: a non-Google judge that is
+free and local, or a human read of the 20 (`D06`'s precedent for anything that becomes a ruler).
+
+**Not done:** a price. The shadow cost needs a published per-token rate for this exact model, with
+a date and a source. The token counts are measured and waiting for it.
+
+**To finish:** `uv run python -m rag.escalate --generate` on a later day resumes at item 8 without
+re-asking the 7, then judge, then `--report`. The block above will stop reproducing when it
+completes, which is how this section gets updated.

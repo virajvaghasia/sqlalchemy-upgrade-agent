@@ -1,0 +1,130 @@
+{
+ "rows": [
+  {
+   "id": "g006",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c01574",
+    "c01551",
+    "c01700",
+    "c00070",
+    "c01573"
+   ],
+   "answer": "In SQLAlchemy 2.0, direct/raw SQL strings are no longer supported by `execute()` methods [1, 5]. \n\n### How to Fix\nWrap the textual SQL string in the `text()` construct [1, 2, 5]:\n\n```python\nfrom sqlalchemy import text\n\n# Instead of session.execute(\"SELECT * FROM table\")\nresult = session.execute(text(\"SELECT * FROM table\"))\n```\n\n### Background\n* Direct SQL string execution was removed to establish consistency across execution methods, enforce named parameter formatting rather than positional parameters, and provide an explicit security boundary for untrusted user input via `text()` [1].\n* For driver-level raw SQL strings on connections, `Connection.exec_driver_sql()` is available as an alternative [2, 5].",
+   "prompt_tokens": 2613,
+   "output_tokens": 168,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passages [1], [2], and [5] all state that direct string SQL is no longer supported by `execute()` methods in SQLAlchemy 2.0.",
+   "judge": "gemma4:e4b"
+  },
+  {
+   "id": "g008",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c01585",
+    "c01594",
+    "c01578",
+    "c02025",
+    "c00453"
+   ],
+   "answer": "In SQLAlchemy 2.0, column and table expressions must be passed **positionally** to the `select()` construct rather than enclosed in a Python list [3], [4], [5].\n\nInstead of the legacy list form:\n```python\nselect([User.id, User.name])\n```\n\nThe 2.0 calling style is:\n```python\nselect(User.id, User.name)\n```\n\nAny additional modifiers (such as `where()` or `order_by()`) should be added using generative method chaining [3], [4], [5].",
+   "prompt_tokens": 3102,
+   "output_tokens": 123,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passages [3], [4], and [5] all describe the shift to the \"generative\" style, requiring positional arguments for structural elements and method chaining for modifiers.",
+   "judge": "gemma4:e4b"
+  },
+  {
+   "id": "g013",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c02904",
+    "c02903",
+    "c01593",
+    "c02902",
+    "c01601"
+   ],
+   "answer": "In SQLAlchemy 2.0, passing string attribute names to relationship loading options (such as `subqueryload` or `joinedload`) has been removed [3]. The string calling form was ambiguous and required internal extra work to resolve the target property, whereas directly passing ORM-mapped attributes is typed and provides the necessary information up front [3].\n\nTo fix this in SQLAlchemy 2.0 (and modern 1.4 cross-compatible code), pass the mapped class attribute instead of a string [3]:\n\n**Before (removed in 2.0):**\n```python\n# String forms are removed\nstmt = select(User).options(subqueryload(\"addresses\"))\n```\n\n**2.0 / Modern usage:**\n```python\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import subqueryload\n\nstmt = select(User).options(subqueryload(User.addresses))\nresults = session.scalars(stmt).all()\n```\n[2, 3]\n\n*(Note: In SQLAlchemy 2.0, `subqueryload` is also considered mostly legacy and is generally superseded by `selectinload`, which offers simpler design, better performance in most cases, and compatibility with features like `yield_per` [1, 4].)*",
+   "prompt_tokens": 2347,
+   "output_tokens": 265,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [3] details the removal of string attribute names in favor of mapped attributes.",
+   "judge": "gemma4:e4b"
+  },
+  {
+   "id": "g021",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c02179",
+    "c02180",
+    "c00605",
+    "c02618",
+    "c01328"
+   ],
+   "answer": "`back_populates` is not strictly required, but `backref` is now considered **legacy** in SQLAlchemy 2.0, and using `back_populates` with explicit `relationship()` constructs on both classes is preferred [1].\n\nIn SQLAlchemy 2.0:\n* The `backref` keyword is still functional and works by automatically generating a new `relationship()` using a `back_populates` configuration against the original relationship [1]. (In 1.4 documentation, it was noted that `backref` \"hasn't gone anywhere and will always remain available\" [5]).\n* However, defining explicit `relationship(..., back_populates=...)` on both classes is preferred because [1]:\n  * Attributes are present upfront on both ORM mapped classes upon class construction (rather than created dynamically as a deferred step) [1].\n  * All configuration arguments are explicit and more straightforward [1].\n  * SQLAlchemy 2.0 PEP 484 type hinting features benefit from attributes being explicitly declared in the source code rather than dynamically generated [1].\n\n### Example of Migrating `backref` to `back_populates`\n\n**Legacy (`backref`):**\n```python\nclass User(Base):\n    __tablename__ = \"user\"\n    # ...\n    addresses = relationship(\"Address\", backref=\"user\")\n\n\nclass Address(Base):\n    __tablename__ = \"address\"\n    # ...\n```\n[2]\n\n**Preferred (`back_populates`):**\n```python\nclass User(Base):\n    __tablename__ = \"user\"\n    # ...\n    addresses = relationship(\"Address\", back_populates=\"user\")\n\n\nclass Address(Base):\n    __tablename__ = \"address\"\n    # ...\n    user = relationship(\"User\", back_populates=\"addresses\")\n```\n[2]",
+   "prompt_tokens": 2468,
+   "output_tokens": 404,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] states that `backref` should be considered legacy and that using `back_populates` with explicit constructs is preferred.",
+   "judge": "gemma4:e4b"
+  },
+  {
+   "id": "g029",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c01580",
+    "c01802",
+    "c02813",
+    "c02792",
+    "c01192"
+   ],
+   "answer": "In SQLAlchemy 2.0, the constructors for `insert()`, `update()`, and `delete()` (as well as `Table.update()` and `Table.delete()`) no longer accept keyword or positional arguments other than the target table or entity; they must now be configured using generative methods [1].\n\n### How to Migrate\n\n1. **`insert()` and `update()` values and modifiers:**\n   * **1.4 style (removed):** `insert(table, values={\"x\": 10, \"y\": 15}, inline=True)`\n   * **2.0 style:** `insert(table).values(x=10, y=15).inline()` (or pass a dictionary: `.values({\"x\": 10, \"y\": 15})`) [1].\n   * **1.4 style (removed):** `insert(table, values={\"x\": 10}, returning=[table.c.x])`\n   * **2.0 style:** `insert(table).values({\"x\": 10}).returning(table.c.x)` [1].\n\n2. **`delete()` and `update()` WHERE clauses:**\n   * **1.4 style (removed):** `table.delete(table.c.x > 15)`\n   * **2.0 style:** `table.delete().where(table.c.x > 15)` [1].\n\n3. **Preserving parameter order in `update()`:**\n   * **1.4 style (removed):** `table.update(table.c.x < 15, preserve_parameter_order=True).values(...)`\n   * **2.0 style:** Use `.ordered_values()` along with `.where()`:\n     ```python\n     stmt = (\n         table.update()\n         .where(table.c.x < 15)\n         .ordered_values((table.c.y, 20), (table.c.x, table.c.y + 10))\n     )\n     ```\n     [1]\n\n4. **ORM Updates/Deletes:**\n   * In 2.0 style, use generative methods with `update()` and execute via `session.execute()`:\n     ```python\n     stmt = (\n         update(User)\n         .where(User.name == \"squidward\")\n         .values(name=\"spongebob\")\n         .execution_options(synchronize_session=\"fetch\")\n     )\n     session.execute(stmt)\n     ```\n     [5]",
+   "prompt_tokens": 1969,
+   "output_tokens": 568,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] states that constructor arguments to `_sql.insert`, `_sql.update`, and `_sql.delete` are essentially removed.",
+   "judge": "gemma4:e4b"
+  },
+  {
+   "id": "g044",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c01562",
+    "c01568",
+    "c01563",
+    "c00952",
+    "c01552"
+   ],
+   "answer": "In SQLAlchemy 2.0, \"bound metadata\" and implicit connectivity have been removed, requiring an explicit `Engine` or `Connection` to be passed for table autoloading [2]. \n\nThe 2.0 way to reflect an individual table is to use the `autoload_with` parameter, passing either an engine or a connection [2]:\n\n**Using an Engine:**\n```python\nt = Table(\"t\", metadata_obj",
+   "prompt_tokens": 2266,
+   "output_tokens": 138,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [2] details the requirement for explicit use of an Engine or Connection for autoloading and reflection.",
+   "judge": "gemma4:e4b"
+  },
+  {
+   "id": "g048",
+   "model": "gemini-3.7-flash",
+   "hits": [
+    "c01593",
+    "c01347",
+    "c00963",
+    "c02889",
+    "c00967"
+   ],
+   "answer": "In SQLAlchemy 2.0, passing a string relationship name to `joinedload()` (such as `joinedload(\"addresses\")`) has been **removed** [1]. \n\nInstead, you must pass the mapped class attribute directly (e.g., `joinedload(User.addresses)`) [1]:\n\n```python\n# SQLAlchemy 2.0 / 1.4 cross-compatible syntax\nstmt = select(User).options(joinedload(User.addresses))\nresult = session.execute(stmt)\n```\n\n*(Note: While the sources explicitly confirm that string usage is removed in 2.0 [1], they do not specify whether calling it with a string raises a `TypeError` specifically or another exception type.)*",
+   "prompt_tokens": 2505,
+   "output_tokens": 154,
+   "refused": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] confirms that string forms will be removed in 2.0 and recommends using mapped attributes instead.",
+   "judge": "gemma4:e4b"
+  }
+ ]
+}

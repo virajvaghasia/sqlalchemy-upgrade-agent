@@ -379,6 +379,15 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 3b IN PROGRESS — INCOMPLETE, 7 of 20, NO VERDICT.** `rag/escalate.py` sends the
+cascade's 20 page-present refusals to free-tier `gemini-3.7-flash` with the shipped prompt and the
+same pages. Pre-registered (answered ≥ 15, SUPPORTED ≥ 80%; prediction 14 and ~85%). The run hit
+503s, then a **429 at item 8** (likely the daily quota). Observations only: 7/7 answered, 7/7
+SUPPORTED, every answer cites, 9 of 14 code blocks do not; tokens 17270 + 1820 over 7 calls.
+**Caveat Viraj's question exposed: the judge (`gemma4:e4b`) and the escalation model are both
+Google's**, so settle the judge before judging all 20. **Next: `rag.escalate --generate` resumes
+at item 8** (needs Qdrant); a sourced price is still missing for the shadow cost.
+
 **PHASE 6 STEP 3a CLOSED (`D98`): THE ROUTER IS A CASCADE ON REFUSAL.** `rag.route --report`, no
 model. Of the lab's 53 local failures only **20 have the page in the prompt** — the only kind a
 stronger model can fix. **Predictive routing on max cross-encoder score FAILS** its pre-written bar
@@ -584,7 +593,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**473 tests**, **62/62** `# runnable`, **98** decisions, **§H empty**.
+**473 tests**, **63/63** `# runnable`, **98** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -631,7 +640,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 
 ```
 uv run pytest                            # 473 passed with Qdrant up; 468 + 5 skipped without
-uv run python -m tools.check_runnable    # 62/62 RUN blocks reproduce
+uv run python -m tools.check_runnable    # 63/63 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097

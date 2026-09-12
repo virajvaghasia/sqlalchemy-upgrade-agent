@@ -20,6 +20,14 @@ multiplies those by a published rate, so the rate is the only input anyone has
 to look up.
 
 Rules and prediction were written into phases/PHASE-6.md before the first call.
+
+THE JUDGE IS NOT INDEPENDENT OF THIS GENERATOR, AND SAYS SO
+
+`--judge` uses local `gemma4:e4b`, which is independent of the SHIPPED generator
+(qwen) and is what Phase 4 used. Against `gemini-3.7-flash` it is not clean:
+both are Google models. Different weights, same lab -- a weaker form of the
+self-grading problem D78 was written to avoid. Settle that before the full 20
+are judged (PHASE-6.md Step 3b).
 """
 
 from __future__ import annotations
