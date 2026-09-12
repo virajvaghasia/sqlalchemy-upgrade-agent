@@ -392,6 +392,15 @@ tokens, always fitted; editing it moves `D72`'s baseline). Both old runs kept as
 because the confound is only demonstrable while they exist. **Unaffected: `D87` (re-measured, still
 20/20), `D91`, `D92`.** Re-runs in progress.
 
+**PHASE 5 RESULT SO FAR (Mac; lab Round 20 decides).** Default **39/91 = 0.43**, level with the
+one-shot pipeline. **With forcing + the nudge: `43/91 = 0.47`, ahead of it** — paired 4↑ 0↓,
+**p = 0.125**, so say *ahead, not proven ahead*. Chaining **6 of 100** after being 1 in 80 runs.
+Fabrications **1**. **Over-refusals 6 (default) / 11 (levered) against the pipeline's 19.**
+**Step 2's gate is met live:** `check_api` made to time out recovered three ways in one run — the
+error shown to the model in words, prose-before-any-tool refused, and the *other* tool reached for
+unprompted. Nothing is shipped as a default beyond `SYSTEM_MUSTCALL` (`D90`); the levers wait on
+the lab, because `D89` has tool-call decisions disagreeing across machines on half the items.
+
 **⚠️ AND THE FIX REVERSED THE CONCLUSION.** Re-run with whole pages, same prompt, Mac, 100 items:
 **39/91 = 0.43 — identical to the one-shot pipeline** — with **16↑ 0↓, p = 0.00003** against the
 truncated run. **The ceiling did not move** (45/91 both ways); **conversion went 51% → 87%**. So the

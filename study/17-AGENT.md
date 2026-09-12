@@ -404,6 +404,54 @@ and been wrong.
 
 ---
 
+## R9.7c — Where it ended up, and the drill that shows the loop earns its keep
+
+Two levers, both measured before they were kept:
+
+- **force** — if the model writes prose before any tool has run, the loop refuses it **once** and
+  says so. A cap, not a loop: unbounded refusal turns a non-complying model into an infinite one.
+- **nudge** — after `check_api` returns NOT FOUND, one sentence saying that settles half the
+  question. Fires *only* there, which is what made R9.7 readable.
+
+```
+              default  force+nudge   one-shot pipeline
+ceiling            45           54                 58
+delivered          39           43                 39
+over-refused        6           11                 19
+no tool call       23            1                  —
+two or more         0            6                  —
+end to end       0.43         0.47               0.43
+```
+
+**0.47 against 0.43.** Paired against the agent's own default it is 4↑ 0↓, p = 0.125 — no
+regressions, and not significant at this size. **Say "ahead, not proven ahead".**
+
+### The drill: break a tool on purpose and watch
+
+Every failure path in R9.5 was tested with fake models. That proves the code, not the system. So:
+make `check_api` time out on its first call, against the real model, and watch.
+
+```
+[1] check_api('MetaData.bind') FAILED: TimeoutError: timed out after 120s
+[2] refused prose before any tool ran
+[3] search_docs('MetaData.bind removed in SQLAlchemy 2.0')
+stopped: answered
+```
+
+**Three different recoveries, twenty seconds apart.**
+
+1. The tool raised; **the loop did not.** The error was written into the conversation **in words**
+   — because a model that cannot see the error cannot route around it.
+2. The model tried to answer from memory. **The forcing lever refused it** — on the one occasion
+   where giving up would have looked entirely reasonable.
+3. It reached for **the other tool**, unprompted, instead of retrying the broken one. And answered
+   correctly.
+
+> The question got answered *because* the loop refused two different kinds of giving up. That is
+> what "an agent with no failure path is decoration" means, shown rather than asserted.
+
+---
+
 ## R9.8 — Say this out loud
 
 **"The agent looked 18 points worse than the pipeline, and it was four characters of my own code."**

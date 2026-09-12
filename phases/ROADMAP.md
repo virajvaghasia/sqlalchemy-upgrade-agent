@@ -527,6 +527,15 @@ Up to now the system *retrieves and answers*. Now it **acts**.
 **Done when:** the agent completes a task needing 2+ tool calls, and visibly recovers from
 a tool failure you deliberately injected.
 
+**MEASURED 2026-09-11 on the Mac** (the lab's re-run is Round 20). Default **39/91 = 0.43**,
+identical to the one-shot pipeline; with forcing and the nudge **43/91 = 0.47**, ahead of it.
+**Over-refusals 6 against the pipeline's 19** — the agent's *generation* is better and retrieval
+discipline was the gap (`D93`). Chaining reached **6 of 100** after being **1 in 80 runs**
+(`D91`, `D92`). The injected-failure drill ran live and recovered three ways in one run.
+**Two cautions:** `p = 0.125` on the paired lever comparison, so *ahead, not proven ahead*; and
+`D89` has tool-call decisions disagreeing across machines on half the items, so none of it is a
+claim until the lab agrees.
+
 ---
 
 ### Phase 6 — Production polish (~2–3 weeks)
