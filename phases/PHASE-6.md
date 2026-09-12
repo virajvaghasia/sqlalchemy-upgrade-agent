@@ -185,4 +185,45 @@ escalations, and what it would cost. Both are Step 3b, and neither is a number y
 
 **Exploration, decides nothing:** within B's 46 answerable escalations, max CE separates
 page-present from page-absent at AUC **0.71** (median 0.92 against 0.67). That is the hypothesis
-Step 3b can pre-register: *escalate a refusal only when its best page looks relevant.*
+Step 3b can pre-register: *escalate a refusal only when its best page looks relevant.* **It cannot
+be tested on these 100 items**: the AUC came from them, so any threshold chosen here would be graded
+by the data that picked it. It waits for new questions.
+
+---
+
+## Step 3b — do the escalations get fixed? (pre-registered 2026-09-12, 14:45)
+
+**The question 3a left open.** The cascade sends the 20 page-present refusals upward. Does a stronger
+model, given **the identical prompt and the identical five pages**, actually answer them, and are the
+answers faithful to those pages?
+
+**Setup, fixed before any call:**
+
+| | |
+|---|---|
+| items | exactly the 20 ids `rag.route` lists as B's page-present escalations (lab, Round 16 `D`) |
+| strong model | `gemini-3.7-flash`, hosted, **free tier** — the pinned id `D80` measured answering; 20 calls is one day's per-model quota, so **no `--check` call is spent** |
+| prompt | `ask.SYSTEM` as the system instruction, `ask.build_prompt(question, hits)` as the user turn, temperature 0 — the shipped prompt, unchanged |
+| pages | `index.retrieve(question, limit=5)` on the Mac; 3a's join check proved these match the lab's flags |
+| judge | local `gemma4:e4b` via `faithful.judge_answer`, a different family from the generator, so nothing grades itself. **A Mac screen** (`D95`; `D86`: too extreme both ways on hard rows) |
+| tokens | the API's own `usageMetadata`, recorded per call — counted, not estimated |
+
+**Rules:**
+
+| strong model answers (not refused), of 20 | meaning |
+|---|---|
+| **≥ 15** | the page-present refusals are a model-size problem; the cascade's escalations are worth sending |
+| **11–14** | mixed; routing helps some, and the rest are something a bigger model does not fix either |
+| **≤ 10** | the refusals are not about model size (the page or the prompt); routing buys little and Step 3 should say so |
+
+| of its answers, judged `SUPPORTED` | meaning |
+|---|---|
+| **≥ 80%** | the extra answers hold up (`D82`'s bar for `H`'s extra answers was met at 13 of 16) |
+| **< 80%** | the stronger model answers by talking past the pages; count only the supported ones as fixes |
+
+**If the quota runs out mid-run**, the rows so far are saved and the result is reported as
+`INCOMPLETE — n of 20`, never scaled up.
+
+**My prediction:** it answers **14 of 20** and about **85%** of those are `SUPPORTED`. The local model
+refuses these with the page in hand; a larger model should read past a Sphinx-heavy passage more
+often, but not always, because some of `D72`'s pages answer the question only obliquely.
