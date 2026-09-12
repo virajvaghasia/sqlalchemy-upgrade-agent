@@ -27,6 +27,15 @@ from typing import Any, Sequence
 # Pinned like embed.MODEL_REVISION — changing it means re-measure, not retune.
 MODEL_ID = "BAAI/bge-reranker-base"
 
+# The line above said "pinned" from 2026-08-21 and nothing was: CrossEncoder got
+# the model id and no revision, so every load took whatever `main` pointed at.
+# Found 2026-09-12 building the CI gate (D97), where it stops being cosmetic -- a
+# fresh runner downloads `main`, and a new upload could flip `g017` (this
+# lever's only fix) with no code change, and the gate would blame the PR.
+# This is the snapshot every D68 measurement was taken with: it is the only one
+# in the Mac's Hugging Face cache, and refs/main there names it.
+MODEL_REVISION = "2cfc18c9415c912f9d8155881c133215df768a70"
+
 # How many hybrid hits must be on the desk before promotion can see a tail.
 CANDIDATE_DEPTH = 20
 
@@ -45,7 +54,8 @@ def get_model():
         from sentence_transformers import CrossEncoder
         from rag import embed
 
-        _MODEL = CrossEncoder(MODEL_ID, device=embed.pick_device(None))
+        _MODEL = CrossEncoder(MODEL_ID, revision=MODEL_REVISION,
+                              device=embed.pick_device(None))
     return _MODEL
 
 

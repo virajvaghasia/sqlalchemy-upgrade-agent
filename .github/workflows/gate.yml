@@ -1,0 +1,169 @@
+# The quality gate (Phase 6, D97): a pull request that loses a golden answer
+# fails this check.
+#
+# WHAT RUNS, IN ORDER
+#   1. build the corpus and chunks exactly as the `docs reproduce` job does
+#   2. restore the corpus embeddings from cache, or embed them on CPU (slow)
+#   3. load them into a real Qdrant (a service container, same pinned image as
+#      docker-compose.yml) and score all 100 golden questions with rag.score
+#   4. compare against deliverables/gate-baseline.json AS IT IS ON THE BASE
+#      BRANCH, and fail if any answer that was in the top 5 is no longer there
+#
+# A separate workflow rather than a fifth job in ci.yml, for one reason: the
+# path filter below. Retrieval cannot change when only markdown changed, and a
+# docs PR should not wait on 100 retrievals to find that out.
+#
+# WHAT THIS DOES NOT GRADE: generation. No Ollama here, and D83 measured
+# generation not reproducing across machines at all, while retrieval did,
+# exactly. The gate grades the half that survives a stranger's computer.
+
+name: quality gate
+
+on:
+  pull_request:
+    paths:
+      - "rag/**"
+      - "corpus/MANIFEST.json"
+      - "deliverables/golden.json"
+      - "deliverables/gate-baseline.json"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/gate.yml"
+  # Manual runs, so the baseline can be re-derived on a runner (see D97).
+  workflow_dispatch:
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: quality gate
+    runs-on: ubuntu-latest
+    # A cold cache embeds 3284 chunks with bge-m3 on a CPU: 1106 s on the Mac's
+    # 10-core CPU (D97). A runner's time is unmeasured until this runs, so the
+    # ceiling is generous on purpose. It is for the cold run, not the usual one.
+    timeout-minutes: 300
+
+    services:
+      qdrant:
+        # Same pin as docker-compose.yml (D41). A different Qdrant version is a
+        # different ranking engine, and the gate would blame the PR for it.
+        image: qdrant/qdrant:v1.19.0
+        ports:
+          - 6333:6333
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history so the base branch's copy of the baseline is readable.
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # --extra embed: torch + sentence-transformers + qdrant-client. The tests
+      # job does not install these; this job is the one that actually embeds.
+      - run: uv sync --frozen --extra embed
+
+      - run: uv run python -m rag.corpus
+      - run: uv run python -m rag.chunk
+
+      # The cache key is everything the vectors are a function of, and nothing
+      # else: the chunk file's bytes, the model and revision, the sequence
+      # window, normalisation, and the source of embedding_input(). Hashing
+      # rag/embed.py whole would re-embed for hours on a comment edit.
+      - name: embeddings cache key
+        id: key
+        run: |
+          echo "vectors=$(uv run python -c '
+          import hashlib, inspect
+          from rag import embed
+          h = hashlib.sha256(open(embed.CHUNKS_PATH, "rb").read())
+          h.update(f"{embed.MODEL_ID}|{embed.MODEL_REVISION}|{embed.MAX_SEQ_LENGTH}|{embed.NORMALIZE}".encode())
+          h.update(inspect.getsource(embed.embedding_input).encode())
+          print(h.hexdigest()[:32])
+          ')" >> "$GITHUB_OUTPUT"
+          echo "models=$(uv run python -c '
+          from rag import embed, rerank
+          print(embed.MODEL_REVISION[:12] + "-" + rerank.MODEL_REVISION[:12])
+          ')" >> "$GITHUB_OUTPUT"
+
+      # RESTORE and SAVE are separate steps on purpose. The combined
+      # actions/cache saves in a post-job step that runs only when the job
+      # succeeds, and this job's whole purpose is to fail sometimes: a blocked
+      # PR would throw away hours of CPU embedding and the next push would pay
+      # them again. So each cache is saved immediately after the step that
+      # filled it, before the gate has a chance to fail the job.
+      - uses: actions/cache/restore@v4
+        id: hf
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ steps.key.outputs.models }}
+
+      # EMBED_STATS.json is cached WITH the vectors: it is committed, but rag.index
+      # checks it against the array, and a restored array next to a stale stats
+      # file would stop the job for a reason that has nothing to do with the PR.
+      - uses: actions/cache/restore@v4
+        id: vectors
+        with:
+          path: |
+            corpus/embeddings.npy
+            corpus/embeddings.ids.json
+            corpus/EMBED_STATS.json
+          key: vectors-${{ steps.key.outputs.vectors }}
+
+      - name: embed the corpus (cache miss only)
+        if: steps.vectors.outputs.cache-hit != 'true'
+        run: uv run python -m rag.embed --device cpu
+
+      - if: steps.vectors.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            corpus/embeddings.npy
+            corpus/embeddings.ids.json
+            corpus/EMBED_STATS.json
+          key: vectors-${{ steps.key.outputs.vectors }}
+
+      - run: uv run python -m rag.index --recreate
+
+      - name: score the golden set
+        run: uv run python -m rag.score --save pr-rows.json
+
+      # Both models have been downloaded by now (bge-m3 for queries, the
+      # reranker for seat 5), so this is the first point the cache is complete.
+      - if: steps.hf.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ steps.key.outputs.models }}
+
+      # Read the baseline from the BASE branch, never from this PR's copy: a
+      # PR that breaks an item could otherwise rewrite the baseline to match
+      # and pass. A PR that genuinely improves retrieval updates the file too,
+      # and it takes effect for the PRs after it merges.
+      - name: baseline from the base branch
+        run: |
+          if [ -n "${{ github.base_ref }}" ] && \
+             git show "origin/${{ github.base_ref }}:deliverables/gate-baseline.json" > base.json 2>/dev/null; then
+            echo "baseline: deliverables/gate-baseline.json on origin/${{ github.base_ref }}"
+          else
+            cp deliverables/gate-baseline.json base.json
+            echo "::warning::the base branch has no gate baseline; comparing against this checkout's copy, which the PR itself could have edited"
+          fi
+
+      - name: gate
+        run: uv run python -m rag.gate --baseline base.json --rows pr-rows.json
+
+      # Kept even when the gate fails: the rows are what a human reads to decide
+      # whether the broken item is a real loss.
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-rows
+          path: |
+            pr-rows.json
+            base.json
