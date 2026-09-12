@@ -44,6 +44,7 @@ Ollama **0.32.9**, generator **100% GPU**. Artifacts: `e4-` / `e2-phase5.Linux-x
 
 | round | state |
 |---|---|
+| **20** | **OPEN** — re-take the two 100-item runs: the lab's `0.02`/`0.19` carry `D93`'s confound. ~1h45 |
 | **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** |
 | **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
 | **17** | **CLOSED** — Step 0 / `D87` holds; old-prompt agent **0.02** |
@@ -330,6 +331,108 @@ AGENT — the golden set through the tool-using loop  [Linux-x86_64]
   over-refused   7      fabricated 3      failed 0
   no tool call   53      one tool 47      two or more 0
   stopped        {'answered': 99, 'budget': 0, 'repeated_call': 1}
+```
+
+---
+
+# Round 20 — re-take the hundred, because the agent was reading half of every page (OPEN, ~1h45)
+
+**Read `D93` first.** `agent._observation` truncated every retrieved passage to `[:600]`. The median
+chunk is **1299** chars and **2755 of 3284** exceed 600, so the agent was shown about **half** of
+what the one-shot pipeline shows.
+
+**Both of the lab's hundred-item numbers carry that confound:**
+
+| lab, 100 items | as measured | status |
+|---|---|---|
+| old prompt (Round 17) | 2/91 = 0.02 | **retracted as a comparison** |
+| `SYSTEM_MUSTCALL` (Round 19) | 17/91 = 0.19 | **retracted as a comparison** |
+
+**On the Mac, fixing it changed everything and reversed a conclusion.** Same prompt, same items,
+only the truncation removed:
+
+| | ceiling | delivered | conversion | over-refused |
+|---|---|---|---|---|
+| Mac, half pages | 45/91 | 0.25 | 51% | 22 |
+| **Mac, whole pages** | 45/91 | **0.43** | **87%** | **6** |
+| one-shot pipeline | 58/91 | 0.43 | 67% | 19 |
+
+**16↑ 0↓, p = 0.00003**, and the ceiling did not move at all. So the agent **matches** the pipeline,
+converts its ceiling **better** (87% vs 67%), reaches a **lower** ceiling, and **does not have
+`D72`'s over-refusal defect** (6 against 19).
+
+## Pass / fail, written before the data
+
+| result on the lab | meaning |
+|---|---|
+| whole-pages default lands near **0.42** (the lab's own pipeline baseline) | the Mac's reversal reproduces — **Phase 5 has its finding** |
+| it lands well below 0.42 | the reversal is a **Mac** effect; `D89` applies and the Mac number is one measurement on the noisier box |
+| **over-refusals fall to single figures** | the structural claim holds: pages arriving one tool result at a time, after being asked for, beat five at once |
+| over-refusals stay ~20 | the over-refusal drop was the Mac's, not the fix's |
+| levered run **beats** the default | forcing closes the retrieval-discipline gap — the phase's best possible ending |
+
+## ASK 20.0 — sync
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git pull --ff-only && git log -1 --oneline     # must include D93's fix
+grep -c "hit\['text'\]}" rag/agent.py         # expect 1 — no [:600]
+grep -n "LOCAL_CONTEXT" rag/toolcall.py        # expect 8192, pinned
+docker compose up -d qdrant && ollama ps
+```
+
+**If `grep` still shows `[:600]`, stop — you are on the old tip and the round measures nothing new.**
+
+## ASK 20.1 — the default, whole pages (~50 min)
+
+Round 19's artifact is `D93`'s evidence on this box. **Confirm it is in git, then move it aside
+rather than deleting it** — the confound is only demonstrable while both files exist (`D85`).
+
+```bash
+git log --oneline -- deliverables/agent-sweep-phase5.Linux-x86_64.json
+git mv deliverables/agent-sweep-phase5.Linux-x86_64.json \
+       deliverables/agent-sweep-phase5-trunc600.Linux-x86_64.json
+git commit -m "lab: preserve the truncated run as D93 evidence"
+
+nohup uv run python -u -m rag.agent --golden > /tmp/round20-default.log 2>&1 &
+disown
+uv run python -m rag.agent --report
+```
+
+## ASK 20.2 — the levers, whole pages (~55 min)
+
+```bash
+nohup uv run python -u -m rag.agent --golden --force --nudge > /tmp/round20-forced.log 2>&1 &
+disown
+```
+
+It writes `agent-sweep-phase5-forced-nudged.Linux-x86_64.json`, a different file, so it cannot
+overwrite 20.1's.
+
+```bash
+git add deliverables/agent-sweep-phase5*.Linux-x86_64.json
+git commit -m "lab: Round 20 — the hundred re-taken with whole pages" && git push
+```
+
+**Both runs checkpoint every 5 items and take `--resume`**, so a kill costs minutes rather than the
+sitting.
+
+### REPLY 20.0
+
+```
+(paste git log -1, both greps, ollama ps)
+```
+
+### REPLY 20.1
+
+```
+(paste rag.agent --report)
+```
+
+### REPLY 20.2
+
+```
+(paste rag.agent --report for the forced file, or the tail of the log)
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)
