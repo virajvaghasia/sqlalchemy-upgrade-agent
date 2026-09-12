@@ -308,7 +308,8 @@ def machine() -> str:
 
 
 def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
-          checkpoint=None, log=print, resume: dict | None = None) -> list[dict]:
+          checkpoint=None, log=print, resume: dict | None = None,
+          **run_kwargs) -> list[dict]:
     """Every golden item through the agent, saved in Phase 4's row shape.
 
     Rows carry `answer_in_prompt` computed with **`score.rank_of_first_hit`,
@@ -337,7 +338,8 @@ def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
             return result, error
 
         try:
-            got = (run_one or run)(item["question"], call_tool=call_tool)
+            got = (run_one or run)(item["question"], call_tool=call_tool,
+                                   **run_kwargs)
         except Exception as exc:              # noqa: BLE001
             # D75, and by now the rule rather than the exception: one bad item
             # costs one item. A `failed` row is neither an answer nor a
@@ -672,6 +674,7 @@ def main() -> None:
               "       uv run python -m rag.agent --e1 [--n 20]   prompt A/B\n"
               "       uv run python -m rag.agent --e2 [--n 20]   forcing + nudge\n"
               "       uv run python -m rag.agent --e4            two-part questions\n"
+              "  add --force and/or --nudge to --golden to measure the levers\n"
               "       uv run python -m rag.agent --report")
         return
 
@@ -701,9 +704,25 @@ def main() -> None:
         out.write_text(_json.dumps({"machine": machine(),
                                     "n": len(rows), "rows": rows}, indent=1) + "\n")
 
+    # The two levers, off by default. Each is measured before it ships (`D90`
+    # is the precedent: the prompt became the default only after the lab
+    # reproduced it, and `D91` is a Mac screen until Round 19 says otherwise).
+    run_kwargs = {}
+    if "--force" in argv:
+        run_kwargs["force_first_tool"] = True
+    if "--nudge" in argv:
+        run_kwargs["nudge_not_found"] = True
+    if run_kwargs:
+        out = out.with_name(
+            f"{SWEEP_NAME}"
+            f"{'-forced' if '--force' in argv else ''}"
+            f"{'-nudged' if '--nudge' in argv else ''}"
+            f".{machine()}.json")
+        print(f"levers: {', '.join(sorted(run_kwargs))} — writing {out.name}")
+
     print(f"agent over {len(items)} golden items — checkpointing every 5 to "
           f"{out.name}")
-    rows = sweep(items, checkpoint=save, resume=resume)
+    rows = sweep(items, checkpoint=save, resume=resume, **run_kwargs)
     save(rows)
     print(f"\nsaved {len(rows)} rows to {out.name}")
     main_report = summarise(rows)

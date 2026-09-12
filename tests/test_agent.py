@@ -537,3 +537,27 @@ def test_e4_report_counts_chained_runs(capsys):
     agent.e4_report(rows)
     out = capsys.readouterr().out
     assert "two+" in out
+
+
+def test_the_sweep_passes_levers_through_to_the_loop():
+    """--force and --nudge must reach `run`, or a lever sweep silently
+    measures the default again — the failure mode D91 already hit once, where
+    an experiment produced two identical rows because it never ran."""
+    seen = []
+
+    def run_one(question, call_tool=None, **kw):
+        seen.append(kw)
+        return {"answer": "a [1]", "steps": 1, "stopped": "answered",
+                "trace": [], "forced": 0}
+
+    agent.sweep(ITEMS[:1], chunks=CHUNKS, run_one=run_one, log=lambda *a: None,
+                force_first_tool=True, nudge_not_found=True)
+    assert seen == [{"force_first_tool": True, "nudge_not_found": True}]
+
+
+def test_a_lever_sweep_writes_a_different_file_than_the_default_sweep():
+    """Rows from a levered run must not overwrite the default run's — the same
+    evidence-destroying mistake D83 had to recover from, one level down."""
+    base = f"{agent.SWEEP_NAME}.{agent.machine()}.json"
+    forced = f"{agent.SWEEP_NAME}-forced-nudged.{agent.machine()}.json"
+    assert base != forced
