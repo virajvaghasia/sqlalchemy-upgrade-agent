@@ -115,35 +115,140 @@ def run(items, chunks=None, k=None, retrieve=None, gen=None, log=print) -> dict:
     return out
 
 
+def cells(rows: list[dict]) -> dict:
+    """Three rows, because one refusal count hides two opposite things.
+
+    page present  refusing is generation's defect (`D72`) -- fewer is better
+    page absent   refusing is the HONEST outcome -- more answers here is a
+                  prompt answering without its evidence, not an improvement
+    unanswerable  answering is a fabrication, by the same definition
+                  `score.report_refusals` uses
+
+    Added 2026-09-12 after the Mac's run: B's six page-present fixes came with
+    six page-ABSENT answers A had declined, which is what a more WILLING prompt
+    looks like rather than one that reads its pages better. The page-present
+    row alone could not tell those apart.
+    """
+    answerable = [r for r in rows if r["answerable"]]
+    present = [r for r in answerable if r["answer_in_prompt"]]
+    absent = [r for r in answerable if not r["answer_in_prompt"]]
+    unanswerable = [r for r in rows if not r["answerable"]]
+    ids = lambda rs: [r["id"] for r in rs]
+    return {
+        "present": len(present),
+        "over_refused": ids(r for r in present if ask.refused(r["answer"])),
+        "absent": len(absent),
+        "absent_answered": ids(r for r in absent if not ask.refused(r["answer"])),
+        "unanswerable": len(unanswerable),
+        "fabricated": ids(r for r in unanswerable if not ask.refused(r["answer"])),
+    }
+
+
+def flips(control: list[dict], variant: list[dict]) -> dict:
+    """Paired, by item id, per row. `fixed` always means the variant moved in
+    the row's GOOD direction, so a willingness shift shows up as fixes in one
+    row and breaks in the other rather than cancelling inside one number.
+
+    Items present in only one arm are not paired (`D61`: a paired comparison
+    over two different item sets is two averages).
+    """
+    a = {r["id"]: r for r in control}
+    b = {r["id"]: r for r in variant}
+    out = {"present": ([], []), "absent": ([], []), "unanswerable": ([], [])}
+    for i in sorted(a.keys() & b.keys()):
+        ra, rb = a[i], b[i]
+        ref_a, ref_b = ask.refused(ra["answer"]), ask.refused(rb["answer"])
+        if ref_a == ref_b:
+            continue
+        if not ra["answerable"]:
+            row, good = "unanswerable", ref_b          # refusing is right
+        elif ra["answer_in_prompt"]:
+            row, good = "present", not ref_b           # answering is right
+        else:
+            row, good = "absent", ref_b                # declining is honest
+        (out[row][0] if good else out[row][1]).append(i)
+    return out
+
+
 def report(out: dict) -> None:
-    print("\n" + "=" * 62)
+    from rag import score
+
+    print("\n" + "=" * 70)
     print("SOURCE FRAMING — does the shape of the prompt move the refusals?")
-    print("=" * 62)
-    print(f"{'':<16}{'page present':>14}{'answered':>10}{'over-refused':>14}")
+    print("=" * 70)
+    print(f"{'':<16}{'page present':>13}{'over-refused':>13}"
+          f"{'page absent':>12}{'answered':>9}{'unans.':>7}{'fabr':>5}")
     for arm, rows in out.items():
-        present = [r for r in rows if r["answerable"] and r["answer_in_prompt"]]
-        over = [r for r in present if ask.refused(r["answer"])]
-        print(f"{arm:<16}{len(present):>14}{len(present) - len(over):>10}"
-              f"{len(over):>14}")
+        c = cells(rows)
+        print(f"{arm:<16}{c['present']:>13}{len(c['over_refused']):>13}"
+              f"{c['absent']:>12}{len(c['absent_answered']):>9}"
+              f"{c['unanswerable']:>7}{len(c['fabricated']):>5}")
     print("\nover-refused = the answer page WAS in the prompt and it declined")
     print("(D72's defect: 19 of 58 on the shipped path over the full 100)")
+    print("answered (page absent) = answered WITHOUT the verified page; declining")
+    print("there is honest, so a rise is willingness, not reading")
+    if any(cells(rows)["unanswerable"] == 0 for rows in out.values()):
+        print("!! an arm has no unanswerable items -- fabrication NOT measured")
+
+    arms = list(out)
+    if len(arms) == 2:
+        f = flips(out[arms[0]], out[arms[1]])
+        print(f"\npaired, {arms[1]} against {arms[0]}"
+              f" (fixed = moved in that row's good direction):")
+        for row, (fixed, broken) in f.items():
+            print(f"  {row:<13} fixed {len(fixed):>2}  broken {len(broken):>2}"
+                  f"  p = {score.mcnemar_exact(len(fixed), len(broken)):.4f}")
+            if fixed:
+                print(f"    fixed   {' '.join(fixed)}")
+            if broken:
+                print(f"    broken  {' '.join(broken)}")
+
+
+def select_items(golden: list[dict], n: int) -> list[dict]:
+    """The first `n` answerable items, THEN every unanswerable one.
+
+    The answerable slice is exactly what the first runs took, so the
+    page-present row stays comparable with them; the unanswerable items are
+    appended rather than interleaved so `--n` keeps meaning what it meant.
+    """
+    answerable = [i for i in golden if i.get("answerable")][:n]
+    return answerable + [i for i in golden if not i.get("answerable")]
 
 
 def main() -> None:
-    """`--n` items, both arms, one sitting. Rows saved machine-suffixed (`D83`)."""
+    """Both arms, one sitting. Rows saved machine-suffixed (`D83`).
+
+    --n N              first N answerable items, plus all unanswerable ones
+    --report           re-print the saved file for this machine, no model
+    --unanswerable     generate ONLY the unanswerable items and merge them into
+                       this machine's saved file -- for a run that predates
+                       them, so its answerable rows are not regenerated (`D54`)
+    """
     import json as _json
     import sys
 
     from rag import judge, score
 
     argv = sys.argv[1:]
-    n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 25
-    items = [i for i in score.load_golden() if i.get("answerable")][:n]
-    out = run(items)
-    report(out)
     path = judge.DELIVERABLES / f"framing-phase6.{_machine()}.json"
-    path.write_text(_json.dumps({"machine": _machine(), "n": len(items),
-                                 "arms": out}, indent=1) + "\n")
+    if "--report" in argv:
+        report(_json.loads(path.read_text())["arms"])
+        return
+    golden = score.load_golden()
+    if "--unanswerable" in argv:
+        saved = _json.loads(path.read_text())
+        have = {r["id"] for r in saved["arms"]["A_block"]}
+        items = [i for i in golden if not i.get("answerable") and i["id"] not in have]
+        for arm, rows in run(items).items():
+            saved["arms"][arm].extend(rows)
+        saved["unanswerable_added"] = [i["id"] for i in items]
+        out = saved
+    else:
+        n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 25
+        items = select_items(golden, n)
+        out = {"machine": _machine(), "n": len(items), "arms": run(items)}
+    report(out["arms"])
+    path.write_text(_json.dumps(out, indent=1) + "\n")
     print(f"\nsaved to {path.name}")
 
 
