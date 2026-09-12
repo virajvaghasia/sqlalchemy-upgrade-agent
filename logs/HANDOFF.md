@@ -36,41 +36,44 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-11, Mac)
+## Where things stand — read this first (updated 2026-09-11, lab)
 
-**→ ROUND 20 IS OPEN AND IT IS THE ONLY THING OUTSTANDING.** One chained command, ~1h45
-unattended: **ASK 20.A**. Branch `phase-5/agent`.
-
-**Why it exists, in one line:** the agent was reading **half of every retrieved page** (`D93`), so
-**both** of this box's hundred-item numbers — `0.02` and `0.19` — are retracted as comparisons and
-have to be re-taken.
-
-**What changed on the Mac since you last sat down**, and it is the reason the round is worth the
-sitting. Removing four characters of truncation took the agent from **0.25 → 0.43**, identical to
-the one-shot pipeline, **16↑ 0↓, p = 0.00003** — and with both levers on, **0.47, ahead of the
-pipeline for the first time in this phase.** The full table is under **THE MAC'S NUMBERS** below.
-
-**It also reversed a conclusion:** the agent's over-refusals are **6** against the pipeline's
-**19**, so its *generation* is better and *retrieval discipline* was the whole gap. That is the
-claim Round 20 confirms or kills.
-
-**Before you start:** `grep -c "hit\['text'\]}" rag/agent.py` must print **1**, and `ollama ps`
-must read **100% GPU**. Either one wrong wastes the sitting silently.
-
-**Round 19's state, for the record.** CLOSED on the lab, tip `dfbb90c`, Ollama **0.32.9**,
-generator 100% GPU. Artifacts: `e4-` / `e2-phase5.Linux-x86_64.json`,
-`agent-sweep-phase5.Linux-x86_64.json` (Round 17 rows still in git at `76f6ad6`).
+**→ ROUND 20 CLOSED on the lab.** Whole pages re-taken. Tip this commit, branch `phase-5/agent`,
+Ollama **0.32.9**, generator **100% GPU / 8192 ctx**. Artifacts:
+`agent-sweep-phase5.Linux-x86_64.json`, `agent-sweep-phase5-forced-nudged.Linux-x86_64.json`,
+`agent-sweep-phase5-trunc600.Linux-x86_64.json` (Round 19 evidence kept).
 
 | round | state |
 |---|---|
-| **20** | **OPEN** — re-take the two 100-item runs: the lab's `0.02`/`0.19` carry `D93`'s confound. ~1h45 |
-| **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** |
+| **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
+| **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** (retracted as comparison, `D93`) |
 | **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
-| **17** | **CLOSED** — Step 0 / `D87` holds; old-prompt agent **0.02** |
+| **17** | **CLOSED** — Step 0 / `D87` holds; old-prompt agent **0.02** (retracted as comparison, `D93`) |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-### LAB RESULT — Round 19 (Mac: read this)
+### LAB RESULT — Round 20 (Mac: read this)
+
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**, `LOCAL_CONTEXT=8192`,
+no `[:600]` truncation (`D93` fix present). Lab one-shot baseline remains **38/91 = 0.42**.
+
+| lab, 100 items | end/end | over-refused | no tool | one | two+ | fabricated |
+|---|---|---|---|---|---|---|
+| trunc600 (Round 19, kept) | 17/91 = **0.19** | 7 | 53 | 47 | 0 | 3 |
+| **whole pages, default** | **25/91 = 0.27** | **0** | 51 | 49 | 0 | 6 |
+| **whole pages, forced+nudge** | **33/91 = 0.36** | 12 | 4 | 89 | **7** | 6 |
+| lab pipeline (Round 16 D) | **0.42** | — | — | — | — | — |
+| Mac whole pages default | 0.43 | 6 | — | — | — | — |
+| Mac whole pages forced+nudge | 0.47 | — | — | — | — | — |
+
+**Against the pre-written pass/fail table:**
+- Default **0.27** is **well below 0.42** — Mac's “matches the pipeline” reversal **does not
+  reproduce** on this box (`D89` territory).
+- Over-refusals on default fall to **0** (single figures) — that half of the structural claim holds.
+- Levered run **beats** the default (**0.36 > 0.27**) and produces **7** two+ chains — but stays
+  under the lab pipeline **0.42**.
+
+### LAB RESULT — Round 19 (kept)
 
 Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**.
 
@@ -383,7 +386,7 @@ AGENT — the golden set through the tool-using loop  [Linux-x86_64]
 
 ---
 
-# Round 20 — re-take the hundred, because the agent was reading half of every page (OPEN, ~1h45)
+# Round 20 — re-take the hundred, because the agent was reading half of every page (CLOSED, lab 2026-09-11)
 
 **Read `D93` first.** `agent._observation` truncated every retrieved passage to `[:600]`. The median
 chunk is **1299** chars and **2755 of 3284** exceed 600, so the agent was shown about **half** of
@@ -513,19 +516,33 @@ sitting.
 ### REPLY 20.0
 
 ```
-(paste git log -1, both greps, ollama ps)
+tip after rebase: b9d605e lab: preserve the truncated run as D93 evidence
+(on top of c0e00a8)
+grep -c "hit['text']}" rag/agent.py → 1
+[:600] only in D93 comment (not live truncation)
+LOCAL_CONTEXT = 8192 in rag/toolcall.py
+qwen2.5-coder:7b 100% GPU, CONTEXT 8192 during sweeps
 ```
 
 ### REPLY 20.1
 
 ```
-(paste rag.agent --report)
+AGENT — the golden set through the tool-using loop  [Linux-x86_64]
+  end to end     25/91 = 0.27   (D72's shipped pipeline: 39/91 = 0.43 on Darwin-arm64)
+  over-refused   0      fabricated 6      failed 0
+  no tool call   51      one tool 49      two or more 0
+  stopped        {'answered': 100, 'budget': 0, 'repeated_call': 0}
 ```
 
 ### REPLY 20.2
 
 ```
-(paste rag.agent --report for the forced file, or the tail of the log)
+levers: force_first_tool, nudge_not_found
+saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
+  end to end 33/91 = 0.36
+  over-refused 12  fabricated 6  failed 0
+  no tool 4  one 89  two+ 7
+  stopped {'answered': 97, 'budget': 0, 'repeated_call': 3}
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)
