@@ -50,12 +50,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D89`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D90`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 419 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 421 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -378,7 +378,17 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**ROUND 18 IS OPEN ON THE LAB** — E1, the must-call prompt, ~25 min. **Round 17 closed and gave
+**ROUND 18 CLOSED (`D90`): the must-call prompt is the agent's default now.** Lab, paired, n=20:
+**9 out-of-range citations fixed, 0 broken**, `delivered` **6↑ 0↓ p = 0.031**; Mac: citations
+**3 fixed 0 broken**, `delivered` **0↑ 1↓**. **Designed effect reproduces, side effect does not** —
+prompt `H`'s shape with the machines swapped, so `D83`'s rule applies and favours the candidate.
+**Not the same decision as shipping `H`:** `H` was the production answer path with users; this is
+unshipped Phase 5 code and the only question is which prompt to measure with. **The pre-written
+threshold was NOT met** (7/20, not ~2/20) and is recorded as not met. **Chaining did not move: 1
+in 80 runs across two machines and two prompts** — the measured answer is that this model does
+single-tool lookup, not multi-step agency. **Nothing open on the lab.**
+
+**(superseded) Round 18's brief** — E1, the must-call prompt, ~25 min. **Round 17 closed and gave
 `D89`:** the lab agent sweep scored **`2/91 = 0.02`**, and the reason is **96 of 100 questions
 answered with no tool call**. Three findings, zero shipped changes. (1) `0.02` is partly
 definitional — `end_to_end` needs a retrieval that never happened, so 53 answers are zero by
@@ -447,7 +457,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**419 tests**, **58/58** `# runnable`, **89** decisions, **§H empty**.
+**421 tests**, **58/58** `# runnable`, **90** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -493,7 +503,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 419 passed with Qdrant up; 414 + 5 skipped without
+uv run pytest                            # 421 passed with Qdrant up; 416 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

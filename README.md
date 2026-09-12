@@ -104,7 +104,7 @@ experiments/           the code under study: the 1.4 app and the measurement har
 rag/                   retrieval (Phase 1-3) + judge.py / faithful.py, the Phase 4 answer graders
 tools/                 check_runnable.py — every `# runnable` block, verified
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 419 tests pinning what the docs claim
+tests/                 421 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, and the image
 ```
 
@@ -143,7 +143,7 @@ to "§18" is unambiguous in either file.
 | [`study/14-MEASURE.md`](study/14-MEASURE.md) | **§R6 — Phase 2's scorecard.** The golden baseline (and why not to quote `0.51` alone), the 100-item run where **real questions score worst** (Stack Overflow 0.38 against migration-guide 0.73), the refusal run (**thirteen** generation defects with the page in hand, and two fabrications), and the ceiling questions — including one whose `answerable: false` label looks wrong |
 | [`study/15-IMPROVE.md`](study/15-IMPROVE.md) | **§R7 — Phase 3 retrieval.** Twin collapse, hybrid BM25, seat-5 CE; Sphinx strip **rejected**. Quote **0.64**. Next is Phase 4 on the lab |
 | [`study/16-JUDGE.md`](study/16-JUDGE.md) | **§R8 — Phase 4.** End to end **0.42–0.43** vs retrieval's **0.64** ceiling; 65% of answers cite nothing; position beats emphasis; the result that was wrong first time; the hosted judge capped at **20 calls a day per model** against a ~110-call run, so the judge went local (`D80`); and **§R8.9 — the second machine**, where retrieval reproduced *exactly* and generation reproduced nowhere, turning a p = 0.0039 prompt win into **6↑ 2↓, p = 0.289** and a hold (`D83`) — then the obvious explanation for the gap was tested and **disproved**, leaving a sharper finding about *which model on which box* reproduces — and the judge, asked to re-read its own verdicts seven days on, changed **3 of 110** while leaving the paired cells identical (`D84`) |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 89 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 90 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -178,10 +178,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-419 tests collected in 22.84s
+421 tests collected in 22.84s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 419 passed with it up and 414
+Five of them skip when Qdrant is not running, so a run reports 421 passed with it up and 416
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 

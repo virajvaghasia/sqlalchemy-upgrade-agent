@@ -291,9 +291,12 @@ def test_resume_skips_only_what_is_already_done():
 
 
 def test_the_system_prompt_is_overridable_and_defaults_to_the_shipped_one():
-    """E1 needs to swap the system message without touching the loop. The
-    shipped prompt stays the default: `D74`'s precedent is that a candidate
-    which wins on one machine is still not what ships."""
+    """E1 needs to swap the system message without touching the loop.
+
+    The default is `SYSTEM_MUSTCALL` since `D90` — Round 18 measured it fixing
+    9 out-of-range citations and breaking 0 on the lab, 3 and 0 on the Mac.
+    `SYSTEM` is kept as the measured control rather than deleted, because the
+    comparison is only readable while both exist."""
     seen = {}
 
     def generate(messages):
@@ -301,7 +304,7 @@ def test_the_system_prompt_is_overridable_and_defaults_to_the_shipped_one():
         return prose("done")
 
     agent.run("q", generate=generate, call_tool=lambda n, a: (None, None))
-    assert seen["system"] == agent.SYSTEM
+    assert seen["system"] == agent.DEFAULT_SYSTEM
 
     agent.run("q", generate=generate, call_tool=lambda n, a: (None, None),
               system=agent.SYSTEM_MUSTCALL)
@@ -345,3 +348,27 @@ def test_e1_reports_both_arms_over_the_same_items():
     got = agent.e1(ITEMS[:1], chunks=CHUNKS, run_one=run_one, log=lambda *a: None)
     assert set(got) == set(agent.E1_ARMS)
     assert [r["id"] for r in got["A_shipped"]] == [r["id"] for r in got["B_mustcall"]]
+
+
+def test_the_chaining_count_in_the_report_is_derived(capsys):
+    """It was the literal words "ZERO under both prompts on both machines", and
+    the lab's own run printed that sentence directly above a column containing
+    a 1. A count typed once into a script, contradicted by the data beside it —
+    the measurement rule applies to scripts, not only to docs."""
+    rows = {"A_shipped": [{"id": "a", "tools": ["x", "y"], "answer": "z",
+                           "answer_in_prompt": True, "out_of_range": False}],
+            "B_mustcall": [{"id": "a", "tools": ["x"], "answer": "z",
+                            "answer_in_prompt": True, "out_of_range": False}]}
+    agent.e1_report(rows)
+    out = capsys.readouterr().out
+    assert "1 of 2 runs" in out
+    assert "ZERO under both prompts" not in out
+
+
+def test_the_measured_control_prompt_is_kept_not_deleted():
+    """Round 18's comparison is only readable while both prompts exist. A
+    candidate that replaces its control leaves a number nobody can re-derive —
+    which is what happened to Round 14's citation cells (`D85`)."""
+    assert agent.SYSTEM != agent.SYSTEM_MUSTCALL
+    assert agent.DEFAULT_SYSTEM is agent.SYSTEM_MUSTCALL
+    assert set(agent.E1_ARMS.values()) == {agent.SYSTEM, agent.SYSTEM_MUSTCALL}

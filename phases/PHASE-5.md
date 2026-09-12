@@ -387,6 +387,36 @@ the same items. And it puts **E1's result back in the same position prompt `H` w
 candidate that looks strong on the Mac, on one machine, with the other machine unmeasured.
 `D83`/`D84` already wrote the rule for that, and it applies here without amendment.
 
+#### Round 18 — E1 on the lab, and the decision (`D90`)
+
+| paired, item by item (`D61`) | delivered | bad citations | tool called |
+|---|---|---|---|
+| **lab** | **6↑ 0↓**, exact McNemar **p = 0.031** | **9 fixed, 0 broken** | 12 gained, 0 lost |
+| **Mac** | **0↑ 1↓** (`g008`) | **3 fixed, 0 broken** | — |
+
+**The designed effect reproduces; the side effect does not.** Under the shipped prompt the lab
+produced **9 out-of-range citations in 20 items**. The candidate produces **zero on both machines,
+with zero regressions on either**. Meanwhile `delivered` is `6↑ 0↓` on the lab and `0↑ 1↓` on the
+Mac — and `g008`, the Mac's one regression, sits in the lab's fixed list.
+
+**That is prompt `H`'s shape with the machines swapped**, and `D83`'s rule — believe the designed
+effect over the bonus one — applies unchanged.
+
+**Decided: `SYSTEM_MUSTCALL` is the agent's default.** Not the same call as shipping `H`: `H` was
+the production answer path with users on the other side; this is unshipped Phase 5 code, and the
+only question is which prompt to keep measuring with. Continuing on one that fabricates citations
+on nearly half the lab's items would make every later number a measurement of a known defect.
+
+**The pre-written threshold was NOT met and is recorded as not met.** Round 18's table said
+*"~19/20 down to ~2/20 → ship"*; the lab gave **7/20**. The outcome fell between two rows of my own
+table. Retrofitting the threshold would make every earlier pre-written rule here worthless.
+
+**And the phase's real finding did not move.** Across **80 runs, two machines, two prompts, tools
+were chained exactly once.** `PHASE-5.md` opened on the arithmetic of three-plus generations; the
+measured answer so far is that **this model does single-tool lookup, not multi-step agency** — a
+result about 7B local models, not about a prompt. `E2` (forcing structurally) is the only untried
+lever, and it bounds rather than fixes.
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it

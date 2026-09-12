@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D89`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D90`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3223,6 +3223,68 @@ found the prompt that fixes the tool calls, and then I found that whether a tool
 disagrees between two machines on half the items — which put my own fix back behind the same rule
 that is already holding a different prompt. **The result is three separate findings and zero
 shipped changes, and I would rather have that than one number that moved.**
+
+### D90 — the must-call prompt becomes the agent's default, and the split is the same one as prompt H
+
+**Measured 2026-09-11, Round 18 on the lab 3060 and the same experiment on the Mac**, both arms in
+one sitting, n=20 answerable, arms alternating within each item on the lab.
+
+| paired, item by item (`D61`) | delivered | bad citations | tool called |
+|---|---|---|---|
+| **lab** | **6↑ 0↓**, exact McNemar **p = 0.031** | **9 fixed, 0 broken** | 12 gained, 0 lost |
+| **Mac** | **0↑ 1↓** (`g008`) | **3 fixed, 0 broken** | — |
+
+**The effect the prompt was DESIGNED for reproduces, and it is a defect fix rather than a
+tuning.** Under the shipped prompt the lab produced **9 out-of-range citations in 20 items** —
+`[n]` markers pointing at passages that were never fetched (`D89`). The candidate produces
+**zero, on both machines, with zero regressions on either.** Twelve items fixed across the two
+boxes and not one broken.
+
+**The side effect does not reproduce, and it disagrees in direction.** `delivered` is `6↑ 0↓` on
+the lab and `0↑ 1↓` on the Mac — and `g008`, the Mac's single regression, is **in the lab's fixed
+list**. The same item, the same prompts, opposite verdicts.
+
+> **This is prompt `H`'s shape with the machines swapped.** `H` was `9↑ 0↓` on the Mac and
+> `6↑ 2↓` on the lab; the designed effect (citations) reproduced and the bonus effect (refusals)
+> did not. `D83`'s lesson was *believe the designed effect over the bonus one*, and it applies here
+> unchanged — it just happens to favour the candidate this time.
+
+**Decided — `SYSTEM_MUSTCALL` becomes the agent's default. And that is NOT the same decision as
+shipping `H`, for a reason worth stating rather than assuming.** `H` was a candidate for the
+**production answer path**, the one `rag.ask` uses, with `D` already shipped and working. The agent
+is **unshipped Phase 5 code with no users**: the choice is not *"change what users get"* but
+*"which prompt do we keep measuring with"*. Continuing with a prompt that fabricates citations on
+nearly half the lab's items would make every subsequent Phase 5 number a measurement of a known
+defect.
+
+**Rejected — hold it the way `H` is held.** The symmetry is tempting and it is false. `H`'s hold
+protects users from an unreproduced change; there are no users here, and the thing being held would
+be the *fix*, not the risk.
+
+**Rejected — declare the pre-written threshold met.** It was not. Round 18's table said *"candidate
+takes no-tool-call from ~19/20 to ~2/20 → ship"*, and the lab gave **7/20**. That is a large move
+and **not the one I wrote down**, and retrofitting the threshold to fit the result is the single
+thing that would make every earlier pre-written rule in this project worthless. **The outcome fell
+between two rows of my own table** — that is a defect in the table, recorded as one.
+
+**What did NOT change, and it is the phase's real finding.** Chaining. Across 80 runs on two
+machines under two prompts, **tools were chained exactly once**. No wording tested reaches it.
+`PHASE-5.md` opened on the arithmetic that an agent is three or more generations where `0.43` was
+measured on one; **the measured answer so far is that this model does single-tool lookup, not
+multi-step agency**, and that is a result about 7B local models rather than about a prompt.
+
+**And a report bug found by this round, the second of its kind.** `e1_report` printed *"chained
+tools: ZERO under both prompts on both machines"* as fixed text — and the lab's own output printed
+that sentence **directly above a column containing a 1**. A count typed once into a script,
+contradicted by the data beside it. Now derived, with a test. The first instance was the
+`"Two runs above"` footer; **the measurement rule applies to scripts exactly as it does to docs.**
+
+**Interview question it answers:** *"When did you overrule your own pre-written threshold?"* I did
+not. The result landed between two rows of a table I wrote before the run, and I said so instead of
+picking whichever row let me proceed. What decided it was a different argument: the change fixes a
+defect that reproduces on both machines with zero regressions, and the thing it would have altered
+has no users. **I also kept holding a different prompt, on the same evidence standard, in the same
+project — which is the only reason either decision is worth anything.**
 
 ---
 

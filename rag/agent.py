@@ -63,9 +63,19 @@ DECLINE = ask.REFUSAL_OPENING + " this."
 # them" and "Do not answer from memory". That is the `D74` shape -- one
 # permissive word against one imperative -- and the swing is 96 points.
 #
-# Both are kept and **the shipped one stays `SYSTEM`** until a measurement
-# moves it. `D74` is the precedent: prompt `H` beat `D` on the Mac and was
-# never shipped, because it did not reproduce on a second machine.
+# **A measurement moved it, 2026-09-11 (`D90`).** Round 18 on the lab, paired,
+# n=20: the candidate fixes **9 out-of-range citations, breaks 0**, and takes
+# `delivered` **6↑ 0↓, p = 0.031**. On the Mac the citation fix reproduces
+# (3 fixed, 0 broken) and `delivered` does not (0↑ 1↓). The designed effect
+# reproduces, the side effect does not -- prompt `H`'s shape with the machines
+# swapped, and `D83`'s rule (believe the designed effect) applies unchanged.
+#
+# So `DEFAULT` is the candidate now. **That is not the same decision as
+# shipping `H`:** `H` was a change to the production answer path with users on
+# the other side, and this is unshipped Phase 5 code where the only question is
+# which prompt to keep measuring with. Measuring on a prompt that fabricates
+# citations on nearly half the lab's items would make every later number a
+# measurement of a known defect.
 
 SYSTEM = (
     "You help a developer upgrade code from SQLAlchemy 1.4 to 2.0.\n"
@@ -132,6 +142,9 @@ def _observation(name: str, result) -> str:
     return json.dumps(result)[:2000]
 
 
+DEFAULT_SYSTEM = None          # set below, after both prompts are defined
+
+
 def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS,
         log=lambda *a: None, system: str | None = None) -> dict:
     """One question, up to `max_steps` tool calls, one answer or one decline.
@@ -143,7 +156,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
     generate = generate or (lambda messages: toolcall.ask_messages(messages))
     call_tool = call_tool or _default_tools
 
-    messages = [{"role": "system", "content": system or SYSTEM},
+    messages = [{"role": "system", "content": system or DEFAULT_SYSTEM},
                 {"role": "user", "content": question}]
     trace, seen_calls = [], set()
 
@@ -330,6 +343,10 @@ def summarise(rows: list[dict]) -> dict:
     }
 
 
+# The agent's default since D90. `SYSTEM` is kept as the measured control, not
+# deleted -- Round 18's comparison is only readable while both exist.
+DEFAULT_SYSTEM = SYSTEM_MUSTCALL
+
 E1_ARMS = {"A_shipped": SYSTEM, "B_mustcall": SYSTEM_MUSTCALL}
 
 
@@ -390,8 +407,18 @@ def e1_report(out: dict) -> None:
               f"{sum(1 for r in rows if r['answer_in_prompt'] and not ask.refused(r['answer'])):>11}"
               f"{sum(1 for r in rows if r['out_of_range']):>11}")
     print("\nbad cites = [n] pointing at a source that was never retrieved (E3)")
-    print("two+      = chained tools. ZERO under both prompts on both machines")
-    print("            so far — the one number that has reproduced everywhere.")
+    # DERIVED, not asserted. The first version printed "ZERO under both prompts
+    # on both machines" as fixed text -- and the lab's own run printed that
+    # sentence directly above a column containing a 1. A claim typed once, in a
+    # script, contradicted by the data on the same screen: exactly what the
+    # measurement rule forbids, and the second time in this project after the
+    # "Two runs above" footer (D85's sibling).
+    chained = sum(1 for rows in out.values() for r in rows if len(r["tools"]) > 1)
+    total = sum(len(rows) for rows in out.values())
+    print(f"two+      = chained tools: {chained} of {total} runs on this "
+          f"machine. Across both\n"
+          f"            machines so far it is rare but NOT zero — no wording "
+          f"tested moves it.")
 
 
 def main() -> None:
