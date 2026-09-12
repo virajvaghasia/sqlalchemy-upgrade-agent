@@ -561,3 +561,31 @@ def test_a_lever_sweep_writes_a_different_file_than_the_default_sweep():
     base = f"{agent.SWEEP_NAME}.{agent.machine()}.json"
     forced = f"{agent.SWEEP_NAME}-forced-nudged.{agent.machine()}.json"
     assert base != forced
+
+
+def test_search_results_are_shown_in_full_not_truncated():
+    """It was `[:600]`, and that invalidated every agent-versus-pipeline number
+    taken before 2026-09-11. Measured: the median chunk is 1299 chars and 2755
+    of 3284 exceed 600, so the agent was reading less than half of each page
+    while `ask.build_prompt` shows all of it. "The agent is worse" was partly
+    "the agent was shown a shorter corpus"."""
+    long_text = "x" * 2000
+    got = agent._observation("search_docs", [{"chunk_id": "c1", "text": long_text}])
+    assert long_text in got, "the passage must not be truncated"
+
+
+def test_the_agent_path_pins_its_context_window():
+    """D80's lesson, second module: Ollama truncates at num_ctx in SILENCE and
+    the default is 4096. A two-call conversation with full passages measured
+    ~3168 tokens, and a third call exceeds it — a run that silently lost the end
+    of its own evidence would look like a model ignoring it."""
+    from rag import toolcall
+    sent = {}
+
+    def transport(body, timeout=120):
+        sent.update(body)
+        return {"message": {"content": "ok"}}
+
+    toolcall.ask_messages([{"role": "user", "content": "q"}], transport=transport)
+    assert sent["options"]["num_ctx"] == toolcall.LOCAL_CONTEXT
+    assert toolcall.LOCAL_CONTEXT > 4096
