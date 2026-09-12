@@ -383,6 +383,51 @@ docker compose up -d qdrant && ollama ps
 
 **If `grep` still shows `[:600]`, stop — you are on the old tip and the round measures nothing new.**
 
+## ASK 20.A — run them SEQUENTIALLY, and here is the one command that does it
+
+**Do not run 20.1 and 20.2 in parallel.** Both need the same GPU for the embedder, the reranker and
+the generator, plus Qdrant. On a 12 GiB card they contend, and two sweeps sharing a busy machine is
+the failure this project has already recorded twice: *a benchmark taken on a busy machine measures
+the machine* (`D80`), and on the Mac 2026-09-11 that same pressure took a run from **68 seconds an
+item to 22 minutes**.
+
+**They are independent, so chain them and walk away.** One launch, ~1h45, unattended:
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git pull --ff-only
+grep -c "hit\['text'\]}" rag/agent.py          # MUST print 1 — stop if it prints 0
+docker compose up -d qdrant
+
+git mv deliverables/agent-sweep-phase5.Linux-x86_64.json \
+       deliverables/agent-sweep-phase5-trunc600.Linux-x86_64.json
+git commit -m "lab: preserve the truncated run as D93 evidence"
+
+nohup bash -c 'uv run python -u -m rag.agent --golden && \
+               uv run python -u -m rag.agent --golden --force --nudge' \
+      > /tmp/round20.log 2>&1 &
+disown
+```
+
+When it finishes:
+
+```bash
+uv run python -m rag.agent --report
+tail -20 /tmp/round20.log
+git add deliverables/agent-sweep-phase5*.Linux-x86_64.json
+git commit -m "lab: Round 20 — the hundred re-taken with whole pages" && git push
+```
+
+**Two stop conditions, both of which waste the sitting silently if ignored:**
+
+- **`grep` must print 1.** If it prints 0 you are on a tip without `D93`'s fix and the round
+  re-measures the confound it exists to remove.
+- **`ollama ps` must read `100% GPU`** once the first item has warmed the model. Round 14 ran at
+  **52% CPU** and cost a whole round to diagnose (`D84`).
+
+20.1 and 20.2 below are the same two runs written out separately, for when you want to run them
+one at a time or resume a half-finished one.
+
 ## ASK 20.1 — the default, whole pages (~50 min)
 
 Round 19's artifact is `D93`'s evidence on this box. **Confirm it is in git, then move it aside
