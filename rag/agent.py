@@ -51,11 +51,46 @@ MAX_STEPS = 4
 # against it (`D76`).
 DECLINE = ask.REFUSAL_OPENING + " this."
 
+# --- the system prompt, and the variant under test (E1) ---------------------
+#
+# MEASURED 2026-09-11, lab Round 17.4: under `SYSTEM` the agent called **no
+# tool on 96 of 100** golden questions and chained two on none. The standalone
+# probe -- same model, same machine, same 100 questions -- got a usable call on
+# **100 of 100** (`D87`).
+#
+# The only difference is these words. `SYSTEM` says "You may call tools" and
+# then explains how to answer in prose; the probe says "Call exactly one of
+# them" and "Do not answer from memory". That is the `D74` shape -- one
+# permissive word against one imperative -- and the swing is 96 points.
+#
+# Both are kept and **the shipped one stays `SYSTEM`** until a measurement
+# moves it. `D74` is the precedent: prompt `H` beat `D` on the Mac and was
+# never shipped, because it did not reproduce on a second machine.
+
 SYSTEM = (
     "You help a developer upgrade code from SQLAlchemy 1.4 to 2.0.\n"
     "You may call tools. Call ONE tool at a time and wait for its result.\n"
     "When you have enough to answer, answer in prose and cite sources as "
     "[1], [2].\n"
+    f'If the tools cannot establish the answer, reply "{DECLINE}"'
+)
+
+
+# E1's candidate. Two changes and no others, so a difference is attributable:
+# the permission becomes an obligation, and "do not answer from memory" is
+# stated -- the probe's own words, which produced 100/100.
+#
+# **The citation clause is deliberately UNCHANGED.** E3 measured 31 of 53
+# memory answers carrying `[n]` markers against ZERO retrieved sources, so this
+# model will write citations with nothing behind them. If the candidate
+# restores tool calls, its citations must be re-measured rather than assumed
+# fixed -- that is the whole lesson of `D79` and of E3.
+SYSTEM_MUSTCALL = (
+    "You help a developer upgrade code from SQLAlchemy 1.4 to 2.0.\n"
+    "You have two tools. You MUST call a tool before answering — do not "
+    "answer from memory.\n"
+    "Call ONE tool at a time and wait for its result. Once you have tool "
+    "results, answer in prose and cite sources as [1], [2].\n"
     f'If the tools cannot establish the answer, reply "{DECLINE}"'
 )
 
@@ -295,6 +330,70 @@ def summarise(rows: list[dict]) -> dict:
     }
 
 
+E1_ARMS = {"A_shipped": SYSTEM, "B_mustcall": SYSTEM_MUSTCALL}
+
+
+def e1(items: list[dict], chunks: dict | None = None, run_one=None,
+       log=print) -> dict:
+    """Both system prompts over the same items, **in one sitting** (`D54`).
+
+    Arms are interleaved per item rather than run one after the other, so a
+    machine that drifts over an hour drifts through both arms equally. `D54`
+    forced this rule for refusals and `D89` makes it sharper: whether a tool is
+    called at all disagrees 50% across machines, so it is not a quantity to
+    measure twice at different times.
+    """
+    from rag import judge, score
+
+    chunks = chunks if chunks is not None else score.load_chunks()
+    out = {arm: [] for arm in E1_ARMS}
+    for n, item in enumerate(items, 1):
+        for arm, prompt in E1_ARMS.items():
+            seen: list[str] = []
+
+            def call_tool(name, argument, _s=seen):
+                result, error = _default_tools(name, argument)
+                if name == "search_docs" and not error:
+                    _s.extend(hit["chunk_id"] for hit in result)
+                return result, error
+
+            got = (run_one or run)(item["question"], call_tool=call_tool,
+                                   system=prompt)
+            used = [t.get("tool") for t in got["trace"] if t["kind"] == "tool"]
+            report = judge.citation_report(got["answer"], len(seen))
+            out[arm].append({
+                "id": item["id"], "tools": used, "n_sources": len(seen),
+                "answerable": True,
+                "answer_in_prompt": bool(
+                    seen and score.rank_of_first_hit(seen, item, chunks)
+                    is not None),
+                "answer": got["answer"],
+                "out_of_range": bool(report["out_of_range"]),
+            })
+            log(f"  {arm} [{n}/{len(items)}] {item['id']} tools={used}")
+    return out
+
+
+def e1_report(out: dict) -> None:
+    print("\n" + "=" * 66)
+    print(f"E1 — system prompt A/B, one sitting (D54), n={len(next(iter(out.values())))}"
+          f"   [{machine()}]")
+    print("=" * 66)
+    print(f"{'':<12}{'no tool':>9}{'one':>6}{'two+':>6}{'in prompt':>11}"
+          f"{'delivered':>11}{'bad cites':>11}")
+    for arm, rows in out.items():
+        print(f"{arm:<12}"
+              f"{sum(1 for r in rows if not r['tools']):>9}"
+              f"{sum(1 for r in rows if len(r['tools']) == 1):>6}"
+              f"{sum(1 for r in rows if len(r['tools']) > 1):>6}"
+              f"{sum(1 for r in rows if r['answer_in_prompt']):>11}"
+              f"{sum(1 for r in rows if r['answer_in_prompt'] and not ask.refused(r['answer'])):>11}"
+              f"{sum(1 for r in rows if r['out_of_range']):>11}")
+    print("\nbad cites = [n] pointing at a source that was never retrieved (E3)")
+    print("two+      = chained tools. ZERO under both prompts on both machines")
+    print("            so far — the one number that has reproduced everywhere.")
+
+
 def main() -> None:
     import json as _json
     import pathlib
@@ -327,8 +426,21 @@ def main() -> None:
               "against a run\n  from THIS machine (D83).")
         return
 
+    if "--e1" in argv:
+        from rag import score as _score
+        n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 20
+        items = [i for i in _score.load_golden() if i.get("answerable")][:n]
+        got = e1(items)
+        e1_report(got)
+        path = judge.DELIVERABLES / f"e1-phase5.{machine()}.json"
+        path.write_text(_json.dumps({"machine": machine(), "arms": got},
+                                    indent=1) + "\n")
+        print(f"\nsaved to {path.name}")
+        return
+
     if "--golden" not in argv:
         print("usage: uv run python -m rag.agent --golden [--limit N] [--resume]\n"
+              "       uv run python -m rag.agent --e1 [--n 20]\n"
               "       uv run python -m rag.agent --report")
         return
 
