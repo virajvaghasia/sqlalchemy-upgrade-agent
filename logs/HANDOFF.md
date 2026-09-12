@@ -110,6 +110,35 @@ shipped prompt**, temperature 0:
 (`D89`). So the Mac's verdict on this candidate is worth exactly what the Mac's verdict on prompt
 `H` was — which is why `H` is still held.
 
+## THE MAC'S NUMBERS — what the lab is being compared against
+
+Both runs finished on the Mac 2026-09-11, whole pages, `num_ctx` pinned:
+
+```
+              default  forced+nudged   one-shot pipeline
+ceiling            45             54                  58
+delivered          39             43                  39
+over-refused        6             11                  19
+no tool call       23              1                   —
+two or more         0              6                   —
+fabricated          4              1                   2
+end to end       0.43           0.47                0.43
+```
+
+**The agent with both levers beats the one-shot pipeline: `43/91 = 0.47` against `0.43`.** Paired
+against the agent's own default it is **4↑ 0↓, p = 0.125** — zero regressions, not significant at
+n=91.
+
+**Three things the lab should be able to confirm or kill:**
+
+1. **the default lands near the pipeline** (Mac: 0.43 vs 0.43);
+2. **over-refusals stay well below the pipeline's 19** (Mac: 6 and 11);
+3. **forcing takes `no tool call` to ~1 and `two or more` above 0** (Mac: 23→1, 0→6).
+
+**My prediction, recorded before the run, was ceiling 58 and delivered ~50.** It came in at **54**
+and **43** — directionally right, optimistic in magnitude, for the second time. Conversion fell
+from 87% to 80% as more pages arrived, which is why. **That is on the page rather than revised.**
+
 ## Pass / fail, written before the data
 
 | result on the lab | meaning | next |
