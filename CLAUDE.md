@@ -51,7 +51,7 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D93`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D94`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -392,7 +392,28 @@ tokens, always fitted; editing it moves `D72`'s baseline). Both old runs kept as
 because the confound is only demonstrable while they exist. **Unaffected: `D87` (re-measured, still
 20/20), `D91`, `D92`.** Re-runs in progress.
 
-**PHASE 5 RESULT SO FAR (Mac; lab Round 20 decides).** Default **39/91 = 0.43**, level with the
+**PHASE 5 CLOSED ON MEASUREMENT (`D94`, Round 20, both machines).**
+
+```
+                ceiling  delivered    e2e   conv  over-ref  no-tool  two+  fabr
+Mac default          45         39   0.43    87%         6       23     0     4
+Mac levers           54         43   0.47    80%        11        1     6     1
+lab default          25         25   0.27   100%         0       51     0     6
+lab levers           45         33   0.36    73%        12        4     7     6
+one-shot pipeline    58         39   0.43    67%        19        —     —     2
+```
+
+**"The agent matches the pipeline" is WITHDRAWN — it is a Mac claim.** Round 20's pre-written table
+named this row: *lands well below 0.42 → a Mac effect, `D89` applies*. **What reproduces is
+everything but the level:** levers **4↑ 0↓ p = 0.125** (Mac) and **8↑ 0↓ p = 0.0078** (lab), zero
+regressions either way; **over-refusals 19 → 6 / 0** against the pipeline (the lab's agent
+converted **25 of 25**); chaining **6 / 7** from 1 in 80 runs; forcing takes no-tool **23→1** and
+**51→4**. **The entire level gap is one number:** the lab calls no tool on **51** of 100 against the
+Mac's 23 — `D89`'s coin-flip, and everything downstream follows from it.
+**Nothing ships beyond `SYSTEM_MUSTCALL`:** the levers cost conversion (87→80%, 100→73%) and did
+not move the lab's fabrications at all, so the net is unmeasured — a Phase 6 cost/quality call.
+
+**(superseded) the Mac-only reading:** Default **39/91 = 0.43**, level with the
 one-shot pipeline. **With forcing + the nudge: `43/91 = 0.47`, ahead of it** — paired 4↑ 0↓,
 **p = 0.125**, so say *ahead, not proven ahead*. Chaining **6 of 100** after being 1 in 80 runs.
 Fabrications **1**. **Over-refusals 6 (default) / 11 (levered) against the pipeline's 19.**
@@ -524,7 +545,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**438 tests**, **58/58** `# runnable`, **93** decisions, **§H empty**.
+**438 tests**, **58/58** `# runnable`, **94** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50

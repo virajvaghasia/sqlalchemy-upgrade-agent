@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D93`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D94`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3523,6 +3523,75 @@ behave differently on the same page. Chasing the cause found a `[:600]` I had wr
 useful habit is not code review, it is refusing to accept a gap you cannot account for** — and
 noticing that fixing it needed `num_ctx` pinned, or the truncation would simply have moved
 somewhere I could not see.
+
+### D94 — Phase 5's close: the agent's LEVELS are machine-dependent, its EFFECTS reproduce
+
+**Round 20, both machines, whole pages, `num_ctx` pinned, 100 golden items.**
+
+```
+                ceiling  delivered    e2e   conv  over-ref  no-tool  two+  fabr
+Mac default          45         39   0.43    87%         6       23     0     4
+Mac levers           54         43   0.47    80%        11        1     6     1
+lab default          25         25   0.27   100%         0       51     0     6
+lab levers           45         33   0.36    73%        12        4     7     6
+one-shot pipeline    58         39   0.43    67%        19        —     —     2
+```
+
+**Round 20's pass/fail was written before the data and it names this outcome exactly:** *"it lands
+well below 0.42 → the reversal is a Mac effect; `D89` applies."* The lab's default is **0.27**.
+
+> **"The agent matches the one-shot pipeline" is a MAC claim and does not survive.** It is
+> withdrawn as a general statement.
+
+**What does reproduce is everything except the level, and the list is not short.**
+
+**1 — the levers work on both, and better on the lab.** Mac **4↑ 0↓, p = 0.125**; lab **8↑ 0↓,
+p = 0.0078**. **Zero regressions on either machine**, and the lab's result is the significant one.
+The lever the Mac could barely show is the lever the lab needed most.
+
+**2 — the over-refusal advantage is real and the lab makes it stark.** The one-shot pipeline
+refuses **19** times with the page in hand — `D72`'s defect, Phase 4's headline. The agent's
+default: **6** on the Mac and **0** on the lab. **The lab's agent converted 25 of 25.** Whatever
+else is machine-dependent, *pages arriving one tool result at a time, numbered, after being asked
+for* does something the five-at-once prompt does not.
+
+**3 — chaining reproduces:** 6 on the Mac, 7 on the lab, from a standing start of 1 in 80 runs.
+`D91`/`D92` hold at n=100 on both boxes.
+
+**4 — forcing does what it says:** no-tool-call **23 → 1** and **51 → 4**.
+
+**The whole level gap is one number, and `D89` already named it.** The lab calls no tool on **51**
+of 100 questions against the Mac's **23**. Same prompt, same model, same items. Everything
+downstream follows: fewer searches, lower ceiling, fewer delivered. **The agent's score is a
+function of how often that machine decides a question is worth a lookup, and that decision is the
+one measured as a coin-flip across boxes.**
+
+**Which is why the levers matter more than the score.** Forcing removes the decision. On the lab it
+took the ceiling from 25 to 45 — **the Mac's default ceiling** — and delivered from 25 to 33.
+
+**Decided — nothing ships as a default beyond `SYSTEM_MUSTCALL` (`D90`).** The levers are kept as
+measured flags. **Why not ship them, when they are 8↑ 0↓ significant on the reproducible machine?**
+Because conversion *falls* when they are on — 87% → 80% (Mac), 100% → 73% (lab) — so they buy
+ceiling and give back quality, and **fabrications did not improve on the lab at all** (6 both
+arms). A lever with a known cost and an unmeasured net is a Phase 6 decision with a cost/quality
+frame, not a default to slip in at the end of Phase 5.
+
+**What Phase 5 can claim, stated in the form it survives in:**
+
+- a 7B local model **can** use tools reliably — 100% valid calls, right tool, two machines;
+- it **stops after one step** unless told the first was partial, and that is fixable with one
+  sentence (`D91`, `D92`);
+- **it does not have the one-shot pipeline's over-refusal defect** (19 → 6 / 0);
+- **its end-to-end score does not reproduce across machines** and is governed by a coin-flip
+  decision (`D89`);
+- **the levers help on both boxes with zero regressions**, and cost conversion.
+
+**Interview question it answers:** *"Did your agent beat the baseline?"* On one machine, yes, 0.47
+against 0.43. On the other, no, 0.36 against the same baseline. **So the honest answer is that the
+score is not the finding** — what reproduced is that the agent stops early and can be told not to,
+and that it does not inherit the refusal defect the one-shot system has. I wrote the pass/fail
+before the run, it landed on the row that says *Mac effect*, and I withdrew the claim rather than
+quoting the machine that agreed with me.
 
 ---
 

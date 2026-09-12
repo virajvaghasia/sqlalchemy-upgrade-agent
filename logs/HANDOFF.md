@@ -43,6 +43,16 @@ Ollama **0.32.9**, generator **100% GPU / 8192 ctx**. Artifacts:
 `agent-sweep-phase5.Linux-x86_64.json`, `agent-sweep-phase5-forced-nudged.Linux-x86_64.json`,
 `agent-sweep-phase5-trunc600.Linux-x86_64.json` (Round 19 evidence kept).
 
+**NOTHING IS OPEN ON THE LAB.** Mac read of Round 20 is **`D94`**, which has the two-machine table.
+**Headline: the agent's LEVELS are machine-dependent and its EFFECTS reproduce.** *"The agent
+matches the one-shot pipeline"* was a Mac claim (0.43/0.47 there against 0.27/0.36 here) and is
+**withdrawn** — Round 20's pre-written table named that row before the data. What reproduced:
+the levers **8↑ 0↓, p = 0.0078** here against 4↑ 0↓ on the Mac, **zero regressions on either**;
+chaining **7** here and **6** there, from 1 in 80 runs; forcing taking no-tool **51→4**. And the
+result this box makes starkest — **its agent refused 0 times with the page in hand**, converting
+**25 of 25**, against the one-shot pipeline's **19** over-refusals. **The whole level gap is one
+number:** 51 no-tool-calls here against the Mac's 23, which is `D89`'s coin-flip.
+
 | round | state |
 |---|---|
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
