@@ -13,17 +13,17 @@ def hit(cid="c1"):
 
 
 def reply(text, p=100, o=20):
-    return {"candidates": [{"content": {"parts": [{"text": text}]}}],
-            "usageMetadata": {"promptTokenCount": p, "candidatesTokenCount": o}}
+    return {"choices": [{"message": {"content": text}}],
+            "usage": {"prompt_tokens": p, "completion_tokens": o}}
 
 
 def test_the_prompt_is_the_shipped_one_byte_for_byte():
     """If the strong model got a different prompt, the comparison would be about
     the prompt, not the model."""
     body = escalate.request_body("q?", [hit()])
-    assert body["systemInstruction"]["parts"][0]["text"] == ask.SYSTEM
-    assert body["contents"][0]["parts"][0]["text"] == ask.build_prompt("q?", [hit()])
-    assert body["generationConfig"]["temperature"] == ask.TEMPERATURE
+    assert body["messages"][0] == {"role": "system", "content": ask.SYSTEM}
+    assert body["messages"][1] == {"role": "user", "content": ask.build_prompt("q?", [hit()])}
+    assert body["temperature"] == ask.TEMPERATURE
 
 
 def test_tokens_are_the_api_counts_not_an_estimate():
@@ -63,3 +63,47 @@ def test_resume_does_not_ask_a_saved_question_again():
                                   key="k", post=post, retrieve=lambda q: [hit()],
                                   log=lambda *a: None, sleep=lambda s: None, done=done)
     assert len(asked) == 1 and [r["id"] for r in rows] == ["g0", "g1"]
+
+
+def test_nvidia_verdicts_are_the_scored_ones_once_they_exist(capsys):
+    """PHASE-6.md Step 3b: gemma is a Google model grading a Google model, so the
+    non-Google judge's verdicts decide the rule and gemma's only measure agreement."""
+    rows = [{"id": "g1", "refused": False, "verdict": "SUPPORTED", "verdict_nvidia": "PARTIAL",
+             "prompt_tokens": 1, "output_tokens": 1},
+            {"id": "g2", "refused": False, "verdict": "SUPPORTED", "verdict_nvidia": "SUPPORTED",
+             "prompt_tokens": 1, "output_tokens": 1}]
+    s = escalate.summarise(rows, expected=2)
+    assert s["supported"] == ["g2"] and (s["agree"], s["both"]) == (1, 2)
+
+
+def test_nvidia_transport_speaks_openai_and_returns_gemini_shape(monkeypatch):
+    import json as _json
+    from rag import faithful
+    seen = {}
+
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self): return _json.dumps({"choices": [{"message": {"content": "SUPPORTED\nok"}}]}).encode()
+
+    def fake_urlopen(req, timeout):
+        seen["body"] = _json.loads(req.data); seen["auth"] = req.headers["Authorization"]
+        return Resp()
+
+    monkeypatch.setattr(faithful.urllib.request, "urlopen", fake_urlopen)
+    out = faithful.nvidia_post("models/mistralai/mistral-large-2-instruct:generateContent",
+                               {"contents": [{"parts": [{"text": "p"}]}]}, "k")
+    assert seen["body"]["model"] == "mistralai/mistral-large-2-instruct"
+    assert seen["body"]["temperature"] == 0.0 and seen["auth"] == "Bearer k"
+    assert out["candidates"][0]["content"]["parts"][0]["text"].startswith("SUPPORTED")
+
+
+def test_an_empty_answer_is_neither_answered_nor_refused():
+    """A reasoning model that spends its budget thinking returns no text. Scoring
+    that as an answer would inflate `answered`; as a refusal, `refused`."""
+    post = lambda path, body, key: reply("")
+    rows = escalate.generate_rows([{"id": "g1", "question": "q"}], key="k", post=post,
+                                  retrieve=lambda q: [hit()], log=lambda *a: None, sleep=lambda s: None)
+    s = escalate.summarise(rows, expected=1)
+    assert rows[0]["empty"] and not rows[0]["refused"]
+    assert s["answered"] == [] and s["refused"] == [] and s["empty"] == ["g1"]

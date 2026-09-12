@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D98`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D99`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 473 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 476 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,14 +379,14 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**PHASE 6 STEP 3b IN PROGRESS — INCOMPLETE, 7 of 20, NO VERDICT.** `rag/escalate.py` sends the
-cascade's 20 page-present refusals to free-tier `gemini-3.7-flash` with the shipped prompt and the
-same pages. Pre-registered (answered ≥ 15, SUPPORTED ≥ 80%; prediction 14 and ~85%). The run hit
-503s, then a **429 at item 8** (likely the daily quota). Observations only: 7/7 answered, 7/7
-SUPPORTED, every answer cites, 9 of 14 code blocks do not; tokens 17270 + 1820 over 7 calls.
-**Caveat Viraj's question exposed: the judge (`gemma4:e4b`) and the escalation model are both
-Google's**, so settle the judge before judging all 20. **Next: `rag.escalate --generate` resumes
-at item 8** (needs Qdrant); a sourced price is still missing for the shadow cost.
+**PHASE 6 STEP 3b MEASURED (`D99`).** The cascade's 20 page-present refusals, shipped prompt and
+same pages, sent to `nvidia/nemotron-3-ultra-550b-a55b` (NVIDIA free credits; **Viraj: do not use
+Gemini**, its 20/day stopped the first run at 7). Scored judge `openai/gpt-oss-20b` (independent
+lab). **Answered 16 of 20 — PASS (≥ 15). SUPPORTED 10 of 16 = 62% — FAIL (≥ 80%)**; all six misses
+PARTIAL. Count **10 fixes**: end to end upper bound **0.42 → 0.53** (lab), correctness unchecked.
+Prediction wrong on both (14, ~85%). **Open:** gemma agreement pass (`rag.escalate --judge`), a
+human read of the six PARTIALs, a sourced per-token price (tokens 45015 + 15624 over 20 calls).
+NVIDIA key in `.env` as `NVIDIA_API_KEY`; most catalog models 404 on it — probe before choosing.
 
 **PHASE 6 STEP 3a CLOSED (`D98`): THE ROUTER IS A CASCADE ON REFUSAL.** `rag.route --report`, no
 model. Of the lab's 53 local failures only **20 have the page in the prompt** — the only kind a
@@ -593,7 +593,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**473 tests**, **63/63** `# runnable`, **98** decisions, **§H empty**.
+**476 tests**, **63/63** `# runnable`, **99** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -639,7 +639,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 473 passed with Qdrant up; 468 + 5 skipped without
+uv run pytest                            # 476 passed with Qdrant up; 471 + 5 skipped without
 uv run python -m tools.check_runnable    # 63/63 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

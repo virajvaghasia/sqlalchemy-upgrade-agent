@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D98`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D99`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3891,6 +3891,47 @@ It does not predict. I tested predicting from retrieval scores and it mostly fla
 answer page was missing, which no stronger model can fix from the same pages. So the router is a
 cascade: the free local model answers first, and only a refusal is escalated, which catches every
 case where the page was there and the small model declined it.
+
+### D99 — a stronger model fixes half the cascade's escalations it answers, and adds to the page on the rest
+
+**Decided 2026-09-12.** Phase 6 Step 3b. Instrument `rag/escalate.py`, rows
+`deliverables/escalate-phase6.json`; reproduce with no model: `uv run python -m rag.escalate
+--report` (block in `PHASE-6.md`). Rules and prediction written before the first call.
+
+**Setup.** The cascade's 20 page-present refusals (`D98`), the shipped prompt byte for byte, the same
+five pages, sent to **`nvidia/nemotron-3-ultra-550b-a55b`** on NVIDIA's free credits; judged by
+**`openai/gpt-oss-20b`**, a lab independent of NVIDIA, Alibaba and Google.
+
+```
+answered     16 of 20      rule >= 15   PASS
+SUPPORTED    10 of 16      rule >= 80%  FAIL (62%)   the other 6 all PARTIAL, none UNSUPPORTED
+refused      g064 g084 g103 g116
+tokens       45015 prompt + 15624 output over 20 calls, reasoning included
+```
+
+**Decided: count 10 fixes, not 16.** Upper bound on end to end with the cascade: **38 + 10 = 48/91 =
+0.53** against the shipped **0.42** (lab), and only if all 10 are also correct on 2.0.51 — not checked.
+
+**Two model switches, both made before any golden-set answer from the new model, both recorded:**
+Gemini's free tier stopped the first run at 7 of 20 (then Viraj: do not use Gemini), and 8 NVIDIA
+catalog models including the first choices returned 404; models were probed with "Reply OK" only.
+
+**Found on Viraj's question: the first judge was not independent.** `gemma4:e4b` grading
+`gemini-3.7-flash` is Google grading Google. The pre-registration had called it "a different family".
+
+**Rejected — quote 16 of 20 as the fix rate.** Six of the sixteen go past their pages. A router that
+escalates to a more willing model buys some answers that are partly its own, the same shape `D96`
+found in the prompt's framing.
+
+**Not measured:** correctness on real 2.0.51; the gemma agreement pass; a human read of the six
+`PARTIAL`s; escalating the other 33 refusals (page absent, unanswerable) and the fabrication that
+invites; a sourced per-token price, so no dollar figure exists yet.
+
+**Interview question it answers:** *"Does sending hard questions to a bigger model actually help?"*
+For the questions where my small model refused a page it had, a 550B model answered 16 of 20, but an
+independent judge found only 10 fully supported by the pages; the other six mixed in things the
+pages don't say. So the honest number is ten fixes, which moves end to end from 0.42 to at most
+0.53, and I haven't priced it yet.
 ---
 
 ## Where the rest of the repo lives

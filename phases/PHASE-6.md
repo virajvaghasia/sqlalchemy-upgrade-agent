@@ -17,7 +17,7 @@ quality-degrading PR gets auto-blocked.**
 |---|---|---|
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
-| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal, not a predictor; 3b (strong-model answers + price) not started |
+| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b measured** (`D99`): 16/20 answered, 10 supported, upper bound 0.42 → 0.53; price not sourced |
 | 4 | deploy + package — a demo link and a README that opens with the product | not started |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
 
@@ -228,10 +228,9 @@ answers faithful to those pages?
 refuses these with the page in hand; a larger model should read past a Sphinx-heavy passage more
 often, but not always, because some of `D72`'s pages answer the question only obliquely.
 
-### Status 2026-09-12 15:05 — INCOMPLETE, 7 of 20, no verdict
+### History — the Gemini run, 15:05, INCOMPLETE 7 of 20 (abandoned, rows in `escalate-phase6.gemini-3.7-flash-abandoned.json`)
 
 ```
-# runnable: uv run python -m rag.escalate --report
 ESCALATION — gemini-3.7-flash on the cascade's page-present refusals (INCOMPLETE — 7 of 20)
 
   answered    7 of 7   rule >= 15  -> no verdict on an incomplete run
@@ -259,8 +258,43 @@ Recorded as observations only:
   path's 67% citing nothing — but **9 of their 14 code blocks carry no citation**
 - tokens as returned by the API: **17270 prompt + 1820 output over 7 calls**
 
-**Before the full 20 are judged, the judge question should be settled**: a non-Google judge that is
-free and local, or a human read of the 20 (`D06`'s precedent for anything that becomes a ruler).
+**SWITCH, 15:12, before any answer from the new model — Viraj: do not use Gemini at all.** Its free
+tier is 20 calls a day per model and it stopped this run at 7. Both roles move to Viraj's NVIDIA key
+(free credits, `integrate.api.nvidia.com`):
+
+| role | before | now |
+|---|---|---|
+| escalation model | `gemini-3.7-flash` | **`nvidia/llama-3.1-nemotron-70b-instruct`** — large, instruction-tuned, not a reasoning model |
+| judge scored against the 80% rule | `gemma4:e4b` | **`mistralai/mistral-large-2-instruct`** — independent of Nemotron/Llama, of qwen and of Google |
+| second judge, agreement only | — | `gemma4:e4b`, local |
+
+**Second switch, 15:15, still before any golden-set answer:** the first NVIDIA call returned **HTTP
+404** — Nemotron-70B is listed in the catalog and not invocable on this key, and neither are
+`mistral-large-2-instruct`, `mistral-large`, `nemotron-4-340b`, `llama-3.1-nemotron-51b/ultra`,
+`mixtral-8x22b`, `phi-3.5-moe`, `kimi-k2.6`. Probed with *"Reply with the single word OK"* only, so
+nothing about the questions was seen. What answered, and the final assignment:
+
+| role | model | why |
+|---|---|---|
+| **escalation model** | **`nvidia/nemotron-3-ultra-550b-a55b`** | the largest that responds; its reasoning comes back in a separate field, so the answer text is clean |
+| **scored judge** | **`openai/gpt-oss-20b`** | OpenAI shares a lab with none of NVIDIA, Alibaba (qwen) or Google (gemma). `mistral-nemotron` formats as cleanly but is co-built with NVIDIA |
+| agreement judge | `gemma4:e4b`, local | unchanged |
+
+**Token counts for reasoning models include the reasoning** (`completion_tokens`), which is what
+would be billed, so they are recorded as returned.
+
+**Rules and prediction unchanged.** The 7 Gemini rows are kept as
+`deliverables/escalate-phase6.gemini-3.7-flash-abandoned.json` and are **not** part of this result:
+one set of 20 answered by two models would be two experiments averaged. Everything below this box
+about the Gemini run is history.
+
+**The judge question, settled 15:15 before the new judge read anything:** Viraj has an NVIDIA API
+key (free credits). **`mistralai/mistral-large-2-instruct`** via `integrate.api.nvidia.com` becomes
+the judge whose `SUPPORTED` count is scored against the 80% rule: not Google (the escalation model),
+not Alibaba (the shipped qwen), not gemma; instruction-tuned rather than a reasoning model, so it
+follows the one-word verdict format. **gemma's verdicts stay in the rows for agreement only.** Run
+with `rag.escalate --judge-nvidia`; the key lives in `.env` as `NVIDIA_API_KEY`, never in a file
+that is committed.
 
 **Not done:** a price. The shadow cost needs a published per-token rate for this exact model, with
 a date and a source. The token counts are measured and waiting for it.
@@ -268,3 +302,43 @@ a date and a source. The token counts are measured and waiting for it.
 **To finish:** `uv run python -m rag.escalate --generate` on a later day resumes at item 8 without
 re-asking the 7, then judge, then `--report`. The block above will stop reproducing when it
 completes, which is how this section gets updated.
+
+
+### Result (`D99`) — 15:33, NVIDIA, complete
+
+```
+# runnable: uv run python -m rag.escalate --report
+ESCALATION — nvidia/nemotron-3-ultra-550b-a55b on the cascade's page-present refusals (20 of 20)
+
+  answered   16 of 20   rule >= 15  -> PASS
+  refused     4   g064 g084 g103 g116
+  SUPPORTED  10 of 16 judged = 62%   rule >= 80%  -> FAIL
+  judge      openai/gpt-oss-20b
+  not SUPPORTED  g013=PARTIAL g021=PARTIAL g044=PARTIAL g049=PARTIAL g099=PARTIAL g106=PARTIAL
+
+  tokens, as returned by the API: prompt 45015, output 15624  (over 20 calls)
+```
+
+**Against the rules written before the first call:**
+
+| rule | result |
+|---|---|
+| answered ≥ 15 of 20 | **PASS — 16.** The local model's page-present refusals are mostly a model-size problem |
+| `SUPPORTED` ≥ 80% of answers | **FAIL — 10 of 16 = 62%.** Per the rule: only the 10 supported count as fixes |
+
+**All six misses are `PARTIAL`, none `UNSUPPORTED`** (`g013 g021 g044 g049 g099 g106`): the bigger
+model answers from the page *and* adds what the page does not say. That is the same direction `D86`
+found in human disagreements with a judge. **Prediction scored:** 14 answered (actual 16) and ~85%
+supported (actual 62%) — both wrong, the second by a lot.
+
+**What routing buys, in the repo's own unit** (lab, 91 answerable, shipped end to end `38/91 =
+0.42`): the cascade plus this model turns **10** page-present refusals into supported answers, so an
+upper bound of **48/91 = 0.53** if every one of the 10 is also correct. Not measured: correctness
+against real 2.0.51, and whether escalating the other 33 refusals (page absent or unanswerable)
+creates fabrications.
+
+**Tokens** (as returned; reasoning included): **45015 prompt + 15624 output over 20 calls.** A price
+per token for this model, with a source and date, is the one input the shadow cost still needs.
+
+**Not done:** the `gemma4:e4b` agreement pass (`rag.escalate --judge`, ~15 min on the Mac), and a
+human read of the six `PARTIAL`s.
