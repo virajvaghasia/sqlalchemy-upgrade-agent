@@ -145,8 +145,42 @@ def _observation(name: str, result) -> str:
 DEFAULT_SYSTEM = None          # set below, after both prompts are defined
 
 
+# E2. `SYSTEM_MUSTCALL` *asks* for a tool call; this *requires* one. When the
+# model writes prose before any tool has run, the loop refuses to accept it as
+# the answer and says so, once, then accepts whatever comes back.
+#
+# **The cap is the whole design.** An unbounded "no, call a tool" would turn a
+# model that will not comply into an infinite loop, which is the failure mode
+# `MAX_STEPS` exists to prevent and would be worse than the defect.
+#
+# **What E2 is FOR is bounding, not fixing.** If forcing the first call does not
+# improve answers, the ceiling is the model's rather than the prompt's -- and
+# that is a more useful thing to know than another wording result.
+FORCE_RETRIES = 1
+
+NUDGE_FIRST_TOOL = (
+    "You answered without calling a tool. Call one of the two tools now — "
+    "search_docs for how and why, check_api to confirm whether a symbol still "
+    "exists. Reply with the tool call only."
+)
+
+# E4. A `check_api` miss is half an answer to a two-part question: it settles
+# "was it removed" and says nothing about "what replaces it". Measured on the
+# named example `MetaData.bind`, the model stops at the half it has.
+#
+# This nudge is fired ONLY after a NOT FOUND, so it separates two explanations
+# that look identical from the outside: a **planning** failure (it never
+# intended a second step) from a **stopping** failure (it would continue if
+# told the first step is not the end).
+NUDGE_AFTER_NOT_FOUND = (
+    "That settles whether the symbol exists. If the question also asks what to "
+    "use instead, search the docs before answering."
+)
+
+
 def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS,
-        log=lambda *a: None, system: str | None = None) -> dict:
+        log=lambda *a: None, system: str | None = None,
+        force_first_tool: bool = False, nudge_not_found: bool = False) -> dict:
     """One question, up to `max_steps` tool calls, one answer or one decline.
 
     Returns the transcript as well as the answer, because a trace nobody can
@@ -159,18 +193,31 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
     messages = [{"role": "system", "content": system or DEFAULT_SYSTEM},
                 {"role": "user", "content": question}]
     trace, seen_calls = [], set()
+    forced, tools_run = 0, 0
 
     for step in range(1, max_steps + 1):
         reply = generate(messages)
         got = toolcall.classify(reply)
 
         if got["outcome"] not in toolcall.USABLE:
+            content = ((reply.get("message") or {}).get("content") or "").strip()
+            # E2: prose BEFORE any tool has run is refused, up to `FORCE_RETRIES`
+            # times. Prose after a tool has run is the normal way out of the loop
+            # and is never refused -- the point is to require evidence, not to
+            # forbid answering.
+            if force_first_tool and tools_run == 0 and forced < FORCE_RETRIES:
+                forced += 1
+                trace.append({"step": step, "kind": "forced"})
+                log(f"  [{step}] refused prose before any tool ran")
+                messages.append({"role": "assistant", "content": content})
+                messages.append({"role": "user", "content": NUDGE_FIRST_TOOL})
+                continue
             # Prose at this point is the model answering, which is the normal
             # way out of the loop -- not a failure.
-            content = ((reply.get("message") or {}).get("content") or "").strip()
             trace.append({"step": step, "kind": "answer"})
             return {"answer": content or DECLINE, "steps": step,
-                    "trace": trace, "stopped": "answered"}
+                    "trace": trace, "stopped": "answered",
+                    "forced": forced}
 
         name, argument = got["tool"], got["arg"]
         key = (name, argument)
@@ -180,7 +227,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
             trace.append({"step": step, "kind": "repeat", "tool": name,
                           "arg": argument})
             return {"answer": DECLINE, "steps": step, "trace": trace,
-                    "stopped": "repeated_call"}
+                    "stopped": "repeated_call", "forced": forced}
         seen_calls.add(key)
 
         result, error = call_tool(name, argument)
@@ -200,6 +247,12 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
             continue
 
         observation = _observation(name, result)
+        tools_run += 1
+        # E4: a NOT FOUND settles half of a two-part question. Firing the nudge
+        # only here is what separates a planning failure from a stopping one.
+        if (nudge_not_found and name == "check_api"
+                and not result.get("exists") and not result.get("error")):
+            observation += "\n" + NUDGE_AFTER_NOT_FOUND
         trace.append({"step": step, "kind": "tool", "tool": name,
                       "arg": argument, "observation": observation[:200]})
         log(f"  [{step}] {name}({argument!r})")
@@ -211,7 +264,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
     # indistinguishable, downstream, from one that knew the answer.
     trace.append({"step": max_steps, "kind": "budget"})
     return {"answer": DECLINE, "steps": max_steps, "trace": trace,
-            "stopped": "budget"}
+            "stopped": "budget", "forced": forced}
 
 
 def _default_tools(name: str, argument: str):
@@ -391,6 +444,134 @@ def e1(items: list[dict], chunks: dict | None = None, run_one=None,
     return out
 
 
+# E2/E4's arms. `B_mustcall` is today's default and is the control -- a
+# comparison against the prompt we no longer use would measure `D90` again
+# rather than measuring forcing.
+# E4's own item set, and it exists because the first attempt could not test E4
+# at all.
+#
+# **MEASURED 2026-09-11: across 60 runs on the first 20 answerable golden items,
+# `check_api` was called ZERO times.** Every one of the 56 tool calls was
+# `search_docs`. The nudge fires only after a `check_api` NOT FOUND, so the
+# "nudge" arm was the "forced" arm with dead code -- and the two rows were
+# identical for that reason, not because the nudge did nothing.
+#
+# Checking against Step 0's own probe explains it rather than excusing it: of
+# the 100 golden questions, only **9** route to `check_api`, and only **one**
+# of those (`g018`) is in the first 20. The golden set is how-to shaped,
+# because developers ask how-to questions. **It is the wrong ruler for this
+# experiment**, which is a fact about the experiment, not about the set.
+#
+# So E4 gets questions built for it: **every one is two-part** -- a symbol that
+# is gone, plus what to use instead. Answering fully REQUIRES two tools. The
+# first part is `check_api`'s and the second is `search_docs`'s, and a model
+# that stops after one has answered half.
+#
+# Synthetic and labelled as such. `D06` governs the golden set, which is a
+# ruler; this is an instrument.
+E4_PROBE = [
+    "Was MetaData.bind removed in SQLAlchemy 2.0, and what should I use instead?",
+    "Does Query.from_self still exist in 2.0, and how do I rewrite a query that used it?",
+    "Is engine.execute still available in 2.0, and what replaces it?",
+    "Was Query.get removed in 2.0, and what is the replacement?",
+    "Does Table.tometadata still exist in 2.0, and what is it called now?",
+    "Is Row.keys() still a method in 2.0, and how do I get column names now?",
+    "Was the Query API removed in 2.0, and what should I write instead?",
+    "Does declarative_base still exist in 2.0, and where has it moved to?",
+    "Is MetaData.bind gone in 2.0, and how do I bind an engine now?",
+    "Was connectionless execution removed in 2.0, and how do I execute now?",
+]
+
+E2_ARMS = {
+    "B_default": {},
+    "C_forced": {"force_first_tool": True},
+    "D_forced_nudge": {"force_first_tool": True, "nudge_not_found": True},
+}
+
+
+def e2(items: list[dict], chunks: dict | None = None, run_one=None,
+       log=print) -> dict:
+    """E2 (force the first tool call) and E4 (nudge after a NOT FOUND).
+
+    Arms alternate within each item, same as `e1` and for the same reason
+    (`D54`, sharpened by `D89`): on a box where tool-choice disagrees with
+    another box on half the items, a quantity measured twice at different times
+    is not a comparison.
+    """
+    from rag import judge, score
+
+    chunks = chunks if chunks is not None else score.load_chunks()
+    out = {arm: [] for arm in E2_ARMS}
+    for n, item in enumerate(items, 1):
+        for arm, kwargs in E2_ARMS.items():
+            seen: list[str] = []
+
+            def call_tool(name, argument, _s=seen):
+                result, error = _default_tools(name, argument)
+                if name == "search_docs" and not error:
+                    _s.extend(hit["chunk_id"] for hit in result)
+                return result, error
+
+            got = (run_one or run)(item["question"], call_tool=call_tool,
+                                   **kwargs)
+            used = [t.get("tool") for t in got["trace"] if t["kind"] == "tool"]
+            report = judge.citation_report(got["answer"], len(seen))
+            out[arm].append({
+                "id": item["id"], "tools": used, "n_sources": len(seen),
+                "answerable": True, "answer": got["answer"],
+                "forced": got.get("forced", 0),
+                "answer_in_prompt": bool(
+                    seen and score.rank_of_first_hit(seen, item, chunks)
+                    is not None),
+                "out_of_range": bool(report["out_of_range"]),
+            })
+            log(f"  {arm} [{n}/{len(items)}] {item['id']} tools={used} "
+                f"forced={got.get('forced', 0)}")
+    return out
+
+
+def e4(questions: list[str] | None = None, run_one=None, log=print) -> dict:
+    """Does a nudge after a NOT FOUND produce the SECOND tool call?
+
+    Two arms over two-part questions: plain, and nudged. The measurement is
+    `two+` -- how many runs chained tools -- because that is the single number
+    no prompt has moved in 80 runs across two machines.
+
+    **What it distinguishes:** a **planning** failure (the model never intended
+    a second step, so being told the first is incomplete changes nothing) from
+    a **stopping** one (it would continue if told). Those look identical from
+    outside and have completely different fixes.
+    """
+    arms = {"plain": {"force_first_tool": True},
+            "nudged": {"force_first_tool": True, "nudge_not_found": True}}
+    out = {arm: [] for arm in arms}
+    for n, question in enumerate(questions or E4_PROBE, 1):
+        for arm, kwargs in arms.items():
+            got = (run_one or run)(question, **kwargs)
+            used = [t.get("tool") for t in got["trace"] if t["kind"] == "tool"]
+            out[arm].append({"question": question, "tools": used,
+                             "answer": got["answer"]})
+            log(f"  {arm} [{n}] tools={used}")
+    return out
+
+
+def e4_report(out: dict) -> None:
+    print("\n" + "=" * 70)
+    print(f"E4 — does a nudge after NOT FOUND produce the second call? "
+          f"[{machine()}]")
+    print("=" * 70)
+    print(f"{'':<10}{'no tool':>9}{'one':>6}{'two+':>6}{'check_api first':>18}")
+    for arm, rows in out.items():
+        print(f"{arm:<10}"
+              f"{sum(1 for r in rows if not r['tools']):>9}"
+              f"{sum(1 for r in rows if len(r['tools']) == 1):>6}"
+              f"{sum(1 for r in rows if len(r['tools']) > 1):>6}"
+              f"{sum(1 for r in rows if r['tools'][:1] == ['check_api']):>18}")
+    print("\nEvery question is two-part: a symbol that is gone, plus what to")
+    print("use instead. Answering fully REQUIRES two tools, so `two+` is the")
+    print("number — and the nudge can only fire after a check_api NOT FOUND.")
+
+
 def e1_report(out: dict) -> None:
     print("\n" + "=" * 66)
     print(f"E1 — system prompt A/B, one sitting (D54), n={len(next(iter(out.values())))}"
@@ -453,6 +634,27 @@ def main() -> None:
               "against a run\n  from THIS machine (D83).")
         return
 
+    if "--e4" in argv:
+        got = e4()
+        e4_report(got)
+        path = judge.DELIVERABLES / f"e4-phase5.{machine()}.json"
+        path.write_text(_json.dumps({"machine": machine(), "arms": got},
+                                    indent=1) + "\n")
+        print(f"\nsaved to {path.name}")
+        return
+
+    if "--e2" in argv:
+        from rag import score as _score
+        n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 20
+        items = [i for i in _score.load_golden() if i.get("answerable")][:n]
+        got = e2(items)
+        e1_report(got)
+        path = judge.DELIVERABLES / f"e2-phase5.{machine()}.json"
+        path.write_text(_json.dumps({"machine": machine(), "arms": got},
+                                    indent=1) + "\n")
+        print(f"\nsaved to {path.name}")
+        return
+
     if "--e1" in argv:
         from rag import score as _score
         n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 20
@@ -467,7 +669,9 @@ def main() -> None:
 
     if "--golden" not in argv:
         print("usage: uv run python -m rag.agent --golden [--limit N] [--resume]\n"
-              "       uv run python -m rag.agent --e1 [--n 20]\n"
+              "       uv run python -m rag.agent --e1 [--n 20]   prompt A/B\n"
+              "       uv run python -m rag.agent --e2 [--n 20]   forcing + nudge\n"
+              "       uv run python -m rag.agent --e4            two-part questions\n"
               "       uv run python -m rag.agent --report")
         return
 

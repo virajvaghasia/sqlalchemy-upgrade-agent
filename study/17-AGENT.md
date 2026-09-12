@@ -266,9 +266,41 @@ correctly; the model simply stopped.
 statement about **a 7B local model on this task with these tools**, and the honest form of it names
 all three. A larger model may well chain; nothing here measures that.
 
-**What is left to try:** forcing the second call structurally in code rather than asking for it in
-a prompt. That **bounds** the question rather than fixing it — if the loop forces a second tool call
-and the answers still do not improve, the ceiling is the model's.
+### And then it turned out to be the other explanation
+
+There were two stories that fit, and from outside they look the same:
+
+- **It never planned a second step.** Then nothing you say will produce one, and you need a
+  different model.
+- **It does not know the first step was not the end.** Then telling it is enough.
+
+To tell them apart you need questions that *require* two steps. The golden set will not do —
+measured, `check_api` was called **zero** times in 60 runs over the first twenty golden items,
+because those are how-to questions and route to the docs. So: ten questions built to be two-part, a
+symbol that is gone plus what replaces it.
+
+Then one sentence, added to the tool result **only** when `check_api` comes back NOT FOUND:
+
+> *"That settles whether the symbol exists. If the question also asks what to use instead, search
+> the docs before answering."*
+
+```
+            no tool   one  two+
+plain             0    10     0
+nudged            0     3     7
+```
+
+**Zero to seven out of ten. Paired, p = 0.0156.**
+
+> **It stops. It cannot not-continue.** The ceiling that nothing had moved in eighty runs came
+> down to one sentence, fired at the one moment the model has half an answer and does not know it.
+
+**What that is NOT.** Not "the agent chains now". It chains on questions *built* to need two steps,
+when *told* the first was partial, on *one machine*, ten times. It says nothing about three steps,
+and `D89` is the reason the lab has to see it before any of this is a claim.
+
+**The honest part I would say in an interview:** I wrote down which explanation I expected — the
+planning one — before running it, and I was wrong.
 
 ---
 
@@ -285,9 +317,12 @@ Same prompt, same model, temperature 0, ten of twenty flip. So I stopped quoting
 property of the system, and I put my own prompt fix behind the same cross-machine rule that is
 currently holding a *different* prompt I would rather have shipped.
 
-**"It does single-tool lookup, not multi-step agency, and I can show you the item."**
+**"It stopped after one tool, and I found out why rather than tuning around it."**
 `MetaData.bind`: it checks the API, correctly learns the symbol is gone, and stops without looking
-up the replacement. Eighty runs, two machines, two prompts, one chained call total.
+up the replacement — eighty runs, two machines, two prompts, one chained call. I wrote down the
+explanation I expected, designed the test to *distinguish* it from the alternative rather than
+confirm it, and was wrong: one sentence fired only after a NOT FOUND took chaining **0 → 7 of 10**,
+p = 0.0156. It is a stopping failure, not a planning one.
 
 ### The follow-ups these attract, and what kills them
 

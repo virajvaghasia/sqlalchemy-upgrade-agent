@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R8 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D90`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D91`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 421 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 434 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,18 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**ROUND 19 IS OPEN AND IT LEADS WITH `D91`, the best result in Phase 5 so far.** The agent had
+chained tools **once in 80 runs**; nothing moved it. Measured on the Mac: one sentence appended to
+a tool result **only** when `check_api` returns NOT FOUND takes chaining **0 → 7 of 10** on
+two-part questions, paired, **p = 0.0156**. **So the single-tool ceiling is a STOPPING failure, not
+a planning one** — the model will take the second step, it just does not know the first was not the
+end. **Round 19's own table says I predicted the opposite**, and the prediction stays on the page.
+**It is a Mac screen** (`D89`: tool decisions disagree across machines on half the items; `D90`:
+E1's direction inverted), so the lab decides.
+**And E4 could not run the first time:** two byte-identical arms, because `check_api` was called
+**zero** times in 60 runs over the first 20 golden items — the golden set is how-to shaped. *A null
+from an experiment that did not run looks exactly like a null from one that did.*
+
 **ROUND 18 CLOSED (`D90`): the must-call prompt is the agent's default now.** Lab, paired, n=20:
 **9 out-of-range citations fixed, 0 broken**, `delivered` **6↑ 0↓ p = 0.031**; Mac: citations
 **3 fixed 0 broken**, `delivered` **0↑ 1↓**. **Designed effect reproduces, side effect does not** —
@@ -458,7 +470,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**421 tests**, **58/58** `# runnable`, **90** decisions, **§H empty**.
+**434 tests**, **58/58** `# runnable`, **91** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -504,7 +516,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 421 passed with Qdrant up; 416 + 5 skipped without
+uv run pytest                            # 434 passed with Qdrant up; 429 + 5 skipped without
 uv run python -m tools.check_runnable    # 58/58 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

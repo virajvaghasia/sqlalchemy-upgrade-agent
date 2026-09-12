@@ -418,6 +418,52 @@ measured answer so far is that **this model does single-tool lookup, not multi-s
 result about 7B local models, not about a prompt. `E2` (forcing structurally) is the only untried
 lever, and it bounds rather than fixes.
 
+#### E2 and E4 — RUN 2026-09-11 on the Mac. One of them changed the phase.
+
+**E2, forcing the first tool call in code rather than asking for it (n=20):**
+
+```
+                  no tool   one  two+  forced  in prompt  delivered  bad cites
+B_default (D90)         2    18     0       0         13          6          0
+C_forced                1    19     0       2         14          7          0
+```
+
+**Marginal here, because `SYSTEM_MUSTCALL` had already taken no-tool-call to 2 of 20.** On the lab
+the prompt only reached 7 of 20, so forcing has more room there — that is Round 19.2.
+
+**E4 could not run at all the first time, and the null looked real.** Two arms came back
+**byte-identical**. The reading is not *"the nudge did nothing"*: across 60 runs on the first 20
+answerable golden items, `check_api` was called **zero** times — all 56 calls were `search_docs` —
+and the nudge only fires after a `check_api` NOT FOUND. Step 0's probe explains it: only **9** of
+the 100 golden questions route to `check_api`, and only `g018` is in the first 20. **The golden set
+is how-to shaped because developers ask how-to questions.** Right ruler for Phase 2, wrong one
+here.
+
+> **A null from an experiment that did not run looks exactly like a null from one that did.** Two
+> *identical* rows are what gave it away; "no significant difference" would not have.
+
+**So E4 got ten questions built for it** — two-part by construction, a symbol that is gone plus
+what replaces it, where answering fully requires both tools:
+
+```
+            no tool   one  two+   check_api first
+plain             0    10     0                 9
+nudged            0     3     7                 9
+```
+
+**7 chained, 0 un-chained, exact McNemar p = 0.0156** (`D91`).
+
+> **The single-tool ceiling is a STOPPING failure, not a planning one. The model will take the
+> second step; it does not know the first one was not the end.**
+
+**And Round 19's own table says, in writing, that I expected the opposite.** The prediction stays
+on the page. What moved it was one sentence appended to a tool result *only* after a NOT FOUND —
+no system-prompt change, no new tool.
+
+**It is a Mac result at n=10 and it is a screen, not a finding.** `D89` has tool decisions
+disagreeing across machines on half the items and `D90` watched E1's direction invert. Round 19
+now leads with this.
+
 **Pass/fail, fixed now:**
 
 - **E1 moves `no_tool_call` from ~96 to near zero** → the prompt was the cause; re-run 17.4 with it

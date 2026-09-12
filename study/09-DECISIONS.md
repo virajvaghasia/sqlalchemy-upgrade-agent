@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D90`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D91`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3285,6 +3285,81 @@ picking whichever row let me proceed. What decided it was a different argument: 
 defect that reproduces on both machines with zero regressions, and the thing it would have altered
 has no users. **I also kept holding a different prompt, on the same evidence standard, in the same
 project — which is the only reason either decision is worth anything.**
+
+### D91 — the single-tool ceiling is a STOPPING failure, not a planning one, and I predicted wrong
+
+**Measured 2026-09-11 on the Mac, n=10, paired, one sitting. Awaiting the lab (`D89`).**
+
+For 80 runs across two machines and two prompts, the agent had chained tools **exactly once**.
+`PHASE-5.md` opened on the arithmetic of an agent being three-plus generations where `0.43` was
+measured on one, and every prompt tried left that number at zero. **Round 19's pass/fail table says
+in writing: *"the last row is the one I expect"* — the row meaning a planning failure, where the
+model never intends a second step and nothing reachable changes that.**
+
+**It is the other row.**
+
+| two-part questions, n=10 | no tool | one tool | **two or more** |
+|---|---|---|---|
+| forced first call | 0 | 10 | **0** |
+| forced + nudged after NOT FOUND | 0 | 3 | **7** |
+
+**7 chained, 0 un-chained, exact McNemar p = 0.0156.**
+
+> **The model will take the second step. It just does not know the first one was not the end.**
+
+**What the nudge is.** One sentence, appended to the tool result **only when `check_api` returns
+NOT FOUND**: *"That settles whether the symbol exists. If the question also asks what to use
+instead, search the docs before answering."* No change to the system prompt, no change to the
+tools.
+
+**Why that sentence and not a general instruction.** Firing it only on a NOT FOUND is the whole
+design. A blanket *"keep going"* would raise `two+` without telling you **why**, and the two
+explanations have completely different fixes:
+
+- **planning failure** — it never intended a second step; you need a different model, or a planner.
+- **stopping failure** — it would continue if told; you need the loop to say so.
+
+The named example is `MetaData.bind`. Plain: `[check_api]`, learns the symbol is gone, stops
+— half the question answered. Nudged: `[check_api, search_docs]`.
+
+#### The experiment could not run the first time, and that is worth recording
+
+The first attempt ran E4 over **the first 20 answerable golden items** and produced two identical
+rows. The obvious reading is *"the nudge did nothing"*. **The real reading is that the nudge never
+fired**: across 60 runs on those items, `check_api` was called **zero** times — all 56 tool calls
+were `search_docs`. The nudge arm was the forced arm with dead code.
+
+Checking Step 0's own probe explains it: of the 100 golden questions, only **9** route to
+`check_api`, and only **one** (`g018`) is in the first 20. **The golden set is how-to shaped,
+because developers ask how-to questions.** It is the right ruler for Phase 2 and the **wrong** one
+for this experiment.
+
+> **A null result from an experiment that did not run looks exactly like a null result from an
+> experiment that did.** Fifth instrument failure this week (`D76`, `D79`, `D87`, the `e1_report`
+> footer, this) and the only reason it was caught is that two arms being *byte-identical* is
+> suspicious in a way that "no significant difference" is not.
+
+So E4 got its own item set: **ten questions that are two-part by construction**, a symbol that is
+gone plus what replaces it, where answering fully *requires* both tools. Synthetic and labelled as
+such — `D06` governs the golden set, which is a ruler; this is an instrument.
+
+**Decided — nothing ships yet, and Round 19 is rewritten to test THIS.** `D89` measured tool-call
+decisions disagreeing across machines on half the items, and `D90` watched E1's direction invert
+between boxes. **A 7-of-10 Mac result is a screen.** The round that was going to confirm forcing
+now confirms the nudge, because this is the bigger question.
+
+**What it does NOT license.** It is not *"the agent chains now"* — it chains on questions
+**built** to need two steps, when **told** the first was partial, on **one machine**, ten times.
+And it says nothing about three steps.
+
+**Interview question it answers:** *"Your agent wouldn't use more than one tool. What did you do?"*
+I wrote down which explanation I expected first — that it never planned a second step — and then
+designed the experiment to distinguish that from the alternative, rather than to confirm it. The
+first version of that experiment **silently did not run**, because the questions I used never
+triggered the condition, and two identical result rows are what tipped me off. When it did run, I
+was wrong: one sentence, fired only after the tool that settles half the question, took chaining
+from 0 to 7 of 10. **The finding is that it stops, not that it cannot continue — and I would not
+have got there by tuning the prompt I started with.**
 
 ---
 

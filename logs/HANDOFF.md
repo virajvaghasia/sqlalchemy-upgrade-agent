@@ -44,6 +44,7 @@ Ollama **0.32.9**, generator **100% GPU**. Artifact:
 
 | round | state |
 |---|---|
+| **19** | **OPEN** — E2/E4 on the lab: does *forcing* a tool call beat *asking* for one? ~35 min |
 | **18** | **CLOSED** — E1 must-call: no-tool **19→7**, bad cites **9→0**, delivered **0→6**; not Mac's 9→2 |
 | **17** | **CLOSED** — Step 0 holds on channel/`--g065`; agent end-to-end **0.02** vs lab baseline **0.42** |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
@@ -162,6 +163,129 @@ saved to e1-phase5.Linux-x86_64.json
   B_mustcall [19/20] g021 tools=['search_docs']
   A_shipped [20/20] g022 tools=[]
   B_mustcall [20/20] g022 tools=[]
+```
+
+---
+
+# Round 19 — does FORCING a tool call beat ASKING for one? (OPEN, ~35 minutes)
+
+**Why this needs the lab and is not optional.** `D89`: whether the agent calls a tool at all
+**disagrees between these two machines on half the items**. `D90`: E1 measured `0↑ 1↓` on the Mac
+and `6↑ 0↓` on the lab — **the direction inverted**. A Mac screen of E2/E4 is a screen and nothing
+more; this round is the measurement.
+
+**What is being tested.** `SYSTEM_MUSTCALL` *asks* the model to call a tool. Two stronger things:
+
+- **E2 — force it in code.** If the model writes prose before any tool has run, the loop refuses it
+  **once**, says so, and asks again. The cap is deliberate: unbounded refusal turns a non-complying
+  model into an infinite loop, which is worse than the defect.
+- **E4 — nudge after a miss.** When `check_api` returns NOT FOUND, that settles half of a two-part
+  question. The nudge says so, and fires **only** on a NOT FOUND — which is what separates a
+  **planning** failure (it never intended a second step) from a **stopping** one (it would continue
+  if told the first step is not the end).
+
+**The named example E4 exists for:** *"Was `MetaData.bind` removed in 2.0, and how do I replace
+it?"* The agent checks the API, correctly learns the symbol is gone, and **stops** — half the
+question answered.
+
+## Pass / fail, written before the data
+
+| result on the lab | meaning | next |
+|---|---|---|
+| `C_forced` raises `delivered` over `B_default`, no regressions | forcing beats asking | make it the default, re-run the 100 |
+| `C_forced` raises tool calls but **not** `delivered` | it retrieves and then ignores what it retrieved | **a different and more interesting defect**, and prompting is not the lever |
+| **E4: `nudged` chains most of 10 and `plain` chains ~0** | the single-tool ceiling is a **stopping** failure and is reachable | **the phase's best outcome** — pursue it |
+| E4: `two+` stays ~0 even when nudged | it is a **planning** failure | **that is the finding.** A 7B local model does single-tool lookup, and Phase 5 reports it rather than fighting it |
+
+**I wrote "the last row is the one I expect" before running this on the Mac, and I was wrong** —
+it came back 0→7, p = 0.0156 (`D91`). The prediction stays on the page; this round is whether the
+result survives a second machine, where `D89` says tool decisions disagree on half the items and
+`D90` watched a direction invert.
+
+## ASK 19.0 — sync
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git pull --ff-only && git log -1 --oneline
+docker compose up -d qdrant && ollama ps
+```
+
+## ASK 19.1 — E4 first: does the nudge produce the SECOND tool call? (~12 min)
+
+**This is the round.** On the Mac it took chaining from **0 of 10 to 7 of 10**, paired,
+p = 0.0156 (`D91`) — the first thing in this phase to move the one number nothing had moved.
+
+```bash
+nohup uv run python -u -m rag.agent --e4 > /tmp/round19-e4.log 2>&1 &
+disown
+tail -f /tmp/round19-e4.log
+```
+
+**Expected shape if it reproduces:** `plain` chains ~0 of 10, `nudged` chains most of them, and
+`check_api first` is high in **both** arms (the nudge cannot fire otherwise).
+
+**If `check_api first` is low, STOP and paste it** — that would mean the nudge never fired and the
+arms are not a comparison, which is exactly how the first attempt at this failed.
+
+```bash
+git add deliverables/e4-phase5.Linux-x86_64.json
+git commit -m "lab: Round 19 — E4 nudge on the 3060" && git push
+```
+
+## ASK 19.2 — E2, forcing the first call (~25 min)
+
+Lower stakes than 19.1. On the Mac forcing bought **+1 tool call, +1 delivered** over the
+must-call prompt — marginal, because that prompt had already taken no-tool-call down to 2 of 20.
+**On the lab the prompt only got it to 7 of 20, so forcing has more room here.**
+
+```bash
+nohup uv run python -u -m rag.agent --e2 --n 20 > /tmp/round19-e2.log 2>&1 &
+disown
+git add deliverables/e2-phase5.Linux-x86_64.json
+git commit -m "lab: Round 19 — E2 three arms on the 3060" && git push
+```
+
+**Note the third arm is NOT a test of E4 on this box either**, for the reason `D91` records: the
+golden items are how-to shaped and almost never reach `check_api`, so the nudge does not fire.
+That arm is kept only so the table matches the Mac's.
+
+## ASK 19.3 — only with time to spare (~50 min)
+
+The 100-item sweep **under the new default**, so the lab has a like-for-like against its own
+Round 17 run, which used the old prompt. **This is the number that would replace `0.02`.**
+
+```bash
+# Round 17's artifact is the evidence for D89 — confirm it is in git FIRST:
+git log --oneline -- deliverables/agent-sweep-phase5.Linux-x86_64.json
+
+rm -f deliverables/agent-sweep-phase5.Linux-x86_64.json
+nohup uv run python -u -m rag.agent --golden > /tmp/round19-golden.log 2>&1 &
+disown
+uv run python -m rag.agent --report
+```
+
+### REPLY 19.0
+
+```
+(paste)
+```
+
+### REPLY 19.1
+
+```
+(paste the E4 table — both arms — and the last 10 log lines)
+```
+
+### REPLY 19.2
+
+```
+(paste the E2 table)
+```
+
+### REPLY 19.3
+
+```
+(paste rag.agent --report)
 ```
 
 ### LAB RESULT — Round 17 (Mac: read this)

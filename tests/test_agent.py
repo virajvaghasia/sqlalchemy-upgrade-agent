@@ -372,3 +372,168 @@ def test_the_measured_control_prompt_is_kept_not_deleted():
     assert agent.SYSTEM != agent.SYSTEM_MUSTCALL
     assert agent.DEFAULT_SYSTEM is agent.SYSTEM_MUSTCALL
     assert set(agent.E1_ARMS.values()) == {agent.SYSTEM, agent.SYSTEM_MUSTCALL}
+
+
+# --- E2: forcing the first tool call structurally ----------------------------
+
+def test_prose_before_any_tool_is_refused_once_then_accepted():
+    """E2 *requires* what SYSTEM_MUSTCALL only *asks* for. The cap is the whole
+    design: an unbounded "no, call a tool" turns a model that will not comply
+    into an infinite loop, which is worse than the defect."""
+    got = agent.run("q", generate=scripted(
+        prose("Use select()."),                      # refused
+        tool_reply("search_docs", "select"),         # complies
+        prose("Use select() [1].")),
+        call_tool=lambda n, a: ([{"chunk_id": "c", "text": "t"}], None),
+        force_first_tool=True)
+    assert [t["kind"] for t in got["trace"]] == ["forced", "tool", "answer"]
+    assert got["forced"] == 1
+    assert got["answer"] == "Use select() [1]."
+
+
+def test_forcing_gives_up_rather_than_looping():
+    """A model that refuses twice gets its answer taken. FORCE_RETRIES is 1."""
+    got = agent.run("q", generate=scripted(prose("no tools for me"),
+                                           prose("still none")),
+                    call_tool=lambda n, a: (None, None),
+                    force_first_tool=True)
+    assert got["forced"] == 1 and got["stopped"] == "answered"
+    assert got["answer"] == "still none"
+
+
+def test_prose_AFTER_a_tool_ran_is_never_refused():
+    """The point is to require evidence, not to forbid answering. Refusing here
+    would make the loop unable to terminate normally."""
+    got = agent.run("q", generate=scripted(
+        tool_reply("search_docs", "x"), prose("done [1].")),
+        call_tool=lambda n, a: ([{"chunk_id": "c", "text": "t"}], None),
+        force_first_tool=True)
+    assert "forced" not in [t["kind"] for t in got["trace"]]
+    assert got["forced"] == 0
+
+
+def test_forcing_is_off_by_default():
+    """E2 is an experiment, not the shipped loop, until a measurement says so."""
+    got = agent.run("q", generate=scripted(prose("straight to prose")),
+                    call_tool=lambda n, a: (None, None))
+    assert got["stopped"] == "answered" and got["forced"] == 0
+
+
+# --- E4: the nudge after a NOT FOUND -----------------------------------------
+
+def test_the_nudge_fires_only_after_a_check_api_miss():
+    """Firing it only here is what separates a PLANNING failure — it never
+    intended a second step — from a STOPPING one, where it would continue if
+    told the first step is not the end."""
+    seen = []
+
+    def generate(messages):
+        seen.append(messages[-1]["content"])
+        return prose("done") if len(messages) > 2 \
+            else tool_reply("check_api", "MetaData.bind")
+
+    agent.run("q", generate=generate,
+              call_tool=lambda n, a: ({"exists": False}, None),
+              nudge_not_found=True)
+    assert agent.NUDGE_AFTER_NOT_FOUND in seen[-1]
+
+
+def test_the_nudge_does_not_fire_when_the_symbol_exists():
+    seen = []
+
+    def generate(messages):
+        seen.append(messages[-1]["content"])
+        return prose("done") if len(messages) > 2 \
+            else tool_reply("check_api", "Session.get")
+
+    agent.run("q", generate=generate,
+              call_tool=lambda n, a: ({"exists": True, "signature": "get()"}, None),
+              nudge_not_found=True)
+    assert agent.NUDGE_AFTER_NOT_FOUND not in seen[-1]
+
+
+def test_the_nudge_does_not_fire_on_a_tool_error():
+    """A failed lookup is not a settled half-answer, and telling the model it
+    is would be a lie the loop invented."""
+    seen = []
+
+    def generate(messages):
+        seen.append(messages[-1]["content"])
+        return prose("done") if len(messages) > 2 \
+            else tool_reply("check_api", "X.y")
+
+    agent.run("q", generate=generate,
+              call_tool=lambda n, a: ({"exists": False, "error": "timed out"}, None),
+              nudge_not_found=True)
+    assert agent.NUDGE_AFTER_NOT_FOUND not in seen[-1]
+
+
+def test_the_nudge_is_off_by_default():
+    seen = []
+
+    def generate(messages):
+        seen.append(messages[-1]["content"])
+        return prose("done") if len(messages) > 2 \
+            else tool_reply("check_api", "MetaData.bind")
+
+    agent.run("q", generate=generate,
+              call_tool=lambda n, a: ({"exists": False}, None))
+    assert agent.NUDGE_AFTER_NOT_FOUND not in seen[-1]
+
+
+def test_e2_arms_control_against_the_CURRENT_default_not_the_old_prompt():
+    """A comparison against the prompt we no longer use would measure `D90`
+    over again rather than measuring forcing. The control arm passes no
+    options, so it is whatever `DEFAULT_SYSTEM` is today."""
+    assert agent.E2_ARMS["B_default"] == {}
+    assert agent.E2_ARMS["C_forced"] == {"force_first_tool": True}
+    assert agent.E2_ARMS["D_forced_nudge"]["nudge_not_found"] is True
+
+
+def test_e2_interleaves_its_three_arms_per_item():
+    order = []
+
+    def run_one(question, call_tool=None, **kw):
+        order.append("C" if kw.get("nudge_not_found") else
+                     ("B" if not kw else "A"))
+        return {"answer": "x", "steps": 1, "stopped": "answered", "trace": [],
+                "forced": 0}
+
+    agent.e2(ITEMS[:1] + [dict(ITEMS[0], id="g003")], chunks=CHUNKS,
+             run_one=run_one, log=lambda *a: None)
+    assert order == ["B", "A", "C", "B", "A", "C"]
+
+
+def test_every_e4_question_is_two_part():
+    """E4's whole design: answering fully REQUIRES two tools, one for "is it
+    gone" and one for "what replaces it". A single-part question cannot
+    distinguish a planning failure from a stopping one, which is what the first
+    attempt got wrong."""
+    for question in agent.E4_PROBE:
+        lowered = question.lower()
+        assert any(w in lowered for w in
+                   ("still exist", "removed", "still available", "gone",
+                    "still a method")), question
+        assert any(w in lowered for w in
+                   ("instead", "replaces", "replacement", "called now",
+                    "moved to", "how do i")), question
+
+
+def test_e4_runs_both_arms_over_the_same_questions():
+    def run_one(question, **kw):
+        return {"answer": "x", "steps": 1, "stopped": "answered",
+                "trace": [{"kind": "tool", "tool": "check_api"}], "forced": 0}
+
+    got = agent.e4(["Was X removed in 2.0, and what should I use instead?"],
+                   run_one=run_one, log=lambda *a: None)
+    assert set(got) == {"plain", "nudged"}
+    assert got["plain"][0]["question"] == got["nudged"][0]["question"]
+
+
+def test_e4_report_counts_chained_runs(capsys):
+    rows = {"plain": [{"question": "q", "tools": ["check_api"], "answer": "a"}],
+            "nudged": [{"question": "q", "tools": ["check_api", "search_docs"],
+                        "answer": "a"}]}
+    agent.e4_report(rows)
+    out = capsys.readouterr().out
+    assert "two+" in out

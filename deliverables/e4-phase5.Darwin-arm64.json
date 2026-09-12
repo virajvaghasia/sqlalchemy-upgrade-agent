@@ -1,0 +1,156 @@
+{
+ "machine": "Darwin-arm64",
+ "arms": {
+  "plain": [
+   {
+    "question": "Was MetaData.bind removed in SQLAlchemy 2.0, and what should I use instead?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Does Query.from_self still exist in 2.0, and how do I rewrite a query that used it?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Is engine.execute still available in 2.0, and what replaces it?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was Query.get removed in 2.0, and what is the replacement?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Does Table.tometadata still exist in 2.0, and what is it called now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The `Table.tometadata` method still exists in SQLAlchemy 2.0. Its signature is as follows:\n\n```python\ntometadata(self, metadata: 'MetaData', schema: 'Union[str, Literal[SchemaConst.RETAIN_SCHEMA]]' = <SchemaConst.RETAIN_SCHEMA: 1>, referred_schema_fn: 'Optional[Callable[[Table, Optional[str], ForeignKeyConstraint, Optional[str]], Optional[str]]]' = None, name: 'Optional[str]' = None) -> 'Table'\n```\n\nThis method returns a copy of the `Table` object with the metadata set to the provided `metadata` object."
+   },
+   {
+    "question": "Is Row.keys() still a method in 2.0, and how do I get column names now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was the Query API removed in 2.0, and what should I write instead?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Does declarative_base still exist in 2.0, and where has it moved to?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "`declarative_base` still exists in SQLAlchemy 2.0. It is used to create a base class for declarative class definitions. The function signature has not changed significantly from SQLAlchemy 1.4 to 2.0. You can use it in the same way as before to set up your declarative models."
+   },
+   {
+    "question": "Is MetaData.bind gone in 2.0, and how do I bind an engine now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was connectionless execution removed in 2.0, and how do I execute now?",
+    "tools": [
+     "search_docs"
+    ],
+    "answer": "The sources indicate that connectionless execution, including the use of \"bound metadata,\" has been removed in SQLAlchemy 2.0. Instead, you should use explicit connections or engines to execute statements. Here is how you can execute statements in SQLAlchemy 2.0:\n\n1. **Using an Engine:**\n   ```python\n   from sqlalchemy import create_engine\n   from sqlalchemy.orm import sessionmaker\n\n   engine = create_engine('sqlite:///example.db')\n   Session = sessionmaker(bind=engine)\n   session = Session()\n\n   # Execute a statement\n   result = engine.execute(\"SELECT * FROM table_name\")\n   for row in result:\n       print(row)\n   ```\n\n2. **Using a Connection:**\n   ```python\n   from sqlalchemy import create_engine\n\n   engine = create_engine('sqlite:///example.db')\n   with engine.connect() as connection:\n       result = connection.execute(\"SELECT * FROM table_name\")\n       for row in result:\n           print(row)\n   ```\n\nThese methods provide explicit control over the connection and execution, which is recommended for better performance and clarity in your code."
+   }
+  ],
+  "nudged": [
+   {
+    "question": "Was MetaData.bind removed in SQLAlchemy 2.0, and what should I use instead?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "In SQLAlchemy 2.0, the `MetaData.bind` parameter has been removed. Instead, you should use an `Engine` directly when creating tables, reflecting metadata, or executing queries. Here's how you can do it:\n\n1. **Creating Tables:**\n   ```python\n   from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String\n\n   engine = create_engine('sqlite:///example.db')\n   metadata = MetaData()\n\n   users = Table('users', metadata,\n                 Column('id', Integer, primary_key=True),\n                 Column('name', String),\n                 Column('age', Integer))\n\n   metadata.create_all(engine)\n   ```\n\n2. **Reflecting Metadata:**\n   ```python\n   from sqlalchemy import create_engine, MetaData\n\n   engine = create_engine('sqlite:///example.db')\n   metadata = MetaData()\n\n   metadata.reflect(bind=engine)\n   ```\n\n3. **Executing Queries:**\n   ```python\n   from sqlalchemy import create_engine, text\n\n   engine = create_engine('sqlite:///example.db')\n\n   with engine.connect() as conn:\n       result = conn.execute(text(\"SELECT * FROM users\"))\n       for row in result:\n           print(row)\n   ```\n\nThese examples demonstrate how to work with `Engine` directly in SQLAlchemy 2.0, replacing the use of `MetaData.bind`. For more detailed information, refer to the [SQLAlchemy 2.0 Migration Guide][1] and the [SQLAlchemy 2.0 Documentation][2].\n\n[1] https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#migration-guide-20\n[2] https://docs.sqlalchemy.org/en/20/orm/quickstart.html"
+   },
+   {
+    "question": "Does Query.from_self still exist in 2.0, and how do I rewrite a query that used it?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The :meth:`_orm.Query.from_self` method has been removed in SQLAlchemy 2.0. Instead, you can use the :func:`._orm.aliased` construct to achieve the same result. Here's an example of how you can rewrite a query that used `from_self()`:\n\n```python\nfrom sqlalchemy.orm import aliased\n\n# Original query using from_self\nq = (\n    session.query(User, Address.email_address)\n    .join(User.addresses)\n    .from_self(User)\n    .order_by(Address.email_address)\n)\n\n# Rewritten query using aliased\nsubquery = session.query(User).join(User.addresses).subquery()\nuser_alias = aliased(User, subquery)\n\nq = session.query(user_alias).order_by(Address.email_address)\n```\n\nThis approach uses the `aliased` function to create an alias for the subquery, which can then be used in the main query. This method is more straightforward and avoids the complexities of the `from_self` method."
+   },
+   {
+    "question": "Is engine.execute still available in 2.0, and what replaces it?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The `engine.execute` method is no longer available in SQLAlchemy 2.0. Instead, you should use the `Connection.execute` method. The `Connection` object can be obtained from the `engine.connect()` method. Here is an example of how to use it:\n\n```python\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker\n\nengine = create_engine('sqlite:///example.db')\nSession = sessionmaker(bind=engine)\nsession = Session()\n\n# Use Connection.execute instead of engine.execute\nwith engine.connect() as connection:\n    result = connection.execute(\"SELECT * FROM table\")\n    for row in result:\n        print(row)\n```\n\nFor more information, you can refer to the [SQLAlchemy 2.0 migration guide](https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#migration-20-implicit-execution)."
+   },
+   {
+    "question": "Was Query.get removed in 2.0, and what is the replacement?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The :meth:`_orm.Query.get` method has been moved to the :meth:`_orm.Session.get` method in SQLAlchemy 2.0. The :class:`_orm.Query` object is now considered legacy, and ORM queries should be constructed using the :func:`_sql.select` object and executed via the :meth:`_orm.Session.execute` method."
+   },
+   {
+    "question": "Does Table.tometadata still exist in 2.0, and what is it called now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The `Table.tometadata` method still exists in SQLAlchemy 2.0. Its signature is as follows:\n\n```python\ntometadata(self, metadata: 'MetaData', schema: 'Union[str, Literal[SchemaConst.RETAIN_SCHEMA]]' = <SchemaConst.RETAIN_SCHEMA: 1>, referred_schema_fn: 'Optional[Callable[[Table, Optional[str], ForeignKeyConstraint, Optional[str]], Optional[str]]]' = None, name: 'Optional[str]' = None) -> 'Table'\n```\n\nThis method returns a copy of the `Table` object with the metadata set to the provided `metadata` object."
+   },
+   {
+    "question": "Is Row.keys() still a method in 2.0, and how do I get column names now?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was the Query API removed in 2.0, and what should I write instead?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The :meth:`_orm.Query.from_self` method has been removed in SQLAlchemy 2.0. Instead, you should use the :func:`._orm.aliased` construct to emit ORM queries against an entity that is in terms of any arbitrary selectable. This method provides a more straightforward and explicit way to achieve the same functionality.\n\nHere is an example of how you can rewrite the code using :func:`._orm.aliased`:\n\n```python\nfrom sqlalchemy.orm import aliased\n\n# Create an aliased version of the User entity\nuser_alias = aliased(User)\n\n# Create a subquery\nsubquery = session.query(user_alias).filter(user_alias.id == 5).subquery()\n\n# Use the aliased entity in the main query\nuser = session.query(user_alias).select_entity_from(subquery).first()\n```\n\nThis approach avoids the complexities and potential issues associated with the :meth:`_orm.Query.from_self` method and provides a more intuitive and maintainable way to work with subqueries in SQLAlchemy 2.0."
+   },
+   {
+    "question": "Does declarative_base still exist in 2.0, and where has it moved to?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "`declarative_base` still exists in SQLAlchemy 2.0. It is used to create a base class for declarative class definitions. The function signature has not changed significantly from SQLAlchemy 1.4 to 2.0. You can use it in the same way as before to set up your declarative models."
+   },
+   {
+    "question": "Is MetaData.bind gone in 2.0, and how do I bind an engine now?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The `MetaData.bind` method has been removed in SQLAlchemy 2.0. Instead, you should use the `create_engine` function to create an engine and then use the `connect` method to get a connection. Here is an example of how to bind an engine in SQLAlchemy 2.0:\n\n```python\nfrom sqlalchemy import create_engine\n\nengine = create_engine(\"sqlite://\")\nwith engine.connect() as connection:\n    connection.execute(text(\"CREATE TABLE foo (id integer)\"))\n```\n\nThis example demonstrates how to create an engine and use it to execute a SQL statement. The `with` statement is used to ensure that the connection is properly closed after the block of code is executed."
+   },
+   {
+    "question": "Was connectionless execution removed in 2.0, and how do I execute now?",
+    "tools": [
+     "search_docs"
+    ],
+    "answer": "The sources indicate that connectionless execution, including the use of \"bound metadata,\" has been removed in SQLAlchemy 2.0. Instead, you should use explicit connections or engines to execute statements. Here is how you can execute statements in SQLAlchemy 2.0:\n\n1. **Using an Engine:**\n   ```python\n   from sqlalchemy import create_engine\n   from sqlalchemy.orm import sessionmaker\n\n   engine = create_engine('sqlite:///example.db')\n   Session = sessionmaker(bind=engine)\n   session = Session()\n\n   # Execute a statement\n   result = engine.execute(\"SELECT * FROM table_name\")\n   for row in result:\n       print(row)\n   ```\n\n2. **Using a Connection:**\n   ```python\n   from sqlalchemy import create_engine\n\n   engine = create_engine('sqlite:///example.db')\n   with engine.connect() as connection:\n       result = connection.execute(\"SELECT * FROM table_name\")\n       for row in result:\n           print(row)\n   ```\n\nThese methods provide explicit control over the connection and execution, which is recommended for better performance and clarity in your code."
+   }
+  ]
+ }
+}
