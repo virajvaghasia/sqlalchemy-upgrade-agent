@@ -603,6 +603,19 @@ round is whether the lab sees the same six, the same one, or something else.
 | **no movement** | the agent's low refusals come from something else (the tool loop, or the machine), and `D72`'s 19 stand |
 | B **breaks** items | reject, and say so — the shipped path stays as it is |
 
+**READ THE IDS, NOT JUST THE COUNT — this is the actual question.** Two runs can both say
+*"19 → 14"* and mean opposite things:
+
+| what the lab's ids look like | what it means |
+|---|---|
+| **same six fixed, same `g043` broken** | the effect is **real and specific**, and that one regression is a genuine cost to weigh against six gains |
+| a similar count, **different items** | framing is shuffling **which** items refuse, not reducing **how many** — interesting, and **not shippable** |
+| fewer fixes, more breaks | reject; the shipped path stays as it is |
+
+A count that matches while the ids scatter would look like a confirmation and be the opposite of
+one. `D61` exists for exactly this reason, and `D84` is the round where reading ids rather than
+totals is what made the result trustworthy.
+
 ## ASK 21.0
 
 ```bash
