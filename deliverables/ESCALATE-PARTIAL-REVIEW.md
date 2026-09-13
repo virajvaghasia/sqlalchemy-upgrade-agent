@@ -23,7 +23,7 @@ stmt = select(User).options(subqueryload(User.addresses))
 The sources do not specifically mention an `AttributeError` for `subqueryload` with a string; they state the string forms are removed. If you are seeing an `AttributeError`, it may be because the string form is no longer recognized and the internal lookup fails, but the documentation only confirms the removal of string forms, not the exact exception type.
 ````
 
-<details><summary>[1] c02904</summary>
+<details><summary>[1] c02904 — Relationship Loading Techniques > Subquery Eager Loading</summary>
 
 ````
 * The SELECT statement emitted by the "subquery" loader strategy, unlike
@@ -73,7 +73,7 @@ For the above reasons, the "selectin" strategy should be preferred over
 
 </details>
 
-<details><summary>[2] c02903</summary>
+<details><summary>[2] c02903 — Relationship Loading Techniques > Subquery Eager Loading</summary>
 
 ````
 .. sourcecode:: pycon+sql
@@ -114,7 +114,7 @@ Things to know about this kind of loading include:
 
 </details>
 
-<details><summary>[3] c01593</summary>
+<details><summary>[3] c01593 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - ORM Usage > ORM Query  - Joining / loading on relationships uses attributes, not strings</summary>
 
 ````
 ORM Query  - Joining / loading on relationships uses attributes, not strings
@@ -167,7 +167,7 @@ more potentially compatible with IDEs and pep-484 integrations.
 
 </details>
 
-<details><summary>[4] c02902</summary>
+<details><summary>[4] c02902 — Relationship Loading Techniques > Subquery Eager Loading</summary>
 
 ````
 .. legacy:: The :func:`_orm.subqueryload` eager loader is mostly legacy
@@ -201,7 +201,7 @@ the collection members to load them at once:
 
 </details>
 
-<details><summary>[5] c01601</summary>
+<details><summary>[5] c01601 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - ORM Usage > Selecting entities from alternative selectables; Query.select_entity_from()</summary>
 
 ````
 Selecting entities from alternative selectables; Query.select_entity_from()
@@ -279,7 +279,7 @@ class Address(Base):
 **Bottom line:** For new code in SQLAlchemy 2.0, use `back_populates` with explicit relationships on both sides. `backref` still works but is discouraged for the reasons above.
 ````
 
-<details><summary>[1] c02179</summary>
+<details><summary>[1] c02179 — Using the legacy 'backref' relationship parameter</summary>
 
 ````
 Using the legacy 'backref' relationship parameter
@@ -321,7 +321,7 @@ against the current :func:`_orm.relationship` being configured, with both
 
 </details>
 
-<details><summary>[2] c02180</summary>
+<details><summary>[2] c02180 — Using the legacy 'backref' relationship parameter</summary>
 
 ````
 Starting with the following example::
@@ -380,7 +380,7 @@ it's equivalent to the following::
 
 </details>
 
-<details><summary>[3] c00605</summary>
+<details><summary>[3] c00605 — Using the legacy 'backref' relationship parameter</summary>
 
 ````
 Starting with the following example::
@@ -435,7 +435,7 @@ it's equivalent to the following::
 
 </details>
 
-<details><summary>[4] c02618</summary>
+<details><summary>[4] c02618 — Configuring how Relationship Joins > Notes on using the viewonly relationship parameter > In-Python mutations including backrefs are not appropriate with viewonly=True</summary>
 
 ````
 Beyond the issue of backref mutations being disabled for viewonly relationships,
@@ -481,7 +481,7 @@ the immediate ``User.all_tasks`` collection::
 
 </details>
 
-<details><summary>[5] c01328</summary>
+<details><summary>[5] c01328 — Object Relational Tutorial (1.x API) > Building a Relationship</summary>
 
 ````
 A second directive, known as :func:`_orm.relationship`,
@@ -546,7 +546,7 @@ with engine.connect() as connection:
 The section title explicitly notes: **"Implicit" and "Connectionless" execution, "bound metadata" removed** [2]. Therefore, you must pass `autoload_with=engine` or `autoload_with=connection`; you cannot rely on `MetaData.bind` and `autoload=True` alone.
 ````
 
-<details><summary>[1] c01562</summary>
+<details><summary>[1] c01562 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - Core Connection / Transaction > Library-level (but not driver level) "Autocommit" removed from both Core and ORM</summary>
 
 ````
 Library-level (but not driver level) "Autocommit" removed from both Core and ORM
@@ -596,7 +596,7 @@ or the :meth:`_engine.Engine.begin` context manager::
 
 </details>
 
-<details><summary>[2] c01568</summary>
+<details><summary>[2] c01568 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - Core Connection / Transaction > "Implicit" and "Connectionless" execution, "bound metadata" removed</summary>
 
 ````
 For schema level patterns, explicit use of an :class:`_engine.Engine`
@@ -654,7 +654,7 @@ invoking ``.execute()`` from the :class:`_engine.Engine`::
 
 </details>
 
-<details><summary>[3] c01563</summary>
+<details><summary>[3] c01563 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - Core Connection / Transaction > Library-level (but not driver level) "Autocommit" removed from both Core and ORM</summary>
 
 ````
 When using :term:`2.0 style` with the :paramref:`_sa.create_engine.future`
@@ -688,7 +688,7 @@ Python has a "beginning" and an "end".
 
 </details>
 
-<details><summary>[4] c00952</summary>
+<details><summary>[4] c00952 — Relationship Loading Techniques</summary>
 
 ````
 * **raise loading** - available via ``lazy='raise'``, ``lazy='raise_on_sql'``,
@@ -711,7 +711,7 @@ Python has a "beginning" and an "end".
 
 </details>
 
-<details><summary>[5] c01552</summary>
+<details><summary>[5] c01552 — SQLAlchemy 2.0 - Major Migration Guide > 1.x -> 2.x Migration Overview > Migration to 2.0 Step Two - Turn on RemovedIn20Warnings</summary>
 
 ````
 With the above guidance, we can migrate our program to use 2.0 styles, and
@@ -783,7 +783,7 @@ case_clause = case(
 The migration guide explains that this change aligns `case()` with SQLAlchemy's convention: **structural elements** (like WHEN clauses that form the statement structure) are passed **positionally**, while **data elements** (parameterized values) are passed as lists [2].
 ````
 
-<details><summary>[1] c01577</summary>
+<details><summary>[1] c01577 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - Core Usage > select() no longer accepts varied constructor arguments, columns are passed positionally</summary>
 
 ````
 select() no longer accepts varied constructor arguments, columns are passed positionally
@@ -816,7 +816,7 @@ now accepts its WHEN criteria positionally, rather than as a list::
 
 </details>
 
-<details><summary>[2] c01578</summary>
+<details><summary>[2] c01578 — SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - Core Usage > select() no longer accepts varied constructor arguments, columns are passed positionally</summary>
 
 ````
 Only the "generative" style of :func:`_sql.select` will be supported.  The list
@@ -857,7 +857,7 @@ documented style in the Core tutorial.
 
 </details>
 
-<details><summary>[3] c02278</summary>
+<details><summary>[3] c02278 — Composite Column Types > Using Legacy Non-Dataclasses</summary>
 
 ````
 If not using a dataclass, the requirements for the custom datatype class are
@@ -895,7 +895,7 @@ types, using one of the forms at :ref:`orm_composite_other_forms`.
 
 </details>
 
-<details><summary>[4] c02687</summary>
+<details><summary>[4] c02687 — ORM Mapped Class Overview > Mapped Class Behavior > Default Constructor</summary>
 
 ````
 To change the default constructor used, a user-defined Python callable may be
@@ -932,7 +932,7 @@ will also feature the default constructor associated with the :class:`_orm.regis
 
 </details>
 
-<details><summary>[5] c02025</summary>
+<details><summary>[5] c02025 — Error Messages > Legacy Exceptions > select() construct created in "legacy" mode; keyword arguments, etc.</summary>
 
 ````
 select() construct created in "legacy" mode; keyword arguments, etc.
@@ -1008,7 +1008,7 @@ Based on the provided sources, the error `Column [...] has no Python-side or ser
 The exact error message `Column [...] has no Python-side or server-side default generator` is not explicitly mentioned in the provided excerpts. The answer above infers the cause from the documented behavior of `default`, `default_factory`, and `insert_default` with `MappedAsDataclass`. If the error persists after adjusting these parameters, further investigation into the specific column configuration (e.g., `nullable=False`, `autoincrement`, ORM‑level `init=False`) may be needed.
 ````
 
-<details><summary>[1] c01795</summary>
+<details><summary>[1] c01795 — Column INSERT/UPDATE Defaults > Defining Sequences > Associating a Sequence as the Server Side Default</summary>
 
 ````
 Associating a Sequence as the Server Side Default
@@ -1059,7 +1059,7 @@ the server-side default generator::
 
 </details>
 
-<details><summary>[2] c00159</summary>
+<details><summary>[2] c00159 — Column INSERT/UPDATE Defaults > Defining Sequences > Associating a Sequence as the Server Side Default</summary>
 
 ````
 Associating a Sequence as the Server Side Default
@@ -1107,7 +1107,7 @@ the server-side default generator::
 
 </details>
 
-<details><summary>[3] c01801</summary>
+<details><summary>[3] c01801 — Column INSERT/UPDATE Defaults > Identity Columns (GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY)</summary>
 
 ````
 .. sourcecode:: sql
@@ -1146,7 +1146,7 @@ to ``False``.
 
 </details>
 
-<details><summary>[4] c02073</summary>
+<details><summary>[4] c02073 — ORM Configuration > What are ``default``, ``default_factory`` and ``insert_default`` and what should I use? > Part One - Classic SQLAlchemy that is not using dataclasses</summary>
 
 ````
 Part One - Classic SQLAlchemy that is not using dataclasses
@@ -1178,7 +1178,7 @@ parameters are **synonymous**.
 
 </details>
 
-<details><summary>[5] c02074</summary>
+<details><summary>[5] c02074 — ORM Configuration > What are ``default``, ``default_factory`` and ``insert_default`` and what should I use? > Part Two - Using Dataclasses support with MappedAsDataclass</summary>
 
 ````
 Part Two - Using Dataclasses support with MappedAsDataclass
@@ -1248,7 +1248,7 @@ Based on the provided sources, when using `joinedload` on a polymorphic relation
 **What the sources do not cover:** The sources do not provide a complete minimal code example showing the exact `with_polymorphic` construction (e.g., `with_polymorphic(Employee, [Manager, Engineer], aliased=True)`) nor do they explain the behavior when using `selectinload`/`subqueryload` instead of `joinedload` for polymorphic collections. They also do not discuss SQLAlchemy 2.0 API changes (all sources are 1.4.52).
 ````
 
-<details><summary>[1] c01347</summary>
+<details><summary>[1] c01347 — Object Relational Tutorial (1.x API) > Eager Loading > Joined Load</summary>
 
 ````
 Note that even though the OUTER JOIN resulted in two rows, we still only got
@@ -1280,7 +1280,7 @@ backends.
 
 </details>
 
-<details><summary>[2] c00881</summary>
+<details><summary>[2] c00881 — Loading Inheritance Hierarchies</summary>
 
 ````
 When classes are mapped in inheritance hierarchies using the "joined",
@@ -1309,7 +1309,7 @@ tables will be available in the SELECT.
 
 </details>
 
-<details><summary>[3] c00983</summary>
+<details><summary>[3] c00983 — Relationship Loading Techniques > What Kind of Loading to Use ?</summary>
 
 ````
  * When using joined loading, the load of 100 objects will emit only one SQL statement.   The join
@@ -1336,7 +1336,7 @@ tables will be available in the SELECT.
 
 </details>
 
-<details><summary>[4] c00903</summary>
+<details><summary>[4] c00903 — Loading Inheritance Hierarchies > Referring to specific subtypes on relationships > Eager Loading of Specific or Polymorphic Subtypes</summary>
 
 ````
 .. note::
@@ -1372,7 +1372,7 @@ eager-loaded ``Engineer`` class, we access this class from the namespace of the
 
 </details>
 
-<details><summary>[5] c00967</summary>
+<details><summary>[5] c00967 — Relationship Loading Techniques > Joined Eager Loading > The Zen of Joined Eager Loading</summary>
 
 ````
 How :func:`joinedload` in particular achieves this result of not impacting

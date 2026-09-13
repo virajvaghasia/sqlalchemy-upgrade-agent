@@ -544,6 +544,10 @@ def write_sheet(rows: list[dict], golden: dict) -> None:
     and the judge's reason, so the reader decides without opening anything else.
     """
     from rag import score as score_mod
+    # Never regenerate over a human's verdicts (D06): the file is where they live.
+    if SHEET.exists() and any("______" not in line for line in SHEET.read_text().splitlines()
+                              if line.startswith("**Human verdict:**")):
+        sys.exit(f"{SHEET.name} already holds human verdicts; not overwriting it")
     chunks = score_mod.load_chunks()
     partial = [r for r in rows if r.get("verdict_nvidia") == "PARTIAL"]
     out = ["# Escalated answers the judge called PARTIAL — for a human read",
@@ -560,8 +564,11 @@ def write_sheet(rows: list[dict], golden: dict) -> None:
                 f"**Judge's reason:** {r.get('reason_nvidia', '').strip()}", "",
                 "**Answer:**", "", "````", r["answer"], "````", ""]
         for n, c in enumerate(r["hits"], 1):
-            text = chunks[c]["text"]
-            out += [f"<details><summary>[{n}] {c}</summary>", "", "````", text, "````", "", "</details>", ""]
+            # The heading line is part of what ask.build_prompt gave the model. The first sheet
+            # left it out, and a human reason for g044 was written without it (PHASE-6.md).
+            heading = " > ".join(chunks[c].get("heading_path") or []) or "(no heading)"
+            out += [f"<details><summary>[{n}] {c} — {heading}</summary>", "", "````", chunks[c]["text"],
+                    "````", "", "</details>", ""]
         out += ["**Human verdict:** ______  **Reason:** ______", ""]
     SHEET.write_text("\n".join(out) + "\n")
     print(f"sheet written: {SHEET.name} ({len(partial)} items)")
