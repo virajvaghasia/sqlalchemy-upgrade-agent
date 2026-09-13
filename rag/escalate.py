@@ -164,6 +164,51 @@ def summarise(rows: list[dict], expected: int) -> dict:
     }
 
 
+UNANSWERABLE_BAR = 2   # Step 3c: >= 2 of 7 unanswerable answered = escalation buys fabrications
+
+
+def report_rest(rows: list[dict], golden: dict, prices: dict | None) -> dict:
+    """Step 3c's own rules. It must not reuse 3b's: those were written for
+    page-present refusals, and printing "answered >= 15 -> MIXED" over a set
+    that is mostly page-absent and unanswerable reads a rule that was never
+    written for it. The first report did exactly that."""
+    un = [r for r in rows if not golden[r["id"]].get("answerable")]
+    ab = [r for r in rows if golden[r["id"]].get("answerable")]
+    fab = [r["id"] for r in un if not r["refused"] and not r.get("empty")]
+    ans = [r for r in ab if not r["refused"] and not r.get("empty")]
+    judged = [r for r in ans if r.get("verdict_nvidia")]
+    sup = [r["id"] for r in judged if r["verdict_nvidia"] == "SUPPORTED"]
+    print(f"ESCALATION REST — {MODEL} on the {len(rows)} escalations a cascade cannot tell apart")
+    print()
+    verdict = "escalation BUYS fabrications" if len(fab) >= UNANSWERABLE_BAR else "refusals stay honest"
+    print(f"  unanswerable, answered   {len(fab)} of {len(un)}   rule >= {UNANSWERABLE_BAR}  -> {verdict}"
+          f"   {' '.join(fab)}")
+    print(f"  page absent, answered    {len(ans)} of {len(ab)}   {' '.join(r['id'] for r in ans) or '-'}")
+    if judged:
+        others = {r["id"]: r["verdict_nvidia"] for r in judged if r["verdict_nvidia"] != "SUPPORTED"}
+        print(f"  page absent, SUPPORTED   {len(sup)} of {len(judged)} judged  (by those pages, NOT the verified one)")
+        print(f"  not SUPPORTED            {' '.join(f'{i}={v}' for i, v in sorted(others.items())) or '-'}")
+    s = summarise(rows, len(rows))
+    print()
+    print(f"  tokens, as returned by the API: prompt {s['prompt_tokens']}, output {s['output_tokens']}"
+          f"  (over {s['run']} calls)")
+    if prices:
+        c = shadow_cost(rows, prices)
+        print(f"  shadow cost at the price snapshot: ${c:.4f} total, ${c / max(len(rows), 1):.5f} per escalation")
+    return {"fabricated": fab, "absent_answered": [r["id"] for r in ans], "absent_supported": sup}
+
+
+def report_cascade(present: list[dict], rest: list[dict], n_queries: int, prices: dict) -> None:
+    """The whole cascade on the golden set: every refusal escalated, priced."""
+    rows = present + rest
+    cost = shadow_cost(rows, prices)
+    print(f"CASCADE — escalate every local refusal to {MODEL}")
+    print()
+    print(f"  queries {n_queries}, escalated {len(rows)} ({len(rows) / n_queries:.0%})")
+    print(f"  shadow cost ${cost:.4f} for these {n_queries} queries  ->  "
+          f"${cost / n_queries * 1000:.2f} per 1000 queries  (price snapshot; calls were free)")
+
+
 def report(s: dict) -> None:
     head = (f"INCOMPLETE — {s['run']} of {s['expected']}" if s["run"] < s["expected"]
             else f"{s['run']} of {s['expected']}")
@@ -297,8 +342,18 @@ def main() -> None:
             print(f"  {r['id']} {r['verdict']}", flush=True)
             ROWS.write_text(json.dumps(data, indent=1) + "\n")
     rows = json.loads(ROWS.read_text())["rows"]
+    prices = json.loads(PRICES.read_text()) if PRICES.exists() else None
+    if "--cascade" in argv:
+        present = json.loads((judge.DELIVERABLES / "escalate-phase6.json").read_text())["rows"]
+        rest = json.loads(ROWS_REST.read_text())["rows"]
+        outcomes = json.loads(route.OUTCOMES.read_text())["D"]
+        report_cascade(present, rest, len(outcomes), prices)
+        return
+    if which == "rest":
+        report_rest(rows, golden, prices)
+        return
     s = summarise(rows, len(ids))
-    s["shadow_usd"] = shadow_cost(rows, json.loads(PRICES.read_text())) if PRICES.exists() else None
+    s["shadow_usd"] = shadow_cost(rows, prices) if prices else None
     report(s)
     if "--sheet" in argv:
         write_sheet(rows, golden)
