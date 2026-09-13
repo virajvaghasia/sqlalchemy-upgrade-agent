@@ -4176,6 +4176,35 @@ measured apart. On answering it gains sixteen questions. On grounding the same j
 the small model. And when I ran each answer's main claim against the real library, 47 of 51 held,
 including most of the ones the judge had marked only partly supported.
 
+### D106 — the public demo is on Modal, not Hugging Face
+
+**Decided 2026-09-13.** Phase 6 Step 4 deploy. Host:
+https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — `space/modal_app.py` over the
+`space/dist` bundle (`web.py` + in-memory retrieval + NVIDIA nemotron). Secret name `nvidia`
+(`NVIDIA_API_KEY`).
+
+**Instead of** a Hugging Face Gradio Space (HTTP 402 on free cpu-basic, measured earlier the same
+week), Oracle Always Free (card + capacity), or Cloud Run (billing account). Modal Starter credits
+fit the ~4 GB RAM the page needs and need no card.
+
+**Checked live, not assumed:** `GET /` and `/api/config` returned 200; one example question
+(`query.get()` moved) returned **200** with status answered, five source cards, and
+`Session.get` in the answer text (**116 s** on a cold container that still had to pull BGE-M3 and
+the reranker into the HF volume). Redeploy after fixing `index.retrieve` so it does not import
+`qdrant_client` when `version is None` — the memory path never needed that import, and its
+absence crashed every `/api/ask` until it was gated (`tests/test_index.py`).
+
+**Rejected — bake CUDA torch into the image.** The page never uses a GPU on Modal; installing
+CPU torch first keeps the image smaller. **Rejected — `include_source=False`.** Modal imports
+this file as `modal_app`; False crash-looped cold starts. **Rejected — read
+`requirements.txt` at module import** to build the image: the container re-imports the module
+and only this file is mounted there, so a missing requirements file crash-looped too. Pins live
+as the `DEPS` tuple beside a comment to keep them in sync with `space/requirements.txt`.
+
+**Interview question it answers:** *"Can someone click a link and use this?"* Yes. The link is
+Modal, because the free Hugging Face Gradio path is gone, and the first real answer from that
+URL closed the ROADMAP's demo gate.
+
 
 ### D107 — the judge is given what the model was given: headings matter, and nemotron passes the bar
 

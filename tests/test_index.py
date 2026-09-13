@@ -146,3 +146,19 @@ def test_every_point_carries_what_a_citation_needs():
         for field in ("chunk_id", "sqlalchemy_version", "source_path", "heading_path", "text"):
             assert field in p.payload, f"payload missing {field}"
         assert p.payload["text"].strip()
+
+
+def test_retrieve_imports_qdrant_only_when_version_filtered():
+    """The hosted demo has no qdrant-client. An unconditional import of
+    ``models`` at the top of ``retrieve`` crashed Modal's ``/api/ask`` even
+    with ``RAG_DENSE=memory`` and ``version=None`` (the only path the demo
+    uses). The Filter type is only needed when a version filter is asked for;
+    the memory path filters by chunk payload in ``memory_points`` instead.
+    """
+    import inspect
+
+    src = inspect.getsource(index.retrieve)
+    before_if, sep, after = src.partition("if version:")
+    assert sep, "retrieve must gate the Qdrant Filter behind `if version:`"
+    assert "from qdrant_client import models" not in before_if
+    assert "from qdrant_client import models" in after

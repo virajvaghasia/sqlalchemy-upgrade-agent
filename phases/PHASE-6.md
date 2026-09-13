@@ -18,7 +18,7 @@ quality-degrading PR gets auto-blocked.**
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
 | **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; **3d** (`D101`): 10/16 hold against verified pages → **0.42 → 0.53** upper bound |
-| **4** | deploy + package — a demo link and a README that opens with the product | **built** (`D102`): in-memory search gated (broken 0, moved 0), Space bundle builds; **push is Viraj's** |
+| **4** | deploy + package — a demo link and a README that opens with the product | **live on Modal** (`D106`): https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — HF Gradio refused (402); in-memory path still `D102` |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
 
 **The gate comes before routing and deploy** because both of those change the system, and every
@@ -663,6 +663,29 @@ Sources: [InfoQ on Oracle's A1 cut](https://www.infoq.com/news/2026/07/oracle-cl
 [Modal free tier summary](https://aicreditmart.com/ai-credits-providers/modal-free-tier-how-to-get-30-month-in-compute-credits-2026/),
 [Koyeb instances](https://www.koyeb.com/docs/reference/instances),
 [Render free tier summary](https://www.srvrlss.io/provider/render/).
+
+### Deployed on Modal (`D106`) — 2026-09-13
+
+Viraj created a Modal token + the `nvidia` secret (`NVIDIA_API_KEY`). Claude wrote
+`space/modal_app.py` and deployed.
+
+**Public URL:** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run
+
+```bash
+uv run python space/build.py
+uv run --with modal modal deploy space/modal_app.py
+# stop warm containers after a code-only mount change: modal app stop sqlalchemy-upgrade-agent -y
+```
+
+**Checked live:** `GET /` and `/api/config` → 200; example *query.get() moved* → **200**, answered,
+five sources, `Session.get` in the text, **116 s** on a cold start that still downloaded BGE-M3 and
+the reranker into the HF volume. Later asks on a warm container are much faster.
+
+**Found while deploying:** `index.retrieve` imported `qdrant_client` even when `version is None`, so
+the memory demo crashed `/api/ask` without Qdrant installed. Gated behind `if version:`; pinned by
+`test_retrieve_imports_qdrant_only_when_version_filtered`. Two other Modal footguns in the same
+sitting: `include_source=False` and reading `requirements.txt` at import both crash-loop the
+container — both recorded in `D106`.
 
 ---
 

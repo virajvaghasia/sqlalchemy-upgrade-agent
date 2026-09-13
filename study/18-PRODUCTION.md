@@ -1102,31 +1102,37 @@ shown the same page.**
 
 ---
 
-## R10.16 — Why there is no public link yet
+## R10.16 — The public link is on Modal (`D106`)
 
-**Hugging Face refused.** Creating the Space returned **HTTP 402 Payment Required**: *"Static Spaces are
-free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO
+**Hugging Face refused.** Creating a Gradio Space returned **HTTP 402 Payment Required**: *"Static
+Spaces are free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO
 subscription."* Nothing was created.
 
-**What the app needs from a host:** about **4 GB of memory**, for the embedding model and the reranker.
-That single number decides every option:
+**What the app needs from a host:** about **4 GB of memory**, for the embedding model and the
+reranker. That single number decided every option, then Modal was the one that got an account:
 
-| host | free allowance (checked 2026-09-12; confirm on the provider's page) | fits? |
-|---|---|---|
-| Hugging Face Gradio Space | paid plan required (the 402 above) | no |
-| Render, Koyeb | 512 MB | no: an eighth of what is needed |
-| Modal | $30 of credits a month, no card | yes; slow first question after idle |
-| Oracle Cloud Always Free | 2 CPU / 12 GB since June 2026; card at signup | yes; always on |
-| Google Cloud Run | a monthly free usage allowance; billing account | yes, for light use |
+| host | free allowance (checked 2026-09-12; confirm on the provider's page) | fits? | used? |
+|---|---|---|---|
+| Hugging Face Gradio Space | paid plan required (the 402 above) | no | no |
+| Render, Koyeb | 512 MB | no: an eighth of what is needed | no |
+| **Modal** | $30 of credits a month, no card | yes; slow first question after idle | **yes — live** |
+| Oracle Cloud Always Free | 2 CPU / 12 GB since June 2026; card at signup | yes; always on | not chosen |
+| Google Cloud Run | a monthly free usage allowance; billing account | yes, for light use | not chosen |
 
-**Why the 512 MB hosts cannot be made to fit.** The obvious shrink is to embed questions through an API
-instead of loading the model. NVIDIA hosts no `bge-m3`, and a different embedding model is a different
-index: the questions would land in a different space from the stored vectors, and the gate would have
-to pass again from scratch.
+**Public URL:** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run
+
+Redeploy: `uv run python space/build.py && uv run --with modal modal deploy space/modal_app.py`.
+Secret on Modal is named `nvidia` and must contain `NVIDIA_API_KEY`. First cold ask after a deploy
+that still needs HF weights took **116 s** and answered; the page and `/api/config` were already
+fast. Details and the two crash-loop footguns: `D106`.
+
+**Why the 512 MB hosts cannot be made to fit.** The obvious shrink is to embed questions through an
+API instead of loading the model. NVIDIA hosts no `bge-m3`, and a different embedding model is a
+different index: the questions would land in a different space from the stored vectors, and the gate
+would have to pass again from scratch.
 
 **What did NOT happen.** The lab PC was not used as a host: it is a shared machine and not yours to
-expose. No paid plan was bought, because zero paid calls is a standing rule and breaking it is your
-call. **Next:** a free host needs you to create the account; the bundle (`space/build.py`) is ready.
+expose. No paid plan was bought.
 
 ---
 
@@ -1169,9 +1175,11 @@ from 0.42 to at most 0.53. At most, because my judge checks faithfulness to page
 answers against the real library it had called a wrong one supported and a right one unsupported.”
 
 **The demo.** “The demo uses the graded search, proven identical without the database, and the shipped
-prompt. Hosted, it needs a different generator, so I measured that one on the same 100 questions: 0.58
-end to end against the local model's 0.42, sixteen gained and one lost, no fabrications, and 91% of its answers fully supported by the pages as the model saw them (77% when my judge
-was shown text only). The page quotes those numbers.”
+prompt. Hosted on Modal at a public URL, it needs a different generator, so I measured that one on the
+same 100 questions: 0.58 end to end against the local model's 0.42, sixteen gained and one lost, no
+fabrications, and 91% of its answers fully supported by the pages as the model saw them (77% when my judge
+was shown text only). The page
+quotes those numbers.”
 
 **Do not say:**
 
@@ -1260,11 +1268,11 @@ serves no qwen), so it would generate with Nemotron, a model never measured end 
 set. Showing 0.42 next to it would quote a number for a system that did not produce it. The local demo
 runs qwen, so its notice says it is the measured model.
 
-**Q11. Why is there no public link, and what would you do next?**
-Hugging Face now requires a paid plan for this kind of page (HTTP 402), and the app needs about 4 GB of
-memory, which rules out the 512 MB free hosts. Free hosts that fit exist (Modal, Oracle's always-free
-server, Google Cloud Run), each needing an account in Viraj's name. The build script produces the
-bundle for any of them; the in-memory search means no database has to be hosted.
+**Q11. Where is the public demo, and why that host?**
+https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run. Hugging Face Gradio Spaces returned HTTP
+402 on the free plan, and the app needs about 4 GB of memory, which rules out the 512 MB free hosts.
+Modal's Starter credits fit, need no card, and scale to zero when idle. The first cold answer after
+deploy took about two minutes while it pulled the embedding models; the page itself was already up.
 
 **Q12. A pull request changes only a document, and the gate fails. What do you check first?**
 First, whether the gate should have run at all: it only triggers on changes to retrieval code, the
@@ -1305,4 +1313,4 @@ Flask-SQLAlchemy question, which is a reminder that "fewer declines" is not auto
 - what the hosted model scores on all 100, why search is not the difference, and why 77% supported still fails
 - that the same judge rates both models level, and that the judge's grade did not predict which answers were right
 - that the judge had never been shown the headings the model saw, and what changed when it was (77% → 91%)
-- why there is no public link yet, and what 4 GB of memory rules out
+- where the public demo lives (Modal), why HF refused, and what 4 GB of memory rules out

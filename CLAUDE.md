@@ -56,7 +56,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 521 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 522 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -396,6 +396,12 @@ removed" title it calls absent is source [2]'s heading, which the model was give
 less than the model saw (harsher, size unmeasured). Sheet fixed + refuses to overwrite verdicts. Re-judge with headings
 is Step 4g. `PHASE-6.md` last section.
 
+**PHASE 6 STEP 4 DEPLOYED (`D106`, 2026-09-13): DEMO LIVE ON MODAL.**
+https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — HF Gradio refused (402); Modal + secret
+`nvidia`. Cold ask answered in 116 s (Session.get, 5 sources). `index.retrieve` no longer imports
+`qdrant_client` when `version is None` (that crash was the first live `/api/ask`). Redeploy:
+`uv run python space/build.py && uv run --with modal modal deploy space/modal_app.py`.
+
 **PHASE 6 STEPS 4e + 4f (`D105`, 2026-09-13): SAME JUDGE LEVEL; ANSWERS RUN CORRECT AT 92%.** 4e: `gpt-oss-20b`
 on the lab qwen's 47 answers, same pages: qwen **79%** vs nemotron **77%**, paired 3 vs 6, p = 0.51 → **LEVEL**
 (47 NVIDIA calls). 4f: `tools/check_nemotron_all.py`, committed before its first run: **47 of 51 checkable
@@ -404,7 +410,7 @@ correct = 92% → PASS** (fails `g002 g078 g087 g099`; `g087`/`g099` are Step 3e
 1.4's summary warning; `g100` a discarded class), all disclosed; PASS holds counting them as fails (84%).
 **Exploration: the judge's grade does not predict correctness** (SUPPORTED 92%, PARTIAL 92%). Also: the
 `webapp-testing` skill installed in `.claude/skills/` and `tools/check_page.py` (17 browser checks, fails on
-the Step 4c bug when reintroduced). Taught in §R10.15b and §R10.15. **513 tests, 76/76.**
+the Step 4c bug when reintroduced). Taught in §R10.15b and §R10.15. **522 tests, 76/76.**
 
 **PHASE 6 STEP 4d (`D104`, 2026-09-13): THE HOSTED MODEL ON ALL 100.** `rag.escalate --all`, committed
 before its first call; 190 NVIDIA free-credit calls, Mac. `nemotron-3-ultra-550b`, same pages and prompt:
@@ -424,7 +430,7 @@ GB); notice **pass**. The declined note claimed the pages don't answer, false fo
 **19 of 52 declines had the page** (derived from prompt `D`'s rows). `space/build.py` bundles `web.py`
 + `static/` (`D102` amended); the bundle ran on its own pins and answered with a working citation.
 Run: `DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with fastapi --with uvicorn python space/web.py`.
-**Still Viraj's:** a free host + signup (Modal / Oracle), the six PARTIALs, the webapp-testing skill.
+**Still open:** CI gate's first real runner PR; Langfuse last. Demo host is done (`D106`).
 
 **STEP 4b CONFIRMED (night):** the local demo's in-memory path reproduces the measured refusals exactly — 39/91 = 0.43, same 19 over-refused ids, same 2 fabrications.
 
@@ -684,7 +690,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**521 tests**, **76/76** `# runnable`, **107** decisions, **§H empty**.
+**522 tests**, **76/76** `# runnable`, **107** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -730,7 +736,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 521 passed with Qdrant up; 516 + 5 skipped without
+uv run pytest                            # 522 passed with Qdrant up; 517 + 5 skipped without
 uv run python -m tools.check_runnable    # 76/76 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -2183,6 +2189,16 @@ Append a dated entry each session; keep each entry to a few bullets.
   were 3e's two failures, which made today's failures consistent, not suspicious.
 - **Skill:** fetched via `gh api`, read in full before installing, provenance in `SOURCE.md`. Chromium headless
   shell 199 MB. `check_page.py` stays ENV (needs the browser), not a pytest.
+
+### 2026-09-13 (late) — Modal deploy live (`D106`)
+
+- Modal token from `.env`; profile `virajvaghasia`; secret `nvidia` already present.
+- Wrote `space/modal_app.py`; first deploy crashed: `include_source=False` → no `modal_app`, then
+  reading `requirements.txt` at import → missing in container. Fixed; CPU torch first.
+- Live `/api/ask` then crashed on unconditional `qdrant_client` import in `index.retrieve`; gated behind
+  `if version:`; warm containers needed `modal app stop -y` to pick up the mount.
+- Smoke: page 200; ask answered Session.get with 5 sources in 116 s cold.
+- Docs: `D106`, `PHASE-6.md`, `18-PRODUCTION.md` R10.16/Q11, README, space/README, `.env.example`.
 
 ### 2026-09-13 (late) — Step 4g, the judge given headings (`D107`)
 
