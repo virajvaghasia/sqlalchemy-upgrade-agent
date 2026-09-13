@@ -145,3 +145,106 @@ def test_no_correctness_count_when_the_executed_calibration_fails(capsys):
     assert "CALIBRATION FAILED" in capsys.readouterr().out
     good = [{"id": "g016", "verdict_ref": "UNSUPPORTED"}, {"id": "g007", "verdict_ref": "PARTIAL"}]
     assert escalate.calibration_ok(good)
+
+
+# --- Step 4d: the hosted generator on all 100 -------------------------------
+
+def gold(i, answerable=True, chunks=("c1",), verified="human"):
+    return {"id": i, "question": "q", "answerable": answerable, "verified_by": verified,
+            "answer_chunks": list(chunks) if answerable else []}
+
+
+CHUNKS = {c: {"id": c, "text": c, "source_path": c, "heading_path": [c]} for c in ("c1", "c2", "c9")}
+
+
+def gen(i, answer="an answer [1]", hits=("c1",), empty=False):
+    return {"id": i, "answer": "" if empty else answer, "hits": list(hits), "empty": empty,
+            "refused": False, "prompt_tokens": 10, "output_tokens": 2}
+
+
+def test_all_ids_are_every_verified_item_sorted_and_repeat_is_the_first_twenty():
+    golden = {i: gold(i) for i in [f"g{n:03d}" for n in range(30, 0, -1)]}
+    golden["g999"] = gold("g999", verified="claude")
+    ids = escalate.all_ids(golden)
+    assert ids == sorted(i for i in golden if i != "g999")
+    assert escalate.repeat_ids(golden) == ids[:20]
+
+
+def test_outcome_rows_use_the_repos_definitions_and_leave_empty_rows_out():
+    golden = {"g1": gold("g1"), "g2": gold("g2"), "g3": gold("g3", answerable=False), "g4": gold("g4")}
+    rows = [gen("g1"), gen("g2", hits=("c9",)), gen("g3", answer=ask.REFUSAL_OPENING + " this."),
+            gen("g4", empty=True)]
+    out = {r["id"]: r for r in escalate.outcome_rows(rows, golden, CHUNKS)}
+    assert set(out) == {"g1", "g2", "g3"}, "an EMPTY row is neither an answer nor a refusal"
+    assert out["g1"]["answer_in_prompt"] and not out["g2"]["answer_in_prompt"]
+    assert out["g3"]["refused"] and not out["g3"]["answer_in_prompt"]
+
+
+def outcome(i, delivered, answerable=True):
+    return {"id": i, "answerable": answerable, "answer_in_prompt": True,
+            "answer": "an answer [1]" if delivered else ask.REFUSAL_OPENING + " this.",
+            "refused": not delivered}
+
+
+def test_pairing_is_by_id_on_delivered_and_drops_items_missing_on_either_side():
+    new = [outcome("g1", True), outcome("g2", False), outcome("g3", True), outcome("g5", True)]
+    old = [outcome("g1", False), outcome("g2", True), outcome("g3", True), outcome("g4", False)]
+    p = escalate.paired(new, old)
+    assert (p["n"], p["fixed"], p["broken"]) == (3, ["g1"], ["g2"])
+
+
+def test_the_verdict_rules_are_the_pre_registered_ones():
+    v = lambda f, b: escalate.verdict({"fixed": ["x"] * f, "broken": ["y"] * b,
+                                       "p": ask_p(f, b)})
+    assert v(6, 0) == "AHEAD"
+    assert ask_p(12, 2) < 0.05 and v(12, 2) == "LEVEL", "broken <= 1 is part of the bar, even when p passes"
+    assert v(5, 0) == "LEVEL", "fixed >= 6 is part of the bar"
+    assert v(0, 8) == "BEHIND"
+    assert v(3, 2) == "LEVEL"
+
+
+def ask_p(f, b):
+    from rag import score
+    return score.mcnemar_exact(f, b)
+
+
+def test_stability_counts_decisions_and_text_separately():
+    first = [gen("g1", "same [1]"), gen("g2", "wording A [1]"), gen("g3", "an answer [1]")]
+    second = [gen("g1", "same [1]"), gen("g2", "wording B [1]"),
+              gen("g3", ask.REFUSAL_OPENING + " this.")]
+    s = escalate.stability(first, second)
+    assert (s["n"], s["same_decision"], s["same_text"], s["flipped"]) == (3, 2, 1, ["g3"])
+
+
+def test_a_timeout_skips_that_question_and_the_run_continues():
+    """D75's gap, in this loop: retrying() gives up and re-raises TimeoutError,
+    which used to end a 100-call run at the first slow question."""
+    calls = []
+
+    def post(path, body, key):
+        calls.append(1)
+        if len(calls) == 1:
+            raise TimeoutError("slow")
+        return reply("an answer [1]")
+
+    items = [{"id": f"g{n}", "question": "q"} for n in range(3)]
+    rows = escalate.generate_rows(items, key="k", post=post, retrieve=lambda q: [hit()],
+                                  log=lambda *a: None, sleep=lambda s: None)
+    assert [r["id"] for r in rows] == ["g1", "g2"], "g0 left unasked, so a resume asks it again"
+
+
+def test_the_all_report_refuses_to_quote_a_run_missing_more_than_five(capsys):
+    golden = {f"g{n}": gold(f"g{n}") for n in range(10)}
+    rows = [gen(f"g{n}") for n in range(4)]
+    escalate.report_all(rows, [], golden, CHUNKS, qwen_lab=[], qwen_mac=[], prices=None)
+    out = capsys.readouterr().out
+    assert "NOT QUOTED" in out
+    assert "AHEAD" not in out and "LEVEL" not in out and "BEHIND" not in out
+
+
+def test_the_all_report_gives_no_faithfulness_verdict_while_judging_is_unfinished(capsys):
+    golden = {f"g{n}": gold(f"g{n}") for n in range(3)}
+    rows = [dict(gen("g0"), verdict_nvidia="SUPPORTED"), gen("g1"), gen("g2")]
+    escalate.report_all(rows, [], golden, CHUNKS, qwen_lab=[], qwen_mac=[], prices=None)
+    out = capsys.readouterr().out
+    assert "judged 1 of 3" in out and "no verdict" in out

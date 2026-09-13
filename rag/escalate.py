@@ -129,6 +129,11 @@ def generate_rows(items: list[dict], *, key: str, post, retrieve, log=print,
             # Reaching here means retries were exhausted or the quota is per-day.
             log(f"  [{n}/{len(items)}] {it['id']} HTTP {exc.code} after retries -- stopping, rows so far kept")
             break
+        except (TimeoutError, urllib.error.URLError) as exc:
+            # D75's gap: retrying() gives up and re-raises, which would end a
+            # 100-call run at one slow question. Leave it unasked; a resume asks it.
+            log(f"  [{n}/{len(items)}] {it['id']} SKIPPED ({type(exc).__name__}); re-run to ask it")
+            continue
         row = {"id": it["id"], "model": MODEL,
                "hits": [h.payload["chunk_id"] for h in hits], **parse(data)}
         row["empty"] = empty(row)
@@ -287,6 +292,161 @@ def report(s: dict) -> None:
               f"${s['shadow_usd'] / max(s['run'], 1):.5f} per escalation  (calls were free credits)")
 
 
+# --- Step 4d: the demo's hosted generator on ALL 100 --------------------------
+#
+# The escalation sets above are the questions qwen declined. The hosted demo
+# would answer every question with this model, so its end-to-end score needs
+# every question asked. Rules and the prediction are in PHASE-6.md Step 4d,
+# written before the first call; the constants below are those rules.
+
+ROWS_ALL = judge.DELIVERABLES / "nemotron-all-phase6.json"
+ROWS_REPEAT = judge.DELIVERABLES / "nemotron-all-repeat-phase6.json"
+QWEN_LAB = route.OUTCOMES                                          # the rule's baseline (D95)
+QWEN_MAC = judge.DELIVERABLES / "prompt-sweep-phase4.json"         # context only
+MAX_MISSING = 5          # more EMPTY or unasked rows than this -> the run is not quoted
+AHEAD_FIXED, AHEAD_BROKEN, ALPHA = 6, 1, 0.05                      # D61's bar
+FABRICATION_BAR = 2      # qwen's count (g056, g065)
+REPEAT_N, STABLE_AT = 20, 19
+
+
+def all_ids(golden: dict) -> list[str]:
+    """Every human-verified item, sorted. Unverified items are never scored (D06)."""
+    return sorted(i for i, it in golden.items() if it.get("verified_by") == "human")
+
+
+def repeat_ids(golden: dict) -> list[str]:
+    """The first 20 by id: chosen by position, before any result existed."""
+    return all_ids(golden)[:REPEAT_N]
+
+
+def outcome_rows(rows: list[dict], golden: dict, chunks: dict) -> list[dict]:
+    """Generated rows in `score.report_refusals`' shape, with the repo's own
+    definitions: `ask.refused`, and `score.rank_of_first_hit` for whether the
+    verified answer page was among the five. EMPTY rows are left out: no answer
+    text is neither an answer nor a refusal."""
+    out = []
+    for r in rows:
+        if r.get("empty"):
+            continue
+        it = golden[r["id"]]
+        out.append({"id": r["id"], "answerable": bool(it.get("answerable")),
+                    "answer": r["answer"], "refused": ask.refused(r["answer"]),
+                    "answer_in_prompt": (score.rank_of_first_hit(r["hits"], it, chunks) is not None
+                                         if it.get("answerable") else False)})
+    return out
+
+
+def paired(new: list[dict], old: list[dict]) -> dict:
+    """By id on `route.delivered`, over answerable items present on BOTH sides,
+    so a question missing from either run is dropped from both (D61)."""
+    a = {r["id"]: r for r in new if r["answerable"]}
+    b = {r["id"]: r for r in old if r["answerable"]}
+    common = sorted(a.keys() & b.keys())
+    fixed = [i for i in common if route.delivered(a[i]) and not route.delivered(b[i])]
+    broken = [i for i in common if route.delivered(b[i]) and not route.delivered(a[i])]
+    return {"n": len(common), "fixed": fixed, "broken": broken,
+            "delivered_new": sum(route.delivered(a[i]) for i in common),
+            "delivered_old": sum(route.delivered(b[i]) for i in common),
+            "p": score.mcnemar_exact(len(fixed), len(broken)),
+            # Retrieval reproduces across machines (D83); if a page-present flag
+            # differs, the pairing is not comparing the same five pages.
+            "flag_differs": [i for i in common if a[i]["answer_in_prompt"] != b[i]["answer_in_prompt"]]}
+
+
+def verdict(p: dict) -> str:
+    f, b = len(p["fixed"]), len(p["broken"])
+    if f >= AHEAD_FIXED and b <= AHEAD_BROKEN and p["p"] < ALPHA:
+        return "AHEAD"
+    if b > f and p["p"] < ALPHA:
+        return "BEHIND"
+    return "LEVEL"
+
+
+def stability(first: list[dict], second: list[dict]) -> dict:
+    """The same question asked twice: does the answer/decline decision hold, and
+    is the text identical? Two different facts, counted apart."""
+    a = {r["id"]: r for r in first if not r.get("empty")}
+    b = {r["id"]: r for r in second if not r.get("empty")}
+    common = sorted(a.keys() & b.keys())
+    same = [i for i in common if ask.refused(a[i]["answer"]) == ask.refused(b[i]["answer"])]
+    return {"n": len(common), "same_decision": len(same),
+            "same_text": sum(a[i]["answer"] == b[i]["answer"] for i in common),
+            "flipped": [i for i in common if i not in same]}
+
+
+def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict, *,
+               qwen_lab: list[dict], qwen_mac: list[dict], prices: dict | None) -> dict:
+    expected = len(all_ids(golden))
+    empty = [r["id"] for r in rows if r.get("empty")]
+    missing = expected - (len(rows) - len(empty))
+    quoted = missing <= MAX_MISSING
+    print(f"ALL {expected} — {MODEL}, shipped prompt, k={ask.DEFAULT_K}  "
+          f"(asked {len(rows)}, EMPTY {len(empty)}{': ' + ' '.join(empty) if empty else ''})")
+    if not quoted:
+        print(f"  NOT QUOTED — {missing} of {expected} have no answer text or were not asked "
+              f"(rule: at most {MAX_MISSING})")
+    outs = outcome_rows(rows, golden, chunks)
+    score.report_refusals(outs)
+
+    print()
+    result = {"quoted": quoted}
+    for label, old, rules in (("lab qwen2.5-coder:7b, Round 16 (the rule)", qwen_lab, True),
+                              ("Mac qwen2.5-coder:7b, 2026-08-23 (context)", qwen_mac, False)):
+        if not old:
+            continue
+        p = paired(outs, old)
+        tail = f"  -> {verdict(p)}" if rules and quoted else ""
+        print(f"  vs {label}")
+        print(f"    delivered {p['delivered_new']} vs {p['delivered_old']} over {p['n']} paired   "
+              f"fixed {len(p['fixed'])}  broken {len(p['broken'])}  exact McNemar p = {p['p']:.4f}{tail}")
+        print(f"    fixed   {' '.join(p['fixed']) or '-'}")
+        print(f"    broken  {' '.join(p['broken']) or '-'}")
+        if p["flag_differs"]:
+            print(f"    !! page-present flag differs from that run on {' '.join(p['flag_differs'])}")
+        if rules:
+            result["paired"] = p
+
+    fab = [r["id"] for r in outs if not r["answerable"] and not r["refused"]]
+    if quoted:
+        print(f"\n  fabrications  {len(fab)}   rule <= {FABRICATION_BAR}  -> "
+              f"{'no worse' if len(fab) <= FABRICATION_BAR else 'WORSE'}   {' '.join(fab) or '-'}")
+
+    answered = [r for r in rows if not r.get("empty") and not ask.refused(r["answer"])]
+    judged = [r for r in answered if r.get("verdict_nvidia")]
+    sup = [r for r in judged if r["verdict_nvidia"] == "SUPPORTED"]
+    print(f"\n  FAITHFULNESS ({faithful.NVIDIA_JUDGE}, against the five pages given; SUPPORTED is not 'correct')")
+    if not judged:
+        print("    not judged yet")
+    else:
+        share = len(sup) / len(judged)
+        done = len(judged) == len(answered) and quoted
+        rule = (f"-> {'PASS' if share >= PASS_SUPPORTED else 'FAIL'}" if done
+                else "no verdict until every answer is judged")
+        print(f"    judged {len(judged)} of {len(answered)} answered   SUPPORTED {len(sup)} = {share:.0%}"
+              f"   rule >= {PASS_SUPPORTED:.0%} {rule}")
+        others = {r["id"]: r["verdict_nvidia"] for r in judged if r["verdict_nvidia"] != "SUPPORTED"}
+        print(f"    not SUPPORTED  {' '.join(f'{i}={v}' for i, v in sorted(others.items())) or '-'}")
+        result["supported"] = (len(sup), len(judged))
+
+    if repeat:
+        s = stability([r for r in rows if r["id"] in {x["id"] for x in repeat}], repeat)
+        rule = (f"-> {'stable' if s['same_decision'] >= STABLE_AT else 'NOT stable'}"
+                if s["n"] == REPEAT_N else f"no verdict on {s['n']} of {REPEAT_N}")
+        print(f"\n  REPEAT  {s['n']} asked twice   same decision {s['same_decision']}   "
+              f"rule >= {STABLE_AT} {rule}   identical text {s['same_text']}"
+              f"   flipped {' '.join(s['flipped']) or '-'}")
+        result["repeat"] = s
+
+    every = rows + list(repeat)
+    print(f"\n  tokens, as returned by the API: prompt {sum(r['prompt_tokens'] or 0 for r in every)}, "
+          f"output {sum(r['output_tokens'] or 0 for r in every)}  (over {len(every)} generation calls)")
+    if prices:
+        c = shadow_cost(rows, prices)
+        print(f"  shadow cost of the 100: ${c:.4f}, ${c / max(len(rows), 1) * 1000:.2f} per 1000 queries"
+              f"  (price snapshot; calls were free credits)")
+    return result
+
+
 SHEET = judge.DELIVERABLES / "ESCALATE-PARTIAL-REVIEW.md"
 
 
@@ -326,9 +486,15 @@ def main() -> None:
     argv = sys.argv[1:]
     golden = {i["id"]: i for i in score.load_golden()}
     which = "rest" if "--rest" in argv else "present"
-    ids = escalation_ids(which)
-    if which == "rest":
-        ROWS = ROWS_REST
+    all_mode = "--all" in argv
+    if all_mode:
+        # Step 4d. --repeat asks the first 20 again into their own file.
+        ids, ROWS = ((repeat_ids(golden), ROWS_REPEAT) if "--repeat" in argv
+                     else (all_ids(golden), ROWS_ALL))
+    else:
+        ids = escalation_ids(which)
+        if which == "rest":
+            ROWS = ROWS_REST
 
     if "--generate" in argv:
         key = faithful.env_key(faithful.NVIDIA_KEY_VAR)
@@ -416,8 +582,14 @@ def main() -> None:
             r["verdict"], r["reason"], r["judge"] = v["verdict"], v.get("reason", ""), faithful.LOCAL_MODEL
             print(f"  {r['id']} {r['verdict']}", flush=True)
             ROWS.write_text(json.dumps(data, indent=1) + "\n")
-    rows = json.loads(ROWS.read_text())["rows"]
     prices = json.loads(PRICES.read_text()) if PRICES.exists() else None
+    if all_mode:
+        load = lambda p: json.loads(p.read_text())["rows"] if p.exists() else []
+        report_all(load(ROWS_ALL), load(ROWS_REPEAT), golden, score.load_chunks(),
+                   qwen_lab=json.loads(QWEN_LAB.read_text())["D"],
+                   qwen_mac=json.loads(QWEN_MAC.read_text())["D"], prices=prices)
+        return
+    rows = json.loads(ROWS.read_text())["rows"]
     if "--reference-report" in argv:
         present = json.loads((judge.DELIVERABLES / "escalate-phase6.json").read_text())["rows"]
         rest = [r for r in json.loads(ROWS_REST.read_text())["rows"] if golden[r["id"]].get("answerable")]
