@@ -18,6 +18,20 @@ import gradio as gr  # noqa: E402
 from rag import demo  # noqa: E402
 
 LIMITER = demo.RateLimiter()
+# "nvidia" for a hosted page (key from the environment); "ollama" to run the
+# measured generator locally, which needs no key: DEMO_GENERATOR=ollama.
+BACKEND = os.environ.get("DEMO_GENERATOR", "nvidia")
+
+
+def _key():
+    """The environment first; when run from the repo, fall back to its .env."""
+    if os.environ.get(demo.KEY_VAR):
+        return os.environ[demo.KEY_VAR]
+    try:
+        from rag import faithful
+        return faithful.env_key(demo.KEY_VAR)
+    except Exception:
+        return None
 EXAMPLES = [  # three golden-set questions whose answers two independent judges supported (D101)
     "insert().values() keyword constructor style for update/delete broke",
     "joinedload with a string relationship name TypeError or removed in 2.0",
@@ -27,9 +41,9 @@ EXAMPLES = [  # three golden-set questions whose answers two independent judges 
 
 def ask(question: str, session: str) -> tuple[str, str]:
     session = session or uuid.uuid4().hex
-    result = demo.answer(question, key=os.environ.get(demo.KEY_VAR), session=session,
-                         limiter=LIMITER)
-    return demo.render(result), session
+    result = demo.answer(question, key=_key(), session=session, limiter=LIMITER,
+                         backend=BACKEND)
+    return demo.render(result, BACKEND), session
 
 
 with gr.Blocks(title="SQLAlchemy 1.4 → 2.0 upgrade assistant") as app:
