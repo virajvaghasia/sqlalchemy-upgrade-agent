@@ -374,6 +374,14 @@ def stability(first: list[dict], second: list[dict]) -> dict:
             "flipped": [i for i in common if i not in same]}
 
 
+def needs_judging(row: dict) -> bool:
+    """An answered row without a READABLE verdict. UNPARSED is asked again:
+    Step 4d's g025 got an empty reply from the judge, and the old skip test
+    (`r.get("verdict_nvidia")`) treated that as done forever."""
+    return (not row["refused"] and not row.get("empty")
+            and row.get("verdict_nvidia") not in faithful.VERDICTS)
+
+
 def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict, *,
                qwen_lab: list[dict], qwen_mac: list[dict], prices: dict | None) -> dict:
     expected = len(all_ids(golden))
@@ -412,7 +420,8 @@ def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict,
               f"{'no worse' if len(fab) <= FABRICATION_BAR else 'WORSE'}   {' '.join(fab) or '-'}")
 
     answered = [r for r in rows if not r.get("empty") and not ask.refused(r["answer"])]
-    judged = [r for r in answered if r.get("verdict_nvidia")]
+    judged = [r for r in answered if r.get("verdict_nvidia") in faithful.VERDICTS]
+    unparsed = [r["id"] for r in answered if r.get("verdict_nvidia") == "UNPARSED"]
     sup = [r for r in judged if r["verdict_nvidia"] == "SUPPORTED"]
     print(f"\n  FAITHFULNESS ({faithful.NVIDIA_JUDGE}, against the five pages given; SUPPORTED is not 'correct')")
     if not judged:
@@ -426,6 +435,8 @@ def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict,
               f"   rule >= {PASS_SUPPORTED:.0%} {rule}")
         others = {r["id"]: r["verdict_nvidia"] for r in judged if r["verdict_nvidia"] != "SUPPORTED"}
         print(f"    not SUPPORTED  {' '.join(f'{i}={v}' for i, v in sorted(others.items())) or '-'}")
+        if unparsed:
+            print(f"    UNPARSED {' '.join(unparsed)}  (not a verdict; re-run --judge-nvidia to ask again)")
         result["supported"] = (len(sup), len(judged))
 
     if repeat:
@@ -549,7 +560,7 @@ def main() -> None:
         data = json.loads(ROWS.read_text())
         post = faithful.retrying(faithful.nvidia_post)
         for r in data["rows"]:
-            if r["refused"] or r.get("empty") or r.get("verdict_nvidia"):
+            if not needs_judging(r):
                 continue
             passages = [chunks[c]["text"] for c in r["hits"]]
             try:

@@ -75,11 +75,31 @@ def test_overlong_and_empty_questions_are_refused_before_any_work():
     assert calls == []
 
 
-def test_the_page_always_says_the_measured_score_is_not_this_model():
-    """D95/D99: a number quoted next to a model that did not produce it is the
-    error this project exists to avoid."""
+def test_the_hosted_page_quotes_its_own_models_numbers_and_names_whose_the_042_is():
+    """D95/D104: a number quoted next to a model that did not produce it is the
+    error this project exists to avoid. The hosted notice gives nemotron's own
+    measured numbers and still says the 0.42 belongs to qwen2.5-coder:7b."""
     page = demo.render({"answer": "a [1]", "sources": [], "error": None})
-    assert "qwen2.5-coder:7b" in page and "does not describe these answers" in page
+    assert demo.MODEL in page and "qwen2.5-coder:7b" in page and "0.42" in page
+    assert "measured once" in page
+
+
+def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
+    """The measurement rule: 0.58 and 77% in the notice must be what Step 4d's
+    rows compute, not literals typed once (D104)."""
+    import json
+    import pytest
+    from rag import escalate, route, score
+    if not score.CHUNKS_PATH.exists():
+        pytest.skip("corpus/chunks.jsonl is generated and gitignored (D11)")
+    golden = {i["id"]: i for i in score.load_golden()}
+    rows = json.loads(escalate.ROWS_ALL.read_text())["rows"]
+    outs = [r for r in escalate.outcome_rows(rows, golden, score.load_chunks()) if r["answerable"]]
+    e2e = sum(route.delivered(r) for r in outs) / len(outs)
+    answered = [r for r in rows if not r.get("empty") and not ask.refused(r["answer"])]
+    share = sum(r.get("verdict_nvidia") == "SUPPORTED" for r in answered) / len(answered)
+    assert f"{e2e:.2f} end to end" in demo.NOT_THE_MEASURED_MODEL
+    assert f"{share:.0%} of its answers" in demo.NOT_THE_MEASURED_MODEL
 
 
 def test_the_local_backend_needs_no_key_and_names_the_measured_model():
@@ -89,7 +109,7 @@ def test_the_local_backend_needs_no_key_and_names_the_measured_model():
                       retrieve=lambda q: [hit()], post=lambda m, k: reply("an answer [1]"))
     assert out["error"] is None and out["answer"] == "an answer [1]"
     page = demo.render(out, "ollama")
-    assert "the generator the project measured" in page and "does not describe" not in page
+    assert "the generator the project measured" in page and "a different model" not in page
 
 
 def test_ollama_down_is_a_page_error_not_a_dead_server():
@@ -117,7 +137,7 @@ def test_source_cards_escape_markup_from_the_docs():
 
 def test_the_answer_panel_keeps_the_generator_notice():
     """The split page must not drop the sentence D102 requires."""
-    assert "does not describe these answers" in demo.render_answer({"answer": "a", "refused": False, "error": None})
+    assert "a different model" in demo.render_answer({"answer": "a", "refused": False, "error": None})
     assert "the generator the project measured" in demo.render_answer(
         {"answer": "a", "refused": False, "error": None}, "ollama")
 
@@ -163,4 +183,4 @@ def test_payload_carries_linked_answer_marked_sources_and_the_notice():
     assert p["status"] == "answered" and p["answer_md"] == "Use `Session.get` [[2]](#src-2)."
     assert [s["cited"] for s in p["sources"]] == [False, True] and p["sources"][0]["text"] == "Row"
     assert "the generator the project measured" in p["notice"] and p["seconds"] == 12.3
-    assert "does not describe" in demo.payload(result, "nvidia", 1)["notice"]
+    assert "a different model" in demo.payload(result, "nvidia", 1)["notice"]
