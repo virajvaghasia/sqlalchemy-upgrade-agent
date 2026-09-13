@@ -1,19 +1,7 @@
----
-title: SQLAlchemy 1.4 to 2.0 upgrade assistant
-emoji: 🔧
-colorFrom: indigo
-colorTo: gray
-sdk: gradio
-sdk_version: 6.27.0
-python_version: "3.11"
-app_file: app.py
-pinned: false
----
-
 # SQLAlchemy 1.4 → 2.0 upgrade assistant
 
 Ask about 1.4 code that broke on SQLAlchemy 2.0. The answer cites numbered documentation pages, and
-every page it was given is shown beneath it.
+every page it was given is shown beside it (below it on a phone).
 
 **How it works.** Hybrid search (dense BGE-M3 + BM25, cross-encoder at the fifth seat) over 3284
 chunks of the SQLAlchemy 1.4 and 2.0 documentation finds five pages; a language model answers
@@ -26,3 +14,8 @@ from those pages only, citing them, and says so when they do not answer.
 cannot run the local model, so the 42% does not describe these answers.
 
 Source, measurements and every decision behind them: https://github.com/virajvaghasia/sqlalchemy-upgrade-agent
+
+**Run it.** `pip install -r requirements.txt && python web.py`, then open http://127.0.0.1:7860.
+On a server set `HOST=0.0.0.0` and `PORT`, and the secret `NVIDIA_API_KEY`; without the key the
+page says it is missing. `DEMO_GENERATOR=ollama` uses a local `qwen2.5-coder:7b` instead, the
+measured generator, and then the page's notice says so.

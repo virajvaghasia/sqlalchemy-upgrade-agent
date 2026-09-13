@@ -130,7 +130,12 @@
   @keyframes pulse { 50% { opacity: .35; } }
   @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
   @keyframes shimmer { to { background-position: -200% 0; } }
-  @media (max-width: 900px) { .results { grid-template-columns: 1fr; } .sources { position: static; max-height: none; } .how { grid-template-columns: 1fr; } }
+  /* Phone width. `minmax(0, 1fr)`, not `1fr`: a plain 1fr column cannot shrink below its widest
+     content, so one long code line widened the whole page to 991px on a 398px screen (Step 4c). */
+  @media (max-width: 900px) { .results { grid-template-columns: minmax(0, 1fr); } .sources { position: static; max-height: none; } .how { grid-template-columns: minmax(0, 1fr); } }
+  /* Long unbroken names (dotted API paths, file paths) wrap instead of running off the card. */
+  .md p, .md li, .src pre, .src-head, .tags span, .declined-note { overflow-wrap: anywhere; }
+  .src summary { grid-template-columns: auto minmax(0, 1fr); }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -214,7 +219,9 @@ function renderSources(sources) {
 
 function renderAnswer(p) {
   const note = p.status === "declined"
-    ? `<div class="declined-note">The five pages it found don't answer this, so it declined rather than guess. The pages are on the right if you want to read them.</div>` : "";
+    // The model's judgment, not a fact about the pages: on the 100-question test 19 of its 52 declines
+    // had the right page in hand (PHASE-6.md Step 4b), and the "engine.execute gone" example is one.
+    ? `<div class="declined-note">The model judged that the five pages it was given don't answer this, and declined rather than guess. That judgment is sometimes wrong: on the project's 100-question test, 19 of its 52 declines had the right page in hand. The pages are listed with this answer; read them.</div>` : "";
   let body = "";
   if (p.error) body += `<p><strong>${esc(p.error)}</strong></p>`;
   if (p.answer_md && p.status !== "declined") {
