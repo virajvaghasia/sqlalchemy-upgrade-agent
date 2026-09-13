@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D100`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D101`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 479 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 480 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,15 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 3d (`D101`): AGAINST THE VERIFIED PAGES, 10 of 16 HOLD.** The same judge read each
+escalated answer against the golden set's verified answer chunks, after passing a two-item calibration
+executed on 2.0.51 (`g016` wrong → UNSUPPORTED, `g007` right → PARTIAL). **3b 10 of 16** — the same
+count as `D99`, **only 7 the same items**. **Quote 48/91 = 0.53 end to end as an upper bound** (lab
+0.42, cascade $1.81 / 1000 queries). **Corrects `D98`:** 6 of 26 page-absent refusals got answers
+agreeing with the verified page, so "page-absent cannot be fixed" was too absolute; 0.59 counting them
+is not pre-registered. `rag.escalate --reference-report`. **Next in Phase 6:** a human read of the
+PARTIALs, then Step 4 (deploy + package).
+
 **PHASE 6 STEP 3c MEASURED (`D100`): THE FULL CASCADE, PRICED.** Escalating every local refusal
 (53 of 100) to `nvidia/nemotron-3-ultra-550b-a55b` costs **$1.81 per 1000 queries** at OpenRouter's
 list price (`deliverables/prices-phase6.json`, fetched 2026-09-12; calls were free credits). **0 of 7**
@@ -602,7 +611,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**479 tests**, **66/66** `# runnable`, **100** decisions, **§H empty**.
+**480 tests**, **67/67** `# runnable`, **101** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -648,8 +657,8 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 479 passed with Qdrant up; 474 + 5 skipped without
-uv run python -m tools.check_runnable    # 66/66 RUN blocks reproduce
+uv run pytest                            # 480 passed with Qdrant up; 475 + 5 skipped without
+uv run python -m tools.check_runnable    # 67/67 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097

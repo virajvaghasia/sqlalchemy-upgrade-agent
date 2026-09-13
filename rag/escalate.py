@@ -198,6 +198,50 @@ def report_rest(rows: list[dict], golden: dict, prices: dict | None) -> dict:
     return {"fabricated": fab, "absent_answered": [r["id"] for r in ans], "absent_supported": sup}
 
 
+CALIBRATION = {"g016": "not SUPPORTED", "g007": "SUPPORTED or PARTIAL"}   # executed on 2.0.51, D100
+
+
+def calibration_ok(rows: list[dict]) -> bool:
+    by = {r["id"]: r.get("verdict_ref") for r in rows}
+    return by.get("g016") not in (None, "SUPPORTED") and by.get("g007") in ("SUPPORTED", "PARTIAL")
+
+
+def report_reference(present: list[dict], rest: list[dict], delivered: int, answerable: int) -> dict:
+    """Step 3d: the judge against the VERIFIED answer chunks. Refuses to print a
+    correctness count if the two executed calibration items fail."""
+    rows = present + rest
+    print("REFERENCE JUDGE — escalated answers against the verified answer chunks (D06)")
+    print()
+    by = {r["id"]: r.get("verdict_ref") for r in rows}
+    print(f"  calibration  g016 (wrong on 2.0.51) -> {by.get('g016')}   "
+          f"g007 (right on 2.0.51) -> {by.get('g007')}")
+    if not calibration_ok(rows):
+        print("  CALIBRATION FAILED -- no correctness count is printed")
+        return {}
+    print("  calibration passed (a smoke test on two items, not a validation)")
+    out = {}
+    for name, set_rows in (("3b page present", present), ("3c page absent", rest)):
+        judged = [r for r in set_rows if r.get("verdict_ref")]
+        count = {v: sorted(r["id"] for r in judged if r["verdict_ref"] == v)
+                 for v in ("SUPPORTED", "PARTIAL", "UNSUPPORTED")}
+        out[name] = count
+        print(f"  {name:<15} judged {len(judged):>2}   SUPPORTED {len(count['SUPPORTED']):>2}   "
+              f"PARTIAL {len(count['PARTIAL']):>2}   UNSUPPORTED {len(count['UNSUPPORTED']):>2}")
+        print(f"      SUPPORTED  {' '.join(count['SUPPORTED']) or '-'}")
+    page = {r["id"] for r in present if r.get("verdict_nvidia") == "SUPPORTED"}
+    ref = set(out["3b page present"]["SUPPORTED"])
+    print(f"  3b: page judge and reference judge both SUPPORTED {len(page & ref)}; "
+          f"page only {' '.join(sorted(page - ref)) or '-'}; reference only {' '.join(sorted(ref - page)) or '-'}")
+    k = len(ref)
+    print()
+    print(f"  pre-registered quote: {delivered} + {k} = {delivered + k}/{answerable} = "
+          f"{(delivered + k) / answerable:.2f} end to end (upper bound; lab delivered {delivered})")
+    extra = len(out["3c page absent"]["SUPPORTED"])
+    print(f"  NOT pre-registered, exploration: + {extra} page-absent -> "
+          f"{delivered + k + extra}/{answerable} = {(delivered + k + extra) / answerable:.2f}")
+    return out
+
+
 def report_cascade(present: list[dict], rest: list[dict], n_queries: int, prices: dict) -> None:
     """The whole cascade on the golden set: every refusal escalated, priced."""
     rows = present + rest
@@ -300,6 +344,37 @@ def main() -> None:
                              retrieve=lambda q: index.retrieve(q, limit=ask.DEFAULT_K),
                              save=save, done=done)
         save(rows)
+    elif "--reference" in argv:
+        # Step 3d: the same judge, reading each answer against the golden set's
+        # VERIFIED answer chunks rather than the five retrieved pages. Only the
+        # items named with --only are judged, so calibration can run first.
+        key = faithful.env_key(faithful.NVIDIA_KEY_VAR)
+        if not key:
+            sys.exit(f"no {faithful.NVIDIA_KEY_VAR} in the environment or .env; nothing called")
+        only = set(argv[argv.index("--only") + 1].split(",")) if "--only" in argv else None
+        chunks = score.load_chunks()
+        post = faithful.retrying(faithful.nvidia_post)
+        for path in (judge.DELIVERABLES / "escalate-phase6.json", ROWS_REST):
+            data = json.loads(path.read_text())
+            for r in data["rows"]:
+                if r["refused"] or r.get("empty") or r.get("verdict_ref"):
+                    continue
+                if only is not None and r["id"] not in only:
+                    continue
+                refs = golden[r["id"]].get("answer_chunks") or []
+                if not refs:
+                    continue
+                try:
+                    v = faithful.judge_answer(r["answer"], [chunks[c]["text"] for c in refs],
+                                              key=key, model=faithful.NVIDIA_JUDGE, post=post)
+                except (TimeoutError, urllib.error.URLError) as exc:
+                    print(f"  {r['id']} SKIPPED ({type(exc).__name__})", flush=True)
+                    continue
+                r["verdict_ref"], r["reason_ref"] = v["verdict"], v.get("reason", "")
+                print(f"  {r['id']} {r['verdict_ref']}   {r['reason_ref'][:120]}", flush=True)
+                path.write_text(json.dumps(data, indent=1) + "\n")
+                time.sleep(2)
+        return
     elif "--judge-nvidia" in argv:
         key = faithful.env_key(faithful.NVIDIA_KEY_VAR)
         if not key:
@@ -343,6 +418,13 @@ def main() -> None:
             ROWS.write_text(json.dumps(data, indent=1) + "\n")
     rows = json.loads(ROWS.read_text())["rows"]
     prices = json.loads(PRICES.read_text()) if PRICES.exists() else None
+    if "--reference-report" in argv:
+        present = json.loads((judge.DELIVERABLES / "escalate-phase6.json").read_text())["rows"]
+        rest = [r for r in json.loads(ROWS_REST.read_text())["rows"] if golden[r["id"]].get("answerable")]
+        outcomes = json.loads(route.OUTCOMES.read_text())["D"]
+        answerable = [r for r in outcomes if r["answerable"]]
+        report_reference(present, rest, sum(route.delivered(r) for r in answerable), len(answerable))
+        return
     if "--cascade" in argv:
         present = json.loads((judge.DELIVERABLES / "escalate-phase6.json").read_text())["rows"]
         rest = json.loads(ROWS_REST.read_text())["rows"]

@@ -64,7 +64,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "UNSUPPORTED",
-   "reason_nvidia": "None of the passages mention a change or removal of the `bind` parameter."
+   "reason_nvidia": "None of the passages mention a change or removal of the `bind` parameter.",
+   "verdict_ref": "PARTIAL",
+   "reason_ref": "Passage\u202f[1] shows bind removed in 2.0, while passage\u202f[2] shows MetaData() without bind in 1.4."
   },
   {
    "id": "g009",
@@ -114,7 +116,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [2] and [5] support the use of `aliased()` with `of_type()` and the two\u2011argument `join()` form, while [3] and [4] cover deprecation of raw table joins; none mention the removal of `aliased=True`."
+   "reason_nvidia": "Passages [2] and [5] support the use of `aliased()` with `of_type()` and the two\u2011argument `join()` form, while [3] and [4] cover deprecation of raw table joins; none mention the removal of `aliased=True`.",
+   "verdict_ref": "PARTIAL",
+   "reason_ref": "Passage\u202f[1] confirms that `aliased=True` was removed and that explicit `aliased()` objects with `of_type()` should be used, but the other details in the claim are not addressed by the provided passages."
   },
   {
    "id": "g012",
@@ -148,7 +152,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [2] states that `row.keys()` exists and should be used in 2.0, and no passage mentions an AttributeError or removal of `keys()`."
+   "reason_nvidia": "Passage [2] states that `row.keys()` exists and should be used in 2.0, and no passage mentions an AttributeError or removal of `keys()`.",
+   "verdict_ref": "UNSUPPORTED",
+   "reason_ref": "Passage [1] does not mention `row.keys()` or its existence."
   },
   {
    "id": "g020",
@@ -166,7 +172,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that the cascade backrefs behavior was removed in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passages [1] and [2] state that the cascade backrefs behavior was removed in SQLAlchemy\u202f2.0.",
+   "verdict_ref": "SUPPORTED",
+   "reason_ref": "The passage [1] states that the cascade_backrefs option, which enabled automatic session addition via backrefs, was removed in SQLAlchemy\u202f2.0."
   },
   {
    "id": "g022",
@@ -184,7 +192,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [5] state that connectionless execution is removed from Engine and that raw SQL strings must use the `text()` construct."
+   "reason_nvidia": "Passages [1] and [5] state that connectionless execution is removed from Engine and that raw SQL strings must use the `text()` construct.",
+   "verdict_ref": "SUPPORTED",
+   "reason_ref": "Passages [1] and [2] state that connectionless execution (including engine.execute and related methods) is removed and that raw SQL strings must use `text()` or `exec_driver_sql()`."
   },
   {
    "id": "g023",
@@ -218,7 +228,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [1] and [4] confirm driver\u2011level autocommit via `execution_options(isolation_level=\"AUTOCOMMIT\")`, but none state that library\u2011level autocommit was removed."
+   "reason_nvidia": "Passages [1] and [4] confirm driver\u2011level autocommit via `execution_options(isolation_level=\"AUTOCOMMIT\")`, but none state that library\u2011level autocommit was removed.",
+   "verdict_ref": "PARTIAL",
+   "reason_ref": "Passage [1] confirms removal of library\u2011level autocommit but does not mention driver\u2011level autocommit via `isolation_level=\"AUTOCOMMIT\"`."
   },
   {
    "id": "g036",
@@ -236,7 +248,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that bound metadata and the MetaData(bind=\u2026) parameter were removed in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passages [1] and [2] state that bound metadata and the MetaData(bind=\u2026) parameter were removed in SQLAlchemy\u202f2.0.",
+   "verdict_ref": "SUPPORTED",
+   "reason_ref": "Passage [1] states that `MetaData(bind=engine)` is no longer supported, confirming the removal of bound metadata in SQLAlchemy\u202f2.0."
   },
   {
    "id": "g037",
@@ -254,7 +268,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [3] states that textual SQL strings should be wrapped with `text()` before executing, and none of the passages mention `ObjectNotExecutableError`."
+   "reason_nvidia": "Passage [3] states that textual SQL strings should be wrapped with `text()` before executing, and none of the passages mention `ObjectNotExecutableError`.",
+   "verdict_ref": "SUPPORTED",
+   "reason_ref": "Passage\u202f[1] states that direct string SQL is not supported and that `text()` should be used, and it does not mention `ObjectNotExecutableError`."
   },
   {
    "id": "g039",
@@ -272,7 +288,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passage [5] explicitly states that `Session.execute()` returns rows (named tuples) by default, even when only a single ORM entity is queried."
+   "reason_nvidia": "The passage [5] explicitly states that `Session.execute()` returns rows (named tuples) by default, even when only a single ORM entity is queried.",
+   "verdict_ref": "SUPPORTED",
+   "reason_ref": "Passage\u202f[1] states that `Session.execute()` returns tuples by default, requiring `.scalars()` to get single ORM entities."
   },
   {
    "id": "g040",
@@ -290,7 +308,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that Query applies a uniquing strategy based on object identity, de\u2011duplicating parent rows when using joinedload."
+   "reason_nvidia": "Passage [1] states that Query applies a uniquing strategy based on object identity, de\u2011duplicating parent rows when using joinedload.",
+   "verdict_ref": "PARTIAL",
+   "reason_ref": "Source [1] notes that Query applies a uniquing strategy based on object identity, but also that in the new API uniquing is not implicitly enabled and must be invoked explicitly."
   },
   {
    "id": "g042",
@@ -356,7 +376,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] list the two RemovedIn20Warning categories, [3] explains that future=True removes implicit autocommit and requires text() for string statements, and [5] shows the recommended engine.begin() pattern."
+   "reason_nvidia": "Passages [1] list the two RemovedIn20Warning categories, [3] explains that future=True removes implicit autocommit and requires text() for string statements, and [5] shows the recommended engine.begin() pattern.",
+   "verdict_ref": "PARTIAL",
+   "reason_ref": "The string\u2011statement warning is supported by passage [3], but the implicit autocommit warning, the future=True claim, and the reference to source [5] are not found in the provided passages."
   },
   {
    "id": "g067",
@@ -422,7 +444,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [2] and [5] discuss the removal of the subtransaction pattern, but none state that it is the primary confusing difference."
+   "reason_nvidia": "Passages [2] and [5] discuss the removal of the subtransaction pattern, but none state that it is the primary confusing difference.",
+   "verdict_ref": "PARTIAL",
+   "reason_ref": "Sources [1] and [2] note that the subtransaction pattern is removed in 2.0, but they do not state that this is the primary confusing difference."
   },
   {
    "id": "g093",
@@ -456,7 +480,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] show objects added without `begin()` are pending, and passages [3] and [4] demonstrate that a subsequent `commit()` (or `flush()`) will flush those pending objects."
+   "reason_nvidia": "Passages [1] and [2] show objects added without `begin()` are pending, and passages [3] and [4] demonstrate that a subsequent `commit()` (or `flush()`) will flush those pending objects.",
+   "verdict_ref": "SUPPORTED",
+   "reason_ref": "Passage\u202f[1] indicates that if `begin()` is not called, the session will autobegin when needed, leaving added objects pending until `commit()` or `flush()` is invoked."
   },
   {
    "id": "g096",

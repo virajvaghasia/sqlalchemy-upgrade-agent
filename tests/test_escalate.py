@@ -135,3 +135,13 @@ def test_the_rest_report_uses_its_own_rules_not_3bs(capsys):
     out = capsys.readouterr().out
     assert r["fabricated"] == ["u1"] and "rule >= 15" not in out
     assert "refusals stay honest" in out  # 1 of 2 is under the bar of 2
+
+
+def test_no_correctness_count_when_the_executed_calibration_fails(capsys):
+    """g016 is wrong on real 2.0.51 and g007 is right. A reference judge that
+    calls g016 SUPPORTED is not trusted, and prints no count."""
+    bad = [{"id": "g016", "verdict_ref": "SUPPORTED"}, {"id": "g007", "verdict_ref": "SUPPORTED"}]
+    assert escalate.report_reference([], bad, 38, 91) == {}
+    assert "CALIBRATION FAILED" in capsys.readouterr().out
+    good = [{"id": "g016", "verdict_ref": "UNSUPPORTED"}, {"id": "g007", "verdict_ref": "PARTIAL"}]
+    assert escalate.calibration_ok(good)

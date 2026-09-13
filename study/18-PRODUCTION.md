@@ -368,6 +368,18 @@ checked.”
 **Do not say:** “A stronger model fixed ten answers.” Ten became *supported*. Whether they are right is
 not measured.
 
+**What was done about it (`D101`).** The same judge was pointed at the page a human verified answers
+each question, instead of the five retrieved ones — after checking it on `g016` and `g007`, whose truth
+was executed. It said 10 of 16 again, **but only 7 were the same answers**:
+
+```
+supported against the retrieved pages   g006 g008 g029 g048 g050 g051 g087 g090 g095 g100
+supported against the verified page     g006 g029 g044 g048 g049 g087 g090 g095 g099 g100
+in both                                 g006 g029 g048 g087 g090 g095 g100
+```
+
+Same rate, different members. **Quote the rate (0.42 → at most 0.53), not a list of which ten.**
+
 ---
 
 ## R10.9 — Say this out loud

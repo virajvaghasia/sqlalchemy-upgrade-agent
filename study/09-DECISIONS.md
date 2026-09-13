@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D100`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D101`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3829,6 +3829,10 @@ retrieval only, because that is the half I measured reproducing across machines.
 
 ### D98 — the router is a cascade on refusal, not a predictor on retrieval scores
 
+> **Corrected in part by `D101`** (2026-09-12, same day): the premise that page-absent failures
+> cannot be fixed is too absolute — 6 of 26 page-absent refusals got answers agreeing with the verified
+> page. The decision (cascade on refusal) stands.
+
 **Decided 2026-09-12.** Phase 6 Step 3a. Instrument `rag/route.py`, signals
 `deliverables/route-signals-phase6.Darwin-arm64.json`, outcomes the lab's Round 16 `D` rows.
 Reproduce with no model: `uv run python -m rag.route --report` (block in `PHASE-6.md`). Rules and
@@ -3975,6 +3979,44 @@ fabrications on the unanswerable questions. It turns ten of twenty fixable refus
 pages support — but when I executed two answers against the real library, the judge had called a wrong
 one supported and a right one unsupported. So the quality gain is an upper bound until correctness is
 checked, and I say it that way.
+
+### D101 — against the verified pages, the escalations hold at 10 of 16, and page-absent refusals are partly fixable
+
+**Decided 2026-09-12.** Phase 6 Step 3d. Reproduce with no model: `rag.escalate --reference-report`
+(block in `PHASE-6.md`). Rules, calibration and prediction written before the calls.
+
+**What changed from `D99`/`D100`:** the judge (`gpt-oss-20b`, same prompt) read each escalated answer
+against the golden set's **verified answer chunks** — human-signed (`D06`) — instead of the five
+retrieved pages. It is still a model's judgement; it is closer to correctness because the reference
+is the page a human said answers the question.
+
+**Calibration first, on the two answers executed on 2.0.51** (`D100`): `g016` (wrong) → UNSUPPORTED,
+`g007` (right) → PARTIAL. Passed. A smoke test on two items, and `g016` was rejected for silence
+rather than contradiction.
+
+```
+3b page present   10 of 16 SUPPORTED against the verified page, 6 PARTIAL, 0 UNSUPPORTED
+3c page absent     6 of 13 SUPPORTED, 6 PARTIAL, 1 UNSUPPORTED
+```
+
+**Decided — the quoted gain is 48/91 = 0.53 end to end (lab delivered 38), as an upper bound.** It
+happens to equal `D99`'s count, but the membership differs by three items each way; only 7 answers
+are supported under both references.
+
+**Corrected — `D98`'s premise that page-absent failures cannot be fixed.** Six of 26 page-absent
+refusals got answers agreeing with the verified page. The cascade decision stands. **54/91 = 0.59**
+counting them was not pre-registered and is not quoted.
+
+**Prediction scored:** calibration passes — right; 3b 11 — actual 10; 3c 5 — actual 6.
+
+**Still not measured:** executed correctness beyond two items; a human read (the six 3b PARTIALs are
+in `deliverables/ESCALATE-PARTIAL-REVIEW.md`).
+
+**Interview question it answers:** *"How do you know the bigger model's answers are right, not just
+confident?"* I judged them twice: once against the pages retrieval gave the model, once against the
+page a human verified answers the question, after checking the second judge on two answers I'd run
+against the real library. Both said ten of sixteen, but only seven were the same ten. So I quote the
+rate, 0.42 to at most 0.53 end to end, and I don't claim to know exactly which ten.
 ---
 
 ## Where the rest of the repo lives

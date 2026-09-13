@@ -17,7 +17,7 @@ quality-degrading PR gets auto-blocked.**
 |---|---|---|
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
-| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; correctness unverified |
+| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; **3d** (`D101`): 10/16 hold against verified pages → **0.42 → 0.53** upper bound |
 | 4 | deploy + package — a demo link and a README that opens with the product | not started |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
 
@@ -461,3 +461,70 @@ refusal to a 550B model would cost **$1.81 per 1000 queries** at one reseller's 
 and turns **10** of the 20
 fixable refusals into page-supported answers — an upper bound of **0.42 → 0.53** end to end whose
 correctness is not yet verified.*
+---
+
+## Step 3d — are the escalated answers correct? A reference judge, calibrated first (pre-registered 2026-09-12, 17:05)
+
+**The gap `D100` left.** The judge read each answer against the five pages the model was given, which
+measures faithfulness. `g016` and `g007` showed that is not correctness, in both directions.
+
+**What changes, and only this:** the same judge (`openai/gpt-oss-20b`, same prompt) reads each
+escalated answer against the golden set's **verified answer chunks** — the pages a human signed as
+answering the question (`D06`) — instead of the retrieved five. Verdicts go in a separate field
+(`verdict_ref`); nothing already recorded is overwritten.
+
+**Calibration, run first, on the only two answers whose truth was executed on 2.0.51:**
+
+| item | truth on 2.0.51 | the reference judge must say |
+|---|---|---|
+| `g016` | answer is **wrong** (`row.keys()` does not exist) | **not** `SUPPORTED` |
+| `g007` | answer is **right** (`MetaData(bind=)` raises) | `SUPPORTED` or `PARTIAL` |
+
+**If either calibration item fails, stop:** the reference judge is not trusted and no correctness
+count is printed. Two items is a smoke test, not a validation — passing it means "not obviously
+broken", nothing more.
+
+**If both pass**, judge all 29 escalated answers (3b's 16, 3c's 13) and report per set:
+`SUPPORTED` against the verified page, `PARTIAL`, and the rest. **The number quoted for the cascade's
+quality gain becomes 38 + (3b answers `SUPPORTED` by the reference judge)**, replacing `D99`'s 10.
+No threshold: this is a measurement, not a ship decision.
+
+**My prediction:** calibration passes; 3b **11 of 16** reference-`SUPPORTED`; 3c page-absent **5 of
+13**.
+
+
+### Result (`D101`) — 17:07
+
+```
+# runnable: uv run python -m rag.escalate --reference-report
+REFERENCE JUDGE — escalated answers against the verified answer chunks (D06)
+
+  calibration  g016 (wrong on 2.0.51) -> UNSUPPORTED   g007 (right on 2.0.51) -> PARTIAL
+  calibration passed (a smoke test on two items, not a validation)
+  3b page present judged 16   SUPPORTED 10   PARTIAL  6   UNSUPPORTED  0
+      SUPPORTED  g006 g029 g044 g048 g049 g087 g090 g095 g099 g100
+  3c page absent  judged 13   SUPPORTED  6   PARTIAL  6   UNSUPPORTED  1
+      SUPPORTED  g020 g022 g036 g037 g039 g094
+  3b: page judge and reference judge both SUPPORTED 7; page only g008 g050 g051; reference only g044 g049 g099
+
+  pre-registered quote: 38 + 10 = 48/91 = 0.53 end to end (upper bound; lab delivered 38)
+  NOT pre-registered, exploration: + 6 page-absent -> 54/91 = 0.59
+```
+
+**Against the rules:** calibration **passed** (`g016` → UNSUPPORTED, `g007` → PARTIAL), so the counts
+print. Two caveats on that pass, both visible in the rows: it is two items, and the judge rejected
+`g016` because the verified page *does not mention* `row.keys()`, not because it contradicts it.
+
+**Scored:** 3b **10 of 16** reference-`SUPPORTED` (prediction 11); 3c page-absent **6 of 13**
+(prediction 5). **The pre-registered quote: 48/91 = 0.53 end to end, upper bound.**
+
+**Two judges, same count, different items.** Against the retrieved pages and against the verified
+pages, 3b is 10 both times — but only **7** items are the same (`g008 g050 g051` only the first;
+`g044 g049 g099` only the second). The rate reproduces and the membership does not: the pattern
+`D89`, `D96` and `D83` each found in a different place.
+
+**A correction to `D98`, from data it did not have.** `D98` said page-absent failures are the kind a
+stronger generator cannot fix. **6 of the 26 page-absent refusals got answers that agree with the
+verified page** — from neighbour pages or the model's own knowledge (`g036`, for example, is the
+`MetaData(bind=)` removal, which 2.0.51 confirms). The cascade decision stands, and is stronger for it;
+the premise was too absolute. **54/91 = 0.59 is not pre-registered** and is exploration only.
