@@ -27,6 +27,7 @@ this repo has measured.
 
 from __future__ import annotations
 
+import html
 import json
 import threading
 import time
@@ -154,3 +155,60 @@ def render(result: dict, backend: str = "nvidia") -> str:
     notice = MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL
     parts.append(f"\n---\n\n<sub>{notice}</sub>")
     return "\n\n".join(parts)
+
+
+# --- the page's pieces ------------------------------------------------------
+#
+# `render` above returns one Markdown string and stays for callers that want
+# that. The Gradio page shows three parts instead: a status line, the answer,
+# and the sources as numbered cards, so a reader can match "[2]" in the answer
+# to card 2 without scrolling through raw text.
+
+STATUS = {
+    "answered": ("Answered from the sources", "#1f7a4d"),
+    "declined": ("The sources do not cover this: it declined rather than guess", "#8a6d1f"),
+    "error": ("Not answered", "#a33a3a"),
+}
+
+
+def status(result: dict) -> str:
+    if result.get("error"):
+        return "error"
+    return "declined" if result.get("refused") else "answered"
+
+
+def render_answer(result: dict, backend: str = "nvidia") -> str:
+    label, colour = STATUS[status(result)]
+    parts = [f'<span style="display:inline-block;padding:2px 10px;border-radius:999px;'
+             f'background:{colour};color:#fff;font-size:0.85em">{label}</span>']
+    if result.get("error"):
+        parts.append(f"**{result['error']}**")
+    if result.get("answer"):
+        parts.append(result["answer"])
+    notice = MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL
+    parts.append(f"<sub>{notice}</sub>")
+    return "\n\n".join(parts)
+
+
+def render_sources(result: dict) -> str:
+    """Numbered cards. Every piece of source text is HTML-escaped: SQLAlchemy's
+    docs contain literal `<...>` (doctest reprs, placeholders) that would
+    otherwise be parsed as markup on the page."""
+    sources = result.get("sources") or []
+    if not sources:
+        return '<p style="opacity:.7">Sources appear here after a question.</p>'
+    cards = []
+    for s in sources:
+        v = html.escape(s["version"])
+        badge = "#3b5bdb" if v.startswith("2.") else "#6c757d"
+        cards.append(
+            '<details style="border:1px solid rgba(128,128,128,.35);border-radius:10px;'
+            'padding:10px 14px;margin:0 0 10px">'
+            f'<summary style="cursor:pointer"><b>[{s["n"]}]</b> '
+            f'<span style="background:{badge};color:#fff;border-radius:6px;padding:1px 7px;'
+            f'font-size:.8em">SQLAlchemy {v}</span> {html.escape(s["heading"])}'
+            f'<div style="opacity:.65;font-size:.85em;margin-top:2px">{html.escape(s["path"])}</div>'
+            '</summary>'
+            f'<pre style="white-space:pre-wrap;font-size:.85em;margin-top:10px">{html.escape(s["text"])}</pre>'
+            '</details>')
+    return "".join(cards)
