@@ -579,9 +579,10 @@ four that differ do so below rank 5, which is Qdrant's approximate index showing
 |---|---|
 | `rag/demo.py` | question → the graded retrieval → the shipped prompt → NVIDIA → answer + every source; rate limits; the "not the measured model" notice. 7 tests |
 | `space/app.py` | the Gradio page, a thin wrapper; three example questions both judges supported (`D101`) |
+| `space/web.py` + `space/static/index.html` | **added 2026-09-13, now what `build.py` ships** (Step 4c): the hand-designed page over the same `rag/demo.py` |
 | `space/requirements.txt` | pinned to the versions **installed** where the baseline was gated |
 | `space/README.md` | the Space card: what it does, what is measured, and that 0.42 is not this model |
-| `space/build.py` | assembles `space/dist/` (gitignored): app, `rag/`, the corpus files, LFS attributes |
+| `space/build.py` | assembles `space/dist/` (gitignored): the page (`app.py` until 2026-09-13, `web.py` + `static/` since), `rag/`, the corpus files, LFS attributes |
 
 **Checked, not assumed:** one real question end to end in 30 s (`g048`'s wording: cited the migration
 guide, correct on the string-name removal); the built bundle imports with the exact pins on Python
@@ -635,6 +636,9 @@ No key needed.
 ```bash
 DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with gradio==6.27.0 python space/app.py
 ```
+
+**Superseded 2026-09-13 as the page to run** (Step 4c): `uv run --with fastapi --with uvicorn python space/web.py`,
+same environment variables. The Gradio command above still works.
 
 **Checked with a real question** (`g050`'s wording): the page built, the answer came back in 28.7 s,
 and it was **"The sources do not answer this."** — `g050` is one of `D72`'s over-refusals with the
@@ -796,3 +800,41 @@ today's Mac arm A (`framing-phase6.Darwin-arm64.json`) **19 of 19**, none only o
 fabrications are the same two. **Pass: the demo's notice ("the generator the project measured … 0.43
 on the Mac") stands.** Same machine and same day as the reference, so this says nothing new about
 cross-day drift (`D84`); it says the in-memory search changed nothing that reaches the model.
+---
+
+## Step 4c — the hand-designed page, four browser checks (pre-registered 2026-09-13, before opening the browser)
+
+Commit `7cf1637` replaced the Gradio look with `space/static/index.html` served by `space/web.py`. Only
+the answered state and one citation click were checked in Chrome. Four checks remain, each with its
+rule written here first:
+
+| # | check | PASS if | prediction |
+|---|---|---|---|
+| 1 | the **declined** chip, *engine.execute gone* (`g050`'s wording) | the pill reads **Declined**, the "it declined rather than guess" note shows, the refusal is quoted rather than rendered as an answer, five source cards render | declines — `g050` is on `D72`'s over-refusal list on both machines and on Step 4b's 19 |
+| 2 | **phone width**, a real 400 px viewport (an iframe, since a desktop Chrome window will not narrow that far) | the page never scrolls sideways (`scrollWidth ≤ clientWidth`) with an answer and sources on screen; answer and sources stack; code scrolls inside its own box | **fails somewhere**: source cards print long unbroken paths and code with `pre-wrap` but nothing breaks a long token |
+| 3 | the **error** state, Ollama quit for real (not a mocked URL) | the pill reads **Not answered**, the message names Ollama, **the five sources still render** (`demo.answer` returns them), the server stays up and the next question works once Ollama is back | passes — `SystemExit` is caught in `demo.answer` and tested |
+| 4 | the **notice** after a hard reload | the notice shows `qwen2.5-coder:7b` as a code element and its text contains **no literal backtick** | passes |
+
+### Result — Step 4c, 2026-09-13 (Mac, Chrome)
+
+| # | seen | against the rule |
+|---|---|---|
+| 1 | **Declined**, 36.1 s, the note shown, the refusal quoted (`“The sources do not answer this.”`), 5 cards, 0 citation links | **pass.** Prediction right. **But the note was false for this example** (below) |
+| 2 | a real answered question at 398 px: `scrollWidth 398`, one column, **no code block in the answer**. A synthetic answer through the page's own `renderAnswer` with one long code line: **`scrollWidth 991`** | **fail.** Prediction right, cause wrong: not the source cards but `grid-template-columns: 1fr`, which cannot shrink below its widest content. **Fixed** with `minmax(0, 1fr)` plus `overflow-wrap: anywhere` on prose, paths and card text: `scrollWidth 398`, code `883` px scrolling inside a `266` px box, long names wrapped (screenshot checked) |
+| 3 | **Not answered**, *"The local answer model (Ollama) is not running…"*, **5 cards**, Ask enabled again; the next question after restart answered normally | **pass, with a deviation from the rule:** Ollama was **not** quit for real. `osascript quit` returned *"User canceled"* and I did not force it; swap was 14.5 of 15.4 GB, so no second server either. The same `web.py` ran with only `ask.OLLAMA_URL` pointed at a closed port, the connection-refused error a stopped Ollama gives, through the same `SystemExit` catch |
+| 4 | after a reload, the notice's `qwen2.5-coder:7b` is a `<code>` element, `textContent` contains no backtick | **pass** |
+
+**The note, corrected.** It said *"The five pages it found don't answer this."* `g050` is a measured
+over-refusal: its answer page is in the five. The page cannot know whether a decline is honest, so the
+note now says the model judged it, and that on the 100 questions **19 of its 52 declines had the right
+page in hand**. Derived from prompt `D`'s rows in `deliverables/prompt-sweep-phase4.json` with
+`ask.refused`: 52 declines = 45 answerable + 7 unanswerable; page present on 19, the same 19 ids as
+Step 4b. The error message's *"The sources below"* became *"its sources are listed with this message"*:
+on a desktop they are beside it.
+
+**The bundle now ships this page** (`space/build.py`: `web.py` + `static/`, not `app.py`; pins gain
+`fastapi==0.141.1` and `uvicorn==0.52.4`, read from the environment the checks ran in, and lose
+`gradio`). Why: the Gradio page existed for a Hugging Face Gradio Space, which was refused, and the
+remaining hosts (Modal, Oracle) run any Python process. **Checked:** built (36 files, 18.2 MiB), started
+from `space/dist/` with `uv run --no-project --python 3.11 --with-requirements requirements.txt python web.py`,
+asked *query.get() moved*: answered with `[1]` in 64.1 s (cold), and the click opened card 1.

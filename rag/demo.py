@@ -132,11 +132,11 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
     except SystemExit:
         # ask.generate exits when Ollama is unreachable -- right for a CLI,
         # wrong for a web page. SystemExit is not an Exception (CLAUDE.md traps).
-        return {"error": "The local answer model (Ollama) is not running. The sources below were "
-                         "still found.", "sources": sources}
+        return {"error": "The local answer model (Ollama) is not running. The search still "
+                         "ran, and its sources are listed with this message.", "sources": sources}
     except (urllib.error.URLError, TimeoutError) as exc:
         return {"error": f"The answer model did not respond ({type(exc).__name__}). "
-                         "The sources below were still found.", "sources": sources}
+                         "The search still ran, and its sources are listed.", "sources": sources}
     text = (data["choices"][0]["message"].get("content") or "").strip()
     return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None}
 

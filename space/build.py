@@ -1,10 +1,18 @@
-"""Assemble the Hugging Face Space in space/dist/ (gitignored). Nothing is pushed.
+"""Assemble the deployable demo in space/dist/ (gitignored). Nothing is pushed.
 
     uv run python space/build.py
 
+The bundle is the hand-designed page: `web.py` (FastAPI) and `static/index.html`
+over `rag/demo.py`. It used to ship the Gradio page `app.py`, for a Hugging Face
+Gradio Space; Hugging Face refused that on the free plan (HTTP 402, PHASE-6.md
+Step 4), so the target is now any Python host with ~4 GB RAM, and `app.py` stays
+in the repo only. Start the bundle with:
+
+    cd space/dist && pip install -r requirements.txt && python web.py   # HOST=0.0.0.0 PORT=... on a server
+
 The corpus files are generated and gitignored in this repo (D11, D36), so the
-Space bundle is where they travel: the Space repository is a deployment, not a
-second copy of the source of truth. Refuses to build if the vectors, ids and
+bundle is where they travel: a deployment, not a second copy of the source of
+truth. Refuses to build if the vectors, ids and
 stats disagree -- the same check rag.index makes before loading anything.
 """
 
@@ -31,13 +39,14 @@ def main() -> None:
         shutil.rmtree(DIST)
     (DIST / "rag").mkdir(parents=True)
     (DIST / "corpus").mkdir()
-    for f in ("app.py", "requirements.txt", "README.md"):
+    for f in ("web.py", "requirements.txt", "README.md"):
         shutil.copy(ROOT / "space" / f, DIST / f)
+    shutil.copytree(ROOT / "space" / "static", DIST / "static")
     for f in (ROOT / "rag").glob("*.py"):
         shutil.copy(f, DIST / "rag" / f.name)
     for c in CORPUS:
         shutil.copy(ROOT / "corpus" / c, DIST / "corpus" / c)
-    # Hugging Face rejects files over 10 MB unless they are tracked by Git LFS.
+    # Only matters if the bundle is pushed to a git host that caps file size (Hugging Face: 10 MB).
     (DIST / ".gitattributes").write_text("*.npy filter=lfs diff=lfs merge=lfs -text\n"
                                          "*.jsonl filter=lfs diff=lfs merge=lfs -text\n")
     size = sum(p.stat().st_size for p in DIST.rglob("*") if p.is_file())

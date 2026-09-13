@@ -379,6 +379,16 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 4c (2026-09-13): THE HAND-DESIGNED PAGE CHECKED IN CHROME, AND IT IS WHAT SHIPS.**
+Four rules written before the browser: declined example **pass**; phone width **FAIL → fixed** (a
+`1fr` grid column made the page 991 px on a 398 px screen; `minmax(0, 1fr)`); error state **pass**
+(stand-in: Ollama URL pointed at a closed port, because the quit was refused and swap was 14.5/15.4
+GB); notice **pass**. The declined note claimed the pages don't answer, false for `g050`; it now says
+**19 of 52 declines had the page** (derived from prompt `D`'s rows). `space/build.py` bundles `web.py`
++ `static/` (`D102` amended); the bundle ran on its own pins and answered with a working citation.
+Run: `DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with fastapi --with uvicorn python space/web.py`.
+**Still Viraj's:** a free host + signup (Modal / Oracle), the six PARTIALs, the webapp-testing skill.
+
 **STEP 4b CONFIRMED (night):** the local demo's in-memory path reproduces the measured refusals exactly — 39/91 = 0.43, same 19 over-refused ids, same 2 fabrications.
 
 **PHASE 6 STEP 3e (`D103`): ESCALATED ANSWERS EXECUTED ON 2.0.51.** `tools/check_escalated.py`
@@ -387,7 +397,7 @@ checkable pass (87%)** → the 0.53 upper bound stands; 3c 12 of 13. The two 3b 
 `g099`) are answers the reference judge called SUPPORTED. One check (`g028`) was corrected after its
 first run, disclosed. Demo UI redesigned and checked in Chrome (two columns, status badge, source
 cards). **Morning, Viraj's:** choose a free host + sign up; decide on the `webapp-testing` skill.
-Restart the local demo with the command in `PHASE-6.md` Step 4.
+Restart the local demo with the command in `PHASE-6.md` Step 4c.
 
 **PHASE 6 STEP 4 — HOSTING REFUSED, LOCAL DEMO WORKS.** HF answered **402: Gradio Spaces need PRO**
 (nothing created). The lab PC is not Viraj's to host on. **Local demo, measured generator:**
@@ -2094,3 +2104,19 @@ Append a dated entry each session; keep each entry to a few bullets.
 - False positives designed out and tested: local variables excluded, question identifiers
   subtracted, `Session.get` grounds `session.get`, matching via `probe._contains`.
 - **258 tests**, 58/58 `# runnable`, **77** decisions.
+
+### 2026-09-13 — Step 4c: the new page checked in Chrome, and the bundle switched to it
+
+- **Rules first** (`PHASE-6.md` Step 4c), then four browser checks. Two passed as written, one passed on a
+  stand-in that is disclosed, and one failed and was fixed.
+- **Phone width failed, and the first reading hid it.** A real answer at 398 px had no code block and
+  measured fine. A synthetic long code line through the page's own `renderAnswer` gave `scrollWidth
+  991`. The cause was `1fr`, which cannot shrink below its content. **A pass on an input that could not
+  fail is not a pass.**
+- **The declined note asserted something the page cannot know.** `g050` declines with its answer page in
+  the five. Reworded with a derived number: 19 of 52 declines had the page.
+- **Ollama quit refused** (`osascript` → "User canceled"); not forced. Swap was at 14.5/15.4 GB, so no second
+  server: the one server was restarted with `ask.OLLAMA_URL` on a closed port.
+- **`build.py` ships `web.py` + `static/`**; pins gain fastapi/uvicorn and lose gradio; `space/README.md` lost
+  its HF frontmatter. The built bundle ran from `space/dist/` on its own pins and answered with a citation.
+- 497 tests, 75/75 `# runnable`. Docs: `18-PRODUCTION.md` R10.15, `PHASE-6.md` 4c, `D102`, `README.md`.

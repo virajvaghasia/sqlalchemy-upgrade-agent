@@ -4054,6 +4054,14 @@ demo's in-memory path gives **39/91 = 0.43** and **the same 19 over-refused ids*
 same two fabrications as today's Mac reference. The local demo is the measured system. (Hugging Face
 later refused free hosting with HTTP 402; the demo runs locally.)
 
+**Amended 2026-09-13 — the bundle ships the hand-designed page, not Gradio** (`PHASE-6.md` Step 4c).
+Gradio was chosen for a Hugging Face Gradio Space; that host is refused, and the remaining free hosts
+run any Python process. `space/build.py` now bundles `space/web.py` + `space/static/`, the page that
+was checked in Chrome at desktop and 400 px widths; `app.py` stays in the repo, unshipped. Checked:
+the built bundle, on its own pins, answered with a working citation. **Rejected — ship both pages:**
+two front ends to keep correct over one `rag/demo.py`, and only one of them was checked. Cheap to
+reverse: one tuple in `build.py`.
+
 **Interview question it answers:** *"Your system is measured on a local 7B model — what does the demo
 run?"* The same retrieval, gated to rank identically without Qdrant, and the same prompt, but a
 larger hosted model, because the host cannot run the local one. The page says the measured score is

@@ -681,12 +681,23 @@ corpus's 100 golden questions at rank 5, and that is what the demo needed.
 
 ## R10.15 — The demo's page, and the sentence it must always show
 
-`rag/demo.py` is the logic, and `space/app.py` is a thin Gradio page around it:
+**Three files, and only one of them has logic.** `rag/demo.py` does everything that can be wrong, and
+`tests/test_demo.py` covers it. The page is two thin files over it:
+
+| file | what it does | what it does NOT do |
+|---|---|---|
+| `rag/demo.py` | search, prompt, generate, the refusal check, turning `[2]` into a link to card 2, marking cited cards, the notice | draw anything |
+| `space/web.py` | serves one HTML file and one JSON endpoint, `POST /api/ask` → `demo.payload()` | decide anything about the answer |
+| `space/static/index.html` | draws the JSON: status pill, answer, source cards, the notice | re-implement citation linking in JavaScript (one rule, one home: `link_citations`) |
 
 ```
 question -> index.retrieve (the graded search) -> ask.SYSTEM + ask.build_prompt (the shipped prompt)
          -> a generator -> the answer, then every page it was given, each expandable
 ```
+
+`space/app.py`, the older Gradio page, still runs over the same `rag/demo.py`. It is no longer what
+`space/build.py` ships: Gradio was chosen for a Hugging Face Space, and Hugging Face refused that on
+the free plan (R10.16), so the bundle now carries the page that was actually checked.
 
 **The generator depends on where it runs, and the page says which, on every answer:**
 
@@ -705,8 +716,48 @@ use connection instead"*: 28.7 seconds, and the answer was **"The sources do not
 That is one of `D72`'s over-refusals, the small model declining a page it has. **The local demo shows the
 measured defect, exactly as measured**, which is what a demo of a measured system should do.
 
-**The page, second version, checked end to end in Chrome (2026-09-13).** Each change fixes something
-seen, not imagined:
+**The page, third version: hand-designed, four checks in Chrome (2026-09-13, `PHASE-6.md` Step 4c).**
+The rules were written before the browser was opened. Two passed as written, and two found something:
+
+| check | what was seen | verdict |
+|---|---|---|
+| the *engine.execute gone* example | **Declined**, 36.1 s, five cards, the refusal quoted and not rendered as an answer | pass, **and the note under it was false** (below) |
+| a 400 px phone screen, one long code line in the answer | the page was **991 px wide**: the whole page scrolled sideways | **fail, fixed**, now 398 of 398 |
+| Ollama unreachable | **Not answered**, "Ollama is not running", **all five cards still shown**, Ask usable again | pass |
+| the notice after a reload | `qwen2.5-coder:7b` drawn as code, no stray backtick | pass |
+
+**The phone bug, side by side.** On a narrow screen the two columns become one. The first version said
+`grid-template-columns: 1fr`. That looks like "one column as wide as the screen". It is not.
+
+```
+1fr               the column may not get narrower than its widest content.
+                  A code line 883 px long makes the column 883 px, the page 991 px,
+                  and the visitor scrolls the whole page sideways to read anything.
+
+minmax(0, 1fr)    the column may shrink to 0, so it is the screen's width (350 px).
+                  The code block is now narrower than its line, and ITS OWN box scrolls:
+                  883 px of code inside a 266 px box, measured.
+```
+
+The first check did not catch it because the real answer it got had **no code block**. The page was
+398 px wide and my prediction ("fails somewhere") looked wrong. Only a synthetic answer with a long
+line exposed it. **A pass on an input that could not fail is not a pass.**
+
+**The declined note, corrected.** The note said *"The five pages it found don't answer this."* For this
+exact example that is false: `g050` is one of the 19 over-refusals, so its answer page **was** among
+the five. The page cannot know whether a decline is honest. Only the model made that judgment. The note
+now says so, with the number that sizes it, derived from prompt `D`'s committed rows
+(`deliverables/prompt-sweep-phase4.json`): **52 declines on the 100 questions (45 answerable + 7
+unanswerable), and 19 of them had the right page in hand.** Those are the same 19 ids Step 4b measured.
+
+**What did NOT happen in the error check.** Ollama was not quit: macOS refused the quit
+(*"User canceled"*), and a second copy of the server would have pushed a Mac already at 14.5 of 15.4 GB
+swap into a stall. So the same `web.py` was restarted with only `ask.OLLAMA_URL` pointed at a port
+nothing listens on. That raises the same "connection refused" a stopped Ollama raises, through the same
+`SystemExit` catch. It is a stand-in, and the check says so.
+
+**The page, second version (Gradio), checked end to end in Chrome (2026-09-13).** Each change fixes
+something seen, not imagined:
 
 | seen | fixed |
 |---|---|
@@ -742,9 +793,14 @@ true, not hoped.
 **Run it yourself:**
 
 ```bash
-DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with gradio==6.27.0 python space/app.py
-# then open http://127.0.0.1:7860
+DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with fastapi --with uvicorn python space/web.py
+# then open http://127.0.0.1:7860; the first question after start-up takes about a minute
 ```
+
+The built bundle runs the same way from its own folder, installed only from its own pins. Checked on
+2026-09-13: `uv run python space/build.py`, then in `space/dist/`
+`uv run --no-project --python 3.11 --with-requirements requirements.txt python web.py`. It answered
+*query.get() moved* with `[1]`, and clicking `[1]` opened card 1.
 
 **Two bugs found building it, both real:** the first `requirements.txt` pinned `numpy==2.5.2` (grepped
 from `uv.lock`), which needs Python 3.12 while the project runs 3.11; the pins now come from what is

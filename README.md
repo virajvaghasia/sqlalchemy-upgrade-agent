@@ -103,7 +103,7 @@ logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   retrieval (Phase 1-3), judge.py / faithful.py (Phase 4), the agent (5), gate.py + route.py (6)
 tools/                 check_runnable.py — every `# runnable` block, verified
-space/                 the Hugging Face Space: app, pinned requirements, card, build script (D102)
+space/                 the demo: web.py + static/ page (shipped), app.py (older Gradio page), pins, build script (D102)
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
 tests/                 497 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
