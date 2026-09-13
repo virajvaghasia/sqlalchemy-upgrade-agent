@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D104`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D105`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -4133,6 +4133,45 @@ correctness executed on 2.0.51 for the 53 answers (Step 3e covered 29 escalation
 for answering: 0.58 against 0.42, sixteen questions gained and one lost, no fabrications. Not for
 grounding: under 80% of its answers are fully supported by the pages, and the one it lost was a case of
 reading the question more strictly than the small model did.
+
+### D105 — same judge, both models: level; nemotron's delivered answers run correct at 92%; a browser check for the page
+
+**Decided 2026-09-13.** Phase 6 Steps 4e and 4f, and 4c scripted; rules in `PHASE-6.md`, written and
+committed before each run (`1b9bbb3`, `c139eff`). Viraj asked for all three.
+
+**4e, measured (47 NVIDIA free-credit calls).** `gpt-oss-20b` read the lab qwen's 47 answers against the
+same five pages it read nemotron's against. Paired over the 42 both answered: nemotron-only SUPPORTED 3,
+qwen-only 6, p = 0.51 → **LEVEL**. Rates: qwen 79% (3 UNSUPPORTED, including `g065`), nemotron 77% (0
+UNSUPPORTED). **Decided: the bigger model's gain is in answering, not in grounding**, and no document may
+say nemotron is more faithful.
+
+**4f, executed (no calls).** One central claim per delivered answer, run on 2.0.51
+(`tools/check_nemotron_all.py`): **47 of 51 checkable pass = 92% → PASS**, so the 0.58 stands as
+"delivered and, where checkable, correct". Failures `g002`, `g078`, `g087`, `g099`; the last two are
+Step 3e's two failures again, new wording, same wrong claim.
+
+**Disclosed:** four checks were corrected after the first run (`g031`, `g027`, `g055`, `g100`), each
+because the check measured the wrong thing, each explained in a comment. The PASS holds with all four
+counted as failures (43/51 = 84%).
+
+**Found (exploration):** the judge's grade does not predict correctness here: 92% of SUPPORTED and 92%
+of PARTIAL answers pass when run, and three of the four wrong answers were SUPPORTED. It strengthens
+`D103`: a faithfulness rate is not a correctness rate, in either direction.
+
+**Decided: install `webapp-testing`** (`anthropics/skills@34040c9`, Apache-2.0) in `.claude/skills/`, and
+use it for `tools/check_page.py`: 17 layout assertions in headless Chromium, no model. It fails on the
+Step 4c bug when it is put back. **Rejected — a pytest:** it needs a 199 MB browser the suite and CI do
+not have, so it stays a tool classified ENV, like the lab checks.
+
+**Rejected — change the demo notice to quote 92%.** The notice already says "supported is not correct";
+a correctness rate from checks Claude wrote is not a human verdict (`D06`), and the page is not the place
+to argue it.
+
+**Interview question it answers:** *"Is the bigger model better, or does it just talk more?"* Both,
+measured apart. On answering it gains sixteen questions. On grounding the same judge scores it level with
+the small model. And when I ran each answer's main claim against the real library, 47 of 51 held,
+including most of the ones the judge had marked only partly supported.
+
 ---
 
 ## Where the rest of the repo lives

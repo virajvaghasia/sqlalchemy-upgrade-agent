@@ -32,6 +32,8 @@ use it?*
 | 3d | are those answers *correct*, not just supported? | 10 of 16 agree with the human-verified page: end to end **0.42 → at most 0.53** | `D101` |
 | 4 | can a stranger use it? | the page works locally; Hugging Face now charges for it | `D102` |
 | 4d | what does the hosted model score on all 100? | **0.58** end to end vs qwen's 0.42 (16 gained, 1 lost), 0 fabrications, but **77%** supported, under the 80% bar | `D104` |
+| 4e | judged by the SAME judge, is the bigger model more faithful? | no: **level** (qwen 79%, nemotron 77%; paired 3 vs 6, p = 0.51) | `D105` |
+| 4f | are its 53 delivered answers right when run? | **47 of 51 checkable = 92%**; the judge's grade does not predict which | `D105` |
 
 **Who does what in this phase.** Several models appear, and mixing them up is the fastest way to say
 something false:
@@ -718,6 +720,20 @@ use connection instead"*: 28.7 seconds, and the answer was **"The sources do not
 That is one of `D72`'s over-refusals, the small model declining a page it has. **The local demo shows the
 measured defect, exactly as measured**, which is what a demo of a measured system should do.
 
+**The four checks are now a script** (`tools/check_page.py`, `D105`). It uses Anthropic's
+`webapp-testing` skill, installed in `.claude/skills/`: a helper starts the page, a headless Chromium
+loads it at 1280 px and 400 px, and the page's own drawing functions get the inputs that can break them.
+No model is involved, so it takes seconds:
+
+```
+uv run --with playwright==1.62.0 python .claude/skills/webapp-testing/scripts/with_server.py --timeout 90 \
+  --server "PORT=7861 DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with fastapi --with uvicorn python space/web.py" \
+  --port 7861 -- uv run --with playwright==1.62.0 python tools/check_page.py http://127.0.0.1:7861
+```
+
+17 of 17 pass. **It was then made to fail on purpose:** with the phone bug put back (`1fr`), the 400 px
+page measured 853 px and 2 checks failed. A check nobody has seen fail is a check nobody knows works.
+
 **The page, third version: hand-designed, four checks in Chrome (2026-09-13, `PHASE-6.md` Step 4c).**
 The rules were written before the browser was opened. Two passed as written, and two found something:
 
@@ -936,8 +952,8 @@ answer goes beyond the pages); **none** `UNSUPPORTED`. Two things this is not:
 
 - **Not "77% correct."** Supported means the pages back it up. Step 3e ran answers against the real
   library and found the judge had called two *wrong* answers supported (`D103`).
-- **Not comparable with qwen's 77–92%.** Those came from a different judge. Comparing them would need
-  qwen's 48 answers judged by this one, and that was not in this run.
+- **Not comparable with qwen's 77–92%.** Those came from a different judge. **Measured next, below:**
+  the same judge on qwen's answers gives 79%, level.
 
 **Asked twice: 19 of 20 decisions repeat, 0 of 20 texts do.** The first 20 questions were asked again
 at temperature 0. The answer-or-decline decision held on 19. The wording was never identical, so a
@@ -975,6 +991,73 @@ choices that say so.
 
 **Reproduce the report with no model and no network:** `uv run python -m rag.escalate --all` (reads
 `deliverables/nemotron-all-phase6.json`; the full printout is in `PHASE-6.md` Step 4d).
+
+### Two follow-ups: the same judge on both models, and running the answers (`D105`)
+
+**Why they were needed.** Step 4d left two things open. The 77% could not be set beside qwen's number,
+because a different judge graded qwen. And "supported" is only a judge's opinion that the pages back an
+answer; it is not a check that the answer is right.
+
+**Follow-up 1: the same judge reads qwen's answers.** `gpt-oss-20b` read qwen's 47 answers against the
+same five pages. Nothing else changed.
+
+```
+                        answered   SUPPORTED   PARTIAL   UNSUPPORTED
+qwen2.5-coder:7b (lab)     47       37 = 79%       7          3
+nemotron                   69       53 = 77%      16          0
+```
+
+Question by question, over the 42 both answered: nemotron fully supported where qwen was not **3**
+times, the reverse **6** times, p = 0.51. **Level.** So the bigger model does not stick to the pages
+better; it answers more questions, and those answers hold up about as well. One difference is worth
+naming: qwen's 3 UNSUPPORTED include `g065`, the invented Alembic recipe (`D77`). Nemotron has none at
+that grade; its misses are all "goes beyond the pages", never "not in the pages at all".
+
+**Follow-up 2: run each answer's main claim against SQLAlchemy 2.0.51.** Same method as R10.13: read
+the answer, write down its main claim, turn it into code that checks the old way is gone **and** the new
+way works. Take `g031`:
+
+```
+the answer says   mapper() is replaced by registry().map_imperatively()
+the check does    call mapper(Old, table)            -> must raise InvalidRequestError
+                  registry().map_imperatively(...)   -> must map the class
+2.0.51 says       "The 'sqlalchemy.orm.mapper()' function is removed as of SQLAlchemy 2.0.
+                   Use ... map_imperatively()"       -> PASS
+```
+
+**Result: 47 of the 51 checkable answers are right = 92%**, over the 80% bar written first. Two answers
+could not be checked (a typing question, and one that only says the pages do not cover the question).
+
+**The four wrong answers, each with what 2.0.51 actually does:**
+
+```
+g002  from_self replacement      the answer's own code raises NoSuchColumnError
+g078  "leave SQLALCHEMY_WARN_20 unset and it runs silently"   it prints a RemovedIn20Warning anyway
+g087  "server_default is not in __dict__ after flush"         on 2.0 with RETURNING, it is (eager_defaults="auto")
+g099  "default= must not be a callable under MappedAsDataclass"   2.0.51 accepts one
+```
+
+`g087` and `g099` were also the two wrong answers in Step 3e, a day earlier, in different words. **A
+bigger model repeats a wrong claim when the pages invite it.**
+
+**What did NOT happen: my checks were not simply trusted.** The first run said 43 right, 7 wrong, 1
+crashed. Every failure was run on its own before being counted. Three were my mistakes, not the
+answers': `mapper` still *imports* on 2.0.51 (it refuses only when called), 1.4 prints a one-line summary
+warning even without the variable (the specific warnings need it), and one check threw away a class it
+still needed. Those were fixed, marked in the file, and listed in `PHASE-6.md`. Counting all of them as
+failures anyway, it would be 43 of 51 = 84%: still over the bar.
+
+**The finding that matters most (not planned in advance, so it is exploration):**
+
+```
+judge said SUPPORTED   ->  36 right, 3 wrong    (92%)
+judge said PARTIAL     ->  11 right, 1 wrong    (92%)
+```
+
+**The judge's grade did not predict whether an answer was right.** Answers it marked "partly supported"
+were right as often as the ones it marked "fully supported", and three of the four wrong answers were
+marked "fully supported". So Step 4d's 77% FAIL is a grounding result, not a correctness result, and it
+cannot be converted into one. Only running the code does that.
 
 ---
 
@@ -1056,7 +1139,8 @@ its answers fully supported by their pages, under my 80% bar. The page quotes th
 - “Routing saves money.” On a paid plan it would *cost* $1.81 per 1000 queries against a free local model; what it buys is
   up to 11 points of end to end.
 - “The demo scores 0.42.” Only the local version runs qwen; the hosted model is 0.58, measured once.
-- “The bigger model is more faithful.” 77% failed the bar, and it was never judged beside qwen by one judge.
+- “The bigger model is more faithful.” The same judge rates it level with qwen (77% vs 79%, p = 0.51).
+- “77% supported means 23% are wrong.” Run against the library, 92% of its checkable answers are right.
 
 ---
 
@@ -1154,7 +1238,8 @@ found the page are identical for both; nemotron simply declined far less often w
 of it (5 times against qwen's 20). Question by question that is 16 gained and 1 lost, p = 0.0003, so
 the gain is real, not noise. Now the reasons not to switch. First, grounding: only 53 of its 69
 answers were judged fully supported by their pages, 77%, under the 80% bar written before the run, and
-"supported" is not even "correct" (R10.13). Second, it was measured once, on one day. Asked twice, the
+the same judge rates qwen level at 79%. (Run against the library, 47 of 51 of its checkable answers are
+right, so this is about sticking to the pages, not about being wrong.) Second, it was measured once, on one day. Asked twice, the
 decision held on 19 of 20 and the wording on none. Third, the project runs on zero paid calls; free
 credits end. So it is quoted where it is used (the hosted page) and used where the design says so (the
 cascade sends it only the refusals). And the one question it lost, `g053`, is a stricter reading of a
@@ -1175,4 +1260,5 @@ Flask-SQLAlchemy question, which is a reminder that "fewer declines" is not auto
 - why "supported" is not "correct", with `g016` and `g007`
 - why the demo can use in-memory search, and why its page must name its generator
 - what the hosted model scores on all 100, why search is not the difference, and why 77% supported still fails
+- that the same judge rates both models level, and that the judge's grade did not predict which answers were right
 - why there is no public link yet, and what 4 GB of memory rules out

@@ -1014,3 +1014,180 @@ run is marked in a comment and listed here.** Claude wrote the checks; this is n
 | correctness | **≥ 80% of checkable answers PASS** → the 0.58 stands as "delivered and, where checkable, correct". Below → the 0.58 is overstated, and the executed-correct count is quoted beside it |
 
 **Prediction (Claude).** ~88% of checkable pass (Step 3e: 13 of 15 = 87%); 5–10 `NOT_CHECKABLE`.
+
+### Result — Step 4e, 2026-09-13 14:53–15:02 (Mac; 47 NVIDIA free-credit calls)
+
+The same judge on the lab qwen's 47 answers, each against nemotron's five pages for that question. No
+`UNPARSED` verdict (the second pass asked nothing), no question dropped for a page-flag mismatch.
+
+```
+# runnable: uv run python -m rag.escalate --all
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=PARTIAL g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  SAME JUDGE, BOTH MODELS (openai/gpt-oss-20b, each answer against its five pages)
+    qwen2.5-coder:7b (lab)   judged 47 of 47 answered   SUPPORTED 37 = 79%   PARTIAL 7   UNSUPPORTED 3
+    nemotron                 judged 69 of 69 answered   SUPPORTED 53 = 77%   PARTIAL 16   UNSUPPORTED 0
+    paired over 42 answered by both   nemotron-only SUPPORTED 3  qwen-only SUPPORTED 6  exact McNemar p = 0.5078   -> LEVEL
+      nemotron-only  g015 g030 g115
+      qwen-only      g055 g060 g062 g080 g109 g121
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+```
+
+| measure | result | rule | prediction |
+|---|---|---|---|
+| paired, answered by both | **42**: nemotron-only SUPPORTED **3**, qwen-only **6**, p = 0.51 | **LEVEL** | LEVEL (right) |
+| rates, no verdict | qwen **37/47 = 79%** (7 PARTIAL, **3 UNSUPPORTED**); nemotron **53/69 = 77%** (16 PARTIAL, **0 UNSUPPORTED**) | — | qwen ~70% (too low) |
+
+**Read, not just counted.** qwen's 3 UNSUPPORTED are `g065` (the invented Alembic recipe, `D77`), `g117`,
+`g119`. Nemotron has none at that grade: its misses are all "goes beyond the pages", never "not in the
+pages". **The same judge rates the two models level on faithfulness**, so Step 4d's gain is in answering,
+not in grounding.
+
+### Result — Step 4f, 2026-09-13 (Mac; no calls)
+
+```
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' --with aiosqlite --with greenlet python tools/check_nemotron_all.py 2>/dev/null
+NEMOTRON'S 53 DELIVERED ANSWERS, CENTRAL CLAIMS EXECUTED — sqlalchemy 2.0.51
+
+  g002  FAIL           Query.from_self() is gone in 2.0; select(...).subquery() + aliased(User, subq) / aliased(Address, subq) selects both entities from the subquery
+  g004  PASS           Engine has no execute(); Connection.execute runs statements; a plain string is rejected, text() and exec_driver_sql() work; **kwargs parameters are rejected, a dict works
+  g006  PASS           Session.execute also rejects a raw SQL string in 2.0; text() works
+  g008  PASS           select([cols]) is rejected in 2.0; select(col, col) positionally works
+  g013  PASS           subqueryload('addresses') with a string is rejected; subqueryload(User.addresses) works
+  g015  PASS           row['id'] fails in 2.0; row._mapping['id'], result.mappings() and row.id work
+  g017  PASS           in 2.0, select(User).options(joinedload(User.addresses)) through session.execute raises unless .unique() is called; with .unique() the parents are not duplicated
+  g018  PASS           Session(autocommit=True) is rejected in 2.0; Session + begin() + commit() persists
+  g019  PASS           session.begin(subtransactions=True) is rejected in 2.0; the in_transaction() context-manager recipe nests without error and the outer block commits once
+  g021  PASS           relationship(backref=...) still works in 2.0 (legacy); back_populates works
+  g024  PASS           session.get(User, 5) is the replacement; Query.get() still exists as legacy (LegacyAPIWarning)
+  g025  PASS           in 2.0 future= on create_engine is optional: future=True is accepted, future=False is rejected, and omitting it gives the same Engine
+  g026  PASS           on 1.4, Session(future=True) removes subtransactions (begin(subtransactions=True) raises); in 2.0 future=True is accepted and future=False rejected   [1.4.52 said: NotImplementedError]
+  g027  PASS           on 1.4, SQLALCHEMY_WARN_20=1 turns on RemovedIn20Warning (engine.execute warns only with it set)   [counts: with 1, without 0]
+  g029  PASS           insert(t, values=...) and t.delete(whereclause) are rejected; insert().values().inline(), .returning(), delete().where(), update().ordered_values() work
+  g030  PASS           from sqlalchemy.orm import declarative_base works; the sqlalchemy.ext.declarative import still works but warns it moved; DeclarativeBase works
+  g031  PASS           sqlalchemy.orm.mapper() is gone in 2.0; registry().map_imperatively() maps a class
+  g032  PASS           query(User).join('orders', 'items') chained strings are rejected; individual join() calls work
+  g033  PASS           select(User, Address.email).join().distinct().order_by(Address.email) then session.execute(stmt).columns(User).all() returns only User per row
+  g034  PASS           select_entity_from is gone; aliased(User, select(User).where(...).subquery()) selects from it
+  g035  PASS           statement caching is built in and automatic in 2.0: the second run of the same select is a cache hit
+  g038  PASS           session.execute(select(User)).scalars().all() and session.scalars(select(User)).all() both give User objects
+  g041  PASS           backref still works in 2.0; back_populates on both sides of a many-to-many works
+  g043  PASS           select(..., select_from=, order_by=) keyword arguments are rejected; .select_from().order_by() works
+  g044  PASS           Table(autoload=True) without an engine is gone; autoload_with=engine / connection and reflect(engine) work
+  g045  PASS           t.select().execute() is gone (a Select has no execute); connection.execute(t.select()) runs it
+  g046  PASS           Session(autocommit=True) is rejected; a Session autobegins on first database access; with session.begin(): commits
+  g047  PASS           subtransactions are gone; the in_transaction() recipe nests; begin_nested() is a SAVEPOINT: rolling it back discards u3 and keeps u1, u2, which commit at the end of sessionmaker.begin()
+  g048  PASS           joinedload('addresses') with a string is removed; joinedload(User.addresses) works
+  g049  PASS           case() no longer accepts a list of WHENs in 2.0; case((cond, val), ...) positionally works. SECONDARY SLIP, not the verdict: the answer says the list form 'emits a deprecation warning', which is 1.4's behaviour; on 2.0 it is rejected
+  g050  PASS           Engine has no execute(), a Select has no execute(); with engine.connect() as conn: conn.execute(stmt) works
+  g051  PASS           execute(select(User)).scalars().all() gives User objects; execute(select(User.name, User.id)).all() gives Row tuples; session.scalars() returns a ScalarResult
+  g055  PASS           on 1.4, SQLALCHEMY_WARN_20=1 enables RemovedIn20Warning   [counts: with 1, without 0]
+  g062  PASS           Mapped[Literal[...]] with type_annotation_map {Literal: Enum(enum.Enum)} gives an Enum column with the literal's values; mapped_column(Enum(..., name='status_enum')) works explicitly. SECONDARY SLIP, not the verdict: approach 1's code uses enum.Enum without importing enum
+  g078  FAIL           on 1.4, RemovedIn20Warning is emitted only when SQLALCHEMY_WARN_20 is set, so leaving it unset suppresses them   [counts: with 1, without 1]
+  g079  NOT_CHECKABLE  the answer's point is that the sources do not cover options with Session.get; a claim that is only 'the sources do not cover X' is not executable
+  g080  PASS           select(Book).options(load_only(Book.title, Book.summary)) selects id, title, summary only; one load_only per entity; selectinload(User.books).load_only(Book.title) and defaultload(...) compile
+  g081  PASS           Session(autobegin=False) refuses database work until begin() is called; with begin() it works
+  g083  PASS           there is no engine.execute() in 2.0; engine.begin() commits on exit, and engine.connect() + conn.commit() commits
+  g087  FAIL           a server_default column is NOT in __dict__ right after flush by default (expired, loaded on access); eager_defaults=True makes it present after flush
+  g088  PASS           Session(bind=connection, join_transaction_mode='create_savepoint') inside connection.begin(): session.commit() and session.rollback() touch only savepoints, and the outer rollback removes everything
+  g090  NOT_CHECKABLE  a typing question (load_only attrs typing on 2.0.0b4): not executable here
+  g095  PASS           populate_existing fully refreshes loaded instances, erasing pending changes; with selectinload it replaces the loaded collection
+  g098  PASS           in 2.0 the backref cascade is gone: with u1 persistent, a1.user = u1 does not put a1 in the session, so it must be added explicitly; relationship(cascade_backrefs=False) is still accepted. NOTE: one bullet reads the direction backwards ('assigning a parent to a child in a session -> parent not added'); the forward many-to-one cascade does add it. Not the central claim
+  g099  FAIL           under MappedAsDataclass: default= must be a constant (a callable is rejected); default_factory= supplies callables; default= and insert_default= are mutually exclusive
+  g100  PASS           AsyncSession.run_sync can run synchronous bulk_save_objects inside async code
+  g106  PASS           joinedload on a relationship to a polymorphic base does not load subclass-table columns; joinedload(Owner.pets.of_type(with_polymorphic(Pet, [Dog], flat=True))) does
+  g109  PASS           yield_per together with unique() raises when ORM rows are fetched
+  g110  PASS           in 2.0 create_engine's future= must be True if given (False is rejected); the Connection has commit()/rollback(); strings need text(); the Engine has no execute()
+  g111  PASS           with engine.connect() does not commit by itself (work is rolled back at close); engine.begin(), conn.begin() and conn.commit() all commit
+  g115  PASS           2.0 connections: a plain string is rejected and text() works; engine.begin() commits; engine.connect() needs an explicit commit(); parameters go as a dict, not **kwargs
+  g118  PASS           two aliased(Address) with User.addresses.of_type(alias) join the same table twice under two aliases
+  g121  PASS           2.0 rows: execute(select(User)).scalars().all() gives objects; Row supports row[0], row.name and row._mapping['name']; result.mappings() keys ORM entities by class name. SECONDARY SLIP, not the verdict: it calls row['name'] 'deprecated'; on 2.0 it fails
+
+  PASS 47  FAIL 4  NOT_CHECKABLE 2  ERROR 0   pass rate 92% of checkable
+  FAIL           g002 g078 g087 g099
+  NOT_CHECKABLE  g079 g090
+
+rule (>= 80% of checkable pass): 92% -> the 0.58 stands as 'delivered and, where checkable, correct'
+```
+
+**Against the rule: 47 of 51 checkable = 92% → PASS.** The 0.58 stands as "delivered and, where
+checkable, correct". Prediction ~88%, NOT_CHECKABLE 5–10: close on the rate, too many on the
+not-checkable (2).
+
+**First run, and what changed after it, disclosed.** The first run read **43 PASS, 7 FAIL, 2
+NOT_CHECKABLE, 1 ERROR**. Every FAIL and the ERROR was investigated in isolation before counting:
+
+| id | first run | cause | now |
+|---|---|---|---|
+| `g031` | FAIL | **the check was wrong.** `from sqlalchemy.orm import mapper` still imports on 2.0.51, as a stub that raises when called: *"The 'sqlalchemy.orm.mapper()' function is removed as of SQLAlchemy 2.0. Use ... map_imperatively()"*. The check now calls it | PASS |
+| `g027`, `g055` | FAIL (`with 1, without 1`) | **the check was wrong.** Without `SQLALCHEMY_WARN_20`, 1.4.52 emits one summary warning (*"Deprecated API features detected! ... set SQLALCHEMY_WARN_20=1 to show all"*); with it, the specific *"The Engine.execute() method is considered legacy"*. The claim is about the specific ones | PASS (`with 1, without 0`) |
+| `g100` | ERROR | **the check was wrong.** It discarded its `Address` class; alone it passed, in the full run *"expression 'Address' failed to locate a name"* | PASS |
+| `g078` | FAIL | **the answer is wrong, check unchanged.** *"Leaving SQLALCHEMY_WARN_20 unset suppresses them … the program runs silently"*: run as a script with default filters, 1.4.52 prints a `RemovedIn20Warning` before `[(1,)]` | FAIL |
+| `g002` | FAIL | **the answer is wrong.** Its own code, `aliased(Address, subq)` over a subquery that selected only `Address.email`, raises `NoSuchColumnError: ... 'addresses.id'` | FAIL |
+| `g087` | FAIL | **the answer is wrong, and it is Step 3e's failure again.** 2.0's `eager_defaults` is `"auto"`: on a backend with RETURNING (SQLite here) the server default **is** in `__dict__` after flush | FAIL |
+| `g099` | FAIL | **the answer is wrong, Step 3e's other failure again.** A callable `default=` and `default=` + `insert_default=` are both accepted under `MappedAsDataclass` on 2.0.51 | FAIL |
+
+**The verdict does not depend on the corrections:** with all four corrected checks counted as failures,
+it is 43 of 51 = 84%, still above the bar. One check was also changed **before** its first run and is
+not a post-hoc correction: `g002` first tested a gentler query than the answer's own code; it was
+rewritten to run the answer as written.
+
+**Exploration, NOT pre-registered: the judge's grade does not predict correctness.** Crossing today's
+judge verdicts with the executed results:
+
+```
+judge SUPPORTED   executed PASS 36   FAIL 3 (g002 g087 g099)   NOT_CHECKABLE 2
+judge PARTIAL     executed PASS 11   FAIL 1 (g078)
+```
+
+92% of SUPPORTED and 92% of PARTIAL answers are correct when run. **So Step 4d's faithfulness FAIL (77%)
+is not a correctness problem**: the answers the judge marked PARTIAL are right as often as the ones it
+marked SUPPORTED, and three of the four wrong answers were marked SUPPORTED. The same shape as `D103`.
+
+**Two answers repeat a wrong claim across days.** `g087` and `g099` failed in Step 3e (2026-09-12) and
+fail again with different wording today. A stronger model is not a correction for a claim the pages
+themselves invite.
+
+### Step 4c, scripted — `tools/check_page.py` with the `webapp-testing` skill (2026-09-13)
+
+Viraj decided to install the skill. It is Anthropic's `webapp-testing` (`anthropics/skills@34040c9`,
+Apache-2.0), copied unmodified into `.claude/skills/webapp-testing/` so the lab gets it by `git pull`,
+provenance in its `SOURCE.md`. Its helper starts the page, runs a Playwright script, and stops the page.
+
+`tools/check_page.py` turns Step 4c's hand checks into 17 assertions in headless Chromium at 1280 px and
+400 px, feeding the page's own `renderAnswer` the inputs that can fail (a long code line, declined, error),
+with no model. **17 of 17 pass. With the Step 4c bug put back (`minmax(0, 1fr)` → `1fr`) it fails 2, the
+page measuring 853 px on a 400 px screen**, which is the property the hand check lacked. ENV: it needs a
+browser (`playwright install chromium --only-shell`, 199 MB), so it is not a `# runnable` block.

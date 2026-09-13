@@ -700,7 +700,9 @@
    ],
    "refused": false,
    "empty": false,
-   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The example in passage [2] shows using `aliased(Address)` to join the same table twice with distinct aliases."
   },
   {
    "id": "g120",
@@ -714,7 +716,9 @@
    ],
    "refused": false,
    "empty": false,
-   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [3] states that `with_polymorphic` accepts a base entity and a sequence of subclasses, implying it works with joined\u2011table inheritance."
   },
   {
    "id": "g119",
@@ -728,7 +732,9 @@
    ],
    "refused": false,
    "empty": false,
-   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "UNSUPPORTED",
+   "reason_nvidia": "None of the passages discuss the equivalence or difference between `session.scalar(stmt)` and `session.execute(stmt).scalar_one_or_none()`."
   },
   {
    "id": "g121",
@@ -742,7 +748,9 @@
    ],
    "refused": false,
    "empty": false,
-   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] shows `session.execute(statement).scalars().all()` returning a list of `User` objects and `session.execute(statement).all()` returning tuples of `User` and `Address`."
   }
  ]
 }
