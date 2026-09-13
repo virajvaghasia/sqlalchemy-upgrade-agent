@@ -828,6 +828,69 @@ model's. The rules and a prediction were committed before the first call (`51174
 Mac (`D84`). Here the model runs on NVIDIA's servers, so both machines would send the same request to
 the same place. The Mac can also run unattended.
 
+### How the test runs, one question walked through (`g050`)
+
+Viraj asked how the Ollama process and the NVIDIA-key process can produce "the same kind of result".
+The answer is that **they are the same process with one function swapped**. Here is `g050`, *"engine.execute
+select gone AttributeError use connection instead"*, through every step.
+
+**Step 1: search. Local, identical for both models.** `index.retrieve` finds five pages:
+
+```
+c00456 c01567 c02028 c01569 c01573        (the verified answer page is among them)
+```
+
+**Step 2: build the prompt. Identical for both.** Two messages: the rules (`ask.SYSTEM`) and the question
+with the five pages pasted under it (`ask.build_prompt`). Temperature 0. About 2221 tokens.
+
+**Step 3: send it to a model. THE ONLY STEP THAT DIFFERS.**
+
+```
+                 qwen (Ollama)                              nemotron (NVIDIA key)
+function         ask.generate                               escalate.nvidia_chat
+sends to         http://127.0.0.1:11434/api/chat            https://integrate.api.nvidia.com/v1/chat/completions
+model            qwen2.5-coder:7b                           nvidia/nemotron-3-ultra-550b-a55b
+runs on          your machine's GPU                         NVIDIA's servers (the key goes in the request header)
+messages         [system: ask.SYSTEM, user: the prompt]     the same two messages, byte for byte (a test checks)
+```
+
+**Step 4: save the answer to a file.** One row per question: id, the five page ids, the answer text.
+
+```
+qwen      "The sources do not answer this. The specific thing looked for and did not find was how to
+           replace engine.execute ..."
+nemotron  "In SQLAlchemy 2.0, the engine.execute() method and the "connectionless" execution pattern ...
+           have been removed. You must now obtain a Connection explicitly and call execute() on it. ... [2]"
+```
+
+**Step 5: score each saved answer. Same code for both, no model involved.**
+
+```
+did it decline?            ask.refused(answer)              qwen yes      nemotron no
+was the page in the five?  score.rank_of_first_hit(...)     yes           yes
+delivered?                 route.delivered: page AND answered   no        YES
+```
+
+**Step 6: add up the 91 answerable questions, then compare question by question.** qwen delivered 38,
+nemotron 53. `g050` is one of the 16 that nemotron delivers and qwen does not.
+
+**The commands, side by side.** Generation needs the model; everything after it reads files:
+
+```
+qwen, lab Round 16:   uv run python -m rag.compare_prompts --golden D H --save <file>   (Ollama running)
+nemotron, Step 4d:    uv run python -m rag.escalate --all --generate                    (NVIDIA_API_KEY in .env)
+the report, both:     uv run python -m rag.escalate --all                               (no model, no key)
+```
+
+**What did NOT happen.** The NVIDIA run did not re-run search differently, change the prompt, or score
+answers with different rules. And nothing is "sent to NVIDIA to be graded against qwen": the comparison
+is arithmetic on two saved files. **Nothing magical: same questions, same pages, same prompt, same
+scoring, a different model writing the answer.**
+
+**Layer 2 is the same idea one level up.** The judge takes a saved answer plus its five pages and returns
+one word (`SUPPORTED`, `PARTIAL`, `UNSUPPORTED`). For nemotron that judge was `gpt-oss-20b`, also through
+the NVIDIA key (`g050` came back `SUPPORTED`).
+
 ### The result, one question at a time
 
 The score everything here is built on: a question counts only if **its answer page was among the five
