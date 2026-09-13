@@ -17,7 +17,7 @@ quality-degrading PR gets auto-blocked.**
 |---|---|---|
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
-| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b measured** (`D99`): 16/20 answered, 10 supported, upper bound 0.42 → 0.53; price not sourced |
+| **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; correctness unverified |
 | 4 | deploy + package — a demo link and a README that opens with the product | not started |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
 
@@ -387,3 +387,77 @@ the committed price snapshot `deliverables/prices-phase6.json` (OpenRouter list 
 **My prediction:** the stronger model answers **3 of the 7** unanswerable items (it answered 16 of 20
 refusals, so it is willing) — so the first rule fires — and **15 of the 26** page-absent ones. Cost
 about **$2 per 1000 queries** at a 53% escalation rate.
+
+
+### Result (`D100`) — 16:53, complete
+
+```
+# runnable: uv run python -m rag.escalate --rest --report
+ESCALATION REST — nvidia/nemotron-3-ultra-550b-a55b on the 33 escalations a cascade cannot tell apart
+
+  unanswerable, answered   0 of 7   rule >= 2  -> refusals stay honest   
+  page absent, answered    13 of 26   g007 g011 g016 g020 g022 g028 g036 g037 g039 g040 g058 g085 g094
+  page absent, SUPPORTED   9 of 13 judged  (by those pages, NOT the verified one)
+  not SUPPORTED            g007=UNSUPPORTED g011=PARTIAL g028=PARTIAL g085=PARTIAL
+
+  tokens, as returned by the API: prompt 70210, output 19330  (over 33 calls)
+  shadow cost at the price snapshot: $0.1043 total, $0.00316 per escalation
+```
+
+```
+# runnable: uv run python -m rag.escalate --cascade
+CASCADE — escalate every local refusal to nvidia/nemotron-3-ultra-550b-a55b
+
+  queries 100, escalated 53 (53%)
+  shadow cost $0.1812 for these 100 queries  ->  $1.81 per 1000 queries  (price snapshot; calls were free)
+```
+
+**Against the rules:**
+
+| rule | result |
+|---|---|
+| unanswerable answered ≥ 2 of 7 → escalation buys fabrications | **0 of 7.** The stronger model keeps every honest refusal honest |
+| page absent, answered | **13 of 26**, reported |
+| page absent, `SUPPORTED` | **9 of 13**, reported — and see below for what that word does *not* mean |
+
+**Prediction scored:** 3 of 7 unanswerable answered — **wrong (0)**; 15 of 26 page-absent answered —
+close (13); about $2 per 1000 queries — close ($1.81).
+
+**"Supported by the pages" is not "correct" — checked on real 2.0.51, and it fails in both
+directions.** Two page-absent answers, read and then executed:
+
+```
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' python -c "
+#   import sqlalchemy as sa
+#   e = sa.create_engine('sqlite://')
+#   with e.connect() as c:
+#       row = c.execute(sa.text('select 1 as x')).first()
+#       print('sqlalchemy', sa.__version__)
+#       print('g016  hasattr(row, \"keys\") =', hasattr(row, 'keys'), '  row._mapping.keys() =', list(row._mapping.keys()))
+#   try:
+#       sa.MetaData(bind=e)
+#       print('g007  MetaData(bind=engine) accepted')
+#   except TypeError as ex:
+#       print('g007  MetaData(bind=engine) -> TypeError:', ex)
+#   " 2>/dev/null
+sqlalchemy 2.0.51
+g016  hasattr(row, "keys") = False   row._mapping.keys() = ['x']
+g007  MetaData(bind=engine) -> TypeError: MetaData.__init__() got an unexpected keyword argument 'bind'
+```
+
+| item | what the answer claims | real 2.0.51 | judge |
+|---|---|---|---|
+| `g016` | "`row.keys()` **should exist** in SQLAlchemy 2.0" | `hasattr(row, "keys")` is **False** | **SUPPORTED** — a wrong answer, faithful to a page it misread |
+| `g007` | "2.0 **removed** the `bind` parameter from `MetaData`" | **TypeError** | **UNSUPPORTED** — a right answer, from memory, that the pages do not state |
+
+So the judge measures **faithfulness to the five pages**, which is what it was built for (`D82`), and
+nothing in Phase 6 has measured **correctness** of escalated answers. The 9 page-absent `SUPPORTED`
+answers are not fixes, and 3b's 10 are not verified fixes either.
+
+**The ROADMAP's sentence, as far as it can honestly be written today:** *escalating every local
+refusal to a 550B model would cost **$1.81 per 1000 queries** at one reseller's list price, escalates
+**53%** of queries, adds **0** fabrications on the **7** unanswerable items it escalates (the other two,
+`g056` and `g065`, the local model answers and fabricates, so a cascade on refusal never sees them),
+and turns **10** of the 20
+fixable refusals into page-supported answers — an upper bound of **0.42 → 0.53** end to end whose
+correctness is not yet verified.*

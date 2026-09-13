@@ -328,6 +328,48 @@ question yet. The measured claim is *which* questions to send, not what sending 
 
 ---
 
+## R10.8c — "Supported by the pages" is not "correct" (`D99`, `D100`)
+
+**Plain job.** Steps 3b and 3c asked a big model to answer the questions our small model refused, and
+asked a judge model whether each answer was *supported by the five pages it was given*. It is easy to
+read "supported" as "right". Two answers, executed against real SQLAlchemy 2.0.51, show why not.
+
+```
+g016  "row.keys() AttributeError, where did keys go on result rows"
+      the answer says:  row.keys() should exist in SQLAlchemy 2.0
+      real 2.0.51:      hasattr(row, "keys") is False  -> the answer is WRONG
+      the judge said:   SUPPORTED   (a page mentions row.keys() in another context)
+
+g007  "MetaData(bind=engine) TypeError, how do I create_all now"
+      the answer says:  2.0 removed MetaData's bind parameter; pass the engine to create_all()
+      real 2.0.51:      MetaData(bind=engine) raises TypeError  -> the answer is RIGHT
+      the judge said:   UNSUPPORTED   (none of the five pages say bind was removed)
+```
+
+**What did NOT happen.** The judge did not malfunction. It was asked *"do these five pages state this?"*
+(`D82`) and it answered that question. Neither page set contained the verified answer page, so the
+right answer came from the model's memory and the wrong one from a misread page.
+
+**So the two words mean different things:**
+
+| word | question it answers | who can answer it |
+|---|---|---|
+| **supported** | do the pages say this? | a judge model reading the pages |
+| **correct** | is this true of SQLAlchemy 2.0.51? | running the code, or a human who knows the library |
+
+**The consequence, named plainly:** Phase 6 can say the cascade turns 10 refusals into page-supported
+answers for $1.81 per 1000 queries. It cannot yet say it turns 10 refusals into *correct* answers.
+
+**Say this:** “My judge checks whether an answer is faithful to the retrieved pages, not whether it's
+true. I found one wrong answer it called supported and one right answer it called unsupported, by
+running both against the real library. So my routing gain is an upper bound until correctness is
+checked.”
+
+**Do not say:** “A stronger model fixed ten answers.” Ten became *supported*. Whether they are right is
+not measured.
+
+---
+
 ## R10.9 — Say this out loud
 
 **Say this:** “Every PR that touches retrieval rebuilds the index on a CI runner, scores the 100

@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D99`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D100`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -3932,6 +3932,49 @@ For the questions where my small model refused a page it had, a 550B model answe
 independent judge found only 10 fully supported by the pages; the other six mixed in things the
 pages don't say. So the honest number is ten fixes, which moves end to end from 0.42 to at most
 0.53, and I haven't priced it yet.
+
+### D100 — the full cascade: $1.81 per 1000 queries, no new fabrications, and "supported" is not "correct"
+
+**Decided 2026-09-12.** Phase 6 Step 3c. Rows `deliverables/escalate-rest-phase6.json`; reproduce
+with no model: `rag.escalate --rest --report` and `rag.escalate --cascade` (blocks in `PHASE-6.md`).
+
+**Why it exists.** `D99` measured the 20 page-present refusals, the only ones a stronger model can
+fix. A running cascade cannot tell those from the other 33 refusals, so it escalates all 53. The 33
+are where escalation can cost quality.
+
+```
+unanswerable escalated, answered      0 of 7      rule >= 2 would mean "buys fabrications"  -> not met
+page-absent escalated, answered      13 of 26
+  of those, SUPPORTED by their pages  9 of 13     (the verified answer page was not among them)
+full cascade                         53 of 100 escalated, $0.1812 shadow cost -> $1.81 per 1000 queries
+```
+
+**Decided:** escalation on refusal is safe on the fabrication axis measured here — the 550B model
+refused all 7 unanswerable items the local model had refused. (`g056` and `g065`, which the local
+model answers and fabricates, are never escalated; a cascade on refusal cannot see them.)
+
+**Found: the judge's `SUPPORTED` is not correctness, and it fails in both directions.** Executed on
+real 2.0.51: `g016`'s answer says `row.keys()` should exist in 2.0 — `hasattr(row, "keys")` is False —
+and was judged **SUPPORTED**; `g007`'s answer says `MetaData(bind=)` was removed — it raises TypeError —
+and was judged **UNSUPPORTED**. The judge measures faithfulness to the five pages, which is what it was
+built for (`D82`). **Consequence:** the 9 page-absent `SUPPORTED` answers are not fixes, and `D99`'s 10
+are page-supported, not verified. Correctness of escalated answers is Phase 6's open measurement.
+
+**Price, and what it is:** `deliverables/prices-phase6.json`, OpenRouter's list price for the model,
+fetched 2026-09-12 22:51 UTC. One reseller's price, not NVIDIA's; the calls were free credits.
+
+**Prediction scored:** 3 of 7 unanswerable answered — wrong (0); 15 of 26 page-absent — 13; ~$2 per
+1000 — $1.81.
+
+**Found building it:** the first 3c report printed 3b's rule ("answered ≥ 15 → MIXED") over a set that
+rule was never written for. It now has its own report and a test that 3b's rule does not appear.
+
+**Interview question it answers:** *"What does your router cost, and what does it buy?"* Escalating
+every refusal to a 550B model costs about $1.81 per 1000 queries at list price and adds no
+fabrications on the unanswerable questions. It turns ten of twenty fixable refusals into answers the
+pages support — but when I executed two answers against the real library, the judge had called a wrong
+one supported and a right one unsupported. So the quality gain is an upper bound until correctness is
+checked, and I say it that way.
 ---
 
 ## Where the rest of the repo lives

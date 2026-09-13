@@ -121,3 +121,17 @@ def test_shadow_cost_multiplies_counted_tokens_by_the_snapshot_price():
     prices = {"models": {escalate.MODEL: {"pricing": {"prompt": "0.000001", "completion": "0.000002"}}}}
     rows = [{"prompt_tokens": 1000, "output_tokens": 500}, {"prompt_tokens": None, "output_tokens": 10}]
     assert abs(escalate.shadow_cost(rows, prices) - (0.001 + 0.001 + 0.00002)) < 1e-12
+
+
+def test_the_rest_report_uses_its_own_rules_not_3bs(capsys):
+    """The first 3c report printed 3b's 'answered >= 15 -> MIXED' over a set
+    that rule was never written for."""
+    golden = {"u1": {"answerable": False}, "u2": {"answerable": False}, "a1": {"answerable": True}}
+    rows = [{"id": "u1", "refused": False, "prompt_tokens": 1, "output_tokens": 1, "answer": "x"},
+            {"id": "u2", "refused": True, "prompt_tokens": 1, "output_tokens": 1, "answer": "x"},
+            {"id": "a1", "refused": False, "verdict_nvidia": "PARTIAL", "prompt_tokens": 1,
+             "output_tokens": 1, "answer": "x"}]
+    r = escalate.report_rest(rows, golden, None)
+    out = capsys.readouterr().out
+    assert r["fabricated"] == ["u1"] and "rule >= 15" not in out
+    assert "refusals stay honest" in out  # 1 of 2 is under the bar of 2
