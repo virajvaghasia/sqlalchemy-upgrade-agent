@@ -1257,3 +1257,99 @@ measured, so without the control a verdict that moves could be the judge, not th
 **Prediction (Claude).** Headings help a little and not significantly: nemotron 4 up / 1 down, qwen 2 up /
 1 down, both p > 0.05 → **"headings do not matter"**; noise 1 of 20; nemotron with headings ~80%; Q2 still
 LEVEL; `g044` flips to SUPPORTED.
+
+### Result — Step 4g, 2026-09-13 15:26–15:38 (Mac; 136 NVIDIA free-credit calls)
+
+20 noise-control + 69 + 47 verdicts, none `UNPARSED`, none skipped (the second pass asked nothing).
+
+```
+# runnable: uv run python -m rag.escalate --all
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=PARTIAL g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  SAME JUDGE, BOTH MODELS (openai/gpt-oss-20b, each answer against its five pages)
+    qwen2.5-coder:7b (lab)   judged 47 of 47 answered   SUPPORTED 37 = 79%   PARTIAL 7   UNSUPPORTED 3
+    nemotron                 judged 69 of 69 answered   SUPPORTED 53 = 77%   PARTIAL 16   UNSUPPORTED 0
+    paired over 42 answered by both   nemotron-only SUPPORTED 3  qwen-only SUPPORTED 6  exact McNemar p = 0.5078   -> LEVEL
+      nemotron-only  g015 g030 g115
+      qwen-only      g055 g060 g062 g080 g109 g121
+
+  STEP 4g — THE JUDGE GIVEN THE HEADINGS THE MODEL SAW
+    noise control  20 nemotron answers judged text-only twice: flips 2  (up -; down g004 g020)   rule <= 2
+    nemotron                 with headings judged 69 of 69   SUPPORTED 63 = 91%   text-only -> headings: up 11  down 1  p = 0.0063
+      up    g028 g048 g051 g055 g058 g062 g078 g080 g085 g109 g121
+      down  g099
+    qwen2.5-coder:7b (lab)   with headings judged 47 of 47   SUPPORTED 38 = 81%   text-only -> headings: up 3  down 2  p = 1.0000
+      up    g025 g030 g053
+      down  g024 g080
+    Q1  -> headings MATTER
+    Q2  paired over 42: nemotron-only SUPPORTED 5  qwen-only 2  p = 0.4531   -> LEVEL
+    g044 (nemotron)  text-only PARTIAL  ->  with headings PARTIAL
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+```
+
+| question | result | rule | prediction |
+|---|---|---|---|
+| noise | **2 of 20** flips, both down (`g004`, `g020`) | ≤ 2 → attributable, **at the limit** | 1 (one short) |
+| **Q1** nemotron | **63/69 = 91%**; not→SUPPORTED **11**, SUPPORTED→not **1** (`g099`), p = **0.0063** | **headings MATTER** | 4 up / 1 down, not significant (**wrong**) |
+| **Q1** qwen | **38/47 = 81%**; 3 up / 2 down, p = 1.0 | no effect | 2 up / 1 down (right) |
+| **Q2** paired, 42 | nemotron-only SUPPORTED **5**, qwen-only **2**, p = 0.45 | **LEVEL** | LEVEL (right) |
+| **Q3** nemotron's 80% bar | **91%** | Q1 says matter **and** ≥ 80% → **`D104`'s FAIL is restated** | ~80% (low) |
+| `g044` (nemotron) | PARTIAL → **PARTIAL** | named check, not a gate | flips (**wrong**) |
+
+**The consequences written before the run, applied:**
+- **The with-headings rate is now Phase 6's primary faithfulness figure**, text-only quoted beside it:
+  nemotron **91%** (77% text-only), qwen **81%** (79%).
+- **`D104`'s faithfulness FAIL is restated:** it failed on text-only input (77%) and **passes on the input the
+  model actually saw (91%)**. The demo notice and the Space card now quote 91%.
+- **`D105`'s LEVEL stands** (5 vs 2, p = 0.45). The direction changed sides, which is itself a reason not to
+  read a direction into either.
+
+**What the numbers do NOT say.**
+- **The noise control sat at its limit.** A judge that changes 2 answers in 20 on a re-read could account for
+  a handful of nemotron's 12 changes. What noise does not explain is the **11 to 1 asymmetry**: the control's
+  own two changes went the other way.
+- **"Headings" is shorthand for the whole source block.** The change also added each page's version and
+  path line, and one upward reason uses it: `g051`, *"passage [5] confirms the same for SQLAlchemy 2.0"*.
+  Most upward reasons do not say which line decided them (`g080`: *"Passages [1], [2], [3], and [5] provide
+  the information"*), so the effect is measured in aggregate, not attributed item by item.
+- **Why nemotron gains and qwen does not is not measured.** Nemotron's answers are longer and name sections
+  and versions; qwen's are short. That is a hypothesis.
+- **`g044` stayed PARTIAL for a different reason than the human sheet's.** With the heading the judge accepts
+  the Engine/Connection claim and now wants the removal of `autoload=True` itself stated, which the heading
+  ("bound metadata" removed) does not do. Viraj's SUPPORTED is his verdict and stands; the judge reads a
+  different sub-claim more strictly.
+- **Phase 4's faithfulness figures (`D82`: D 77–85%, H 92%, judge `gemma4:e4b`) were also judged text-only and
+  are NOT re-measured here.** They may be understated the same way; that re-run is Ollama-local and ~110
+  generations.

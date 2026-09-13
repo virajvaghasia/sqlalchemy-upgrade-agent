@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D105`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D107`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -4100,6 +4100,8 @@ rate was usable, and its verdict on any single answer was not.
 
 ### D104 — the demo's hosted model, measured on all 100: ahead end to end, below the faithfulness bar
 
+**RESTATED by `D107` (2026-09-13):** the faithfulness FAIL below (77%) was measured with a judge that never saw page headings. Given the pages exactly as the model saw them, nemotron is **91% → PASS**. The end-to-end result is untouched.
+
 **Decided 2026-09-13.** Phase 6 Step 4d. `rag.escalate --all`, committed at `51174aa` **before its first
 call**; rules and prediction in `PHASE-6.md` Step 4d. Viraj approved ~200 NVIDIA free-credit calls; 190
 were used. Reproduce the report (no network): `uv run python -m rag.escalate --all`.
@@ -4136,6 +4138,8 @@ reading the question more strictly than the small model did.
 
 ### D105 — same judge, both models: level; nemotron's delivered answers run correct at 92%; a browser check for the page
 
+**Amended by `D107`:** re-judged with headings, the two models are still **LEVEL** (5 vs 2, p = 0.45); the rates become qwen 81% and nemotron 91%. The 4f correctness result and its exploration table (text-only verdicts) stand.
+
 **Decided 2026-09-13.** Phase 6 Steps 4e and 4f, and 4c scripted; rules in `PHASE-6.md`, written and
 committed before each run (`1b9bbb3`, `c139eff`). Viraj asked for all three.
 
@@ -4171,6 +4175,43 @@ to argue it.
 measured apart. On answering it gains sixteen questions. On grounding the same judge scores it level with
 the small model. And when I ran each answer's main claim against the real library, 47 of 51 held,
 including most of the ones the judge had marked only partly supported.
+
+
+### D107 — the judge is given what the model was given: headings matter, and nemotron passes the bar
+
+**Decided 2026-09-13.** Phase 6 Step 4g; rules in `PHASE-6.md`, committed before any call (`8693726`), where
+this decision is referred to by its first working number, `D106`, before a parallel session's Modal deploy
+took that id. Triggered by Viraj's review of the six PARTIALs: `g044`'s reason missed a heading the model had
+seen, and `faithful.judge_answer` had always been given page **text only**, while `ask.build_prompt` gives the
+model a source line, a heading line and the text.
+
+**Measured (136 NVIDIA free-credit calls).** Noise control: the judge re-read 20 answers text-only and
+changed 2, at the pre-written limit. With each page exactly as the model saw it: **nemotron 77% → 91%**
+(11 up, 1 down, p = 0.0063); **qwen 79% → 81%** (3 up, 2 down, p = 1.0). Paired, still **LEVEL** (5 vs 2,
+p = 0.45).
+
+**Decided, as written before the run:** headings matter, so **the with-headings rate is Phase 6's primary
+faithfulness figure** (text-only quoted beside it); **`D104`'s FAIL is restated** as a PASS on the input the
+model saw; the demo notice and the Space card say 91%, re-derived by a test. `faithful.judge_answer` itself is
+unchanged: the heading-aware passage is `escalate.passage_as_shown`, used by the Phase 6 re-judge.
+
+**Rejected — attribute the effect to headings item by item.** Most upward reasons do not say which line
+decided them, one uses the version line (`g051`), and the noise control sat at its limit. The claim is the
+aggregate 11-to-1 asymmetry, not twelve explained verdicts.
+
+**Rejected — call Phase 4's faithfulness figures understated.** `D82`'s judge (`gemma4:e4b`) also read text
+only, but it was not re-run; the direction is plausible and the size is unmeasured.
+
+**Found, and it is the lesson:** a human reviewer and a judge model were both shown less than the model
+under test, and the same omission produced a wrong human reason (`g044`) and a 14-point understatement of a
+rate. **A judge must see what the judged saw.** Predictions wrong and kept: "headings do not matter", `g044`
+flips.
+
+**Interview question it answers:** *"How do you know your LLM judge is fair?"* I found it was not being given
+the section headings the model under test saw. I wrote the rules first, measured the judge's own
+re-read noise (2 in 20), re-judged, and nemotron went from 77% to 91% with an 11-to-1 shift, while the
+comparison between models stayed level. The published FAIL became a PASS, and I restated it rather than
+quietly updating the number.
 
 ---
 

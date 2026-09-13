@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D105`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D107`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 515 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 521 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,13 +379,22 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 4g (`D107`, 2026-09-13): THE JUDGE NEVER SAW HEADINGS; GIVEN THEM, NEMOTRON PASSES.** Viraj
+confirmed the six sheet verdicts and changed `g044` to SUPPORTED. Rules first (`8693726`), 136 NVIDIA calls:
+noise control **2 of 20** (at the limit); with each page exactly as `ask.build_prompt` shows it, nemotron
+**77% → 91%** (11 up / 1 down, p = 0.0063) → **headings MATTER**; qwen 79% → 81%; paired still **LEVEL**
+(5 vs 2). Consequences applied as pre-written: with-headings is the primary figure, **`D104`'s FAIL restated
+as PASS**, demo notice + card say 91%. Predictions wrong and kept. Not re-run: Phase 4's `D82` (also
+text-only). **Note:** a parallel session deployed Modal as `D106` in the same tree; its work is left
+uncommitted for it — the live page still shows the notice from before this change until redeployed.
+
 **THE SIX PARTIALs CHECKED, AND THE JUDGE NEVER SAW HEADINGS (2026-09-13).** The sheet's six human
 verdicts were filled by someone other than this session and swept into `1b9bbb3` by `git add -A` —
-**Viraj to confirm they are his (`D06`)**. Five reasons hold; **`g044`'s does not**: the "bound metadata
+**Viraj confirmed they are his (2026-09-13)**. Five reasons hold; **`g044`'s did not, and Viraj changed it to SUPPORTED**: the "bound metadata
 removed" title it calls absent is source [2]'s heading, which the model was given and the sheet hid.
 **`faithful.judge_answer` also gets text only, never headings**, so every faithfulness rate was judged on
-less than the model saw (harsher, size unmeasured). Sheet fixed + refuses to overwrite verdicts. Open:
-re-judge with headings, pre-registered. `PHASE-6.md` last section.
+less than the model saw (harsher, size unmeasured). Sheet fixed + refuses to overwrite verdicts. Re-judge with headings
+is Step 4g. `PHASE-6.md` last section.
 
 **PHASE 6 STEPS 4e + 4f (`D105`, 2026-09-13): SAME JUDGE LEVEL; ANSWERS RUN CORRECT AT 92%.** 4e: `gpt-oss-20b`
 on the lab qwen's 47 answers, same pages: qwen **79%** vs nemotron **77%**, paired 3 vs 6, p = 0.51 → **LEVEL**
@@ -675,7 +684,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**515 tests**, **76/76** `# runnable`, **105** decisions, **§H empty**.
+**521 tests**, **76/76** `# runnable`, **107** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -721,7 +730,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 515 passed with Qdrant up; 510 + 5 skipped without
+uv run pytest                            # 521 passed with Qdrant up; 516 + 5 skipped without
 uv run python -m tools.check_runnable    # 76/76 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -2174,3 +2183,11 @@ Append a dated entry each session; keep each entry to a few bullets.
   were 3e's two failures, which made today's failures consistent, not suspicious.
 - **Skill:** fetched via `gh api`, read in full before installing, provenance in `SOURCE.md`. Chromium headless
   shell 199 MB. `check_page.py` stays ENV (needs the browser), not a pytest.
+
+### 2026-09-13 (late) — Step 4g, the judge given headings (`D107`)
+
+- Viraj confirmed the six verdicts and changed `g044`. Step 4g pre-registered with a noise control; 136 calls.
+- Headings matter for nemotron (77% → 91%), not for qwen; still level. `D104` restated, notice 91%.
+- **A parallel session edited the same tree** (Modal deploy, `D106`, `rag/index.py`). This session's commit was
+  built blob by blob from HEAD + its own edits (`git update-index --cacheinfo`), leaving the other work unstaged.
+  The mutation script once crashed before restoring `rag/escalate.py`; caught by grep, restored, now try/finally.

@@ -33,6 +33,7 @@ use it?*
 | 4 | can a stranger use it? | the page works locally; Hugging Face now charges for it | `D102` |
 | 4d | what does the hosted model score on all 100? | **0.58** end to end vs qwen's 0.42 (16 gained, 1 lost), 0 fabrications, but **77%** supported, under the 80% bar | `D104` |
 | 4e | judged by the SAME judge, is the bigger model more faithful? | no: **level** (qwen 79%, nemotron 77%; paired 3 vs 6, p = 0.51) | `D105` |
+| 4g | does the judge see what the model saw? | no, it never saw headings; given them, nemotron **77% → 91%** (11 up, 1 down), qwen 79% → 81%, still level | `D107` |
 | 4f | are its 53 delivered answers right when run? | **47 of 51 checkable = 92%**; the judge's grade does not predict which | `D105` |
 
 **Who does what in this phase.** Several models appear, and mixing them up is the fastest way to say
@@ -946,7 +947,7 @@ example) is the mirror image: qwen declined with the page in hand, nemotron answ
 **Fabrications: 0 of 9.** On the 9 questions the docs cannot answer, it declined all 9. qwen answered 2
 of them (`g056`, `g065`). This is not "it never makes things up"; it is 9 questions.
 
-**Faithfulness: 53 of 69 answers SUPPORTED = 77%, which FAILS the 80% bar.** A second model
+**Faithfulness: 53 of 69 answers SUPPORTED = 77%, which FAILS the 80% bar.** *(Restated below, "Follow-up 3": the judge had been shown page text without the headings the model saw; given them it is 91%, a PASS, `D107`.)* A second model
 (`gpt-oss-20b`) read each answer against its five pages. The other 16 are all `PARTIAL` (part of the
 answer goes beyond the pages); **none** `UNSUPPORTED`. Two things this is not:
 
@@ -1059,6 +1060,46 @@ were right as often as the ones it marked "fully supported", and three of the fo
 marked "fully supported". So Step 4d's 77% FAIL is a grounding result, not a correctness result, and it
 cannot be converted into one. Only running the code does that.
 
+### Follow-up 3: the judge was never shown what the model was shown (`D107`)
+
+**Start from the prompt.** For every page, the model receives three lines, not one:
+
+```
+[2] SQLAlchemy 2.0.51 — doc/build/changelog/migration_20.rst
+     SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - Core Connection / Transaction > "Implicit" and "Connectionless" execution, "bound metadata" removed
+
+...the page text...
+```
+
+**The judge received only `...the page text...`.** The source line and the heading line were never
+passed to it, in this phase or the ones before. Viraj found it by reading `g044`: his first reason said the
+claim "bound metadata was removed" was not on the pages, and it is, in the heading above. The review
+sheet had hidden headings from him too.
+
+**What was measured, rules written first.** Same judge, same answers, same five pages, each page now
+exactly as the model saw it (a test holds the two byte-equal). And a control, because this judge's own
+repeatability had never been measured: 20 answers re-read text-only, with nothing changed.
+
+```
+noise control   20 answers read twice, text only           2 changed (both down)     limit was 2
+nemotron        77% text-only  ->  91% with headings        11 up, 1 down, p = 0.0063  HEADINGS MATTER
+qwen            79% text-only  ->  81% with headings         3 up, 2 down, p = 1.0
+both, paired    nemotron-only supported 5, qwen-only 2      p = 0.45                   still LEVEL
+```
+
+**What it changes.** Nemotron's faithfulness is **91%, a PASS** against the 80% bar, measured on the input
+it was actually given; the 77% FAIL is restated, not deleted, and the demo notice says 91%. The comparison
+with qwen is still level. **What it does not say:** that headings explain each of the 11 changes. Most of
+the judge's new reasons do not name a line; one names the version line (`g051`, *"confirms the same for
+SQLAlchemy 2.0"*). The noise control was at its limit, so a few of the 12 changes may be noise; the evidence
+is that 11 went one way. And Phase 4's faithfulness figures came from a different judge that also read text
+only, and were not re-run.
+
+**`g044` itself stayed PARTIAL with the judge.** Given the heading, it accepted the Engine/Connection part and
+asked for the removal of `autoload=True` to be stated, which the heading does not say. Viraj's SUPPORTED is his
+verdict. **A judge and a human can disagree about which part of a claim needs a source; both must at least be
+shown the same page.**
+
 ---
 
 ## R10.16 — Why there is no public link yet
@@ -1129,8 +1170,8 @@ answers against the real library it had called a wrong one supported and a right
 
 **The demo.** “The demo uses the graded search, proven identical without the database, and the shipped
 prompt. Hosted, it needs a different generator, so I measured that one on the same 100 questions: 0.58
-end to end against the local model's 0.42, sixteen gained and one lost, no fabrications, but only 77% of
-its answers fully supported by their pages, under my 80% bar. The page quotes those numbers.”
+end to end against the local model's 0.42, sixteen gained and one lost, no fabrications, and 91% of its answers fully supported by the pages as the model saw them (77% when my judge
+was shown text only). The page quotes those numbers.”
 
 **Do not say:**
 
@@ -1139,8 +1180,10 @@ its answers fully supported by their pages, under my 80% bar. The page quotes th
 - “Routing saves money.” On a paid plan it would *cost* $1.81 per 1000 queries against a free local model; what it buys is
   up to 11 points of end to end.
 - “The demo scores 0.42.” Only the local version runs qwen; the hosted model is 0.58, measured once.
-- “The bigger model is more faithful.” The same judge rates it level with qwen (77% vs 79%, p = 0.51).
-- “77% supported means 23% are wrong.” Run against the library, 92% of its checkable answers are right.
+- “The bigger model is more faithful.” The same judge rates it level with qwen: 91% vs 81% with headings
+  (paired p = 0.45), 77% vs 79% without.
+- “77% supported means 23% are wrong.” 77% was a judge that missed the headings (91% with them), and run
+  against the library 92% of its checkable answers are right.
 
 ---
 
@@ -1236,9 +1279,9 @@ Start with what the 0.58 is. On the same 100 questions and the same five pages, 
 the 91 answerable ones with the right page in hand, and qwen answered 38. The 58 questions where search
 found the page are identical for both; nemotron simply declined far less often with the page in front
 of it (5 times against qwen's 20). Question by question that is 16 gained and 1 lost, p = 0.0003, so
-the gain is real, not noise. Now the reasons not to switch. First, grounding: only 53 of its 69
-answers were judged fully supported by their pages, 77%, under the 80% bar written before the run, and
-the same judge rates qwen level at 79%. (Run against the library, 47 of 51 of its checkable answers are
+the gain is real, not noise. Now the reasons not to switch. First, grounding is level, not better:
+given the pages as the model saw them, 91% of its answers are fully supported against qwen's 81%, and
+question by question the difference is not significant (p = 0.45). (Run against the library, 47 of 51 of its checkable answers are
 right, so this is about sticking to the pages, not about being wrong.) Second, it was measured once, on one day. Asked twice, the
 decision held on 19 of 20 and the wording on none. Third, the project runs on zero paid calls; free
 credits end. So it is quoted where it is used (the hosted page) and used where the design says so (the
@@ -1261,4 +1304,5 @@ Flask-SQLAlchemy question, which is a reminder that "fewer declines" is not auto
 - why the demo can use in-memory search, and why its page must name its generator
 - what the hosted model scores on all 100, why search is not the difference, and why 77% supported still fails
 - that the same judge rates both models level, and that the judge's grade did not predict which answers were right
+- that the judge had never been shown the headings the model saw, and what changed when it was (77% → 91%)
 - why there is no public link yet, and what 4 GB of memory rules out
