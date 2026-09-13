@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D103`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D104`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -4097,6 +4097,41 @@ the file to be disputed.
 I turned each answer's main claim into a check and ran it against the real library: 13 of 15 checkable
 passed, and the two failures were answers my judge had marked as fully supported. So the judge's overall
 rate was usable, and its verdict on any single answer was not.
+
+### D104 — the demo's hosted model, measured on all 100: ahead end to end, below the faithfulness bar
+
+**Decided 2026-09-13.** Phase 6 Step 4d. `rag.escalate --all`, committed at `51174aa` **before its first
+call**; rules and prediction in `PHASE-6.md` Step 4d. Viraj approved ~200 NVIDIA free-credit calls; 190
+were used. Reproduce the report (no network): `uv run python -m rag.escalate --all`.
+
+**Measured, one run, Mac retrieval (identical to the lab's, `D83`), shipped prompt:**
+`nvidia/nemotron-3-ultra-550b-a55b` delivers **53/91 = 0.58** end to end against the lab qwen's 38/91.
+Paired by id: **16 fixed, 1 broken, p = 0.0003 → AHEAD** by `D61`'s bar. **0 of 9 fabrications.**
+Faithfulness (`gpt-oss-20b`, against the pages given): **53 of 69 = 77% → FAIL** at 80%, and every miss
+is `PARTIAL`. Asked twice, **19 of 20 decisions** repeat and **0 of 20 texts** do.
+
+**Decided: the hosted page quotes this model's own numbers.** `demo.NOT_THE_MEASURED_MODEL` said the 0.42
+"does not describe these answers" because nothing did. It now gives 0.58 and 77% for this model, says it
+was measured once, and still names 0.42 as qwen's. A test re-derives both numbers from the saved rows.
+
+**Rejected — make nemotron the measured system.** It is ahead, but the project's system of record is the
+local model for a reason that has not changed: zero paid calls (`CLAUDE.md`), and free credits are
+finite. The cascade (`D98`–`D100`) remains the design that uses the bigger model only where the small
+one declines, at $1.81 against $3.45 per 1000 queries.
+
+**Rejected — call the faithfulness FAIL a pass because 77% is close.** The bar was written first. And
+`SUPPORTED` is not "correct" (`D100`, `D103`).
+
+**Found:** an empty judge reply came back `UNPARSED` and the report counted it as judged; a resume would
+never re-ask it. Fixed test-first; `g025` re-asked once (`PARTIAL`). The FAIL holds either way.
+
+**Not measured:** qwen judged by the same judge, so the two models' faithfulness is not compared here;
+correctness executed on 2.0.51 for the 53 answers (Step 3e covered 29 escalations only).
+
+**Interview question it answers:** *"Would a bigger model fix your system?"* On the same five pages, yes
+for answering: 0.58 against 0.42, sixteen questions gained and one lost, no fabrications. Not for
+grounding: under 80% of its answers are fully supported by the pages, and the one it lost was a case of
+reading the question more strictly than the small model did.
 ---
 
 ## Where the rest of the repo lives

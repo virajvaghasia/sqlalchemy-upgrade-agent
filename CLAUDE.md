@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D103`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D104`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 505 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 508 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,16 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 4d (`D104`, 2026-09-13): THE HOSTED MODEL ON ALL 100.** `rag.escalate --all`, committed
+before its first call; 190 NVIDIA free-credit calls, Mac. `nemotron-3-ultra-550b`, same pages and prompt:
+**end to end 53/91 = 0.58** vs lab qwen 38/91; paired **16↑ 1↓ p = 0.0003 → AHEAD**; **0/9 fabrications**;
+faithfulness (`gpt-oss-20b`) **53/69 = 77% → FAIL** (bar 80%, all misses PARTIAL); repeat **19/20
+decisions, 0/20 texts**. Ceiling identical (58), so the gain is generation: page-present declines 20 → 5.
+The one loss `g053` is a stricter reading (Flask-SQLAlchemy not on the page). Instrument bug found live:
+an empty judge reply (`g025`) counted as judged; fixed test-first, re-asked once. The hosted notice now
+quotes 0.58 / 77% (a test re-derives them). **System of record stays qwen** (zero paid calls). Not
+measured: qwen under the same judge; correctness of the 53. Taught in `18-PRODUCTION.md` §R10.15b.
+
 **PHASE 6 STEP 4c (2026-09-13): THE HAND-DESIGNED PAGE CHECKED IN CHROME, AND IT IS WHAT SHIPS.**
 Four rules written before the browser: declined example **pass**; phone width **FAIL → fixed** (a
 `1fr` grid column made the page 991 px on a 398 px screen; `minmax(0, 1fr)`); error state **pass**
@@ -647,7 +657,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**505 tests**, **75/75** `# runnable`, **103** decisions, **§H empty**.
+**508 tests**, **75/75** `# runnable`, **104** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -693,7 +703,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 505 passed with Qdrant up; 500 + 5 skipped without
+uv run pytest                            # 508 passed with Qdrant up; 503 + 5 skipped without
 uv run python -m tools.check_runnable    # 75/75 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
@@ -2120,3 +2130,16 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **`build.py` ships `web.py` + `static/`**; pins gain fastapi/uvicorn and lose gradio; `space/README.md` lost
   its HF frontmatter. The built bundle ran from `space/dist/` on its own pins and answered with a citation.
 - 497 tests, 75/75 `# runnable`. Docs: `18-PRODUCTION.md` R10.15, `PHASE-6.md` 4c, `D102`, `README.md`.
+
+### 2026-09-13 (afternoon) — Step 4d: nemotron on all 100 (`D104`)
+
+- **Viraj approved ~200 calls; 190 used.** Rules + prediction in `PHASE-6.md` Step 4d, instrument committed
+  (`51174aa`) before the first call. Mac chosen on purpose: generation is remote, retrieval identical (`D83`).
+- **Result:** 0.58 end to end, AHEAD 16↑ 1↓, 0 fabrications, 77% supported (FAIL), repeat stable on decisions,
+  never on text. Prediction right on every direction; fabrications predicted 1, got 0.
+- **Read, not counted:** `g053` (the loss) declined on Flask-SQLAlchemy's absence; `g007` (the flip) is the same
+  fix behind two different opening sentences — the prefix detector's known shape.
+- **Two instrument gaps closed:** `generate_rows` died on a TimeoutError (D75 again, third module); UNPARSED
+  counted as judged and never retried. Both test-first. First verdict test missed `broken <= 1`; strengthened.
+- **Demo notice** now carries the hosted model's own numbers, derived by a test; Space card updated.
+- 508 tests, 75/75 `# runnable`, `rag.escalate --all` classified ENV (reads gitignored chunks). 104 decisions.

@@ -1,0 +1,324 @@
+{
+ "rows": [
+  {
+   "id": "g001",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01567",
+    "c01580",
+    "c01577",
+    "c01568",
+    "c00736"
+   ],
+   "answer": "The sources do not answer this. I looked for any mention of `engine.has_table()` or its replacement in the provided migration guide excerpts (which cover removal of bound metadata, connectionless execution, DML constructor changes, and select() constructor changes), but none of the sources discuss `has_table()`.",
+   "prompt_tokens": 2036,
+   "output_tokens": 366,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g002",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01598",
+    "c01599",
+    "c01989",
+    "c03187",
+    "c01555"
+   ],
+   "answer": "Based on the migration guide, `Query.from_self()` has been removed in SQLAlchemy 2.0. The replacement uses `aliased()` with explicit subqueries [1][2].\n\n**Old pattern (removed):**\n```python\nq = (\n    session.query(User, Address.email_address)\n    .join(User.addresses)\n    .from_self(User)\n    .order_by(Address.email_address)\n)\n```\n\n**New 2.0 style:**\n```python\nfrom sqlalchemy.orm import aliased\nfrom sqlalchemy import select\n\nsubq = select(User, Address.email_address).join(User.addresses).subquery()\n\nua = aliased(User, subq)\naa = aliased(Address, subq)\n\nstmt = select(ua, aa).order_by(aa.email_address)\nresult = session.execute(stmt)\n```\n\n**Key points:**\n- Create the subquery explicitly with `.subquery()` [1][3]\n- Use `aliased(Entity, subquery)` for each entity you want to select from the subquery [1][2]\n- This makes the entity-to-subquery mapping unambiguous, unlike `from_self()` which did implicit translation [2]\n\nThe same `aliased()` approach works with the legacy `Query` API too if you're not fully migrated to 2.0 style yet [1].",
+   "prompt_tokens": 1999,
+   "output_tokens": 423,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g003",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02028",
+    "c00036",
+    "c00456",
+    "c01646",
+    "c02840"
+   ],
+   "answer": "The sources do not answer this. I looked for information about `engine.table_names()` method or alternative ways to list tables in SQLAlchemy 2.0, but the provided sources only cover:\n- Bound metadata errors and the removal of `Executable.execute()` in 2.0 [1, 3]\n- Schema translation using `schema_translate_map` [2, 4]\n- ORM inheritance loading strategies [5]\n\nNone of the sources mention table introspection methods like `table_names()`, `get_table_names()`, or the `inspect()` API that replaced them in 2.0.",
+   "prompt_tokens": 2195,
+   "output_tokens": 446,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g004",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01573",
+    "c01569",
+    "c01567",
+    "c01568",
+    "c01551"
+   ],
+   "answer": "The `engine.execute()` method has been **removed entirely in SQLAlchemy 2.0**. You must now execute SQL through a `Connection` object (or an ORM `Session`). The migration guide shows the new patterns:\n\n**1. Get a connection explicitly, then call `execute()` on it**  \nUse a context manager so the connection is closed and the transaction is committed/rolled back automatically:\n\n```python\nfrom sqlalchemy import text\n\nwith engine.connect() as conn:\n    result = conn.execute(text(\"SELECT * FROM table\"))\n    # for DML/DDL you need an explicit transaction:\n    with conn.begin():\n        conn.execute(text(\"INSERT INTO table (col) VALUES ('val')\"))\n```\n[4] shows this pattern for both schema operations and statement execution.\n\n**2. String SQL must be wrapped in `text()` (or use `exec_driver_sql()`)**  \nDirect string SQL is no longer accepted by `Connection.execute()`:\n\n```python\n# Old (1.x): engine.execute(\"SELECT * FROM table\")\n# New (2.0):\nconn.execute(text(\"SELECT * FROM table\"))\n# or for a raw driver string without SQLAlchemy compilation:\nconn.exec_driver_sql(\"SELECT * FROM table\")\n```\n[1] and [5] both note this change.\n\n**3. For ORM code, use `Session.execute()`**  \n```python\nwith Session(engine) as session:\n    result = session.execute(text(\"SELECT * FROM table\"))\n```\n[1] and [5] mention `Session.execute()` as the ORM equivalent.\n\n**What no longer works (removed in 2.0):**\n- `engine.execute(...)` \u2014 \u201cconnectionless\u201d execution [2][3][4]\n- `table.select().execute()` \u2014 \u201cimplicit\u201d execution [2][3]\n- `MetaData(bind=engine)` \u2014 bound metadata [3]\n\n**Summary of required changes:**\n| Old (1.x) | New (2.0) |\n|-----------|-----------|\n| `engine.execute(\"SQL\")` | `with engine.connect() as conn: conn.execute(text(\"SQL\"))` |\n| `engine.execute(stmt, params)` | `with engine.connect() as conn: conn.execute(stmt, params)` |\n| `stmt.execute()` | `with engine.connect() as conn: conn.execute(stmt)` |\n| `metadata.create_all()` (with bound engine) | `metadata.create_all(engine)` or `metadata.create_all(conn)` |\n\nThe deprecation warnings shown in [5] (`RemovedIn20Warning: The Engine.execute() function/method is considered legacy\u2026`) confirm that this removal was signaled throughout the 1.x series.",
+   "prompt_tokens": 3005,
+   "output_tokens": 803,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g005",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00456",
+    "c02028",
+    "c01572",
+    "c01123",
+    "c00363"
+   ],
+   "answer": "The sources do not answer this. I looked for information about `ObjectNotExecutableError` when passing a raw SQL string to `connection.execute()`, and for what to wrap a string with (such as `text()`) to make it executable in SQLAlchemy 2.0. None of the provided sources cover this error or the use of raw SQL strings with `execute()`.",
+   "prompt_tokens": 1922,
+   "output_tokens": 502,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g006",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01574",
+    "c01551",
+    "c01700",
+    "c00070",
+    "c01573"
+   ],
+   "answer": "Based on the provided sources, I can confirm that **raw SQL strings are no longer accepted by `Session.execute()` in SQLAlchemy 2.0**, but the sources do not specifically mention `ArgumentError` or show the exact error raised for `session.execute` with a raw string.\n\nWhat the sources do cover:\n\n1. **Source [1]** explicitly states that the removal of direct string SQL was done \"to resolve an inconsistency between `Connection.execute` and `Session.execute`, where in the former case the string is passed to the driver raw, and in the latter case it is first converted to a `text()` construct. By allowing only `text()` this also limits the accepted parameter format to 'named' and not 'positional'.\" This confirms that `Session.execute` no longer accepts raw strings in 2.0.\n\n2. **Source [2]** shows deprecation warnings for passing strings to `Connection.execute()`, recommending \"Use the text() construct, or the Connection.exec_driver_sql() method\".\n\n3. **Source [5]** provides concrete examples for `Connection.execute()`: \"direct string SQL not supported; use text() or exec_driver_sql() method\" and shows the cross-compatible pattern using `text(\"select * from table\")`.\n\n**What the sources do not cover:**\n- The specific exception type (`ArgumentError`) raised when calling `session.execute(\"raw sql\")`\n- Any `session.execute` examples showing the error or migration pattern\n- Whether the error message differs between `Connection.execute` and `Session.execute`\n\n**Migration guidance from sources:** Replace raw strings with `sqlalchemy.text()` construct:\n```python\nfrom sqlalchemy import text\nsession.execute(text(\"SELECT * FROM table\"))\n```\n\nThe sources confirm the *requirement* to use `text()` for both `Connection.execute` and `Session.execute` in 2.0, but do not document the specific `ArgumentError` for `session.execute`.",
+   "prompt_tokens": 2566,
+   "output_tokens": 1002,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g007",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01854",
+    "c00218",
+    "c02957",
+    "c01140",
+    "c00312"
+   ],
+   "answer": "Based on the provided sources, they demonstrate the correct pattern for creating tables in both SQLAlchemy 1.4 and 2.0: **pass the engine to the `create_all()` method**, not to the `MetaData` constructor.\n\nAll sources show this pattern:\n- **SQLAlchemy 2.0** (sources [1], [3]): `metadata_obj.create_all(engine)` or `Base.metadata.create_all(engine)`\n- **SQLAlchemy 1.4** (sources [2], [4], [5]): `metadata_obj.create_all(engine)` or `Base.metadata.create_all(engine)`\n\n**What the sources do not cover:** None of the provided excerpts mention `MetaData(bind=engine)`, a `TypeError` related to it, or the removal of the `bind` parameter in SQLAlchemy 2.0. The sources only illustrate the working `create_all(engine)` calling convention.\n\n**Practical answer (from general knowledge, not in sources):** In SQLAlchemy 2.0, the `bind` argument was removed from `MetaData.__init__`. Change:\n```python\n# Old (1.x, now raises TypeError in 2.0)\nmetadata = MetaData(bind=engine)\nmetadata.create_all()\n```\nto:\n```python\n# New (2.0, also works in 1.4)\nmetadata = MetaData()\nmetadata.create_all(engine)\n```",
+   "prompt_tokens": 1827,
+   "output_tokens": 729,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g008",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01585",
+    "c01594",
+    "c01578",
+    "c02025",
+    "c00453"
+   ],
+   "answer": "In SQLAlchemy 2.0, the `select()` construct no longer accepts a list of columns. Columns must be passed **positionally** as separate arguments.\n\n**Old (1.x / legacy) style:**\n```python\nselect([User.id, User.name])\n```\n\n**New (2.0) style:**\n```python\nselect(User.id, User.name)\n```\n\nThis is part of the \"generative\" style where structural elements (columns, tables) are passed positionally, and modifiers like `.where()`, `.order_by()`, etc. are chained as methods [3].\n\n**Example from the migration guide:**\n```python\n# pass columns clause expressions positionally\nstmt = select(table.c.x, table.c.y)\n``` [3]\n\nThe legacy list form `select([...])` is no longer supported in 2.0.",
+   "prompt_tokens": 2894,
+   "output_tokens": 496,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g009",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00163",
+    "c01799",
+    "c00629",
+    "c00993",
+    "c02223"
+   ],
+   "answer": "The sources do not answer this. I looked for information about the `case()` function, its calling syntax (particularly `case([(cond, val)])`), and any changes between SQLAlchemy 1.4 and 2.0 that would cause an ArgumentError, but the provided sources only cover computed columns (GENERATED ALWAYS AS), late-evaluation of relationship arguments, and simple validators \u2014 none of which discuss the `case()` construct.",
+   "prompt_tokens": 1562,
+   "output_tokens": 474,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g010",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02326",
+    "c02209",
+    "c01593",
+    "c02306",
+    "c02614"
+   ],
+   "answer": "The sources do not answer this. I looked for any mention of `relation` (the legacy name for `relationship`) being removed or replaced in SQLAlchemy 2.0, but none of the provided sources discuss the `relation` symbol or its removal. The sources only show `relationship` being imported and used (e.g., `from sqlalchemy.orm import relationship` in sources [2] and [4]).",
+   "prompt_tokens": 2237,
+   "output_tokens": 449,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g011",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02937",
+    "c01991",
+    "c00426",
+    "c01990",
+    "c01114"
+   ],
+   "answer": "The `aliased=True` keyword argument was never a standard parameter for `Query.join()` in SQLAlchemy 1.4 or 2.0. The sources show that to alias a join target in 2.0, you create an `aliased()` construct and then use one of two patterns:\n\n**1. `of_type()` method (recommended)**  \nCreate the alias, then apply it via the relationship's `of_type()` method [2]:\n\n```python\nfrom sqlalchemy.orm import aliased\n\na1 = aliased(Address)\nstmt = select(User).join(User.addresses.of_type(a1)).where(a1.email_address == \"ed@foo.com\")\n```\n\n**2. Two-argument `join(target, onclause)` form**  \nPass the alias as the first argument and the relationship attribute as the second [1, 2]:\n\n```python\na1 = aliased(Address)\nstmt = select(User).join(a1, User.addresses).where(a1.email_address == \"ed@foo.com\")\n```\n\nBoth produce the same SQL with an aliased join target. The `of_type()` approach is explicitly noted as \"recommended\" in the 2.0 documentation [2].\n\n**What the sources do not cover:**  \nThey do not mention any `aliased=True` parameter in any version, so it appears this was never a supported keyword. If you encountered it in very old code (pre-1.0) or a third-party extension, it is not part of SQLAlchemy's ORM join API.",
+   "prompt_tokens": 1979,
+   "output_tokens": 865,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g012",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c00967",
+    "c00969",
+    "c02893",
+    "c02895",
+    "c02897"
+   ],
+   "answer": "The sources do not answer this. They only show `joinedload(User.addresses)` using the relationship attribute directly, not a string path like `joinedload(\"addresses\")`. None of the provided excerpts discuss string-based relationship paths, changes to string path support between 1.4 and 2.0, or any deprecation/removal of string arguments to `joinedload`.",
+   "prompt_tokens": 2160,
+   "output_tokens": 432,
+   "empty": false,
+   "refused": true
+  },
+  {
+   "id": "g013",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02904",
+    "c02903",
+    "c01593",
+    "c02902",
+    "c01601"
+   ],
+   "answer": "Based on the provided sources, the migration guide explicitly states that **string attribute names for relationship loading options are removed in SQLAlchemy 2.0**. Source [3] covers this under \"ORM Query - Joining / loading on relationships uses attributes, not strings\":\n\n- The string forms for query options like `joinedload(\"addresses\")` \"will all be removed in 2.0\" [3].\n- The required technique is to use **mapped attributes** (e.g., `joinedload(User.addresses)`) [3].\n- The same techniques apply to 2.0-style `select()` statements with loader options [3].\n\nWhile source [3] uses `joinedload` as the primary example, the rule applies to all relationship loader options, including `subqueryload`. Sources [1], [2], and [4] show `subqueryload` used with mapped attributes (e.g., `subqueryload(User.addresses)`) but do not demonstrate string usage.\n\n**What the sources do not cover:**\n- The exact exception type (`AttributeError` vs. another error) raised when a string is passed to `subqueryload` in 2.0.\n- A specific `subqueryload` string-example in the migration guide (only `joinedload`, `join`, and `with_parent` are shown).\n\n**Bottom line:** The sources confirm that passing a string to `subqueryload` is not supported in 2.0 and will cause an error; you must pass the mapped attribute (e.g., `subqueryload(User.addresses)`). The specific error `AttributeError` is not documented in these excerpts.",
+   "prompt_tokens": 2271,
+   "output_tokens": 816,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g014",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01383",
+    "c03127",
+    "c02917",
+    "c01382",
+    "c01380"
+   ],
+   "answer": "Yes, you need `scalars()` to get `User` objects directly.\n\nAll sources show that `session.execute(select(User))` returns **Row objects** containing the entity as a single element, not the entity itself:\n\n- In 1.4: `session.execute(select(User)).first()` returns `(User(id=1, name='spongebob', fullname='Spongebob Squarepants'),)` \u2014 a Row with one element [1][4][5]\n- In 2.0: same behavior [2]\n\nTo get `User` instances directly, use `session.scalars(select(User))`, which returns a `ScalarResult` yielding the entities [1][2][3]:\n\n```python\n# Returns User objects directly\nuser = session.scalars(select(User)).first()\n# User(id=1, name='spongebob', fullname='Spongebob Squarepants')\n\n# Or for multiple\nusers = session.scalars(select(User)).all()\n```\n\nThis is consistent across both 1.4 and 2.0 versions in the sources.",
+   "prompt_tokens": 2104,
+   "output_tokens": 714,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g015",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01576",
+    "c02555",
+    "c03105",
+    "c01363",
+    "c02553"
+   ],
+   "answer": "In SQLAlchemy 2.0, `Row` objects no longer support direct dictionary-style key access (e.g., `row['id']`). Instead, they behave like named tuples with attribute access (`row.id`). To get mapping access, you have two options:\n\n1. **Use the `_mapping` attribute** on each row: `row._mapping['id']` \u2014 this provides a mapping interface for keyed access [1].\n2. **Use the `mappings()` modifier** on the result to yield mapping objects directly:  \n   ```python\n   for row in result.mappings():\n       print(row['id'])\n   ```  \n   This returns rows that support `row['column']` syntax [1].\n\nThe sources do not cover any other changes to result row access beyond this.",
+   "prompt_tokens": 2205,
+   "output_tokens": 461,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g016",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c03203",
+    "c01575",
+    "c01498",
+    "c01455",
+    "c00669"
+   ],
+   "answer": "Based on the provided sources, **`row.keys()` should exist and be the correct way to inspect column keys on a `Row` object in SQLAlchemy 2.0**.\n\nSource [2] (the 2.0 migration guide) explicitly states:\n\n> Application code or test suites that are testing for a particular key being present in a row would need to test the `row.keys()` collection instead.\n\nThis is in the context of the new `Row` class (used in 2.0 and in 1.4 with `future=True`), which behaves like a named tuple. The guide contrasts this with the old behavior where `\"x\" in row` would check for column names; in 2.0 you must use `row.keys()` for that purpose.\n\n**What the sources do not cover:**  \nNone of the sources explain why an `AttributeError` would be raised on `row.keys()`. They only document that `row.keys()` is the intended API. If you are seeing that error, it may be due to:\n- Using a very old pre-1.4 `RowProxy`/`KeyedTuple` object (not the 2.0 `Row`),\n- A custom result-row subclass that omits `keys()`,\n- Or an installation/version mismatch not described in these excerpts.\n\nThe provided documentation snippets do not address that failure mode.",
+   "prompt_tokens": 2467,
+   "output_tokens": 914,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g017",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02103",
+    "c02890",
+    "c01347",
+    "c00965",
+    "c01603"
+   ],
+   "answer": "**Yes, in SQLAlchemy 2.0 you must call `.unique()` when using `joinedload` on a collection (one-to-many or many-to-many).** The ORM will raise an error if you don't.\n\nThis is a deliberate change from 1.4. In the legacy `Query` API, deduplication happened automatically (\"uniquing strategy\" based on object identity) [3]. In the 2.0 `Result` API, uniquing is **not automatic** \u2014 you must call `Result.unique()` explicitly [5]. The documentation states:\n\n> \"When including joinedload in reference to a one-to-many or many-to-many collection, the Result.unique method must be applied to the returned result\u2026 The ORM will raise an error if this is not present.\" [2]\n\n> \"ORM rows returned by session.execute(stmt) are no longer automatically 'uniqued'\u2026 When using a joined load of a collection, it's required that the Result.unique method is called.\" [5]\n\n**Correct pattern (2.0):**\n```python\nstmt = select(User).options(joinedload(User.addresses))\nrows = session.execute(stmt).unique().all()\n```\n\nThe error is raised by a default row handler installed when a collection `joinedload` is detected, to make the behavior explicit and avoid confusion between row counts and object counts [5].",
+   "prompt_tokens": 2233,
+   "output_tokens": 661,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g018",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01608",
+    "c03095",
+    "c01609",
+    "c01286",
+    "c03096"
+   ],
+   "answer": "Based on the SQLAlchemy 2.0 migration guide, the `Session(autocommit=True)` pattern has been **removed entirely**. It is replaced by **autobegin behavior** (introduced in 1.4) where you use a regular `Session` and call `session.begin()` explicitly when you want to start a transaction, or let it begin automatically on first database access.\n\n**From source [1]:**\n```python\nfrom sqlalchemy.orm import Session\n\nsess = Session(engine)          # no autocommit=True\n\nsess.begin()                    # begin explicitly; if not called, will autobegin\n                                # when database access is needed\n\nsess.add(obj)\n\nsess.commit()\n```\n\nThe guide explains that the main purpose of `autocommit=True` was to allow explicit use of `Session.begin()`, which is now solved by autobegin. The old \"subtransaction\" pattern (nested `begin()` calls) is also removed; source [3] provides a context-manager shim for backwards compatibility if needed.\n\n**Note:** Sources [2], [4], and [5] discuss **DBAPI-level AUTOCOMMIT isolation** (via `engine.execution_options(isolation_level=\"AUTOCOMMIT\")`), which is a separate feature for read-only workloads and not a direct replacement for the ORM `autocommit=True` flag.",
+   "prompt_tokens": 1972,
+   "output_tokens": 731,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g019",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c01281",
+    "c01609",
+    "c01282",
+    "c01610",
+    "c01279"
+   ],
+   "answer": "The `subtransactions=True` parameter was deprecated in SQLAlchemy 1.4 and removed in 2.0. The documentation provides two replacement approaches:\n\n## 1. Backwards-compatibility context manager (for existing nested-transaction code)\n\nIf you need to preserve the nested `begin()`/`commit()` pattern where inner blocks participate in an outer transaction, use this context manager [1][2]:\n\n```python\nimport contextlib\n\n@contextlib.contextmanager\ndef transaction(session):\n    if not session.in_transaction():\n        with session.begin():\n            yield\n    else:\n        yield\n```\n\nUsage mirrors the old subtransaction pattern [2][3]:\n\n```python\ndef method_a(session):\n    with transaction(session):\n        method_b(session)\n\ndef method_b(session):\n    with transaction(session):\n        session.add(SomeObject(\"bat\", \"lala\"))\n\nwith Session() as session:\n    method_a(session)\n```\n\n## 2. Preferred idiomatic pattern (recommended)\n\nMove transaction demarcation to the outermost level so individual functions don't manage transactions [3][4]:\n\n```python\ndef method_a(session):\n    method_b(session)\n\ndef method_b(session):\n    session.add(SomeObject(\"bat\", \"lala\"))\n\nwith Session() as session:\n    with session.begin():\n        method_a(session)\n```\n\nThis ensures \"the top-most level of database operations are performed with a single begin/commit pair\" [1][4]. The `Session` now uses \"autobegin\" behavior, so explicit `session.begin()` is only needed when you want to control the exact start point [5].",
+   "prompt_tokens": 1906,
+   "output_tokens": 715,
+   "empty": false,
+   "refused": false
+  },
+  {
+   "id": "g020",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "hits": [
+    "c02024",
+    "c00452",
+    "c00439",
+    "c02005",
+    "c02003"
+   ],
+   "answer": "Based on the provided sources, the behavior you're describing is likely related to the **removal of \"backref cascade\" in SQLAlchemy 2.0**.\n\n## What the sources say\n\nSources [1] and [2] (both SQLAlchemy 1.4 and 2.0 documentation) explain that:\n\n- The **\"backref cascade\" behavior** \u2014 where an object gets automatically added to a `Session` because another object already in that session is associated with it \u2014 **has been removed entirely in SQLAlchemy 2.0** [1][2].\n- In SQLAlchemy 1.4, you could disable it per-relationship via `cascade_backrefs=False` on `relationship()` or `backref()`, or globally by using `Session(future=True)` [1][2].\n- In SQLAlchemy 2.0, this automatic cascading **no longer exists at all** [1][2].\n\n## What this means for your case\n\nIf you have a many-to-one relationship (e.g., `Child.parent`) and you assign a parent to a child that is already in the session, **the parent will no longer be automatically added to the session** in SQLAlchemy 2.0. You must now explicitly add both objects to the session:\n\n```python\n# SQLAlchemy 2.0: explicit adds required\nsession.add(parent)\nsession.add(child)\nchild.parent = parent   # parent is already in session, but child won't auto-add parent anymore\n```\n\n## What the sources do NOT cover\n\nThe provided sources do not contain:\n- A specific error message titled \"cascade_backrefs feels broken\" or \"object on many-to-one side never gets inserted\"\n- Guidance on how to migrate code that relied on the old backref-cascade behavior (other than \"add objects explicitly\")\n- Any mention of a validator or warning for this specific scenario\n\nThe sources [3], [4], [5] discuss a **different** validator about `delete-orphan` cascade being misconfigured on the \"many\" side of a one-to-many, which is unrelated to your question.\n\n**Bottom line:** If you're on SQLAlchemy 2.0, the automatic session insertion via backref cascade is gone. You must manage session membership explicitly.",
+   "prompt_tokens": 2514,
+   "output_tokens": 1011,
+   "empty": false,
+   "refused": false
+  }
+ ]
+}

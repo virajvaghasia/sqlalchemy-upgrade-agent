@@ -1,7 +1,7 @@
 # §R10 — Phase 6: production — a gate, a priced router, and a demo
 
 Plan and measurements: [`../phases/PHASE-6.md`](../phases/PHASE-6.md). Decisions: `D96` (framing,
-rejected) through `D102` (the demo). **This file is the sitting; the plan is the record.** Every
+rejected) through `D104` (the demo's model, measured). **This file is the sitting; the plan is the record.** Every
 block marked `# runnable` reproduces with no model and no Qdrant, and CI checks that it still does.
 
 Three parts, in the order they were built:
@@ -9,7 +9,8 @@ Three parts, in the order they were built:
 1. **A quality gate** (R10.1–R10.8): a pull request that loses a golden answer cannot merge quietly.
 2. **A router, priced and checked** (R10.9–R10.13): which questions go to a bigger model, what that
    costs, and whether the bigger model's answers are actually right.
-3. **Shipping it** (R10.14–R10.17): the demo page, why it is not on a public link yet, and keys.
+3. **Shipping it** (R10.14–R10.17): the demo page, the hosted model measured on all 100 (R10.15b),
+   why it is not on a public link yet, and keys.
 
 ---
 
@@ -30,6 +31,7 @@ use it?*
 | 3c | what does escalating every refusal cost, and does it add fabrications? | **$1.81 per 1000 queries** at list price; **0** new fabrications | `D100` |
 | 3d | are those answers *correct*, not just supported? | 10 of 16 agree with the human-verified page: end to end **0.42 → at most 0.53** | `D101` |
 | 4 | can a stranger use it? | the page works locally; Hugging Face now charges for it | `D102` |
+| 4d | what does the hosted model score on all 100? | **0.58** end to end vs qwen's 0.42 (16 gained, 1 lost), 0 fabrications, but **77%** supported, under the 80% bar | `D104` |
 
 **Who does what in this phase.** Several models appear, and mixing them up is the fastest way to say
 something false:
@@ -39,7 +41,7 @@ something false:
 | writing this repo's code and docs | Claude | this conversation | the project itself never calls Claude |
 | **the system's generator** (the 0.42) | `qwen2.5-coder:7b` | Ollama, local | free, fits the lab's GPU; every end-to-end number is this model |
 | search | `BAAI/bge-m3` + BM25 + `BAAI/bge-reranker-base` | local | Phases 1–3 |
-| the **bigger model** escalations go to | `nvidia/nemotron-3-ultra-550b-a55b` | NVIDIA API, free credits | the largest model the key could actually call (most returned 404) |
+| the **bigger model** escalations go to, and the hosted demo's generator | `nvidia/nemotron-3-ultra-550b-a55b` | NVIDIA API, free credits | the largest model the key could actually call (most returned 404); measured on all 100 in R10.15b |
 | the **judge** whose verdicts count | `openai/gpt-oss-20b` | NVIDIA API | a different lab from every model it grades |
 | a second judge, for agreement only | `gemma4:e4b` | Ollama, local | Phase 4's judge |
 | abandoned | `gemini-3.7-flash` | Google, free tier | 20 calls a day stopped the run at 7 of 20 (R10.11) |
@@ -810,6 +812,99 @@ catches it and says Ollama is not running.
 
 ---
 
+## R10.15b — The hosted model, asked all 100 questions (`D104`)
+
+**Start from what was missing.** The hosted demo would answer with `nemotron-3-ultra-550b`, and the
+page could only say *"the 0.42 is not this model."* That is an honest sentence with no number in it. We
+had asked that model 53 questions before, but only the ones qwen declined (R10.11). A visitor asks
+anything, so the question was: **what does it score on all 100, the same way qwen was scored?**
+
+**What was held fixed, and what did NOT happen.** Same 100 golden questions, same five pages for each
+(the search is identical on both machines, `D83`), same prompt, word for word. **Nothing was trained,
+tuned or re-searched.** One thing changed: which model reads the five pages. So any difference is the
+model's. The rules and a prediction were committed before the first call (`51174aa`).
+
+**Why the Mac and not the lab.** The lab rules generation numbers because the local qwen drifts on the
+Mac (`D84`). Here the model runs on NVIDIA's servers, so both machines would send the same request to
+the same place. The Mac can also run unattended.
+
+### The result, one question at a time
+
+The score everything here is built on: a question counts only if **its answer page was among the five
+AND the model answered** (`D72`). Same 91 answerable questions, both models:
+
+```
+                           page among the five   answered it   END TO END   declined with page in hand
+qwen2.5-coder:7b (lab)            58                 38           0.42             20
+nemotron-3-ultra-550b             58                 53           0.58              5
+```
+
+**The 58 is identical, so search did not change.** The difference is the last column: qwen had the right
+page in front of it 20 times and said *"The sources do not answer this."* anyway. Nemotron did that 5
+times. Retrieval got the page there both times; the bigger model reads it.
+
+**Paired, question by question** (the same way every change in this project is judged, `D61`): **16
+questions** nemotron delivers and qwen does not, **1** the other way, exact McNemar **p = 0.0003**. The
+bar written first was *6 or more fixed, at most 1 broken, p < 0.05*, so the verdict is **AHEAD**.
+
+**The one it lost, `g053`, is worth reading, because it is not what "worse" suggests.** The question:
+*"SQLAlchemy 2.0 version of User.query.get(1) in Flask-SQLAlchemy?"* The right page is rank 1, and it
+explains `session.query(User).get(5)` becoming `session.get(User, 5)`. It never mentions
+Flask-SQLAlchemy.
+
+```
+qwen       "...is replaced with a direct call to session.get(User, 1) on the session object [1]."
+nemotron   "The sources do not answer this. ... the provided sources only cover core SQLAlchemy ORM
+            ... and do not mention Flask-SQLAlchemy or its model-level query property at all."
+```
+
+qwen's answer is the useful one. **Nemotron did not fail to read the page; it read the question more
+strictly** than the small model did. One of the sixteen gains (`g050`, the demo's own "declines"
+example) is the mirror image: qwen declined with the page in hand, nemotron answered.
+
+### Three more numbers, each with what it is not
+
+**Fabrications: 0 of 9.** On the 9 questions the docs cannot answer, it declined all 9. qwen answered 2
+of them (`g056`, `g065`). This is not "it never makes things up"; it is 9 questions.
+
+**Faithfulness: 53 of 69 answers SUPPORTED = 77%, which FAILS the 80% bar.** A second model
+(`gpt-oss-20b`) read each answer against its five pages. The other 16 are all `PARTIAL` (part of the
+answer goes beyond the pages); **none** `UNSUPPORTED`. Two things this is not:
+
+- **Not "77% correct."** Supported means the pages back it up. Step 3e ran answers against the real
+  library and found the judge had called two *wrong* answers supported (`D103`).
+- **Not comparable with qwen's 77–92%.** Those came from a different judge. Comparing them would need
+  qwen's 48 answers judged by this one, and that was not in this run.
+
+**Asked twice: 19 of 20 decisions repeat, 0 of 20 texts do.** The first 20 questions were asked again
+at temperature 0. The answer-or-decline decision held on 19. The wording was never identical, so a
+hosted model at temperature 0 is **not** a lookup table. The one flip, `g007`, is the same fix both
+times; run 1 *opened* with the decline sentence and then gave it, and the repeat opened with *"Based on
+the provided sources"*. `ask.refused` reads the opening sentence, so one counts as a decline.
+
+**A bug in my own instrument, found by the real run.** The judge's reply for `g025` was empty. It came
+back `UNPARSED` and the report printed *"judged 69 of 69"*: an unreadable verdict counted as a verdict.
+Fixed with a test, `g025` asked once more (`PARTIAL`). The FAIL did not depend on it: 53/68 is 77.9%,
+and even a SUPPORTED retry would have been 54/69 = 78.3%.
+
+### What it costs, and what it does NOT change
+
+**$0.34 for the 100, i.e. $3.45 per 1000 questions**, from the token counts the API returned and one
+reseller's list price. The calls were free credits. The cascade (R10.12) sends only qwen's refusals and
+costs $1.81 per 1000.
+
+**The demo's notice now carries this model's own numbers:** 0.58 end to end and 77% supported, "measured
+once", with the 0.42 still named as qwen's. A test recomputes both numbers from the saved rows.
+
+**The system of record stays qwen**, and that is not an oversight: this project runs on zero paid calls,
+and free credits run out. The bigger model is measured, quoted where it is used, and used only by design
+choices that say so.
+
+**Reproduce the report with no model and no network:** `uv run python -m rag.escalate --all` (reads
+`deliverables/nemotron-all-phase6.json`; the full printout is in `PHASE-6.md` Step 4d).
+
+---
+
 ## R10.16 — Why there is no public link yet
 
 **Hugging Face refused.** Creating the Space returned **HTTP 402 Payment Required**: *"Static Spaces are
@@ -877,8 +972,9 @@ from 0.42 to at most 0.53. At most, because my judge checks faithfulness to page
 answers against the real library it had called a wrong one supported and a right one unsupported.”
 
 **The demo.** “The demo uses the graded search, proven identical without the database, and the shipped
-prompt. Hosted, it would need a different generator, and the page says the measured score is not for
-that model.”
+prompt. Hosted, it needs a different generator, so I measured that one on the same 100 questions: 0.58
+end to end against the local model's 0.42, sixteen gained and one lost, no fabrications, but only 77% of
+its answers fully supported by their pages, under my 80% bar. The page quotes those numbers.”
 
 **Do not say:**
 
@@ -886,7 +982,8 @@ that model.”
 - “A stronger model fixed ten answers.” Ten became *supported*; correctness is an upper bound.
 - “Routing saves money.” It *costs* $1.81 per 1000 queries against a free local model; what it buys is
   up to 11 points of end to end.
-- “The demo scores 0.42.” Only the local version runs the model that was measured.
+- “The demo scores 0.42.” Only the local version runs qwen; the hosted model is 0.58, measured once.
+- “The bigger model is more faithful.” 77% failed the bar, and it was never judged beside qwen by one judge.
 
 ---
 
@@ -977,6 +1074,19 @@ provenance line (which machine, which device, which model snapshots) and compare
 the usual suspects are a model snapshot changing (why both models are pinned) or the runner's CPU
 ranking a near-tie differently (R10.8).
 
+**Q13. The bigger model scores 0.58 against the small model's 0.42. Why not just switch?**
+Start with what the 0.58 is. On the same 100 questions and the same five pages, nemotron answered 53 of
+the 91 answerable ones with the right page in hand, and qwen answered 38. The 58 questions where search
+found the page are identical for both; nemotron simply declined far less often with the page in front
+of it (5 times against qwen's 20). Question by question that is 16 gained and 1 lost, p = 0.0003, so
+the gain is real, not noise. Now the reasons not to switch. First, grounding: only 53 of its 69
+answers were judged fully supported by their pages, 77%, under the 80% bar written before the run, and
+"supported" is not even "correct" (R10.13). Second, it was measured once, on one day. Asked twice, the
+decision held on 19 of 20 and the wording on none. Third, the project runs on zero paid calls; free
+credits end. So it is quoted where it is used (the hosted page) and used where the design says so (the
+cascade sends it only the refusals). And the one question it lost, `g053`, is a stricter reading of a
+Flask-SQLAlchemy question, which is a reminder that "fewer declines" is not automatically "better".
+
 ---
 
 ## After this you can say
@@ -991,4 +1101,5 @@ ranking a near-tie differently (R10.8).
 - how a shadow cost is computed, and what the $1.81 is and is not
 - why "supported" is not "correct", with `g016` and `g007`
 - why the demo can use in-memory search, and why its page must name its generator
+- what the hosted model scores on all 100, why search is not the difference, and why 77% supported still fails
 - why there is no public link yet, and what 4 GB of memory rules out

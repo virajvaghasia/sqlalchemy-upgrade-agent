@@ -881,3 +881,92 @@ answered, plus ~16 of the 20 page-present refusals (`D99` answered 16 of 20), mi
 Against the lab's 38: **fixed ~17, broken ~3 → ahead**. Fabrications **1**. SUPPORTED **~75%, below
 the bar** (`D99` was 62% on the hardest 20; easier items should do better but not reach 80%).
 Repeat: decisions **19–20 of 20**; identical text **fewer than half** (a reasoning model).
+
+### Result — Step 4d, 2026-09-13 11:32–12:39 (Mac; calls on NVIDIA free credits)
+
+190 calls: 100 generations, 20 repeats, 69 judgments, and 1 re-judgment (below). No `EMPTY` answers,
+no skipped questions.
+
+```
+# runnable: uv run python -m rag.escalate --all
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=PARTIAL g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+```
+
+**Against the rules written first:**
+
+| measure | result | rule | prediction |
+|---|---|---|---|
+| completeness | 100 asked, 0 `EMPTY` | quoted | — |
+| end to end | **53/91 = 0.58** | — | ≈ 52/91 (right) |
+| vs lab qwen, paired | **16 fixed, 1 broken, p = 0.0003** | **AHEAD** | fixed ~17, broken ~3, ahead (right) |
+| fabrications | **0 of 9** | no worse (≤ 2) | 1 (one too many) |
+| faithfulness | **53 of 69 SUPPORTED = 77%**, 16 PARTIAL, **0 UNSUPPORTED** | **FAIL** (≥ 80%) | ~75%, below the bar (right) |
+| repeat | decision **19 of 20**, identical text **0 of 20** | **stable** | 19–20; text under half (right, and more extreme) |
+
+**Retrieval is not what changed.** The ceiling is 58/91 on both runs and no question's page-present flag
+differs from the lab's, so the pairing compares the same five pages question by question. The whole
+gain is generation: qwen lost 20 of the 58 where it had the page, nemotron loses 5.
+
+**The one "broken" item, read.** `g053` asks for the SQLAlchemy 2.0 version of **Flask-SQLAlchemy's**
+`User.query.get(1)`. Its page is rank 1 and covers `session.query(User).get` → `session.get`; it never
+mentions Flask-SQLAlchemy. Nemotron declined *on exactly that ground*; qwen answered with the right
+fix. The stricter reader lost this item, not the weaker one.
+
+**The repeat's flip, read.** `g007` gave the same content twice. Run 1 opens *"The sources do not answer
+this specific question…"* and then gives the correct `metadata_obj.create_all(engine)` fix with code;
+the repeat opens *"Based on the provided sources…"* with the same fix. `ask.refused` reads the opening,
+so one is a decline and one an answer. The page was absent both times, so end to end does not move.
+
+**Found in my instrument during the run, and fixed test-first:** the judge's reply for `g025` was
+**empty** and came back `UNPARSED`, and the report counted it as judged (*"judged 69 of 69"*). The judge
+loop also skipped any row with a verdict field, so a resume would never have asked it again. Now
+`UNPARSED` is not a verdict and a resume asks it; `g025` was asked once more and came back `PARTIAL`
+(the row carries a `judge_note`). **The FAIL did not depend on it:** 53/68 = 77.9%, and 54/69 = 78.3%
+even if it had come back SUPPORTED.
+
+**Exploration, NOT pre-registered.**
+- **Nemotron's declines explain themselves; qwen's do not.** Its 31 declines run 258–869 characters and
+  say what the pages cover. qwen's 53 have a median of **31 characters**, the bare refusal sentence. Only
+  one nemotron decline (`g007`) carries code after the refusal opening, so the prefix detector is not
+  hiding answers: the 0.58 is not deflated in any way that matters.
+- **Of the 16 fixed items, 11 are SUPPORTED and 5 PARTIAL** (`g013 g044 g048 g051 g106`), none
+  UNSUPPORTED. The extra answers mostly hold up against their pages.
+- **Faithfulness is not comparable with qwen's 77–92%**: a different judge (`gemma4:e4b`) produced those.
+  Judging qwen's 48 answers with `gpt-oss-20b` is the measurement that would compare them.
+
+**Cost.** 215177 prompt + 67260 output tokens for the 100; shadow cost **$0.34, i.e. $3.45 per 1000
+queries** at the snapshot price, against the cascade's $1.81 (`D100`), which sends only refusals. The
+calls were free credits.

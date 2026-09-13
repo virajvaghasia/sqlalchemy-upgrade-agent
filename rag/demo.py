@@ -15,8 +15,8 @@ WHAT THE DEMO RUNS, AND WHAT IT DOES NOT
   `backend="ollama"` (a local run) uses `qwen2.5-coder:7b` through `ask.generate`,
   the generator the 0.42 was measured on. `backend="nvidia"` (a hosted page) uses
   `nvidia/nemotron-3-ultra-550b-a55b`, because NVIDIA's API serves no qwen; that
-  model was measured with this prompt only on escalations (`D99`–`D101`), so the
-  page says the 0.42 does not describe it.
+  model was measured on all 100 golden questions in Step 4d (`D104`), and the page
+  quotes those numbers, not the 0.42.
 
 RATE LIMITS ARE A CHOICE, NOT A MEASUREMENT
 
@@ -50,10 +50,13 @@ MEASURED_MODEL_NOTICE = (
     "0.42 end to end on the lab machine and 0.43 on the Mac (D83), with the same retrieval and prompt."
 )
 
+# The two numbers are Step 4d's (D104) and a test re-derives them from
+# deliverables/nemotron-all-phase6.json, so they cannot drift from the rows.
 NOT_THE_MEASURED_MODEL = (
-    "Answers here are written by `nvidia/nemotron-3-ultra-550b-a55b`. The project's measured "
-    "end-to-end score (0.42 on the lab machine) is for `qwen2.5-coder:7b`, which this hosting "
-    "cannot run, so that number does not describe these answers. Retrieval is the graded path."
+    "Answers here are written by `nvidia/nemotron-3-ultra-550b-a55b`, measured once on the project's "
+    "100-question set with the same retrieval and prompt (2026-09-13): 0.58 end to end, and 77% of its "
+    "answers judged fully supported by the pages it was given (supported is not the same as correct). "
+    "The 0.42 quoted elsewhere is for `qwen2.5-coder:7b`, a different model."
 )
 
 

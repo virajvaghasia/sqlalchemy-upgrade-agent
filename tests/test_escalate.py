@@ -248,3 +248,21 @@ def test_the_all_report_gives_no_faithfulness_verdict_while_judging_is_unfinishe
     escalate.report_all(rows, [], golden, CHUNKS, qwen_lab=[], qwen_mac=[], prices=None)
     out = capsys.readouterr().out
     assert "judged 1 of 3" in out and "no verdict" in out
+
+
+def test_an_unparsed_verdict_is_not_counted_as_judged(capsys):
+    """Step 4d, found on the real run: g025's judge reply was empty, came back
+    UNPARSED, and the report printed 'judged 69 of 69'. An unreadable verdict is
+    not a verdict, so the faithfulness rule must wait for it."""
+    golden = {f"g{n}": gold(f"g{n}") for n in range(2)}
+    rows = [dict(gen("g0"), verdict_nvidia="SUPPORTED"), dict(gen("g1"), verdict_nvidia="UNPARSED")]
+    escalate.report_all(rows, [], golden, CHUNKS, qwen_lab=[], qwen_mac=[], prices=None)
+    out = capsys.readouterr().out
+    assert "judged 1 of 2" in out and "no verdict" in out and "UNPARSED g1" in out
+
+
+def test_a_judge_resume_asks_an_unparsed_row_again():
+    assert escalate.needs_judging({"refused": False, "verdict_nvidia": "UNPARSED"})
+    assert not escalate.needs_judging({"refused": False, "verdict_nvidia": "PARTIAL"})
+    assert not escalate.needs_judging({"refused": True})
+    assert not escalate.needs_judging({"refused": False, "empty": True})

@@ -108,7 +108,7 @@ Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D103`. All phases in one register |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D104`. All phases in one register |
 
 ### Phases 4–6
 
