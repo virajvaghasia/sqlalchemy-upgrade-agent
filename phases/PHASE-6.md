@@ -1191,3 +1191,37 @@ provenance in its `SOURCE.md`. Its helper starts the page, runs a Playwright scr
 with no model. **17 of 17 pass. With the Step 4c bug put back (`minmax(0, 1fr)` → `1fr`) it fails 2, the
 page measuring 853 px on a 400 px screen**, which is the property the hand check lacked. ENV: it needs a
 browser (`playwright install chromium --only-shell`, 199 MB), so it is not a `# runnable` block.
+
+---
+
+## The six PARTIAL answers, checked (2026-09-13) — and the judge never saw page headings
+
+**What was found in the sheet.** `deliverables/ESCALATE-PARTIAL-REVIEW.md`'s six *Human verdict* lines are
+filled (5 PARTIAL, 1 SUPPORTED). **They were written into the working tree between about 14:00 and 14:53
+by someone other than this session, and Claude's commit `1b9bbb3` swept them in with `git add -A` under a
+message that does not mention them.** Whether they are Viraj's is his to confirm (`D06`): a verdict is
+human only if a human wrote it.
+
+**Each verdict, checked against the five pages and against 2.0.51.** Claude did not change any verdict.
+
+| id | verdict | its reason, checked against the pages | Step 3e, run on 2.0.51 |
+|---|---|---|---|
+| `g013` | PARTIAL | holds: [3] says *"the string forms will all be removed"* for options like `joinedload`; naming `subqueryload` is inference | PASS |
+| `g021` | SUPPORTED | holds: [2] (`2.0.51`, `orm/backref.rst`) shows a working `backref=`; [5] says it *"will always remain available"* | PASS |
+| `g044` | PARTIAL | **does not hold.** The reason says the section title *"bound metadata removed"* is not in the given excerpts. **Source [2]'s heading line is exactly that section**, and `ask.build_prompt` gives the model every heading. By the sheet's own rule this is **SUPPORTED** | PASS |
+| `g049` | PARTIAL | holds: [1]/[2] show the positional form and the list's deprecation warning; neither says "removed in 2.0" | PASS (it is rejected on 2.0) |
+| `g099` | PARTIAL | holds for faithfulness: [5] says `default` *"refers to a constant value"*, is *"mutually exclusive"* with `insert_default`, callables go to `default_factory`. **But run on 2.0.51 both "rules" are not enforced**: a callable `default=` and `default=` + `insert_default=` are accepted | **FAIL** (and again in 4f) |
+| `g106` | PARTIAL | holds: [2]/[4] support `with_polymorphic` + `of_type`; "joinedload alone only loads base-class columns" is not stated | PASS (true on 2.0) |
+
+**Why `g044` was misread: the sheet hid the headings.** Each page appeared as `[2] c01568` with only its
+text. Fixed in `escalate.write_sheet` (test first): each page now shows its heading, and the function
+**refuses to regenerate a sheet that holds human verdicts**. The existing sheet had its 30 page lines
+given headings by a one-off substitution; `git diff` showed no other line changed.
+
+**The larger finding: the judge has never been given page headings either.** `faithful.judge_answer` and
+every caller pass chunk **text only** (`rag/faithful.py` contains no `heading`), while the model reads
+heading + text. So every faithfulness figure (`D82`, `D83`, `D86`, `D99`, `D101`, `D104`, `D105`) was judged
+against **less than the model saw**. The bias has one direction, harsher: a claim that rests on a heading
+reads as unsupported. **Its size is not measured.** Paired comparisons (4e) are less exposed, since both
+arms lost the same headings, but the absolute rates (77%, 79%) may be understated. **Not fixed here:**
+adding headings changes the judge's input, so it is a re-measurement with its own rules and calls.

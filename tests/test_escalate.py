@@ -314,3 +314,33 @@ def test_the_committed_delivered_list_matches_the_rows():
     rows = json.loads(escalate.ROWS_ALL.read_text())["rows"]
     saved = json.loads(escalate.DELIVERED_IDS.read_text())["ids"]
     assert saved == escalate.delivered_ids(rows, golden, score.load_chunks())
+
+
+# --- the PARTIAL review sheet --------------------------------------------------
+
+def _sheet_rows():
+    return [{"id": "g1", "verdict_nvidia": "PARTIAL", "hits": ["c1"], "answer": "an answer [1]",
+             "reason_nvidia": "r"}]
+
+
+def test_the_review_sheet_shows_each_pages_heading_as_the_model_saw_it(tmp_path, monkeypatch):
+    """ask.build_prompt gives the model each page's heading line. The first sheet showed only
+    the text, and g044's human reason ('the section title is not in the excerpts') was written
+    without the heading that says 'bound metadata removed'."""
+    from rag import score
+    monkeypatch.setattr(escalate, "SHEET", tmp_path / "sheet.md")
+    monkeypatch.setattr(score, "load_chunks", lambda: {"c1": {"text": "body", "heading_path": ["Guide", "bound metadata removed"]}})
+    escalate.write_sheet(_sheet_rows(), {"g1": {"question": "q", "answer_chunks": ["c1"]}})
+    assert "Guide > bound metadata removed" in (tmp_path / "sheet.md").read_text()
+
+
+def test_the_review_sheet_is_never_regenerated_over_human_verdicts(tmp_path, monkeypatch):
+    from rag import score
+    sheet = tmp_path / "sheet.md"
+    sheet.write_text("**Human verdict:** PARTIAL  **Reason:** mine\n")
+    monkeypatch.setattr(escalate, "SHEET", sheet)
+    monkeypatch.setattr(score, "load_chunks", lambda: {"c1": {"text": "body", "heading_path": ["H"]}})
+    import pytest
+    with pytest.raises(SystemExit):
+        escalate.write_sheet(_sheet_rows(), {"g1": {"question": "q", "answer_chunks": ["c1"]}})
+    assert "mine" in sheet.read_text()

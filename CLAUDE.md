@@ -56,7 +56,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 513 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 515 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,14 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**THE SIX PARTIALs CHECKED, AND THE JUDGE NEVER SAW HEADINGS (2026-09-13).** The sheet's six human
+verdicts were filled by someone other than this session and swept into `1b9bbb3` by `git add -A` —
+**Viraj to confirm they are his (`D06`)**. Five reasons hold; **`g044`'s does not**: the "bound metadata
+removed" title it calls absent is source [2]'s heading, which the model was given and the sheet hid.
+**`faithful.judge_answer` also gets text only, never headings**, so every faithfulness rate was judged on
+less than the model saw (harsher, size unmeasured). Sheet fixed + refuses to overwrite verdicts. Open:
+re-judge with headings, pre-registered. `PHASE-6.md` last section.
+
 **PHASE 6 STEPS 4e + 4f (`D105`, 2026-09-13): SAME JUDGE LEVEL; ANSWERS RUN CORRECT AT 92%.** 4e: `gpt-oss-20b`
 on the lab qwen's 47 answers, same pages: qwen **79%** vs nemotron **77%**, paired 3 vs 6, p = 0.51 → **LEVEL**
 (47 NVIDIA calls). 4f: `tools/check_nemotron_all.py`, committed before its first run: **47 of 51 checkable
@@ -667,7 +675,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**513 tests**, **76/76** `# runnable`, **105** decisions, **§H empty**.
+**515 tests**, **76/76** `# runnable`, **105** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -713,7 +721,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 513 passed with Qdrant up; 508 + 5 skipped without
+uv run pytest                            # 515 passed with Qdrant up; 510 + 5 skipped without
 uv run python -m tools.check_runnable    # 76/76 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
