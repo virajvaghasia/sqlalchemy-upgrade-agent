@@ -281,16 +281,18 @@ def retrieve(
 
     Pass `hybrid=False` / `dedupe=False` / `rerank=False` only to re-measure.
     """
-    from qdrant_client import models
     from rag import dedup as dedup_mod
     from rag import rerank as rerank_mod
 
     _, _, stats, chunks = load_inputs()
-    flt = (
-        models.Filter(must=[models.FieldCondition(
+    # Filter is a Qdrant type. The memory path never uses `flt` (it filters by
+    # chunk payload in memory_points), and the hosted demo has no qdrant_client
+    # installed — so only import the client when a version filter is asked for.
+    flt = None
+    if version:
+        from qdrant_client import models
+        flt = models.Filter(must=[models.FieldCondition(
             key="sqlalchemy_version", match=models.MatchValue(value=version))])
-        if version else None
-    )
 
     # Rerank needs ranks 6..10 on the desk; ask's limit=5 is not enough alone.
     fetch_limit = (
