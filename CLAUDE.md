@@ -56,7 +56,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 487 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 489 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,14 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 4 — HOSTING REFUSED, LOCAL DEMO WORKS.** HF answered **402: Gradio Spaces need PRO**
+(nothing created). The lab PC is not Viraj's to host on. **Local demo, measured generator:**
+`DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with gradio==6.27.0 python space/app.py`
+— checked: `g050` came back "The sources do not answer this.", its measured over-refusal. **Free hosts
+that fit ~4 GB** (checked 2026-09-12): Modal ($30/mo credits, no card), Oracle Always Free (now 2
+OCPU/12 GB, card), Cloud Run (card). Render/Koyeb 512 MB do not fit. **Waiting on Viraj's choice +
+signup.** Table and sources: `PHASE-6.md` Step 4.
+
 **PHASE 6 STEP 4 BUILT (`D102`): THE HUGGING FACE SPACE, NOT YET PUSHED.** Viraj chose an HF Space
 generating via NVIDIA (key as a Space secret). Dense search runs **in memory** (`RAG_DENSE=memory`,
 `rag/index.py`) and **passed the gate: broken 0, moved 0**, 96/100 top-20 identical. `rag/demo.py`
@@ -619,7 +627,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**487 tests**, **67/67** `# runnable`, **102** decisions, **§H empty**.
+**489 tests**, **67/67** `# runnable`, **102** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -665,7 +673,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 487 passed with Qdrant up; 482 + 5 skipped without
+uv run pytest                            # 489 passed with Qdrant up; 484 + 5 skipped without
 uv run python -m tools.check_runnable    # 67/67 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

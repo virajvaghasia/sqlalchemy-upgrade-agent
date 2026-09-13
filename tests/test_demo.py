@@ -80,3 +80,23 @@ def test_the_page_always_says_the_measured_score_is_not_this_model():
     error this project exists to avoid."""
     page = demo.render({"answer": "a [1]", "sources": [], "error": None})
     assert "qwen2.5-coder:7b" in page and "does not describe these answers" in page
+
+
+def test_the_local_backend_needs_no_key_and_names_the_measured_model():
+    """Run locally, the demo uses qwen2.5-coder:7b -- the generator the 0.42 was
+    measured on -- and the page says that instead of the hosted disclaimer."""
+    out = demo.answer("q", key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
+                      retrieve=lambda q: [hit()], post=lambda m, k: reply("an answer [1]"))
+    assert out["error"] is None and out["answer"] == "an answer [1]"
+    page = demo.render(out, "ollama")
+    assert "the generator the project measured" in page and "does not describe" not in page
+
+
+def test_ollama_down_is_a_page_error_not_a_dead_server():
+    """ask.generate calls sys.exit when Ollama is unreachable; SystemExit is not an
+    Exception, so a plain except would let it kill the web server."""
+    def down(m, k):
+        raise SystemExit("cannot reach Ollama")
+    out = demo.answer("q", key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
+                      retrieve=lambda q: [hit()], post=down)
+    assert "Ollama" in out["error"] and out["sources"]

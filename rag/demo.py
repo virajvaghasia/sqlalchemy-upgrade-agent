@@ -11,10 +11,12 @@ WHAT THE DEMO RUNS, AND WHAT IT DOES NOT
   runs: `RAG_DENSE=memory` instead of Qdrant, and that was gated against the
   golden baseline before it was allowed here (`D102`: broken 0, moved 0).
 - **The prompt is the shipped one**: `ask.SYSTEM` and `ask.build_prompt`.
-- **The generator is NOT the measured one.** The 0.42 end to end was measured
-  with `qwen2.5-coder:7b`, which NVIDIA's API does not serve. The demo uses
-  `nvidia/nemotron-3-ultra-550b-a55b`, the one model measured with this prompt
-  (`D99`–`D101`), and the page says so.
+- **The generator depends on where it runs, and the page says which.**
+  `backend="ollama"` (a local run) uses `qwen2.5-coder:7b` through `ask.generate`,
+  the generator the 0.42 was measured on. `backend="nvidia"` (a hosted page) uses
+  `nvidia/nemotron-3-ultra-550b-a55b`, because NVIDIA's API serves no qwen; that
+  model was measured with this prompt only on escalations (`D99`–`D101`), so the
+  page says the 0.42 does not describe it.
 
 RATE LIMITS ARE A CHOICE, NOT A MEASUREMENT
 
@@ -40,6 +42,11 @@ KEY_VAR = "NVIDIA_API_KEY"
 GLOBAL_PER_HOUR = 60        # chosen: every visitor together, per rolling hour
 SESSION_MIN_SECONDS = 20    # chosen: one visitor cannot fire questions back to back
 MAX_QUESTION_CHARS = 500    # the longest golden question is well under this
+
+MEASURED_MODEL_NOTICE = (
+    "Answers here are written by `qwen2.5-coder:7b` on Ollama, the generator the project measured: "
+    "0.42 end to end on the lab machine and 0.43 on the Mac (D83), with the same retrieval and prompt."
+)
 
 NOT_THE_MEASURED_MODEL = (
     "Answers here are written by `nvidia/nemotron-3-ultra-550b-a55b`. The project's measured "
@@ -84,8 +91,15 @@ def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
         return json.loads(response.read())
 
 
+def ollama_post(messages: list[dict], key: str | None) -> dict:
+    """The measured generator, through `ask.generate` (same model, temperature and
+    Ollama call the 0.42 was measured with), shaped like an OpenAI reply."""
+    text, _ = ask.generate(messages[1]["content"])
+    return {"choices": [{"message": {"content": text}}]}
+
+
 def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter,
-           retrieve=None, post=nvidia_post) -> dict:
+           retrieve=None, post=nvidia_post, backend: str = "nvidia") -> dict:
     """Question in, {'answer', 'sources', 'refused', 'error'} out. Never raises
     for a visitor's input or a remote failure; the page shows `error` instead."""
     question = (question or "").strip()
@@ -93,7 +107,9 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
         return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0."}
     if len(question) > MAX_QUESTION_CHARS:
         return {"error": f"Please keep the question under {MAX_QUESTION_CHARS} characters."}
-    if not key:
+    if backend == "ollama":
+        post = ollama_post if post is nvidia_post else post
+    elif not key:
         return {"error": f"The demo is not configured: the {KEY_VAR} secret is missing."}
     if retrieve is None:
         from rag import index
@@ -111,6 +127,11 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
                 {"role": "user", "content": ask.build_prompt(question, hits)}]
     try:
         data = post(messages, key)
+    except SystemExit:
+        # ask.generate exits when Ollama is unreachable -- right for a CLI,
+        # wrong for a web page. SystemExit is not an Exception (CLAUDE.md traps).
+        return {"error": "The local answer model (Ollama) is not running. The sources below were "
+                         "still found.", "sources": sources}
     except (urllib.error.URLError, TimeoutError) as exc:
         return {"error": f"The answer model did not respond ({type(exc).__name__}). "
                          "The sources below were still found.", "sources": sources}
@@ -118,7 +139,7 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
     return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None}
 
 
-def render(result: dict) -> str:
+def render(result: dict, backend: str = "nvidia") -> str:
     """Markdown for the page: the answer, then every source it could cite."""
     parts = []
     if result.get("error"):
@@ -130,5 +151,6 @@ def render(result: dict) -> str:
         for s in result["sources"]:
             parts.append(f"<details><summary>[{s['n']}] SQLAlchemy {s['version']} — "
                          f"{s['path']} — {s['heading']}</summary>\n\n```\n{s['text']}\n```\n\n</details>")
-    parts.append(f"\n---\n\n<sub>{NOT_THE_MEASURED_MODEL}</sub>")
+    notice = MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL
+    parts.append(f"\n---\n\n<sub>{notice}</sub>")
     return "\n\n".join(parts)

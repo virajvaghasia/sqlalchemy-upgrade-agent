@@ -609,3 +609,53 @@ page works without it (it says the key is missing) and never shows the key.
 **Still open for the ROADMAP's gate** (*"a stranger can click your demo link and get a cited answer"*):
 the push above, and a first answer from the live link. The CI gate's first real run (a PR) is the
 other half.
+### Deploy attempt, 17:40 — refused: Gradio Spaces now need a paid plan
+
+`HfApi.create_repo(..., repo_type="space", space_sdk="gradio")` returned **HTTP 402 Payment
+Required**: *"Static Spaces are free for everyone, but hosting Gradio and Docker Spaces on free
+cpu-basic requires a PRO subscription."* (request `Root=1-6aa62173-5c25ac7412bfa8ce06c4bf6a`).
+**Nothing was created** — the account lists no Spaces afterwards.
+
+**Why the obvious workarounds do not work here, checked:**
+
+| workaround | why not |
+|---|---|
+| a static Space | no server: cannot run the Python search, and an NVIDIA key in browser code is public |
+| embed queries through NVIDIA's API so the server needs no torch | NVIDIA hosts no `bge-m3` (catalog checked 17:41); a different embedding model is a different index, and the gate would have to pass again from scratch |
+| PRO subscription | breaks the standing zero-paid-calls rule; Viraj's call |
+
+**The bundle in `space/dist/` is unchanged and still correct for any Python host with ~4 GB RAM.**
+
+### The local demo, 17:50 — works, and uses the measured generator
+
+Hosting was refused, so the demo runs locally in one command and **generates with `qwen2.5-coder:7b`
+on Ollama, the model the 0.42 was measured on** (`DEMO_GENERATOR=ollama`); the page's notice says so.
+No key needed.
+
+```bash
+DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with gradio==6.27.0 python space/app.py
+```
+
+**Checked with a real question** (`g050`'s wording): the page built, the answer came back in 28.7 s,
+and it was **"The sources do not answer this."** — `g050` is one of `D72`'s over-refusals with the
+page in hand, on both machines. **The local demo reproduces the measured defect**, which is the honest
+behaviour for a demo of a measured system.
+
+### Free hosting that fits, checked 2026-09-12 (secondary sources; confirm on the provider's page)
+
+The app needs **~4 GB RAM** (BGE-M3 + the reranker + torch). The no-torch shortcut is closed: NVIDIA
+hosts no `bge-m3`.
+
+| host | free allowance found | fits? |
+|---|---|---|
+| Hugging Face Gradio Space | **needs PRO** (HTTP 402, measured above) | no |
+| Render, Koyeb | 512 MB RAM free instance | no — an eighth of what the models need |
+| **Modal** (Starter) | $30/month credits, no payment method required | **yes**, scale-to-zero with a cold start |
+| **Oracle Cloud Always Free** | Ampere A1 **halved June 2026 to 2 OCPU / 12 GB**; card at signup; regional capacity shortages | **yes**, always on; could even run qwen on CPU |
+| Google Cloud Run | 360,000 GiB-seconds/month; billing account required | yes for a lightly used page; cold starts |
+
+Sources: [InfoQ on Oracle's A1 cut](https://www.infoq.com/news/2026/07/oracle-cloud-free-tier-limits/),
+[Cloud Run pricing](https://cloud.google.com/run/pricing),
+[Modal free tier summary](https://aicreditmart.com/ai-credits-providers/modal-free-tier-how-to-get-30-month-in-compute-credits-2026/),
+[Koyeb instances](https://www.koyeb.com/docs/reference/instances),
+[Render free tier summary](https://www.srvrlss.io/provider/render/).
