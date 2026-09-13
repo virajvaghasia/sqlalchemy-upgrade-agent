@@ -97,7 +97,8 @@ def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
     outs = [r for r in escalate.outcome_rows(rows, golden, score.load_chunks()) if r["answerable"]]
     e2e = sum(route.delivered(r) for r in outs) / len(outs)
     answered = [r for r in rows if not r.get("empty") and not ask.refused(r["answer"])]
-    share = sum(r.get("verdict_nvidia") == "SUPPORTED" for r in answered) / len(answered)
+    # Step 4g: the primary faithfulness figure is the judge given the block the model saw.
+    share = sum(r.get("verdict_nvidia_h") == "SUPPORTED" for r in answered) / len(answered)
     assert f"{e2e:.2f} end to end" in demo.NOT_THE_MEASURED_MODEL
     assert f"{share:.0%} of its answers" in demo.NOT_THE_MEASURED_MODEL
 

@@ -14,7 +14,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that `Query.from_self` is removed and that `aliased` can be used to rewrite such queries."
+   "reason_nvidia": "Passage [1] states that `Query.from_self` is removed and that `aliased` can be used to rewrite such queries.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that `Query.from_self` has been removed and that `aliased` should be used instead."
   },
   {
    "id": "g004",
@@ -30,7 +32,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[2] (and [3],\u202f[4],\u202f[5]) states that `Engine.execute()` is removed and that SQL should be run via `Connection.execute()` or `Session.execute()`."
+   "reason_nvidia": "Passage\u202f[2] (and [3],\u202f[4],\u202f[5]) states that `Engine.execute()` is removed and that SQL should be run via `Connection.execute()` or `Session.execute()`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The migration guide passages (e.g., passage\u202f2 and passage\u202f5) state that Engine.execute() is removed in 2.0 and that all statement execution should use Connection.execute() or Session.execute()."
   },
   {
    "id": "g014",
@@ -46,7 +50,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [4] show that `session.execute(select(User))` returns a `Row` containing a `User` instance, while `session.scalars(select(User))` returns the `User` objects directly."
+   "reason_nvidia": "Passages [1] and [4] show that `session.execute(select(User))` returns a `Row` containing a `User` instance, while `session.scalars(select(User))` returns the `User` objects directly.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [4] show that `session.execute(select(User))` returns a `Row` containing a `User`, while `session.scalars(select(User))` returns `User` instances directly."
   },
   {
    "id": "g015",
@@ -62,7 +68,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[1] confirms that `mappings()` returns mapping results and allows keyed access, but it does not mention the TypeError or upgrading from 1.4."
+   "reason_nvidia": "Passage\u202f[1] confirms that `mappings()` returns mapping results and allows keyed access, but it does not mention the TypeError or upgrading from 1.4.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage [1] shows the `mappings()` modifier and keyed access, but does not mention the TypeError."
   },
   {
    "id": "g017",
@@ -78,7 +86,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[5] (and [2]) states that for joinedload of a collection in SQLAlchemy\u202f2.0 you must call `.unique()` because ORM rows are no longer automatically uniqued."
+   "reason_nvidia": "Passage\u202f[5] (and [2]) states that for joinedload of a collection in SQLAlchemy\u202f2.0 you must call `.unique()` because ORM rows are no longer automatically uniqued.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [5] (and [2]) states that joinedload of a collection requires calling `.unique()` because ORM rows are no longer automatically uniqued in SQLAlchemy\u202f2.0+."
   },
   {
    "id": "g018",
@@ -94,7 +104,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] states that autocommit mode is removed and shows using `sess.begin()` for explicit transaction control."
+   "reason_nvidia": "Passage\u202f[1] states that autocommit mode is removed and shows using `sess.begin()` for explicit transaction control.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that autocommit mode is removed and that explicit `sess.begin()` should be used."
   },
   {
    "id": "g019",
@@ -110,7 +122,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] states the flag is deprecated in 1.4, may be removed in 2.0, and recommends using a context manager for a single outermost begin/commit pair."
+   "reason_nvidia": "Passage\u202f[1] states the flag is deprecated in 1.4, may be removed in 2.0, and recommends using a context manager for a single outermost begin/commit pair.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states the flag is deprecated and recommends a context\u2011manager pattern for outermost transaction handling."
   },
   {
    "id": "g024",
@@ -126,7 +140,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that Query.get is legacy and the primary interface is now Session.get."
+   "reason_nvidia": "Passage [1] states that Query.get is legacy and the primary interface is now Session.get.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage [1] confirms the move to Session; no passage addresses warnings."
   },
   {
    "id": "g025",
@@ -142,7 +158,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[4] says that future=True enables the 2.0 API, but passage\u202f[1] indicates it is optional in 2.0."
+   "reason_nvidia": "Passage\u202f[4] says that future=True enables the 2.0 API, but passage\u202f[1] indicates it is optional in 2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [4] states that the 2.0 transaction\u2011level API is available only by passing `future=True` to `create_engine`."
   },
   {
    "id": "g026",
@@ -158,7 +176,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] lists the exact changes and confirms that future=True activates the 2.0\u2011style transaction/connection API."
+   "reason_nvidia": "Passage\u202f[1] lists the exact changes and confirms that future=True activates the 2.0\u2011style transaction/connection API.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The changes listed in the claim are exactly those described in passage\u202f[1]."
   },
   {
    "id": "g027",
@@ -174,7 +194,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [3], [4], and [5] describe enabling SQLALCHEMY_WARN_20, configuring warnings filters, and running the app to see RemovedIn20Warnings."
+   "reason_nvidia": "Passages [3], [4], and [5] describe enabling SQLALCHEMY_WARN_20, configuring warnings filters, and running the app to see RemovedIn20Warnings.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [3] and [5] describe enabling SQLALCHEMY_WARN_20=1, configuring warnings filters, and running the application to see RemovedIn20Warnings."
   },
   {
    "id": "g030",
@@ -190,7 +212,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage [1] confirms the move to `sqlalchemy.orm` and the import change, but does not mention SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passage [1] confirms the move to `sqlalchemy.orm` and the import change, but does not mention SQLAlchemy\u202f2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that `sqlalchemy.ext.declarative` has been moved to `sqlalchemy.orm` and that imports should use `sqlalchemy.orm.declarative_base`, with the change detailed in the 1.4 migration guide."
   },
   {
    "id": "g031",
@@ -206,7 +230,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passage [1] states that the original `mapper()` function is replaced by the method `registry.map_imperatively`, enabling classical mappings to be based on the `registry` object."
+   "reason_nvidia": "The passage [1] states that the original `mapper()` function is replaced by the method `registry.map_imperatively`, enabling classical mappings to be based on the `registry` object.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passage [1] (and [2]) states that the original `mapper()` is now accessed via `registry.map_imperatively`, enabling classical mappings to be based on the registry."
   },
   {
    "id": "g032",
@@ -222,7 +248,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that list chaining of join paths has been removed and that individual `Query.join` calls should be used for 1.x/2.0 compatibility, while `Select.join` or `Select.join_from` should be used for 2.0-style queries."
+   "reason_nvidia": "Passage [1] states that list chaining of join paths has been removed and that individual `Query.join` calls should be used for 1.x/2.0 compatibility, while `Select.join` or `Select.join_from` should be used for 2.0-style queries.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] states that list\u2011chaining of joins has been removed and that individual `Query.join` calls should be used for 1.x/2.0 compatibility, while passage\u202f[3] confirms that 2.0\u2011style queries use `Select.join` or `Select.join_from`."
   },
   {
    "id": "g033",
@@ -238,7 +266,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that in SQLAlchemy 2.0 you must add the column to the SELECT and then use `.columns(User)` to return only the entity."
+   "reason_nvidia": "Passage [1] states that in SQLAlchemy 2.0 you must add the column to the SELECT and then use `.columns(User)` to return only the entity.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] explains that in SQLAlchemy\u202f2.0 you must add the ordering column to the SELECT and then call `.columns(User)` on the result to return only the entity."
   },
   {
    "id": "g034",
@@ -254,7 +284,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] (and also [3]) shows creating an alias with `aliased(User, subquery)` and querying against that alias."
+   "reason_nvidia": "Passage\u202f[1] (and also [3]) shows creating an alias with `aliased(User, subquery)` and querying against that alias.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] (and also\u202f[3]) shows using `aliased(User, subquery)` to query a subquery as an entity."
   },
   {
    "id": "g035",
@@ -270,7 +302,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that the baked query extension has been superseded by a built\u2011in, transparently active caching system for all Core and ORM queries."
+   "reason_nvidia": "Passages [1] and [2] state that the baked query extension has been superseded by a built\u2011in, transparently active caching system for all Core and ORM queries.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] state that baked query is superseded by built\u2011in caching and that caching is transparently active for all Core and ORM queries."
   },
   {
    "id": "g038",
@@ -286,7 +320,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passages (e.g., [1] and [4]) show that `session.query(User).all()` can be replaced with `session.execute(select(User)).scalars().all()`."
+   "reason_nvidia": "The passages (e.g., [1] and [4]) show that `session.query(User).all()` can be replaced with `session.execute(select(User)).scalars().all()`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] and\u202f[4] show that `session.execute(select(User)).scalars().all()` replaces `session.query(User).all()`."
   },
   {
    "id": "g041",
@@ -302,7 +338,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] explicitly describes the backref behavior and recommends using back_populates in SQLAlchemy\u202f2.0 for the stated advantages."
+   "reason_nvidia": "Passage\u202f[1] explicitly describes the backref behavior and recommends using back_populates in SQLAlchemy\u202f2.0 for the stated advantages.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The statement is directly supported by passage\u202f[1], which describes the automatic generation of a reciprocal relationship via `backref` and recommends using `back_populates` in SQLAlchemy\u202f2.0 for explicit, upfront configuration."
   },
   {
    "id": "g043",
@@ -318,7 +356,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The claim is directly supported by passage\u202f[1] (and also reinforced in passage\u202f[3]), which states that `select()` and `FromClause.select()` no longer accept keyword arguments for structural elements, that columns are passed positionally, and that `case()` accepts WHEN criteria positionally."
+   "reason_nvidia": "The claim is directly supported by passage\u202f[1] (and also reinforced in passage\u202f[3]), which states that `select()` and `FromClause.select()` no longer accept keyword arguments for structural elements, that columns are passed positionally, and that `case()` accepts WHEN criteria positionally.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The claim is directly stated in passage\u202f[1] (and reiterated in passage\u202f[3])."
   },
   {
    "id": "g045",
@@ -334,7 +374,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[3] shows that `t.select().execute()` is no longer supported, and passage\u202f[2] demonstrates using an explicit engine or connection to execute statements."
+   "reason_nvidia": "Passage\u202f[3] shows that `t.select().execute()` is no longer supported, and passage\u202f[2] demonstrates using an explicit engine or connection to execute statements.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [3] states that `t.select().execute()` is no longer supported in 2.0 and must be run via an explicit engine or connection."
   },
   {
    "id": "g046",
@@ -350,7 +392,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [3] states that autocommit mode is removed in 2.0 and that the Session\u2019s `begin()` method can be used to start transactions, providing explicit control over transaction boundaries."
+   "reason_nvidia": "Passage [3] states that autocommit mode is removed in 2.0 and that the Session\u2019s `begin()` method can be used to start transactions, providing explicit control over transaction boundaries.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f3 states that autocommit mode is removed in 2.0 and that the Session\u2019s `begin()` method can be used to start transactions explicitly."
   },
   {
    "id": "g047",
@@ -366,7 +410,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [3] and [4] state that subtransactions were removed and that `session.begin_nested()` creates savepoints that can be committed or rolled back independently of the outer transaction."
+   "reason_nvidia": "Passages [3] and [4] state that subtransactions were removed and that `session.begin_nested()` creates savepoints that can be committed or rolled back independently of the outer transaction.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [3] and [4] support the claim."
   },
   {
    "id": "g053",
@@ -382,7 +428,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[1] confirms that `Query.get` is legacy and `Session.get` is the new primary method, but it does not mention Flask\u2011SQLAlchemy or the stated motivation."
+   "reason_nvidia": "Passage\u202f[1] confirms that `Query.get` is legacy and `Session.get` is the new primary method, but it does not mention Flask\u2011SQLAlchemy or the stated motivation.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] states that the `Query.get()` method is replaced by `Session.get(User,\u202f1)`, indicating the change and its intent for consistency."
   },
   {
    "id": "g055",
@@ -398,7 +446,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [2] confirms that setting SQLALCHEMY_WARN_20 to true or 1 emits RemovedIn20Warning and the example shows warnings are not suppressed."
+   "reason_nvidia": "Passage [2] confirms that setting SQLALCHEMY_WARN_20 to true or 1 emits RemovedIn20Warning and the example shows warnings are not suppressed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] confirms that setting SQLALCHEMY_WARN_20 to true or 1 enables RemovedIn20Warning emission and that the example command ensures warnings are not suppressed."
   },
   {
    "id": "g056",
@@ -414,7 +464,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [1] and [2] support the query\u2011property example, but passage [5] contradicts the claim that baked queries are not covered."
+   "reason_nvidia": "Passages [1] and [2] support the query\u2011property example, but passage [5] contradicts the claim that baked queries are not covered.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passages [1] and [2] support the query\u2011property example, while passage [5] contradicts the claim that baked queries are not covered."
   },
   {
    "id": "g060",
@@ -430,7 +482,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that `mapped_column()` supersedes `Column()` and adds deferred loading and typing support for tools like Mypy and Pylance."
+   "reason_nvidia": "Passage [1] states that `mapped_column()` supersedes `Column()` and adds deferred loading and typing support for tools like Mypy and Pylance.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that `mapped_column()` supersedes `Column()` in Declarative mappings, adding deferred loading and better typing support for tools like Mypy and Pylance."
   },
   {
    "id": "g062",
@@ -446,7 +500,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] show using a `typing.TypeAliasType` (via `type Status = Literal[...]`) and a `typing.Literal` with `mapped_column` and `type_annotation_map`, confirming both methods."
+   "reason_nvidia": "Passages [1] and [2] show using a `typing.TypeAliasType` (via `type Status = Literal[...]`) and a `typing.Literal` with `mapped_column` and `type_annotation_map`, confirming both methods.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] show using `typing.Literal` and a `typing.TypeAliasType` (via a `Literal` alias) with `mapped_column` for enum type hinting."
   },
   {
    "id": "g065",
@@ -462,7 +518,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "UNSUPPORTED",
-   "reason_nvidia": "None of the passages explicitly state that you can create a table and a view in the same migration using Alembic."
+   "reason_nvidia": "None of the passages explicitly state that you can create a table and a view in the same migration using Alembic.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "The passages confirm Alembic is a schema\u2011migration tool for SQLAlchemy ([3]), but they do not explicitly state that a table and a view can be created together in a single migration."
   },
   {
    "id": "g074",
@@ -478,7 +536,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The example in passage\u202f[1] shows a mixin using `@declared_attr` and `column_property` to combine mapped columns into a calculated column, demonstrating the described approach."
+   "reason_nvidia": "The example in passage\u202f[1] shows a mixin using `@declared_attr` and `column_property` to combine mapped columns into a calculated column, demonstrating the described approach.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] shows a mixin using `column_property` to combine mapped columns and use the result in queries."
   },
   {
    "id": "g078",
@@ -494,7 +554,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [2] and [3] support enabling warnings and transforming them to errors, but they do not cover suppressing specific legacy warnings."
+   "reason_nvidia": "Passages [2] and [3] support enabling warnings and transforming them to errors, but they do not cover suppressing specific legacy warnings.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "The passages confirm that setting `SQLALCHEMY_WARN_20=1` turns on RemovedIn20Warnings, but they do not describe using `warnings.filterwarnings` to suppress or transform specific warnings."
   },
   {
    "id": "g079",
@@ -510,7 +572,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[2] shows using `session.execute(select(...).options(joinedload(...)))` and then calling `.unique()` to get unique results."
+   "reason_nvidia": "Passage\u202f[2] shows using `session.execute(select(...).options(joinedload(...)))` and then calling `.unique()` to get unique results.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The example in passage\u202f[2] shows using `select(...).options(joinedload(...))` with `session.execute(...).unique().all()`, matching the claim."
   },
   {
    "id": "g080",
@@ -526,7 +590,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] states that `load_only()` applies to a single entity and that separate `load_only()` calls are required for each entity in a multi\u2011entity query."
+   "reason_nvidia": "Passage\u202f[1] states that `load_only()` applies to a single entity and that separate `load_only()` calls are required for each entity in a multi\u2011entity query.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage\u202f[1] confirms that in 2.0 you must use separate `load_only()` calls for each entity, but passage\u202f[4] shows that 1.4 also disallows direct application of `load_only()` to multiple entities, contradicting that part of the claim."
   },
   {
    "id": "g081",
@@ -542,7 +608,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that `autobegin=False` disables implicit transactions and requires an explicit `begin()` call."
+   "reason_nvidia": "Passage [1] states that `autobegin=False` disables implicit transactions and requires an explicit `begin()` call.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] confirms that `autobegin=False` disables implicit transactions and requires an explicit `begin()` call."
   },
   {
    "id": "g083",
@@ -558,7 +626,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [4] state that Engine.execute() is deprecated and Connection.execute() should be used."
+   "reason_nvidia": "Passages [1] and [4] state that Engine.execute() is deprecated and Connection.execute() should be used.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [4] state that Engine.execute() is deprecated and will be removed in 2.0, and that you should use Connection.execute() instead."
   },
   {
    "id": "g088",
@@ -574,7 +644,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The recipe described in passage\u202f[2] (and also in [4]) explicitly states that a Connection is opened in a transaction, optionally a SAVEPOINT is created, the Session is bound with `join_transaction_mode=\"create_savepoint\"`, and that the test\u2019s changes are rolled back after each test."
+   "reason_nvidia": "The recipe described in passage\u202f[2] (and also in [4]) explicitly states that a Connection is opened in a transaction, optionally a SAVEPOINT is created, the Session is bound with `join_transaction_mode=\"create_savepoint\"`, and that the test\u2019s changes are rolled back after each test.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [2] and [4] describe the 2.0\u2011style recipe, the use of `join_transaction_mode=\"create_savepoint\"`, and the rollback of all changes after each test."
   },
   {
    "id": "g098",
@@ -590,7 +662,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages 1 and 2 describe disabling `cascade_backrefs` and using `Session.future=True` to turn off the behavior, while passage\u202f3 discusses merge logic and unexpected state caused by backref cascading."
+   "reason_nvidia": "Passages 1 and 2 describe disabling `cascade_backrefs` and using `Session.future=True` to turn off the behavior, while passage\u202f3 discusses merge logic and unexpected state caused by backref cascading.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] describe disabling cascade_backrefs, using future mode, and the impact on merging logic and session state."
   },
   {
    "id": "g109",
@@ -606,7 +680,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] (and [3]) explicitly states that ``yield_per`` is not compatible with :meth:`_engine.Result.unique` and explains that the method requires storing all identities, defeating the purpose of ``yield_per``."
+   "reason_nvidia": "Passage [1] (and [3]) explicitly states that ``yield_per`` is not compatible with :meth:`_engine.Result.unique` and explains that the method requires storing all identities, defeating the purpose of ``yield_per``.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] (and [3]) explicitly states that ``yield_per`` is not compatible with :meth:`_engine.Result.unique` for the reason given."
   },
   {
    "id": "g110",
@@ -622,7 +698,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[4] explicitly states that passing `future=True` enables the 2.0 API fully, removes implicit autocommit, requires `text()` for string statements unless using `exec_driver_sql`, and removes connectionless execution."
+   "reason_nvidia": "Passage\u202f[4] explicitly states that passing `future=True` enables the 2.0 API fully, removes implicit autocommit, requires `text()` for string statements unless using `exec_driver_sql`, and removes connectionless execution.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[4] explicitly states that future=True enables full 2.0\u2011style API support and removes legacy features such as implicit autocommit, string\u2011statement requirements, and connectionless execution."
   },
   {
    "id": "g111",
@@ -638,7 +716,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [4] confirm the removal of automatic autocommit in 2.0, and [2] shows how to use `engine.begin()` or `conn.commit()/rollback()` to mimic the old behavior."
+   "reason_nvidia": "Passages [1] and [4] confirm the removal of automatic autocommit in 2.0, and [2] shows how to use `engine.begin()` or `conn.commit()/rollback()` to mimic the old behavior.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] describe the removal of autocommit in 2.0 and the need to use explicit begin/commit or rollback to mimic the old behavior."
   },
   {
    "id": "g112",
@@ -654,7 +734,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that `Query.count` always wraps the query in a subquery and returns the correct count."
+   "reason_nvidia": "Passage [1] states that `Query.count` always wraps the query in a subquery and returns the correct count.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] explains that `Query.count` now always wraps the query in a subquery and returns the correct count."
   },
   {
    "id": "g115",
@@ -670,7 +752,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "The snippet in passage\u202f[1] shows using `create_engine(\"sqlite://\")`, but the passages do not mention PostgreSQL, MySQL, or other connection strings."
+   "reason_nvidia": "The snippet in passage\u202f[1] shows using `create_engine(\"sqlite://\")`, but the passages do not mention PostgreSQL, MySQL, or other connection strings.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage\u202f[1] shows using `create_engine(\"sqlite://\")`, but it does not mention PostgreSQL/MySQL strings or the documentation link."
   },
   {
    "id": "g117",
@@ -686,7 +770,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "UNSUPPORTED",
-   "reason_nvidia": "None of the passages discuss using `relationship` for async SQLAlchemy."
+   "reason_nvidia": "None of the passages discuss using `relationship` for async SQLAlchemy.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage\u202f[4] shows the use of `relationship` and `back_populates`, but it does not discuss async usage or accessing the `addresses` attribute."
   },
   {
    "id": "g118",
@@ -702,7 +788,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The example in passage [2] shows using `aliased(Address)` to join the same table twice with distinct aliases."
+   "reason_nvidia": "The example in passage [2] shows using `aliased(Address)` to join the same table twice with distinct aliases.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] demonstrates using `aliased(Address)` twice to join the same table with different aliases."
   },
   {
    "id": "g120",
@@ -718,7 +806,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [3] states that `with_polymorphic` accepts a base entity and a sequence of subclasses, implying it works with joined\u2011table inheritance."
+   "reason_nvidia": "Passage [3] states that `with_polymorphic` accepts a base entity and a sequence of subclasses, implying it works with joined\u2011table inheritance.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[3] states that `with_polymorphic` accepts a base entity and a sequence of its subclasses, and that it renders a SELECT with LEFT OUTER JOINs to the sub\u2011tables, implying it works for joined\u2011table inheritance."
   },
   {
    "id": "g119",
@@ -734,7 +824,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "UNSUPPORTED",
-   "reason_nvidia": "None of the passages discuss the equivalence or difference between `session.scalar(stmt)` and `session.execute(stmt).scalar_one_or_none()`."
+   "reason_nvidia": "None of the passages discuss the equivalence or difference between `session.scalar(stmt)` and `session.execute(stmt).scalar_one_or_none()`.",
+   "verdict_nvidia_h": "UNSUPPORTED",
+   "reason_nvidia_h": "None of the passages address this comparison."
   },
   {
    "id": "g121",
@@ -750,7 +842,9 @@
    "empty": false,
    "generator": "qwen2.5-coder:7b (lab, Round 16)",
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] shows `session.execute(statement).scalars().all()` returning a list of `User` objects and `session.execute(statement).all()` returning tuples of `User` and `Address`."
+   "reason_nvidia": "Passage\u202f[1] shows `session.execute(statement).scalars().all()` returning a list of `User` objects and `session.execute(statement).all()` returning tuples of `User` and `Address`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] shows that `scalars().all()` returns a list of `User` objects and `all()` returns a list of tuples for multiple classes."
   }
  ]
 }

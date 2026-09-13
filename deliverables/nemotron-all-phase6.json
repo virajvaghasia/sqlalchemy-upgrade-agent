@@ -32,7 +32,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that `Query.from_self()` is removed and replaced with `aliased()` and explicit subqueries."
+   "reason_nvidia": "Passages [1] and [2] state that `Query.from_self()` is removed and replaced with `aliased()` and explicit subqueries.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [1] and [2] state that `Query.from_self()` is removed and that the replacement uses `aliased()` with explicit subqueries.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] (and [2]) states that `Query.from_self()` is removed and the replacement uses `aliased()` with explicit subqueries."
   },
   {
    "id": "g003",
@@ -66,7 +70,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1], [2], [4], and [5] confirm the removal of `engine.execute()` and the new usage of `Connection.execute()` (or `Session.execute()`) and the related changes."
+   "reason_nvidia": "Passages [1], [2], [4], and [5] confirm the removal of `engine.execute()` and the new usage of `Connection.execute()` (or `Session.execute()`) and the related changes.",
+   "verdict_nvidia_t2": "PARTIAL",
+   "reason_nvidia_t2": "Passages [2], [3] and [5] discuss deprecation and planned removal of `engine.execute()`, but do not state it has already been completely removed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [2], [3], [4], and [5] collectively confirm the removal of `engine.execute()` and the new requirement to use `Connection.execute()` or `Session.execute()`."
   },
   {
    "id": "g005",
@@ -100,7 +108,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] explains the removal of raw SQL strings from `Connection.execute()` and notes the consistency with `Session.execute()` but does not mention an `ArgumentError` for raw strings."
+   "reason_nvidia": "Passage [1] explains the removal of raw SQL strings from `Connection.execute()` and notes the consistency with `Session.execute()` but does not mention an `ArgumentError` for raw strings.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [1] explains the removal of raw SQL strings from `Connection.execute()` and notes that `Session.execute()` was also changed, but it does not mention an `ArgumentError`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] explains the change to Connection.execute and notes Session.execute no longer accepts raw strings, but it does not mention an ArgumentError."
   },
   {
    "id": "g007",
@@ -134,7 +146,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [3] states that columns must be passed positionally, not as a list, in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passage [3] states that columns must be passed positionally, not as a list, in SQLAlchemy\u202f2.0.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage\u202f[3] (and the related [4]/[5] excerpts) states that in SQLAlchemy\u202f2.0 the `select()` construct requires columns to be passed positionally, not as a list.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [3] states that columns must be passed positionally, not as a list."
   },
   {
    "id": "g009",
@@ -184,7 +200,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] show the two aliasing patterns and do not mention an `aliased=True` keyword."
+   "reason_nvidia": "Passages [1] and [2] show the two aliasing patterns and do not mention an `aliased=True` keyword.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passages\u202f1,\u202f2, and\u202f5 describe the two aliasing patterns (target\u2011onclause and\u202fof_type) and do not mention an `aliased=True` keyword, confirming the claim.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [2], and [5] show the two aliasing patterns and do not mention an `aliased=True` keyword."
   },
   {
    "id": "g012",
@@ -218,7 +238,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[3] confirms that string forms are removed in 2.0 for query options like `joinedload`, but it does not explicitly state that this applies to `subqueryload`."
+   "reason_nvidia": "Passage\u202f[3] confirms that string forms are removed in 2.0 for query options like `joinedload`, but it does not explicitly state that this applies to `subqueryload`.",
+   "verdict_nvidia_t2": "PARTIAL",
+   "reason_nvidia_t2": "Passage [3] states string forms will be removed in 2.0 for joinedload, but does not explicitly mention subqueryload.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage\u202f[3] confirms string forms are removed for query options like joinedload and that mapped attributes should be used, and passage\u202f[4] notes subqueryload is legacy, but it does not explicitly state that string forms are removed for subqueryload."
   },
   {
    "id": "g014",
@@ -236,7 +260,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1], [2], [3], and [4] confirm that `session.execute(select(User))` returns a `Row` with a single `User` element and that `session.scalars(select(User))` yields `User` objects directly."
+   "reason_nvidia": "Passages [1], [2], [3], and [4] confirm that `session.execute(select(User))` returns a `Row` with a single `User` element and that `session.scalars(select(User))` yields `User` objects directly.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passages [1], [2], [3], and [4] all confirm that `session.execute(select(User))` returns Row objects with a single User element and that `session.scalars(select(User))` yields User objects directly.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [3], and [4] confirm that `session.execute(select(User))` returns a Row with a single User element and that `session.scalars(select(User))` yields User objects directly."
   },
   {
    "id": "g015",
@@ -254,7 +282,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that Row behaves like a named tuple, provides row._mapping for mapping access, and that result.mappings() yields mapping objects, while attribute and sequence access remain available."
+   "reason_nvidia": "Passage [1] states that Row behaves like a named tuple, provides row._mapping for mapping access, and that result.mappings() yields mapping objects, while attribute and sequence access remain available.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [1] explains that Row behaves like a named tuple with attribute and sequence access, and that mapping-style access is available via `row._mapping` and `result.mappings()`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] confirms that Row objects act like named tuples, provide `row._mapping` for mapping-style access, and that `result.mappings()` yields mapping objects, while attribute and sequence access remain available."
   },
   {
    "id": "g016",
@@ -272,7 +304,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The migration guide passage [2] states that `row.keys()` exists and should be used for key checks, while the other excerpts do not show its use or explain an `AttributeError`."
+   "reason_nvidia": "The migration guide passage [2] states that `row.keys()` exists and should be used for key checks, while the other excerpts do not show its use or explain an `AttributeError`.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [2] states that `row.keys()` exists and should be used, but no passage demonstrates its use or explains an AttributeError.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] states that `row.keys()` exists, but no passage demonstrates it being called successfully or explains an `AttributeError`."
   },
   {
    "id": "g017",
@@ -290,7 +326,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [2] and [5] state that Result.unique must be called with joinedload on a collection and the ORM will raise an error if it is not used."
+   "reason_nvidia": "Passages [2] and [5] state that Result.unique must be called with joinedload on a collection and the ORM will raise an error if it is not used.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [2] (and [5]) states that Result.unique must be called and the ORM will raise an error if it is not.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] (and [5]) states that `.unique()` must be called with a joinedload of a collection and the ORM will raise an error if it is not."
   },
   {
    "id": "g018",
@@ -308,7 +348,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that autocommit mode is removed and that explicit use of `Session.begin()` or the new autobegin behavior in 1.4 replaces it."
+   "reason_nvidia": "Passage [1] states that autocommit mode is removed and that explicit use of `Session.begin()` or the new autobegin behavior in 1.4 replaces it.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [1] states that autocommit is removed and that Session.begin() or autobegin behavior replaces it.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that autocommit mode is removed and that Session.begin() or autobegin behavior (introduced in 1.4) replaces it."
   },
   {
    "id": "g019",
@@ -326,7 +370,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1]\u2013[5] collectively describe the context\u2011manager fallback, the preferred outer\u2011most\u2011begin idiom, the deprecation of subtransactions and autocommit, and the introduction of autobegin."
+   "reason_nvidia": "Passages [1]\u2013[5] collectively describe the context\u2011manager fallback, the preferred outer\u2011most\u2011begin idiom, the deprecation of subtransactions and autocommit, and the introduction of autobegin.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "All passages describe a backward\u2011compatible context manager for the old subtransaction pattern, a preferred idiomatic pattern that places the begin block at the outermost level, and note that the subtransactions flag was deprecated in 1.4, removed in 2.0, with autobegin behavior introduced.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages [1], [2], [3], [4], and [5] collectively support the claim."
   },
   {
    "id": "g020",
@@ -344,7 +392,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that the \u201ccascade backrefs\u201d behavior was removed in SQLAlchemy\u202f2.0, implying that objects are no longer automatically added to a session via backrefs."
+   "reason_nvidia": "Passages [1] and [2] state that the \u201ccascade backrefs\u201d behavior was removed in SQLAlchemy\u202f2.0, implying that objects are no longer automatically added to a session via backrefs.",
+   "verdict_nvidia_t2": "PARTIAL",
+   "reason_nvidia_t2": "Passages [1] and [2] state that the cascade\u2011backrefs behavior was removed in SQLAlchemy\u202f2.0, but they do not cover the many\u2011to\u2011one assignment and explicit session.add details.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] describe the removal of the cascade\u2011backrefs behavior in SQLAlchemy\u202f2.0."
   },
   {
    "id": "g021",
@@ -362,7 +414,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] states that `backref` is legacy and `back_populates` is preferred, while passage\u202f[5] confirms that `backref` remains available."
+   "reason_nvidia": "Passage\u202f[1] states that `backref` is legacy and `back_populates` is preferred, while passage\u202f[5] confirms that `backref` remains available.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage [1] states that `backref` is legacy and that `back_populates` is preferred.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] confirms backref is legacy and back_populates is preferred."
   },
   {
    "id": "g022",
@@ -380,7 +436,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that connectionless execution is removed from the Engine and that string statements require the `text()` construct."
+   "reason_nvidia": "Passage [1] states that connectionless execution is removed from the Engine and that string statements require the `text()` construct.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Source\u202f[1] and\u202f[5] state that connectionless execution is removed from the Engine and that string statements must be wrapped in `text()` (or use `exec_driver_sql`).",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] states that connectionless execution is removed from the Engine and that string statements require the `text()` construct."
   },
   {
    "id": "g023",
@@ -414,7 +474,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passage [1] explicitly states that `Query.get` is legacy and the primary interface is now `Session.get(User, 1)`."
+   "reason_nvidia": "The passage [1] explicitly states that `Query.get` is legacy and the primary interface is now `Session.get(User, 1)`.",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "The passage [1] explicitly states that `Query.get` is legacy and the primary interface is now `Session.get(User, 1)`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that `Query.get()` is legacy and the primary interface is now `Session.get(User, 1)` instead of `session.query(User).get(1)`."
   },
   {
    "id": "g025",
@@ -433,7 +497,11 @@
    "refused": false,
    "verdict_nvidia": "PARTIAL",
    "reason_nvidia": "Passage [1] states the future parameter is available and must be True if specified, but does not state it is optional.",
-   "judge_note": "first judge reply 2026-09-13 12:3x was empty -> UNPARSED; asked again once (PHASE-6.md Step 4d)"
+   "judge_note": "first judge reply 2026-09-13 12:3x was empty -> UNPARSED; asked again once (PHASE-6.md Step 4d)",
+   "verdict_nvidia_t2": "PARTIAL",
+   "reason_nvidia_t2": "Passage [1] states that if specified the `future` flag must be `True`, but it does not explicitly say the flag is optional.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passage [1] states the parameter is available but must be True if specified, but does not say it is optional."
   },
   {
    "id": "g026",
@@ -451,7 +519,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The claim is fully supported by passage\u202f[1] (listing the five behavioral changes and context\u2011manager support) and passage\u202f[2] (noting that the `future` flag remains accepted in 2.0 but must be `True`)."
+   "reason_nvidia": "The claim is fully supported by passage\u202f[1] (listing the five behavioral changes and context\u2011manager support) and passage\u202f[2] (noting that the `future` flag remains accepted in 2.0 but must be `True`).",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "Passage\u202f[1] lists all five behavioral changes and passage\u202f[2] confirms that the `future` flag remains accepted in 2.0 but must be `True`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] provide the details that the claim describes."
   },
   {
    "id": "g027",
@@ -469,7 +541,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "All parts of the claim are supported by passages [1], [2], [3], and [4]."
+   "reason_nvidia": "All parts of the claim are supported by passages [1], [2], [3], and [4].",
+   "verdict_nvidia_t2": "SUPPORTED",
+   "reason_nvidia_t2": "All parts of the claim are supported by passages [1], [2], [3], and [4].",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "All parts of the claim are covered by the passages."
   },
   {
    "id": "g028",
@@ -487,7 +563,11 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[1] confirms driver\u2011level autocommit via `execution_options(isolation_level=\"AUTOCOMMIT\")`, but none of the passages state that library\u2011level autocommit was removed."
+   "reason_nvidia": "Passage\u202f[1] confirms driver\u2011level autocommit via `execution_options(isolation_level=\"AUTOCOMMIT\")`, but none of the passages state that library\u2011level autocommit was removed.",
+   "verdict_nvidia_t2": "PARTIAL",
+   "reason_nvidia_t2": "Passage\u202f[1] confirms driver\u2011level autocommit via `execution_options(isolation_level=\"AUTOCOMMIT\")`, but none of the passages state that library\u2011level autocommit was removed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The migration guide passage [1] explicitly states that library\u2011level autocommit was removed in 2.0 and that driver\u2011level autocommit remains available via `Connection.execution_options(isolation_level=\"AUTOCOMMIT\")`."
   },
   {
    "id": "g029",
@@ -505,7 +585,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that constructor arguments other than the table argument are removed."
+   "reason_nvidia": "Passage [1] states that constructor arguments other than the table argument are removed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that keyword constructor arguments are removed from insert(), update(), and delete() DML constructs."
   },
   {
    "id": "g030",
@@ -523,7 +605,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that `sqlalchemy.ext.declarative` has been largely moved to `sqlalchemy.orm`, that `declarative_base` remains unchanged, and that the new preferred `DeclarativeBase` class is introduced while the legacy `declarative_base()` remains supported."
+   "reason_nvidia": "Passages [1] and [2] state that `sqlalchemy.ext.declarative` has been largely moved to `sqlalchemy.orm`, that `declarative_base` remains unchanged, and that the new preferred `DeclarativeBase` class is introduced while the legacy `declarative_base()` remains supported.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] state that the `sqlalchemy.ext.declarative` package has been largely moved to `sqlalchemy.orm`, that `declarative_base` remains unchanged, that the new preferred approach is `DeclarativeBase`, and that the legacy `declarative_base()` function is still supported."
   },
   {
    "id": "g031",
@@ -541,7 +625,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [3] state that `mapper()` is replaced by `registry.map_imperatively()` and that classical mapping is now called imperative mapping."
+   "reason_nvidia": "Passages [1] and [3] state that `mapper()` is replaced by `registry.map_imperatively()` and that classical mapping is now called imperative mapping.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] state that `mapper()` is replaced by `registry.map_imperatively`, and passages [3] and [5] rename classical mapping to imperative mapping."
   },
   {
    "id": "g032",
@@ -559,7 +645,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] explicitly states that chained join forms accepting multiple relationships were removed in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passage [1] explicitly states that chained join forms accepting multiple relationships were removed in SQLAlchemy\u202f2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states the removal of chained join forms."
   },
   {
    "id": "g033",
@@ -577,7 +665,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] documents the change."
+   "reason_nvidia": "Passage [1] documents the change.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The migration guide passage [1] explicitly documents that Query in 1.x auto\u2011adds the ORDER BY column to the SELECT list when using distinct, and that in 2.0 the column must be added explicitly and Result.columns(User) used to return only the entity."
   },
   {
    "id": "g034",
@@ -595,7 +685,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [4] state that `select_entity_from()` (and `from_self()`) are removed in 2.0 and replaced by `aliased()` with a subquery."
+   "reason_nvidia": "Passages [1] and [4] state that `select_entity_from()` (and `from_self()`) are removed in 2.0 and replaced by `aliased()` with a subquery.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] (and\u202f[4]) states that `Query.select_entity_from()` is removed in 2.0 and that `sqlalchemy.orm.aliased()` with a subquery is the replacement."
   },
   {
    "id": "g035",
@@ -613,7 +705,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that the baked query extension is superseded by a built\u2011in caching system and that this caching is automatically active for all Core and ORM queries."
+   "reason_nvidia": "Passages [1] and [2] state that the baked query extension is superseded by a built\u2011in caching system and that this caching is automatically active for all Core and ORM queries.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] state that the baked query extension is superseded by built\u2011in caching and is no longer needed, and that the new caching system is automatically active for all Core and ORM queries."
   },
   {
    "id": "g036",
@@ -631,7 +725,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that bound metadata (and thus the MetaData.bind parameter) was removed in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passages [1] and [2] state that bound metadata (and thus the MetaData.bind parameter) was removed in SQLAlchemy\u202f2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] states that MetaData.bind was removed in SQLAlchemy\u202f2.0, making the bind argument invalid."
   },
   {
    "id": "g037",
@@ -665,7 +761,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [4] and [1] show both equivalent 2.0\u2011style forms and the need to import `select` and use a future/2.0 Session."
+   "reason_nvidia": "Passages [4] and [1] show both equivalent 2.0\u2011style forms and the need to import `select` and use a future/2.0 Session.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[4] (and [1]) shows both equivalent forms, the need to import `select`, and the use of a `Session` with `future=True` for 2.0\u2011style queries."
   },
   {
    "id": "g039",
@@ -683,7 +781,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [5] states that Query methods return ORM instances directly, while Session.execute returns rows (named tuples) with one column of ORM instances, and scalars() extracts them."
+   "reason_nvidia": "Passage [5] states that Query methods return ORM instances directly, while Session.execute returns rows (named tuples) with one column of ORM instances, and scalars() extracts them.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [5] states that Query.all returns ORM objects directly in 1.x, while Session.execute returns rows (named tuples) by default, and that scalars() extracts the single column to give ORM objects."
   },
   {
    "id": "g040",
@@ -701,7 +801,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that Query deduplicates parent entities when using joinedload."
+   "reason_nvidia": "Passages [1] and [2] state that Query deduplicates parent entities when using joinedload.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] state that Query deduplicates parent entities, returning only one instance per parent."
   },
   {
    "id": "g041",
@@ -719,7 +821,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] states that the `backref` keyword is legacy and that `back_populates` with explicit `relationship()` constructs should be preferred."
+   "reason_nvidia": "Passage [1] states that the `backref` keyword is legacy and that `back_populates` with explicit `relationship()` constructs should be preferred.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] states that the `backref` keyword is legacy and that `back_populates` with explicit `relationship` constructs should be preferred."
   },
   {
    "id": "g042",
@@ -753,7 +857,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [3] state that keyword arguments like `select_from` and `order_by` are no longer accepted by `select()` and that the generative method\u2011chaining style must be used."
+   "reason_nvidia": "Passages [1] and [3] state that keyword arguments like `select_from` and `order_by` are no longer accepted by `select()` and that the generative method\u2011chaining style must be used.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [3] state that `select_from` and `order_by` can no longer be passed as keyword arguments to `select()` and that the generative method\u2011chaining style must be used."
   },
   {
    "id": "g044",
@@ -771,7 +877,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Source\u202f[2] confirms explicit use of an Engine/Connection and the `autoload_with` parameter, but it does not mention the removal of `autoload=True` or the behavior of that pattern."
+   "reason_nvidia": "Source\u202f[2] confirms explicit use of an Engine/Connection and the `autoload_with` parameter, but it does not mention the removal of `autoload=True` or the behavior of that pattern.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Source\u202f[2] confirms that explicit use of an Engine or Connection (via `autoload_with`) is required for reflection, but it does not state that the old `autoload=True` pattern is removed."
   },
   {
    "id": "g045",
@@ -789,7 +897,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[3] confirms that `t.select().execute()` is no longer supported, while passage\u202f[2] shows the explicit `Connection.execute()` pattern and passage\u202f[4] explains the rationale for the change."
+   "reason_nvidia": "Passage\u202f[3] confirms that `t.select().execute()` is no longer supported, while passage\u202f[2] shows the explicit `Connection.execute()` pattern and passage\u202f[4] explains the rationale for the change.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [2], [3], and [4] confirm the removal of implicit/connectionless execution and show the explicit `Connection.execute()` pattern."
   },
   {
    "id": "g046",
@@ -807,7 +917,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1], [2], and [3] all describe the removal of the legacy `autocommit=True` flag and the introduction of `autobegin` behavior, confirming the claim."
+   "reason_nvidia": "Passages [1], [2], and [3] all describe the removal of the legacy `autocommit=True` flag and the introduction of `autobegin` behavior, confirming the claim.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [2], and [3] all state that autocommit was removed and that session.begin can be called explicitly or will autobegin automatically."
   },
   {
    "id": "g047",
@@ -825,7 +937,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [2], [3], and [4] support the claim."
+   "reason_nvidia": "Passages [2], [3], and [4] support the claim.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages [3], [2], and [4] confirm the removal of subtransaction behavior, the replacement patterns, and the 2.0 commit semantics, and none of the sources discuss the behavior of calling `session.begin()` while already in a transaction."
   },
   {
    "id": "g048",
@@ -843,7 +957,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage [1] confirms the removal of string forms for `joinedload`, but does not mention any specific exception type."
+   "reason_nvidia": "Passage [1] confirms the removal of string forms for `joinedload`, but does not mention any specific exception type.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] states the string forms of `joinedload` will be removed in 2.0 and does not mention any specific exception type."
   },
   {
    "id": "g049",
@@ -861,7 +977,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [2] state that the `case()` construct now accepts WHEN conditions positionally, that passing a list emits a deprecation warning, and that this follows the convention that structural elements are passed positionally."
+   "reason_nvidia": "Passages [1] and [2] state that the `case()` construct now accepts WHEN conditions positionally, that passing a list emits a deprecation warning, and that this follows the convention that structural elements are passed positionally.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [2] state that case() now accepts WHEN conditions positionally and that the legacy list form emits a deprecation warning, aligning with the structural element convention."
   },
   {
    "id": "g050",
@@ -879,7 +997,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1], [2], and [3] support the claim."
+   "reason_nvidia": "Passages [1], [2], and [3] support the claim.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages [1], [2], [3], [4], and [5] collectively state that `engine.execute()` and connectionless execution (`stmt.execute()`) are removed in SQLAlchemy\u202f2.0, that a `Connection` must be obtained and used, and that `Connection.execute()` has stricter argument rules."
   },
   {
    "id": "g051",
@@ -897,7 +1017,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [1] and [5] confirm the scalars() and .all() behavior, but the claim contains extra details (e.g., future=True default, table of differences) that are not fully covered."
+   "reason_nvidia": "Passages [1] and [5] confirm the scalars() and .all() behavior, but the claim contains extra details (e.g., future=True default, table of differences) that are not fully covered.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage\u202f[1] shows scalars().all() returning User objects and .all() returning tuples, and passage\u202f[5] confirms the same for SQLAlchemy\u202f2.0."
   },
   {
    "id": "g052",
@@ -947,7 +1069,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[2] confirms that setting `SQLALCHEMY_WARN_20=1` (or `true`) enables the 1.4 deprecation system, while the other details are only partially covered by passages\u202f[1],\u202f[3] and\u202f[4]."
+   "reason_nvidia": "Passage\u202f[2] confirms that setting `SQLALCHEMY_WARN_20=1` (or `true`) enables the 1.4 deprecation system, while the other details are only partially covered by passages\u202f[1],\u202f[3] and\u202f[4].",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] states that setting SQLALCHEMY_WARN_20=1 (or true) enables the RemovedIn20Warning system."
   },
   {
    "id": "g056",
@@ -997,7 +1121,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "The passages list RemovedIn20Warning warnings for engine.execute and Connection.execute, but do not mention warnings when using engine.connect() to insert a record."
+   "reason_nvidia": "The passages list RemovedIn20Warning warnings for engine.execute and Connection.execute, but do not mention warnings when using engine.connect() to insert a record.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [3], and [5] describe the warnings and recommended fixes."
   },
   {
    "id": "g060",
@@ -1015,7 +1141,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "The passages confirm some aspects (e.g., mapped_column is new in 2.0, is ORM\u2011specific, and accepts a superset of Column arguments) but do not fully cover all the listed differences."
+   "reason_nvidia": "The passages confirm some aspects (e.g., mapped_column is new in 2.0, is ORM\u2011specific, and accepts a superset of Column arguments) but do not fully cover all the listed differences.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "The passages (especially [1] and [5]) confirm most of the listed differences, but they do not explicitly state that `Column` lacks ORM\u2011level typing support or that it requires separate constructs like `deferred()` or `column_property()` for such features."
   },
   {
    "id": "g062",
@@ -1033,7 +1161,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [2] and [4] support the two approaches and the use of `Mapped[Status]`, but the claim about the Python\u202f3.12 `type` statement and avoiding repetition is not covered."
+   "reason_nvidia": "Passages [2] and [4] support the two approaches and the use of `Mapped[Status]`, but the claim about the Python\u202f3.12 `type` statement and avoiding repetition is not covered.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "All parts are covered by passages [1], [2], and [4]."
   },
   {
    "id": "g064",
@@ -1115,7 +1245,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] describes the mixin pattern with `column_property` and `@declared_attr`."
+   "reason_nvidia": "Passage [1] describes the mixin pattern with `column_property` and `@declared_attr`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] demonstrates mixing mapped columns and calculated columns using `column_property` within a mixin class via `@declared_attr`."
   },
   {
    "id": "g075",
@@ -1149,7 +1281,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "The statement that warnings are emitted only when `SQLALCHEMY_WARN_20` is set to `true` or `1` is supported by passage\u202f[3]; the claim that omitting or disabling the variable suppresses them is implied but not explicitly stated in the sources."
+   "reason_nvidia": "The statement that warnings are emitted only when `SQLALCHEMY_WARN_20` is set to `true` or `1` is supported by passage\u202f[3]; the claim that omitting or disabling the variable suppresses them is implied but not explicitly stated in the sources.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passage in [3] states that `RemovedIn20Warning` is emitted only when `SQLALCHEMY_WARN_20` is set to true or 1, and the example in the same passage shows the program running silently without setting the variable."
   },
   {
    "id": "g079",
@@ -1167,7 +1301,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passages (e.g., [1] for the migration, [2] and [5] for options with `select`/`execute`) show the migration but do not discuss using `options()` with `Session.get()`."
+   "reason_nvidia": "The passages (e.g., [1] for the migration, [2] and [5] for options with `select`/`execute`) show the migration but do not discuss using `options()` with `Session.get()`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [2], and [5] show the migration of `Query.get()` to `Session.get()` and do not discuss handling `Query.options()` with `Session.get()`."
   },
   {
    "id": "g080",
@@ -1185,7 +1321,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "The claim is contradicted by passage\u202f[4], which shows the 1.4\u2011style `Load(Book).load_only(...)` usage."
+   "reason_nvidia": "The claim is contradicted by passage\u202f[4], which shows the 1.4\u2011style `Load(Book).load_only(...)` usage.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [2], [3], and [5] provide the information summarized in the claim."
   },
   {
    "id": "g081",
@@ -1203,7 +1341,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] shows the autobegin parameter added in 2.0, and passages [2]\u2013[5] do not mention disabling it in 1.4."
+   "reason_nvidia": "Passage [1] shows the autobegin parameter added in 2.0, and passages [2]\u2013[5] do not mention disabling it in 1.4.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [1] shows the `autobegin` parameter added in 2.0, while passages [2], [3] and [5] for 1.4 do not mention a disabling option."
   },
   {
    "id": "g083",
@@ -1221,7 +1361,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1] and [4] state that `engine.execute()` is deprecated and removed in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "Passages [1] and [4] state that `engine.execute()` is deprecated and removed in SQLAlchemy\u202f2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [4] (and [2]) states that only `Connection` has an `execute` method and that `engine.execute()` has been removed in SQLAlchemy\u202f2.0."
   },
   {
    "id": "g084",
@@ -1255,7 +1397,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage\u202f[2] notes that the subtransaction pattern is deprecated in 1.4 and may be removed in 2.0, but it does not explicitly state that it is already removed."
+   "reason_nvidia": "Passage\u202f[2] notes that the subtransaction pattern is deprecated in 1.4 and may be removed in 2.0, but it does not explicitly state that it is already removed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [5] state that the \u201csubtransaction\u201d pattern was removed in SQLAlchemy\u202f2.0."
   },
   {
    "id": "g087",
@@ -1273,7 +1417,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [2], [4], and [5] state that server_default columns are expired after flush and loaded via a SELECT when first accessed."
+   "reason_nvidia": "Passages [2], [4], and [5] state that server_default columns are expired after flush and loaded via a SELECT when first accessed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [2], [4] and [5] state that server_default columns are expired after flush and are fetched via a SELECT when first accessed."
   },
   {
    "id": "g088",
@@ -1291,7 +1437,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [2] and [4] describe using `join_transaction_mode=\"create_savepoint\"` and note that event listeners for resetting nested transactions are no longer required."
+   "reason_nvidia": "Passages [2] and [4] describe using `join_transaction_mode=\"create_savepoint\"` and note that event listeners for resetting nested transactions are no longer required.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [2] and [4] state that in 2.0 the `join_transaction_mode=\"create_savepoint\"` parameter is used and that event listeners for resetting nested transactions are no longer required."
   },
   {
    "id": "g090",
@@ -1309,7 +1457,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages\u202f1,\u202f2,\u202f4 describe the correct 2.0 pattern of using mapped attributes with `load_only()` on relationship loaders and note the typing benefit, while none of the passages discuss specific typing annotations or `attrs` typing for `load_only` itself."
+   "reason_nvidia": "Passages\u202f1,\u202f2,\u202f4 describe the correct 2.0 pattern of using mapped attributes with `load_only()` on relationship loaders and note the typing benefit, while none of the passages discuss specific typing annotations or `attrs` typing for `load_only` itself.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages\u202f1,\u202f2, and\u202f4 show the correct 2.0 usage patterns for `load_only()` with relationship loaders and note the typing benefit of using mapped attributes, but they do not discuss `load_only`\u2019s own typing or `attrs` typing."
   },
   {
    "id": "g093",
@@ -1343,7 +1493,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [5] shows that rollback passes silently when no transaction is active, implying that objects added without calling `begin()` remain pending and are not discarded."
+   "reason_nvidia": "Passage [5] shows that rollback passes silently when no transaction is active, implying that objects added without calling `begin()` remain pending and are not discarded.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [3] and [4] show that `begin()` is optional and transactions start automatically, while passage [5] indicates that a rollback passes silently when no transaction, implying pending objects are not discarded."
   },
   {
    "id": "g095",
@@ -1361,7 +1513,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Source\u202f[3] states that `populate_existing=True` replaces the existing contents of collections that are loaded by the current query\u2019s loader options, and no source explicitly discusses the fate of previously loaded relationships that are omitted from those options."
+   "reason_nvidia": "Source\u202f[3] states that `populate_existing=True` replaces the existing contents of collections that are loaded by the current query\u2019s loader options, and no source explicitly discusses the fate of previously loaded relationships that are omitted from those options.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1], [2], and [3] state that `populate_existing=True` replaces collections loaded in the current query, and none of the passages mention what happens to previously loaded relationships that are not included."
   },
   {
    "id": "g096",
@@ -1411,7 +1565,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passages [1] and [2] explicitly state that the error refers to the backref cascade behavior removed in SQLAlchemy\u202f2.0, and describe disabling it via `cascade_backrefs=False` or `Session(future=True)`, while passages [4] and [5] confirm the 2.0 change and that `cascade_backrefs` is ignored."
+   "reason_nvidia": "The passages [1] and [2] explicitly state that the error refers to the backref cascade behavior removed in SQLAlchemy\u202f2.0, and describe disabling it via `cascade_backrefs=False` or `Session(future=True)`, while passages [4] and [5] confirm the 2.0 change and that `cascade_backrefs` is ignored.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages ([1], [2], [4], and [5]) describe the removal of backref cascade in SQLAlchemy\u202f2.0, the ability to disable it in 1.4 via `cascade_backrefs=False` or `Session(future=True)`, and the uni\u2011directional save\u2011update behavior, matching the claim."
   },
   {
    "id": "g099",
@@ -1429,7 +1585,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [4] and [5] provide the key differences and details."
+   "reason_nvidia": "Passages [4] and [5] provide the key differences and details.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passages [4] and [5] support the described differences, but they do not cover INSERT\u2011only defaults in dataclass mode."
   },
   {
    "id": "g100",
@@ -1447,7 +1605,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "The passages [1], [2], [3\u20135] do not mention `AsyncSession.bulk_save_objects`, so they do not answer whether it is available in SQLAlchemy\u202f2.0."
+   "reason_nvidia": "The passages [1], [2], [3\u20135] do not mention `AsyncSession.bulk_save_objects`, so they do not answer whether it is available in SQLAlchemy\u202f2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages discuss bulk_save_objects only on the regular Session (1\u20135) and show async usage via run_sync (2), but they do not state whether AsyncSession in 2.0 has a native bulk_save_objects method."
   },
   {
    "id": "g101",
@@ -1513,7 +1673,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passage [2] indicates that with_polymorphic controls subclass inclusion, but does not state that child-class columns are omitted by default."
+   "reason_nvidia": "Passage [2] indicates that with_polymorphic controls subclass inclusion, but does not state that child-class columns are omitted by default.",
+   "verdict_nvidia_h": "PARTIAL",
+   "reason_nvidia_h": "Passages [2] and [4] discuss that subclass attributes are not loaded unless queried up front and that with_polymorphic controls subclass inclusion, but they do not explicitly state that joinedload only loads base class columns."
   },
   {
    "id": "g109",
@@ -1531,7 +1693,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "Passages [1] and [3] state that `yield_per` is not compatible with `Result.unique` and that an exception is raised in 1.4.6, but they do not mention 2.0."
+   "reason_nvidia": "Passages [1] and [3] state that `yield_per` is not compatible with `Result.unique` and that an exception is raised in 1.4.6, but they do not mention 2.0.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [3] state that `yield_per` is not compatible with `Result.unique` and raise an exception."
   },
   {
    "id": "g110",
@@ -1549,7 +1713,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [2], [4], and [5] support the claim."
+   "reason_nvidia": "Passages [2], [4], and [5] support the claim.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [2] and [4] describe the future flag creating _future.Engine/_future.Connection with a reduced method set, removal of autocommit, updated transaction API, new execute signature, text requirement, removal of engine.execute, and commit/rollback, while [5] notes the flag remains for backward\u2011compatibility in 2.0."
   },
   {
    "id": "g111",
@@ -1567,7 +1733,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage\u202f[1] states that `conn.execute` will not autocommit in 2.0 and that the library\u2011level autocommit feature has been removed."
+   "reason_nvidia": "Passage\u202f[1] states that `conn.execute` will not autocommit in 2.0 and that the library\u2011level autocommit feature has been removed.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages in [1], [2] and [3] state that `engine.connect()` no longer autocommits and that the library\u2011level autocommit feature has been removed."
   },
   {
    "id": "g112",
@@ -1585,7 +1753,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [1] confirms Query.count() and func.count() usage; passage [3] shows no count method on Select."
+   "reason_nvidia": "Passage [1] confirms Query.count() and func.count() usage; passage [3] shows no count method on Select.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passages [1] and [3] confirm the legacy `Query.count()` behavior and the lack of a `Select.count()` method, while noting `func.count()` as an alternative."
   },
   {
    "id": "g113",
@@ -1635,7 +1805,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "All points are covered by passages [1], [3], [5] and [2], [4]."
+   "reason_nvidia": "All points are covered by passages [1], [3], [5] and [2], [4].",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "All statements are supported by passages [1], [3], [5], [2], and [4]."
   },
   {
    "id": "g116",
@@ -1685,7 +1857,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passage [2] shows aliasing the same table twice; passages [1], [3], [4], and [5] do not provide such an example."
+   "reason_nvidia": "Passage [2] shows aliasing the same table twice; passages [1], [3], [4], and [5] do not provide such an example.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "Passage [2] shows the aliasing example; passages [1], [3], [4], [5] do not contain a similar pattern."
   },
   {
    "id": "g119",
@@ -1719,7 +1893,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "SUPPORTED",
-   "reason_nvidia": "Passages [1], [2], [3], [4], and [5] collectively confirm the claim."
+   "reason_nvidia": "Passages [1], [2], [3], [4], and [5] collectively confirm the claim.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "The passages [1], [2], [3], [4], and [5] collectively support the claim."
   },
   {
    "id": "g121",
@@ -1737,7 +1913,9 @@
    "empty": false,
    "refused": false,
    "verdict_nvidia": "PARTIAL",
-   "reason_nvidia": "The passages confirm the Session.execute()/select() patterns, Core connection usage, Row as a named tuple, the legacy Query facade, and deprecation of string key access, but they do not state that SQLAlchemy\u202f2.0 uses the 2.0 style by default without `future=True`."
+   "reason_nvidia": "The passages confirm the Session.execute()/select() patterns, Core connection usage, Row as a named tuple, the legacy Query facade, and deprecation of string key access, but they do not state that SQLAlchemy\u202f2.0 uses the 2.0 style by default without `future=True`.",
+   "verdict_nvidia_h": "SUPPORTED",
+   "reason_nvidia_h": "All points are supported by the passages."
   }
  ]
 }

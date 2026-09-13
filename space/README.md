@@ -12,7 +12,7 @@ from those pages only, citing them, and says so when they do not answer.
 `qwen2.5-coder:7b`, 42% of those questions got an answer with the right page in hand (lab machine).
 **This page uses a different generator** (`nvidia/nemotron-3-ultra-550b-a55b`), because this hosting
 cannot run the local model. Measured once on the same 100 questions, retrieval and prompt (2026-09-13):
-**58%** end to end, no fabrications on the 9 unanswerable questions, and **77%** of its answers judged
+**58%** end to end, no fabrications on the 9 unanswerable questions, and **91%** of its answers judged
 fully supported by the pages it was given. Supported is not the same as correct.
 
 Source, measurements and every decision behind them: https://github.com/virajvaghasia/sqlalchemy-upgrade-agent
