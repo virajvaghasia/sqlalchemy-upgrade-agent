@@ -636,6 +636,18 @@ REFERENCE JUDGE — escalated answers against the verified answer chunks (D06)
   page-absent failures cannot be fixed. The 0.59 you get by counting them was **not** written down
   before the run, so it is labelled exploration and not quoted.
 
+**Then correctness was executed, not judged (`D103`).** Each escalated answer's central claim was
+written as a check and run on 2.0.51 (`tools/check_escalated.py`, committed before its first run).
+3b: **13 of 15 checkable pass (87%)**, so the 0.53 stands on executed evidence. The two failures are
+answers the reference judge had called **SUPPORTED**:
+
+```
+g087  "server_default is not in __dict__ after flush by default"   2.0.51: it is (eager_defaults="auto" uses RETURNING)
+g099  "a callable default= is not allowed under MappedAsDataclass"  2.0.51: accepted; the lambda becomes the value
+```
+
+And six answers it called only PARTIAL have correct central claims. **Same rate, wrong items, again.**
+
 ---
 
 **PART 3 — SHIPPING IT**

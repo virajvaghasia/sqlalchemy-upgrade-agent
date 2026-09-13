@@ -704,3 +704,76 @@ that exists or does not, a call that raises or succeeds, a value returned — as
 | **< 80%** pass | the escalation gain is overstated; the quoted upper bound is recomputed from the executed passes |
 
 **Prediction:** about 70% of checkable 3b answers pass, and about 8 of the 29 are not checkable.
+
+
+### Result — Step 3e (`D103`), 2026-09-12 23:57
+
+```
+# runnable: uv run --no-project --with 'sqlalchemy==2.0.51' --with aiosqlite --with greenlet python tools/check_escalated.py 2>/dev/null
+ESCALATED ANSWERS, CENTRAL CLAIMS EXECUTED — sqlalchemy 2.0.51
+
+3b page present
+  g006  PASS           Connection.execute() rejects a plain SQL string; text() and exec_driver_sql() work
+  g008  PASS           select([cols]) is rejected in 2.0; select(col, col) positionally works
+  g013  PASS           a string attribute name in subqueryload is rejected; subqueryload(User.addresses) works
+  g021  PASS           relationship(backref=...) is legacy but still works in 2.0; back_populates works
+  g029  PASS           insert(t, values=...) and t.delete(whereclause) are rejected; insert(t).values().inline(), delete().where(), update().ordered_values() work
+  g044  PASS           Table(autoload=True) without an engine is gone; Table(..., autoload_with=engine) reflects
+  g048  PASS           joinedload('addresses') with a string is removed; joinedload(User.addresses) works
+  g049  PASS           case([ (cond, val) ]) with a list is rejected in 2.0; case((cond, val), ...) positionally works
+  g050  PASS           Engine has no execute(); with engine.connect() as conn: conn.execute(stmt) works
+  g051  PASS           execute(select(User)).scalars().all() gives User objects; .all() gives Row tuples; session.scalars(...).first() gives a User
+  g087  FAIL           a server_default column is NOT in __dict__ right after flush by default (expired); eager_defaults=True makes it present after flush
+  g090  NOT_CHECKABLE  the answer's point is that the sources do not cover load_only's typing: a typing question is not executable here
+  g095  PASS           populate_existing=True refreshes loaded objects, erasing pending unflushed changes
+  g099  FAIL           under MappedAsDataclass: default= must be a constant (a callable is not allowed); default_factory= supplies callables; default= and insert_default= are mutually exclusive
+  g100  PASS           AsyncSession.run_sync lets synchronous bulk_save_objects run inside async code
+  g106  PASS           joinedload on a relationship to a polymorphic base does not load subclass-table columns unless with_polymorphic is used
+  -> PASS 13  FAIL 2  NOT_CHECKABLE 1  ERROR 0   pass rate 87% of checkable
+
+3c page absent
+  g007  PASS           MetaData(bind=engine) raises TypeError in 2.0; MetaData() then create_all(engine) works
+  g011  PASS           Query.join(..., aliased=True) is gone; join(User.addresses.of_type(a1)) and join(a1, User.addresses) work
+  g016  FAIL           row.keys() exists on Row in SQLAlchemy 2.0
+  g020  PASS           the cascade_backrefs behaviour is gone: assigning address.user = user (user in the session) does not add the address, so it is not INSERTed unless added explicitly
+  g022  PASS           Engine.scalar() no longer exists in 2.0
+  g028  PASS           driver-level autocommit works via execution_options(isolation_level='AUTOCOMMIT'), and Connection.execution_options() modifies the connection in place, returning it
+  g036  PASS           MetaData(bind=...) raises TypeError in 2.0; sessionmaker(engine) is where the engine goes
+  g037  PASS           a plain string passed to conn.execute fails; wrapping it in text() works
+  g039  PASS           session.execute(select(User)).all() returns Row tuples; .scalars().all() returns User objects
+  g040  PASS           legacy Query de-duplicates parents automatically when joinedload-ing a collection
+  g058  PASS           on 1.4 with 2.0 warnings on, conn.execute('insert ...') on engine.connect() emits RemovedIn20Warning for implicit autocommit and for passing a string
+  g085  PASS           calling session.begin() while a transaction is already in progress raises in 2.0
+  g094  PASS           objects added without an explicit begin() are not discarded: commit() persists them
+  -> PASS 12  FAIL 1  NOT_CHECKABLE 0  ERROR 0   pass rate 92% of checkable
+
+rule (3b, >= 80% of checkable pass): 87% -> the 0.53 upper bound stands as stated
+```
+
+**Against the rule:** 3b **13 of 15 checkable = 87% ≥ 80%**, so **the 0.53 upper bound stands**, now on
+executed evidence rather than a judge's opinion alone. **Prediction wrong twice:** ~70% passing
+(actual 87%) and ~8 not checkable (actual 1).
+
+**The three genuine failures, each diagnosed rather than counted:**
+
+| item | what the answer claimed | real 2.0.51 |
+|---|---|---|
+| `g087` | a `server_default` column is **not** in `__dict__` after flush by default | it **is**: `eager_defaults` now defaults to `"auto"`, fetching it with `RETURNING` where the backend supports it (SQLite does). The answer describes older, backend-dependent behaviour as the default |
+| `g099` | under `MappedAsDataclass`, a callable `default=` is not allowed; `default=` and `insert_default=` are mutually exclusive | **both accepted**; the lambda is stored as the value itself (`D().v` is the function object) |
+| `g016` | `row.keys()` exists on `Row` in 2.0 | `hasattr(row, "keys")` is **False** (`D100`) |
+
+**Disclosed correction, made after the first run.** `g028` first came back FAIL. The answer was right;
+the check was wrong: it read `Connection.get_isolation_level()`, which on SQLite reports
+`SERIALIZABLE` even in autocommit mode. At the driver, `sqlite3`'s `isolation_level` goes from `''` to
+`None` (autocommit) once the option is set. The check now reads the driver, with the reason in a
+comment, and `g028` passes. **Changing a check after seeing its result is a deviation from the
+pre-registration**, allowed here only because the original demonstrably tested the wrong thing; it is
+recorded so the reader can reject it.
+
+**Executed vs judged, item by item.** Of the reference judge's 10 `SUPPORTED` 3b answers, **7** pass
+execution, **2 fail** (`g087`, `g099`) and 1 is not checkable (`g090`). Six answers it called only
+`PARTIAL` have correct central claims (`g008 g013 g021 g050 g051 g106`). The judge's *rate* was close;
+its *items* were wrong in both directions: the third time this phase (`D96`, `D101`).
+
+**What it is not:** a human verification (`D06`). Claude wrote the checks and chose each answer's
+"central claim"; a correct central claim does not make every sentence of an answer correct.

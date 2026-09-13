@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D102`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D103`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -4054,6 +4054,36 @@ run?"* The same retrieval, gated to rank identically without Qdrant, and the sam
 larger hosted model, because the host cannot run the local one. The page says the measured score is
 for a different model, because quoting it there would be the exact mistake the project is built to
 catch.
+
+### D103 — escalated answers, executed: 87% of checkable central claims are correct on 2.0.51
+
+**Decided 2026-09-12 (night).** Phase 6 Step 3e. `tools/check_escalated.py`, committed at `7f1b6b9`
+**before its first run**; rules in `PHASE-6.md`. Reproduce: the `# runnable` block there.
+
+**Method.** For each of the 29 answered escalations, the answer's central checkable claim as code,
+testing both the old behaviour it says is gone and the new one it recommends, run on real
+`sqlalchemy==2.0.51`. `NOT_CHECKABLE` never counts as correct; a crash in a check is `ERROR`.
+
+```
+3b page present   PASS 13  FAIL 2 (g087 g099)  NOT_CHECKABLE 1 (g090)   87%
+3c page absent    PASS 12  FAIL 1 (g016)                                 92%
+```
+
+**Decided: the 0.53 upper bound (`D101`) stands** — the pre-written bar was 80%.
+
+**Found:** the reference judge called two wrong answers `SUPPORTED` (`g087`, `g099`) and six right
+central claims only `PARTIAL`. A judge's rate can be near the truth while its item-level calls are not.
+
+**Disclosed deviation:** `g028`'s check was corrected after the first run (it read an API that reports
+`SERIALIZABLE` on SQLite in autocommit mode); the answer was right. Recorded in the check's comment.
+
+**Not a human verdict (`D06`)**: Claude chose each central claim and wrote each check; the claims are in
+the file to be disputed.
+
+**Interview question it answers:** *"How do you know the bigger model's answers are actually right?"*
+I turned each answer's main claim into a check and ran it against the real library: 13 of 15 checkable
+passed, and the two failures were answers my judge had marked as fully supported. So the judge's overall
+rate was usable, and its verdict on any single answer was not.
 ---
 
 ## Where the rest of the repo lives

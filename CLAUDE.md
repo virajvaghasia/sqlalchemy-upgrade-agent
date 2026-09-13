@@ -51,7 +51,7 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D102`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D103`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
@@ -379,6 +379,14 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PHASE 6 STEP 3e (`D103`): ESCALATED ANSWERS EXECUTED ON 2.0.51.** `tools/check_escalated.py`
+(committed before its first run) turns each answer's central claim into a check: 3b **13 of 15
+checkable pass (87%)** → the 0.53 upper bound stands; 3c 12 of 13. The two 3b failures (`g087`,
+`g099`) are answers the reference judge called SUPPORTED. One check (`g028`) was corrected after its
+first run, disclosed. Demo UI redesigned and checked in Chrome (two columns, status badge, source
+cards). **Morning, Viraj's:** choose a free host + sign up; decide on the `webapp-testing` skill.
+Restart the local demo with the command in `PHASE-6.md` Step 4.
+
 **PHASE 6 STEP 4 — HOSTING REFUSED, LOCAL DEMO WORKS.** HF answered **402: Gradio Spaces need PRO**
 (nothing created). The lab PC is not Viraj's to host on. **Local demo, measured generator:**
 `DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with gradio==6.27.0 python space/app.py`
@@ -627,7 +635,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**492 tests**, **74/74** `# runnable`, **102** decisions, **§H empty**.
+**492 tests**, **75/75** `# runnable`, **103** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -674,7 +682,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 
 ```
 uv run pytest                            # 492 passed with Qdrant up; 487 + 5 skipped without
-uv run python -m tools.check_runnable    # 74/74 RUN blocks reproduce
+uv run python -m tools.check_runnable    # 75/75 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
