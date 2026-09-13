@@ -691,6 +691,8 @@ container — both recorded in `D106`.
 
 ## Night of 2026-09-12 — two checks, pre-registered at 23:55 before either ran
 
+**Redeployed 2026-09-13 ~16:10 after `D107`** (`space/build.py`, `modal app stop`, `modal deploy`). Checked live: `GET /` 200; one question (*query.get() moved*) answered in **50.3 s** from a cold container with 5 sources, and the notice now reads *"0.58 end to end, and 91% of its answers judged fully supported"*. Billing: Viraj set the workspace usage limit to $30, equal to the Starter plan's monthly credits; the HF weights volume is 5.31 GiB, inside Modal's 1 TiB/month free storage (pricing page, fetched 2026-09-13).
+
 ### Step 4b — is the local demo the measured system?
 
 **The claim on the page:** the local demo's notice says qwen is *"the generator the project measured:
