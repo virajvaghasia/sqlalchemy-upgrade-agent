@@ -152,3 +152,15 @@ def test_a_role_and_a_citation_in_one_sentence_both_render():
     out = demo.link_citations("The :meth:`_orm.Query.get` method moves to :meth:`_orm.Session.get` [1].", 5)
     assert out == "The `Query.get` method moves to `Session.get` [[1]](#src-1)."
     assert ":meth:" not in out
+
+
+def test_payload_carries_linked_answer_marked_sources_and_the_notice():
+    """The custom page reads only this; it must never have to re-derive a rule."""
+    result = {"answer": "Use :meth:`_orm.Session.get` [2].", "refused": False, "error": None,
+              "sources": [{"n": n, "version": "2.0.51", "path": "p.rst", "heading": "H",
+                           "text": ":class:`~sqlalchemy.engine.Row`"} for n in (1, 2)]}
+    p = demo.payload(result, "ollama", 12.34)
+    assert p["status"] == "answered" and p["answer_md"] == "Use `Session.get` [[2]](#src-2)."
+    assert [s["cited"] for s in p["sources"]] == [False, True] and p["sources"][0]["text"] == "Row"
+    assert "the generator the project measured" in p["notice"] and p["seconds"] == 12.3
+    assert "does not describe" in demo.payload(result, "nvidia", 1)["notice"]

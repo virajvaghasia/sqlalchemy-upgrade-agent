@@ -269,3 +269,26 @@ def render_sources(result: dict) -> str:
             f'<pre style="white-space:pre-wrap;font-size:.85em;margin-top:10px">{html.escape(text)}</pre>'
             '</details>')
     return "".join(cards)
+
+
+def payload(result: dict, backend: str, seconds: float) -> dict:
+    """What the custom web page (space/static/index.html) receives as JSON.
+
+    Citation links and Sphinx-role cleanup are done HERE, by the tested
+    `link_citations`, not re-implemented in JavaScript: one rule, one home.
+    The page renders `answer_md` as Markdown and sanitizes it before display.
+    """
+    sources = result.get("sources") or []
+    used = cited(result)
+    return {
+        "status": status(result),
+        "status_label": STATUS[status(result)][0],
+        "error": result.get("error"),
+        "answer_md": link_citations(result["answer"], len(sources)) if result.get("answer") else "",
+        "sources": [{"n": s["n"], "version": s["version"], "path": s["path"], "heading": s["heading"],
+                     "text": SPHINX_ROLE.sub(sphinx_name, s["text"]), "cited": s["n"] in used}
+                    for s in sources],
+        "notice": MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL,
+        "generator": "qwen2.5-coder:7b" if backend == "ollama" else MODEL,
+        "seconds": round(seconds, 1),
+    }
