@@ -659,3 +659,48 @@ Sources: [InfoQ on Oracle's A1 cut](https://www.infoq.com/news/2026/07/oracle-cl
 [Modal free tier summary](https://aicreditmart.com/ai-credits-providers/modal-free-tier-how-to-get-30-month-in-compute-credits-2026/),
 [Koyeb instances](https://www.koyeb.com/docs/reference/instances),
 [Render free tier summary](https://www.srvrlss.io/provider/render/).
+
+---
+
+## Night of 2026-09-12 — two checks, pre-registered at 23:55 before either ran
+
+### Step 4b — is the local demo the measured system?
+
+**The claim on the page:** the local demo's notice says qwen is *"the generator the project measured:
+… 0.43 on the Mac"*. That 0.43 went through **Qdrant**; the demo searches **in memory**. The gate showed
+identical top-5s, so the pages reaching the model should be identical, and the answers should match
+the measured ones up to the Mac's own day-to-day drift (`D84`).
+
+**Run:** `RAG_DENSE=memory uv run python -m rag.score --refusals` on the Mac, all 100.
+**Reference:** today's Mac arm A in `deliverables/framing-phase6.Darwin-arm64.json` (same machine,
+same day, and it reproduced `D72`'s 19 over-refusal ids exactly).
+
+| result | meaning |
+|---|---|
+| end to end **39/91 ± 2**, and the over-refused-with-page ids overlap arm A's 19 by **≥ 16** | the demo's path is the measured system; the notice stands |
+| end to end off by **3 or more**, or overlap **< 16** | the notice overstates; it gets reworded to name the difference |
+
+### Step 3e — are the escalated answers correct, executed on 2.0.51?
+
+**The open question from `D101`:** 10 of 16 escalated answers agree with the verified page, but
+correctness was *executed* for two answers only (`g016`, `g007`).
+
+**Method, fixed before any check runs:** for each escalated answer (3b's 16, 3c's 13 page-absent),
+Claude reads the answer and writes down **its central checkable claim about SQLAlchemy 2.0** — an API
+that exists or does not, a call that raises or succeeds, a value returned — as a small Python check,
+**before running it**. The checks run on real `sqlalchemy==2.0.51` with SQLite, in one script,
+`tools/check_escalated.py`, whose output is a `# runnable` block.
+
+- An answer whose central claim **cannot be made executable** (pure advice, a design opinion, a
+  behaviour that needs a server) is counted **not checkable**, never correct.
+- **Claude writes the checks, so this is not a human verdict (`D06`).** The checks are in the file,
+  one per item, so anyone can read what was tested and dispute it.
+
+**Rules:**
+
+| result | meaning |
+|---|---|
+| of the 3b answers checked, **≥ 80%** pass | the reference judge's 10 is a fair estimate; the 0.53 upper bound stands as stated |
+| **< 80%** pass | the escalation gain is overstated; the quoted upper bound is recomputed from the executed passes |
+
+**Prediction:** about 70% of checkable 3b answers pass, and about 8 of the 29 are not checkable.
