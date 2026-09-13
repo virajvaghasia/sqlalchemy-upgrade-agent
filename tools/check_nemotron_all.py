@@ -114,6 +114,16 @@ REMOVED_IN_20_COUNT = (
     "print(sum(x.category.__name__ == 'RemovedIn20Warning' for x in w))\n"
 )
 
+# CORRECTED AFTER THE FIRST RUN (PHASE-6.md Step 4f): g027 and g055 first used the count above
+# and read "with 1, without 1". Without SQLALCHEMY_WARN_20, 1.4.52 still emits ONE RemovedIn20Warning,
+# the summary "Deprecated API features detected! ... set SQLALCHEMY_WARN_20=1 to show all"; with it,
+# the specific warning naming Engine.execute(). The claim "setting it turns the warnings on" is about
+# the specific ones, so these two count warnings other than the summary. g078's claim ("leaving it
+# unset suppresses them") is about ANY such warning and keeps the count above, unchanged.
+SPECIFIC_REMOVED_IN_20_COUNT = REMOVED_IN_20_COUNT.replace(
+    "x.category.__name__ == 'RemovedIn20Warning'",
+    "x.category.__name__ == 'RemovedIn20Warning' and not str(x.message).startswith('Deprecated API features detected')")
+
 
 # --- the 53 --------------------------------------------------------------------
 
@@ -301,7 +311,7 @@ def g026():
 
 def g027():
     CLAIM = "on 1.4, SQLALCHEMY_WARN_20=1 turns on RemovedIn20Warning (engine.execute warns only with it set)"
-    with_var, without = on_14(REMOVED_IN_20_COUNT, True), on_14(REMOVED_IN_20_COUNT, False)
+    with_var, without = on_14(SPECIFIC_REMOVED_IN_20_COUNT, True), on_14(SPECIFIC_REMOVED_IN_20_COUNT, False)
     return CLAIM + f"   [counts: with {with_var}, without {without}]", with_var not in ("", "0") and without == "0"
 
 
@@ -337,11 +347,16 @@ def g030():
 
 def g031():
     CLAIM = "sqlalchemy.orm.mapper() is gone in 2.0; registry().map_imperatively() maps a class"
-    try:
-        from sqlalchemy.orm import mapper  # noqa: F401
-        old = False
-    except ImportError:
-        old = True
+    # CORRECTED AFTER THE FIRST RUN (PHASE-6.md Step 4f): the first version tested whether
+    # `from sqlalchemy.orm import mapper` fails. On 2.0.51 the name still imports, as a stub that
+    # raises when CALLED ("The 'sqlalchemy.orm.mapper()' function is removed as of SQLAlchemy 2.0.
+    # Use ... map_imperatively()"). The claim is that the function is replaced, so the check calls it.
+    from sqlalchemy.orm import mapper
+
+    class Old:
+        pass
+    old = raises(lambda: mapper(Old, sa.Table("old", sa.MetaData(), sa.Column("id", sa.Integer, primary_key=True))),
+                 exc.InvalidRequestError)
 
     class Thing:
         pass
@@ -565,7 +580,7 @@ def g051():
 
 def g055():
     CLAIM = "on 1.4, SQLALCHEMY_WARN_20=1 enables RemovedIn20Warning"
-    with_var, without = on_14(REMOVED_IN_20_COUNT, True), on_14(REMOVED_IN_20_COUNT, False)
+    with_var, without = on_14(SPECIFIC_REMOVED_IN_20_COUNT, True), on_14(SPECIFIC_REMOVED_IN_20_COUNT, False)
     return CLAIM + f"   [counts: with {with_var}, without {without}]", with_var not in ("", "0") and without == "0"
 
 
@@ -795,7 +810,11 @@ def g099():
 def g100():
     CLAIM = "AsyncSession.run_sync can run synchronous bulk_save_objects inside async code"
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-    Base, User, _, _ = models()
+    # CORRECTED AFTER THE FIRST RUN (PHASE-6.md Step 4f): the first version discarded the Address
+    # class (`Base, User, _, _ = models()`). Alone it passed; in the full run it crashed with
+    # "expression 'Address' failed to locate a name" -- the unreferenced class can be garbage-
+    # collected before User's relationship("Address") is configured. Keeping the reference is the fix.
+    Base, User, Address, _ = models()
 
     async def main():
         engine = create_async_engine("sqlite+aiosqlite://")
