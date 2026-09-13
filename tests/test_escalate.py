@@ -266,3 +266,29 @@ def test_a_judge_resume_asks_an_unparsed_row_again():
     assert not escalate.needs_judging({"refused": False, "verdict_nvidia": "PARTIAL"})
     assert not escalate.needs_judging({"refused": True})
     assert not escalate.needs_judging({"refused": False, "empty": True})
+
+
+# --- Step 4e: the same judge on both models ----------------------------------
+
+def test_qwen_rows_to_judge_are_its_answers_on_nemotrons_pages():
+    qwen = [outcome("g1", True), outcome("g2", False), {**outcome("g3", True), "answer_in_prompt": False}]
+    nem = [gen("g1", hits=("c1", "c2")), gen("g2", hits=("c9",)), gen("g3", hits=("c9",))]
+    rows = escalate.qwen_judge_rows(qwen, nem)
+    assert [r["id"] for r in rows] == ["g1", "g3"], "declines are not judged"
+    assert rows[0]["hits"] == ["c1", "c2"] and rows[0]["answer"] == "an answer [1]"
+    assert not rows[0]["refused"] and not rows[0]["empty"]
+
+
+def test_same_judge_pairing_drops_unparsed_and_page_flag_mismatches():
+    nem = {"g1": "SUPPORTED", "g2": "PARTIAL", "g3": "SUPPORTED", "g4": "UNPARSED", "g5": "SUPPORTED"}
+    qwen = {"g1": "PARTIAL", "g2": "SUPPORTED", "g3": "SUPPORTED", "g4": "SUPPORTED", "g5": "PARTIAL"}
+    flags_differ = {"g5"}
+    p = escalate.paired_support(nem, qwen, drop=flags_differ)
+    assert (p["n"], p["fixed"], p["broken"]) == (3, ["g1"], ["g2"])
+    assert p["dropped"] == ["g4", "g5"]
+
+
+def test_the_same_judge_verdict_uses_the_pre_registered_bar():
+    assert escalate.faith_verdict({"fixed": ["x"] * 6, "broken": [], "p": ask_p(6, 0)}) == "MORE faithful"
+    assert escalate.faith_verdict({"fixed": ["x"] * 12, "broken": ["y"] * 2, "p": ask_p(12, 2)}) == "LEVEL"
+    assert escalate.faith_verdict({"fixed": [], "broken": ["y"] * 8, "p": ask_p(0, 8)}) == "LESS faithful"

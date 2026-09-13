@@ -970,3 +970,47 @@ even if it had come back SUPPORTED.
 **Cost.** 215177 prompt + 67260 output tokens for the 100; shadow cost **$0.34, i.e. $3.45 per 1000
 queries** at the snapshot price, against the cascade's $1.81 (`D100`), which sends only refusals. The
 calls were free credits.
+
+---
+
+## Step 4e — the same judge on both models (pre-registered 2026-09-13, before any call)
+
+**The question.** Step 4d's 77% cannot be set beside qwen's 77–92%, because a different judge produced
+those (`gemma4:e4b`). Here `openai/gpt-oss-20b`, the judge that read nemotron's answers, reads **the lab
+qwen's 47 answers** (`prompt-sweep-round16.Linux-x86_64.json`, prompt `D`). Viraj approved it
+(2026-09-13). ~47 NVIDIA free-credit calls.
+
+**Held fixed.** The same judge prompt (`faithful.judge_answer`), the same model id, the same day. **The
+pages:** qwen's rows do not store their five page ids, so each answer is judged against the five pages in
+nemotron's Step 4d rows for the same question. That is legitimate only because retrieval reproduces
+across the machines (`D83`); the report re-checks it by comparing, for every question, whether the answer
+page was among the five in both runs, and **any mismatch drops that question from the pairing**.
+
+| measure | rule, written first |
+|---|---|
+| paired, the **42** questions both models answered | SUPPORTED yes/no by id. **nemotron MORE faithful** if it is SUPPORTED where qwen is not on ≥ 6, the reverse on ≤ 1, and exact McNemar p < 0.05. **LESS** if the reverse outnumbers it with p < 0.05. Otherwise **LEVEL** |
+| rates | qwen `SUPPORTED / judged` and nemotron's 53/69 printed side by side, **no verdict** (the two sets of answered questions differ) |
+| completeness | an `UNPARSED` verdict is asked again once; still unparsed → dropped from both sides and listed |
+
+**Prediction (Claude).** **LEVEL.** qwen ~70% SUPPORTED: its answers are shorter and cite less (`D73`),
+which hurts "fully supported" more than it hurts "not contradicted".
+
+## Step 4f — are nemotron's 53 delivered answers correct? Executed on 2.0.51 (pre-registered 2026-09-13)
+
+**The question.** `SUPPORTED` means the pages back an answer, not that it is right (`D100`, `D103`). Step 3e
+executed 29 escalated answers; today's answers are new text (0 of 53 identical to the saved escalations),
+so those checks do not carry over. **These are the 53 that count toward the 0.58**: answerable, page in
+the prompt, answered.
+
+**Method, Step 3e's rules unchanged.** Claude reads each answer and writes its central checkable claim
+as a string beside a check in `tools/check_nemotron_all.py`, **committed before its first run**. A check
+tests the old behaviour the answer says is gone **and** the new behaviour it recommends, with narrow
+exceptions. `NOT_CHECKABLE` (typing, advice, a claim that is only "the sources do not cover X") is never
+counted as correct. A crash in a check is `ERROR`, reported apart. **Any check changed after the first
+run is marked in a comment and listed here.** Claude wrote the checks; this is not a human verdict (`D06`).
+
+| measure | rule |
+|---|---|
+| correctness | **≥ 80% of checkable answers PASS** → the 0.58 stands as "delivered and, where checkable, correct". Below → the 0.58 is overstated, and the executed-correct count is quoted beside it |
+
+**Prediction (Claude).** ~88% of checkable pass (Step 3e: 13 of 15 = 87%); 5–10 `NOT_CHECKABLE`.

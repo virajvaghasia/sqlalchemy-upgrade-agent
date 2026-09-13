@@ -382,8 +382,70 @@ def needs_judging(row: dict) -> bool:
             and row.get("verdict_nvidia") not in faithful.VERDICTS)
 
 
+# --- Step 4e: the same judge on both models ----------------------------------
+
+ROWS_QWEN_JUDGED = judge.DELIVERABLES / "qwen-lab-judged-phase6.json"
+
+
+def qwen_judge_rows(qwen: list[dict], nemotron: list[dict]) -> list[dict]:
+    """The lab qwen's answers, each paired with the five page ids from nemotron's
+    row for the same question. qwen's rows never stored page ids; retrieval
+    reproduces across machines (D83), and the report re-checks that per question."""
+    hits = {r["id"]: r["hits"] for r in nemotron}
+    return [{"id": r["id"], "answer": r["answer"], "hits": list(hits[r["id"]]),
+             "refused": False, "empty": False, "generator": "qwen2.5-coder:7b (lab, Round 16)"}
+            for r in qwen if "answer" in r and not ask.refused(r["answer"])]
+
+
+def paired_support(nem: dict, qwen: dict, drop: set = frozenset()) -> dict:
+    """SUPPORTED yes/no by id over questions both models answered and the judge
+    read on both sides. Unreadable verdicts and page-flag mismatches are dropped
+    from BOTH sides and named."""
+    common = sorted(nem.keys() & qwen.keys())
+    dropped = [i for i in common if i in drop
+               or nem[i] not in faithful.VERDICTS or qwen[i] not in faithful.VERDICTS]
+    kept = [i for i in common if i not in dropped]
+    fixed = [i for i in kept if nem[i] == "SUPPORTED" and qwen[i] != "SUPPORTED"]
+    broken = [i for i in kept if qwen[i] == "SUPPORTED" and nem[i] != "SUPPORTED"]
+    return {"n": len(kept), "fixed": fixed, "broken": broken, "dropped": dropped,
+            "p": score.mcnemar_exact(len(fixed), len(broken))}
+
+
+def faith_verdict(p: dict) -> str:
+    return {"AHEAD": "MORE faithful", "BEHIND": "LESS faithful", "LEVEL": "LEVEL"}[verdict(p)]
+
+
+def report_same_judge(nem_rows: list[dict], qwen_judged: list[dict], nem_outs: list[dict],
+                      qwen_outs: list[dict]) -> dict:
+    nem = {r["id"]: r["verdict_nvidia"] for r in nem_rows
+           if not r.get("empty") and not ask.refused(r["answer"]) and r.get("verdict_nvidia")}
+    qwen = {r["id"]: r.get("verdict_nvidia") for r in qwen_judged}
+    flag_n = {r["id"]: r["answer_in_prompt"] for r in nem_outs}
+    flag_q = {r["id"]: r["answer_in_prompt"] for r in qwen_outs}
+    differ = {i for i in flag_n.keys() & flag_q.keys() if flag_n[i] != flag_q[i]}
+    print(f"\n  SAME JUDGE, BOTH MODELS ({faithful.NVIDIA_JUDGE}, each answer against its five pages)")
+    for name, v in (("qwen2.5-coder:7b (lab)", qwen), ("nemotron", nem)):
+        judged = [x for x in v.values() if x in faithful.VERDICTS]
+        sup = sum(x == "SUPPORTED" for x in judged)
+        rate = f"{sup / len(judged):.0%}" if judged else "-"
+        print(f"    {name:<24} judged {len(judged):>2} of {len(v):>2} answered   SUPPORTED {sup:>2} = {rate}"
+              f"   PARTIAL {sum(x == 'PARTIAL' for x in judged)}   UNSUPPORTED {sum(x == 'UNSUPPORTED' for x in judged)}")
+    missing = [i for i, x in qwen.items() if x not in faithful.VERDICTS]
+    p = paired_support(nem, qwen, drop=differ)
+    done = not missing
+    tail = f"-> {faith_verdict(p)}" if done else f"no verdict: {len(missing)} qwen answers not judged yet"
+    print(f"    paired over {p['n']} answered by both   nemotron-only SUPPORTED {len(p['fixed'])}  "
+          f"qwen-only SUPPORTED {len(p['broken'])}  exact McNemar p = {p['p']:.4f}   {tail}")
+    print(f"      nemotron-only  {' '.join(p['fixed']) or '-'}")
+    print(f"      qwen-only      {' '.join(p['broken']) or '-'}")
+    if p["dropped"]:
+        print(f"      dropped (unreadable verdict or page flag differs)  {' '.join(p['dropped'])}")
+    return p
+
+
 def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict, *,
-               qwen_lab: list[dict], qwen_mac: list[dict], prices: dict | None) -> dict:
+               qwen_lab: list[dict], qwen_mac: list[dict], prices: dict | None,
+               qwen_judged: list[dict] | None = None) -> dict:
     expected = len(all_ids(golden))
     empty = [r["id"] for r in rows if r.get("empty")]
     missing = expected - (len(rows) - len(empty))
@@ -438,6 +500,10 @@ def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict,
         if unparsed:
             print(f"    UNPARSED {' '.join(unparsed)}  (not a verdict; re-run --judge-nvidia to ask again)")
         result["supported"] = (len(sup), len(judged))
+
+    if qwen_judged:
+        qwen_outs = [dict(r, refused=ask.refused(r["answer"])) for r in qwen_lab]
+        result["same_judge"] = report_same_judge(rows, qwen_judged, outs, qwen_outs)
 
     if repeat:
         s = stability([r for r in rows if r["id"] in {x["id"] for x in repeat}], repeat)
@@ -500,8 +566,16 @@ def main() -> None:
     all_mode = "--all" in argv
     if all_mode:
         # Step 4d. --repeat asks the first 20 again into their own file.
+        # Step 4e. --judge-qwen judges the lab qwen's answers with the same judge.
         ids, ROWS = ((repeat_ids(golden), ROWS_REPEAT) if "--repeat" in argv
                      else (all_ids(golden), ROWS_ALL))
+        if "--judge-qwen" in argv:
+            if not ROWS_QWEN_JUDGED.exists():
+                built = qwen_judge_rows(json.loads(QWEN_LAB.read_text())["D"],
+                                        json.loads(ROWS_ALL.read_text())["rows"])
+                ROWS_QWEN_JUDGED.write_text(json.dumps({"rows": built}, indent=1) + "\n")
+            ROWS = ROWS_QWEN_JUDGED
+            argv = argv + ["--judge-nvidia"]
     else:
         ids = escalation_ids(which)
         if which == "rest":
@@ -598,7 +672,8 @@ def main() -> None:
         load = lambda p: json.loads(p.read_text())["rows"] if p.exists() else []
         report_all(load(ROWS_ALL), load(ROWS_REPEAT), golden, score.load_chunks(),
                    qwen_lab=json.loads(QWEN_LAB.read_text())["D"],
-                   qwen_mac=json.loads(QWEN_MAC.read_text())["D"], prices=prices)
+                   qwen_mac=json.loads(QWEN_MAC.read_text())["D"], prices=prices,
+                   qwen_judged=load(ROWS_QWEN_JUDGED))
         return
     rows = json.loads(ROWS.read_text())["rows"]
     if "--reference-report" in argv:
