@@ -1,0 +1,748 @@
+{
+ "rows": [
+  {
+   "id": "g002",
+   "answer": "The :meth:`_orm.Query.from_self` method has been removed from :class:`_orm.Query`. Instead, use the :func:`_orm.aliased` construct to emit ORM queries against an entity that is in terms of any arbitrary selectable. Here's how you can rewrite your query:\n\n```python\nfrom sqlalchemy.orm import aliased\n\nsubq = session.query(User, Address.email_address).join(User.addresses).subquery()\n\nua = aliased(User, subq)\n\naa = aliased(Address, subq)\n\nstmt = select(ua, aa).order_by(aa.email_address)\n\nresult = session.execute(stmt)\n```\n\nThis approach uses the :func:`_orm.aliased` construct to create aliases for the subquery results, which can then be used in a new query.",
+   "hits": [
+    "c01598",
+    "c01599",
+    "c01989",
+    "c03187",
+    "c01555"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that `Query.from_self` is removed and that `aliased` can be used to rewrite such queries."
+  },
+  {
+   "id": "g004",
+   "answer": "After upgrading to SQLAlchemy 2.0, the `engine.execute()` method has been removed. To run SQL in SQLAlchemy 2.0, you should use the `Connection.execute()` method instead.\n\nHere's an example of how to modify your code:\n\n```python\nfrom sqlalchemy import create_engine, text\n\n# Create an engine\nengine = create_engine('your_database_url')\n\n# Connect to the database\nwith engine.connect() as connection:\n    # Use Connection.execute() to run SQL\n    result = connection.execute(text(\"SELECT * FROM table\"))\n    \n    # Process the result\n    for row in result:\n        print(row)\n```\n\nIn this example, `engine.connect()` is used to get a connection object. Then, `connection.execute(text(\"SELECT * FROM table\"))` is used to execute the SQL statement.\n\nIf you are using SQLAlchemy ORM, you can also use the `Session.execute()` method:\n\n```python\nfrom sqlalchemy import create_engine, text\nfrom sqlalchemy.orm import sessionmaker\n\n# Create an engine\nengine = create_engine('your_database_url')\n\n# Create a session\nSession = sessionmaker(bind=engine)\nsession = Session()\n\n# Use Session.execute() to run SQL\nresult = session.execute(text(\"SELECT * FROM table\"))\n    \n# Process the result\nfor row in result:\n    print(row)\n\n# Close the session\nsession.close()\n```\n\nIn this example, `session.execute(text(\"SELECT * FROM table\"))` is used to execute the SQL statement within a session.",
+   "hits": [
+    "c01573",
+    "c01569",
+    "c01567",
+    "c01568",
+    "c01551"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[2] (and [3],\u202f[4],\u202f[5]) states that `Engine.execute()` is removed and that SQL should be run via `Connection.execute()` or `Session.execute()`."
+  },
+  {
+   "id": "g014",
+   "answer": "Yes, you need to use `session.scalars(select(User))` if you want to get `User` instances directly instead of `Row` objects. The sources [1] and [4] explain that when selecting ORM entities using `session.execute`, the result is a `Row` object containing a single element (the entity). To get the entity itself, you should use `session.scalars(select(User))`.",
+   "hits": [
+    "c01383",
+    "c03127",
+    "c02917",
+    "c01382",
+    "c01380"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [4] show that `session.execute(select(User))` returns a `Row` containing a `User` instance, while `session.scalars(select(User))` returns the `User` objects directly."
+  },
+  {
+   "id": "g015",
+   "answer": "To get mapping access in SQLAlchemy 2.0 after upgrading from 1.4, you can use the `mappings()` modifier on the result [1]. This will return results as mappings, allowing you to access columns by key like `row['id']`. Here's an example:\n\n```python\nfrom sqlalchemy.future.orm import Session\n\nsession = Session(some_engine)\n\nresult = session.execute(stmt)\nfor row in result.mappings():\n    print(\"the id is: %s\" % row[\"id\"])\n```\n\nThis approach ensures that you can access columns by their names, which resolves the `TypeError` you encountered after upgrading.",
+   "hits": [
+    "c01576",
+    "c02555",
+    "c03105",
+    "c01363",
+    "c02553"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage\u202f[1] confirms that `mappings()` returns mapping results and allows keyed access, but it does not mention the TypeError or upgrading from 1.4."
+  },
+  {
+   "id": "g017",
+   "answer": "Yes, when using `joinedload` to load a collection in SQLAlchemy 2.0 and later versions, you need to call the `.unique()` method on the result [5]. This is because by default, ORM rows are no longer automatically uniqued, which can lead to duplicate parent objects if not handled properly. The `.unique()` method ensures that only one instance of each primary key is returned, preventing duplicates in the collection.",
+   "hits": [
+    "c02103",
+    "c02890",
+    "c01347",
+    "c00965",
+    "c01603"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[5] (and [2]) states that for joinedload of a collection in SQLAlchemy\u202f2.0 you must call `.unique()` because ORM rows are no longer automatically uniqued."
+  },
+  {
+   "id": "g018",
+   "answer": "In SQLAlchemy 2.0, the `Session(autocommit=True)` pattern is no longer supported [1]. Instead, you should use explicit transaction management with `sess.begin()` to control when transactions begin and commit [1].\n\nThe sources do not answer this.",
+   "hits": [
+    "c01608",
+    "c03095",
+    "c01609",
+    "c01286",
+    "c03096"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] states that autocommit mode is removed and shows using `sess.begin()` for explicit transaction control."
+  },
+  {
+   "id": "g019",
+   "answer": "The :paramref:`_orm.Session.begin.subtransactions` flag is deprecated in SQLAlchemy 1.4 and will be removed in version 2.0 [1]. The recommended replacement pattern involves using a context manager to manage transactions at the outermost level of your database operations, rather than nesting begin/commit pairs within methods or functions.\n\nHere's an example of how you can use this pattern:\n\n```python\nimport contextlib\n\n@contextlib.contextmanager\ndef transaction(session):\n    if not session.in_transaction():\n        with session.begin():\n            yield\n    else:\n        yield\n\n# Example usage\ndef method_a(session):\n    with transaction(session):\n        method_b(session)\n\ndef method_b(session):\n    with transaction(session):\n        session.add(SomeObject(\"bat\", \"lala\"))\n\nSession = sessionmaker(engine)\n\nwith Session() as session:\n    with session.begin():\n        method_a(session)\n```\n\nThis pattern ensures that the top-most level of database operations are performed with a single begin/commit pair, which is preferable and avoids confusion in real-world applications [2].",
+   "hits": [
+    "c01281",
+    "c01609",
+    "c01282",
+    "c01610",
+    "c01279"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] states the flag is deprecated in 1.4, may be removed in 2.0, and recommends using a context manager for a single outermost begin/commit pair."
+  },
+  {
+   "id": "g024",
+   "answer": "The :meth:`_orm.Query.get` method moves to the :class:`_orm.Session` object in SQLAlchemy 2.0 [1]. The sources do not answer this question about warnings specifically.",
+   "hits": [
+    "c01592",
+    "c02026",
+    "c02872",
+    "c01549",
+    "c01551"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that Query.get is legacy and the primary interface is now Session.get."
+  },
+  {
+   "id": "g025",
+   "answer": "Yes, you still need to set `future=True` on `create_engine` when using SQLAlchemy 2.0 [4]. This is because the \"future\" mode provides full compatibility with the upcoming SQLAlchemy 2.0 API and ensures that your code adheres to the new transaction-level API introduced in SQLAlchemy 2.0.",
+   "hits": [
+    "c01845",
+    "c00209",
+    "c01473",
+    "c01555",
+    "c01564"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage\u202f[4] says that future=True enables the 2.0 API, but passage\u202f[1] indicates it is optional in 2.0."
+  },
+  {
+   "id": "g026",
+   "answer": "When you create a `Session` with `future=True` in SQLAlchemy 1.4, it enables \"future\" mode for that session. This means that the session will use the new transaction/connection level API that is available in SQLAlchemy 2.0. The primary changes include:\n\n- The session no longer supports \"bound metadata\" when resolving the engine to be used for connectivity; an `Engine` object must be passed to the constructor.\n- The `begin.subtransactions` flag is no longer supported.\n- The `commit` method always emits a COMMIT to the database, rather than attempting to reconcile \"subtransactions\".\n- The `rollback` method always rolls back the full stack of transactions at once, rather than attempting to keep \"subtransactions\" in place.\n\nThis allows you to start using some of the new features and improvements that are available in SQLAlchemy 2.0 while still maintaining compatibility with your existing codebase.",
+   "hits": [
+    "c01556",
+    "c01845",
+    "c00209",
+    "c01473",
+    "c01276"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] lists the exact changes and confirms that future=True activates the 2.0\u2011style transaction/connection API."
+  },
+  {
+   "id": "g027",
+   "answer": "To turn on `RemovedIn20Warnings` and identify what will break when migrating from SQLAlchemy 1.4 to 2.0, you can follow these steps based on the provided sources:\n\n1. **Set the Environment Variable**: Enable the `SQLALCHEMY_WARN_20=1` environment variable in your test suite or application setup. This ensures that deprecation warnings specific to SQLAlchemy 2.0 are emitted.\n\n   ```bash\n   SQLALCHEMY_WARN_1=1 python -W always::DeprecationWarning test3.py\n   ```\n\n2. **Configure Warnings Filters**: Use Python's `warnings` module to configure filters that will either raise exceptions or suppress certain warnings. This helps in focusing on specific types of deprecations.\n\n   ```python\n   import warnings\n   from sqlalchemy.exc import RemovedIn20Warning\n\n   # For warnings not included in regex-based filter below, just log\n   warnings.filterwarnings(\"always\", category=RemovedIn20Warning)\n\n   # For warnings related to execute() / scalar(), raise\n   for msg in [\n       r\"The (?:Executable|Engine)\\.(?:execute|scalar)\\(\\) function\",\n       r\"The current statement is being autocommitted using implicit autocommit,\",\n       r\"The connection.execute\\(\\) method in SQLAlchemy 2.0 will accept \"\n       \"parameters as a single dictionary or a single sequence of \"\n       \"dictionaries only.\",\n       r\"The Connection.connect\\(\\) function/method is considered legacy\",\n       r\".*DefaultGenerator.execute\\(\\)\",\n   ]:\n       warnings.filterwarnings(\n           \"error\",\n           message=msg,\n           category=RemovedIn20Warning,\n       )\n   ```\n\n3. **Run Your Application**: Execute your application with the environment variable and warning filters set up. This will cause SQLAlchemy to emit deprecation warnings, which you can then review to identify issues that need to be addressed.\n\nBy following these steps, you can effectively turn on `RemovedIn20Warnings` and find what parts of your codebase will break when migrating to SQLAlchemy 2.0.",
+   "hits": [
+    "c01550",
+    "c01554",
+    "c01553",
+    "c01549",
+    "c01551"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [3], [4], and [5] describe enabling SQLALCHEMY_WARN_20, configuring warnings filters, and running the app to see RemovedIn20Warnings."
+  },
+  {
+   "id": "g030",
+   "answer": "No, it is not correct in SQLAlchemy 2.0. The sources indicate that the `sqlalchemy.ext.declarative` package has been moved to the `sqlalchemy.orm` namespace [1]. Therefore, you should import `declarative_base` from `sqlalchemy.orm` instead:\n\n```python\nfrom sqlalchemy.orm import declarative_base\n```\n\nThis change is detailed further in the 1.4 migration guide at :ref:`change_5508`.",
+   "hits": [
+    "c01581",
+    "c02377",
+    "c00746",
+    "c02520",
+    "c00610"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage [1] confirms the move to `sqlalchemy.orm` and the import change, but does not mention SQLAlchemy\u202f2.0."
+  },
+  {
+   "id": "g031",
+   "answer": "The new name for `sqlalchemy.orm.mapper()` in SQLAlchemy 2.0 is `map_imperatively` when using a `registry`. This change allows classical mappings to be based off of the `registry` object and is available as `registry.map_imperatively`.\n\n[1]",
+   "hits": [
+    "c01582",
+    "c01583",
+    "c02675",
+    "c01030",
+    "c02674"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The passage [1] states that the original `mapper()` function is replaced by the method `registry.map_imperatively`, enabling classical mappings to be based on the `registry` object."
+  },
+  {
+   "id": "g032",
+   "answer": "Yes, the list chaining of join paths has been removed. Instead, individual calls to `Query.join` should be used for compatibility with both 1.x and 2.0 versions [1]. For 2.0-style queries, use `Select.join` or `Select.join_from` methods [3].\n\nExample:\n```python\n# 1.4 / 2.0 cross compatible\nstmt = select(User).join(User.orders).join(Order.items).join(Item.keywords)\nresult = session.execute(stmt)\n\n# join_from can also be helpful\nstmt = select(User).join_from(User, Order).join_from(Order, Item, Order.items)\nresult = session.execute(stmt)\n```",
+   "hits": [
+    "c01594",
+    "c01110",
+    "c02932",
+    "c01335",
+    "c01595"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that list chaining of join paths has been removed and that individual `Query.join` calls should be used for 1.x/2.0 compatibility, while `Select.join` or `Select.join_from` should be used for 2.0-style queries."
+  },
+  {
+   "id": "g033",
+   "answer": "To achieve `DISTINCT` on `User` while ordering by a column that is not part of the selected columns in SQLAlchemy 2.0, you need to explicitly add the column to the `SELECT` statement and then use the `.columns()` method on the result to specify which entity to return.\n\nHere's how you can do it:\n\n```python\nfrom sqlalchemy import select\n\nstmt = (\n    select(User, Address.email_address)\n    .join(User.addresses)\n    .distinct()\n    .order_by(Address.email_address)\n)\n\nresult = session.execute(stmt).columns(User).all()\n```\n\nIn this code:\n- `select(User, Address.email_address)` includes both the `User` entity and the `email_address` column in the `SELECT` statement.\n- `.distinct()` ensures that only distinct rows are returned based on all selected columns.\n- `.order_by(Address.email_address)` orders the results by the `email_address` column.\n- `.columns(User).all()` specifies that the result should be a list of `User` objects, even though other columns are included in the query.\n\nThis approach ensures that you can use `DISTINCT` with additional columns while still returning only the main entity object.",
+   "hits": [
+    "c01597",
+    "c03126",
+    "c00364",
+    "c01382",
+    "c00344"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that in SQLAlchemy 2.0 you must add the column to the SELECT and then use `.columns(User)` to return only the entity."
+  },
+  {
+   "id": "g034",
+   "answer": "To select an entity from a subquery in SQLAlchemy 2.0, you can use the `aliased` function to create an alias for the subquery and then query against that alias. Here's an example based on [1]:\n\n```python\nfrom sqlalchemy.orm import aliased\n\nsubquery = select(User).where(User.name.like(\"%somename%\")).subquery()\n\nua = aliased(User, subquery)\n\nuser = session.execute(select(ua).order_by(ua.id).limit(1)).scalars().first()\n```\n\nThis approach allows you to use the subquery as a selectable entity in your query.",
+   "hits": [
+    "c01601",
+    "c01335",
+    "c01105",
+    "c01598",
+    "c03162"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] (and also [3]) shows creating an alias with `aliased(User, subquery)` and querying against that alias."
+  },
+  {
+   "id": "g035",
+   "answer": "The baked query extension is no longer needed in SQLAlchemy 2.0; caching is built into the ORM and Core systems [1]. The sources do not answer this question directly, but they indicate that the baked query system has been superseded by a new caching system that is transparently active for all queries without user intervention [1][2].",
+   "hits": [
+    "c01612",
+    "c02504",
+    "c02518",
+    "c02513",
+    "c02510"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [2] state that the baked query extension has been superseded by a built\u2011in, transparently active caching system for all Core and ORM queries."
+  },
+  {
+   "id": "g038",
+   "answer": "To replace `session.query(User).all()` with the 2.0 style using `select`, you can use the following approach:\n\n```python\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import Session\n\n# Create a session in future mode\nsession = Session(engine, future=True)\n\n# Construct the select statement\nstmt = select(User)\n\n# Execute the statement and get the result\nresult = session.execute(stmt).scalars().all()\n```\n\nThis code snippet demonstrates how to create a `select` statement for the `User` entity and execute it using the `session.execute()` method. The `.scalars().all()` part ensures that you get a list of scalar values (i.e., instances of `User`).",
+   "hits": [
+    "c01180",
+    "c01601",
+    "c00562",
+    "c01585",
+    "c01589"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The passages (e.g., [1] and [4]) show that `session.query(User).all()` can be replaced with `session.execute(select(User)).scalars().all()`."
+  },
+  {
+   "id": "g041",
+   "answer": "The :paramref:`_orm.relationship.backref` keyword argument on the :func:`_orm.relationship` construct allows the automatic generation of a new :func:`_orm.relationship` that will be automatically added to the ORM mapping for the related class. It will then be placed into a :paramref:`_orm.relationship.back_populates` configuration against the current :func:`_orm.relationship` being configured, with both :func:`_orm.relationship` constructs referring to each other.\n\nTo replace `backref=` in SQLAlchemy 2.0, you should use :paramref:`_orm.relationship.back_populates`. This provides advantages including that both ORM mapped classes will include their attributes up front as the class is constructed, rather than as a deferred step, and configuration is more straightforward as all arguments are explicit.\n\nFor example:\n\n```python\nfrom sqlalchemy.orm import backref\n\nclass User(Base):\n    __tablename__ = \"user\"\n    id = mapped_column(Integer, primary_key=True)\n    name = mapped_column(String)\n\n    addresses = relationship(\n        \"Address\",\n        back_populates=\"user\",  # Use back_populates instead of backref=\n    )\n\nclass Address(Base):\n    __tablename__ = \"address\"\n    id = mapped_column(Integer, primary_key=True)\n    user_id = mapped_column(ForeignKey(\"user.id\"))\n    email_address = mapped_column(String)\n\n    user = relationship(\n        \"User\",\n        back_populates=\"addresses\",  # Use back_populates instead of backref=\n    )\n```\n\nThis approach is recommended for new code and will help you take advantage of the improvements in SQLAlchemy 2.0, such as better performance and more explicit configuration.",
+   "hits": [
+    "c02179",
+    "c02184",
+    "c00609",
+    "c02603",
+    "c00619"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] explicitly describes the backref behavior and recommends using back_populates in SQLAlchemy\u202f2.0 for the stated advantages."
+  },
+  {
+   "id": "g043",
+   "answer": "The :func:`_sql.select` construct as well as the related method :meth:`_sql.FromClause.select`\nwill no longer accept keyword arguments to build up elements such as the\nWHERE clause, FROM list and ORDER BY.   The list of columns may now be\nsent positionally, rather than as a list.  Additionally, the :func:`_sql.case` construct\nnow accepts its WHEN criteria positionally, rather than as a list::",
+   "hits": [
+    "c01577",
+    "c01120",
+    "c01578",
+    "c01429",
+    "c00424"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The claim is directly supported by passage\u202f[1] (and also reinforced in passage\u202f[3]), which states that `select()` and `FromClause.select()` no longer accept keyword arguments for structural elements, that columns are passed positionally, and that `case()` accepts WHEN criteria positionally."
+  },
+  {
+   "id": "g045",
+   "answer": "To run `t.select().execute()` in a connectionless style after it has been removed in SQLAlchemy 2.0, you need to use an explicit connection or engine. Here's how you can do it:\n\n1. **Using an Engine**:\n   ```python\n   result = engine.execute(t.select())\n   for row in result:\n       # process the row\n   result.close()\n   ```\n\n2. **Using a Connection**:\n   ```python\n   with engine.connect() as connection:\n       result = connection.execute(t.select())\n       for row in result:\n           # process the row\n       result.close()\n   ```\n\nThese methods ensure that you are explicitly managing connections, which is required in SQLAlchemy 2.0 to avoid the removal of \"implicit\" and \"connectionless\" execution patterns.",
+   "hits": [
+    "c00031",
+    "c00032",
+    "c01567",
+    "c01571",
+    "c00035"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[3] shows that `t.select().execute()` is no longer supported, and passage\u202f[2] demonstrates using an explicit engine or connection to execute statements."
+  },
+  {
+   "id": "g046",
+   "answer": "In SQLAlchemy 2.0, the `autocommit` mode is removed from the `Session`. Instead, you can explicitly start a transaction using the `begin()` method on the session. This allows for better control over when transactions begin and end.\n\nHere's how you can start a transaction explicitly:\n\n```python\nfrom sqlalchemy.orm import Session\n\nsession = Session(engine)\n\n# Explicitly begin a transaction\nwith session.begin():\n    session.add(some_object())\n    session.add(some_other_object())\n\n# The transaction is committed at the end of the block, or rolled back if an exception occurs\n```\n\nThis approach ensures that transactions are managed more predictably and avoids the confusion associated with subtransactions.",
+   "hits": [
+    "c01279",
+    "c03080",
+    "c01608",
+    "c01200",
+    "c01281"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [3] states that autocommit mode is removed in 2.0 and that the Session\u2019s `begin()` method can be used to start transactions, providing explicit control over transaction boundaries."
+  },
+  {
+   "id": "g047",
+   "answer": "In SQLAlchemy 2.0, the concept of \"subtransactions\" has been removed [3]. Instead, you should use `session.begin_nested()` to create savepoints within an ongoing transaction [4]. This method allows for committing or rolling back parts of a transaction without affecting the entire transaction.\n\nHere's how you can migrate your code:\n\n1. Replace any usage of `session.begin(subtransactions=True)` with `session.begin_nested()`.\n2. Ensure that when calling `session.commit()` or `session.rollback()`, it affects only the outermost transaction, not nested savepoints.\n\nFor example, if you had this in SQLAlchemy 1.4:\n\n```python\ndef method_a(session):\n    with session.begin(subtransactions=True):\n        method_b(session)\n\ndef method_b(session):\n    with session.begin(subtransactions=True):\n        session.add(SomeObject(\"bat\", \"lala\"))\n```\n\nYou would migrate it to:\n\n```python\ndef method_a(session):\n    with session.begin():\n        method_b(session)\n\ndef method_b(session):\n    with session.begin_nested():\n        session.add(SomeObject(\"bat\", \"lala\"))\n```\n\nThis ensures that `method_b` can participate in the ongoing transaction started by `method_a`, and you can still manage nested transactions using savepoints.",
+   "hits": [
+    "c01282",
+    "c03084",
+    "c01609",
+    "c03090",
+    "c01279"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [3] and [4] state that subtransactions were removed and that `session.begin_nested()` creates savepoints that can be committed or rolled back independently of the outer transaction."
+  },
+  {
+   "id": "g053",
+   "answer": "In SQLAlchemy 2.0, the `User.query.get(1)` method from Flask-SQLAlchemy is replaced with a direct call to `session.get(User, 1)` on the session object [1]. This change aims to simplify the interface and make it more consistent across different parts of SQLAlchemy.\n\nHere's how you can migrate the code:\n\n```python\n# Assuming 'session' is your SQLAlchemy session object\nuser = session.get(User, 1)\n```\n\nThis method call retrieves an instance of `User` with the primary key value of 1. If no such user exists, it returns `None`. This approach replaces the previous usage of `User.query.get(1)` and aligns with the new ORM query methods introduced in SQLAlchemy 2.0 [3].",
+   "hits": [
+    "c01592",
+    "c00562",
+    "c01589",
+    "c02872",
+    "c01180"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passage\u202f[1] confirms that `Query.get` is legacy and `Session.get` is the new primary method, but it does not mention Flask\u2011SQLAlchemy or the stated motivation."
+  },
+  {
+   "id": "g055",
+   "answer": "To turn on the `SQLALCHEMY_WARN_20` environment variable for enabling \"2.0 deprecations mode\" in SQLAlchemy, you can set it to either `true` or `1`. This will cause the :class:`_exc.RemovedIn20Warning` deprecation class to be emitted when running your application.\n\nHere's how you can do it:\n\n```bash\nSQLALCHEMY_WARN_20=1 python -W always::DeprecationWarning test3.py\n```\n\nThis command sets the environment variable and ensures that all warnings are logged, not suppressed. This helps in identifying which parts of your code need to be updated to comply with SQLAlchemy 2.0 standards.\n\nFor more detailed guidance on how to resolve these warnings and migrate your code, refer to the steps provided in the migration guide [1].",
+   "hits": [
+    "c01553",
+    "c01549",
+    "c01554",
+    "c01550",
+    "c01552"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [2] confirms that setting SQLALCHEMY_WARN_20 to true or 1 emits RemovedIn20Warning and the example shows warnings are not suppressed."
+  },
+  {
+   "id": "g056",
+   "answer": "In SQLAlchemy 1.4 and 2.0, you can create query properties for models using Python properties combined with `Query` objects. This allows you to define custom logic for querying related data without directly persisting it.\n\nHere's an example from the documentation:\n\n```python\nclass User(Base):\n    __tablename__ = \"user\"\n    id = mapped_column(Integer, primary_key=True)\n\n    @property\n    def addresses(self):\n        # query using any kind of filter() criteria\n        return (\n            object_session(self)\n            .query(Address)\n            .filter(Address.user_id == self.id)\n            .filter(...)\n            .all()\n        )\n```\n\nThis property allows you to access related `Address` objects for a given `User` instance without persisting the relationship directly. The query is executed when accessing the `addresses` attribute.\n\nThe sources do not cover how to use baked queries or any other advanced caching mechanisms, which were introduced in SQLAlchemy 1.4 and are deprecated in favor of built-in caching systems.",
+   "hits": [
+    "c02614",
+    "c00938",
+    "c01593",
+    "c02835",
+    "c02504"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passages [1] and [2] support the query\u2011property example, but passage [5] contradicts the claim that baked queries are not covered."
+  },
+  {
+   "id": "g060",
+   "answer": "In SQLAlchemy 2.0, `mapped_column()` supersedes the use of `Column()` for ORM-specific configurations [1]. While both can be used to define columns in a declarative class, `mapped_column()` provides additional ORM-specific features such as establishing deferred loading and better support for type checking tools like Mypy and Pylance.",
+   "hits": [
+    "c02379",
+    "c02773",
+    "c02667",
+    "c01018",
+    "c02954"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that `mapped_column()` supersedes `Column()` and adds deferred loading and typing support for tools like Mypy and Pylance."
+  },
+  {
+   "id": "g062",
+   "answer": "To declare enums in SQLAlchemy using `mapped_column` for enabling type hinting, you can use either a `typing.Literal` or a custom type alias created with `typing.TypeAliasType`. Here's how you can do it:\n\n### Using `typing.Literal`\n\n```python\nfrom typing import Literal\n\nfrom sqlalchemy.orm import DeclarativeBase\nfrom sqlalchemy.orm import Mapped\nfrom sqlalchemy.orm import mapped_column\n\n\nclass Base(DeclarativeBase):\n    pass\n\n\nStatus = Literal[\"pending\", \"received\", \"completed\"]\n\n\nclass SomeClass(Base):\n    __tablename__ = \"some_table\"\n\n    id: Mapped[int] = mapped_column(primary_key=True)\n    status: Mapped[Status]\n```\n\n### Using `typing.TypeAliasType`\n\n```python\nfrom typing import TypeAlias\n\ntype Status = Literal[\"on\", \"off\", \"unknown\"]\n\nimport enum\nimport sqlalchemy\n\n\nclass Base(DeclarativeBase):\n    type_annotation_map = {Status: sqlalchemy.Enum(enum.Enum)}\n\nclass SomeClass(Base):\n    __tablename__ = \"some_table\"\n\n    id: Mapped[int] = mapped_column(primary_key=True)\n    status: Mapped[Status]\n```\n\n### Explanation\n\n1. **Using `typing.Literal`**:\n   - Define an enum-like type using `Literal`.\n   - Use this type in your class attributes with `Mapped`.\n\n2. **Using `typing.TypeAliasType`**:\n   - Create a custom type alias for the enum.\n   - Map this type alias to SQLAlchemy's `Enum` type in the `type_annotation_map`.\n   - Use this type alias in your class attributes with `Mapped`.\n\nBoth methods allow you to leverage Python's type hinting system with SQLAlchemy, making your code more readable and maintainable.",
+   "hits": [
+    "c02419",
+    "c02421",
+    "c02382",
+    "c02418",
+    "c02393"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [2] show using a `typing.TypeAliasType` (via `type Status = Literal[...]`) and a `typing.Literal` with `mapped_column` and `type_annotation_map`, confirming both methods."
+  },
+  {
+   "id": "g065",
+   "answer": "To create a table and a view in the same migration using SQLAlchemy, you can use Alembic, which is a schema migration tool that works well with SQLAlchemy. Here\u2019s how you can do it:\n\n1. **Create a Migration Script**: Use Alembic to generate a new migration script.\n   ```bash\n   alembic revision --autogenerate -m \"create table and view\"\n   ```\n\n2. **Edit the Migration Script**: Open the newly generated migration script (usually located in `versions/`) and edit it to include both table creation and view creation.\n\n   Here\u2019s an example of what the script might look like:\n\n   ```python\n   from alembic import op\n   import sqlalchemy as sa\n\n   revision = 'your_revision_id'\n   down_revision = 'previous_revision_id'\n   branch_labels = None\n   depends_on = None\n\n   def upgrade():\n       # ### commands auto generated by Alembic - please adjust! ###\n       op.create_table(\n           'my_table',\n           sa.Column('id', sa.Integer, primary_key=True),\n           sa.Column('name', sa.String(50), nullable=False)\n       )\n       op.execute(\"\"\"\n           CREATE VIEW my_view AS\n           SELECT id, name FROM my_table WHERE name LIKE '%example%'\n       \"\"\")\n       # ### end Alembic commands ###\n\n   def downgrade():\n       # ### commands auto generated by Alembic - please adjust! ###\n       op.drop_view('my_view')\n       op.drop_table('my_table')\n       # ### end Alembic commands ###\n   ```\n\n3. **Apply the Migration**: Run the migration to apply the changes to your database.\n   ```bash\n   alembic upgrade head\n   ```\n\nThis approach allows you to manage both table and view creation in a single migration script, ensuring that they are applied together or rolled back together if necessary.\n\nFor more detailed information on using Alembic with SQLAlchemy, refer to the [Alembic documentation](https://alembic.sqlalchemy.org/en/latest/).",
+   "hits": [
+    "c01590",
+    "c02056",
+    "c01856",
+    "c01591",
+    "c01547"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "UNSUPPORTED",
+   "reason_nvidia": "None of the passages explicitly state that you can create a table and a view in the same migration using Alembic."
+  },
+  {
+   "id": "g074",
+   "answer": "To mix mapped and calculated columns in SQLAlchemy 2.0 ORM, you can use the `column_property` function within a mixin class. This allows you to define new attributes that are computed from existing mapped columns.\n\nHere's an example based on [1]:\n\n```python\nfrom sqlalchemy.orm import column_property\nfrom sqlalchemy.orm import DeclarativeBase\nfrom sqlalchemy.orm import declared_attr\nfrom sqlalchemy.orm import Mapped\nfrom sqlalchemy.orm import mapped_column\n\nclass Base(DeclarativeBase):\n    pass\n\nclass SomethingMixin:\n    x: Mapped[int]\n    y: Mapped[int]\n\n    @declared_attr\n    def x_plus_y(cls) -> Mapped[int]:\n        return column_property(cls.x + cls.y)\n\nclass Something(SomethingMixin, Base):\n    __tablename__ = \"something\"\n    id: Mapped[int] = mapped_column(primary_key=True)\n```\n\nIn this example, `SomethingMixin` defines two mapped columns `x` and `y`. It also defines a calculated column `x_plus_y` using `column_property`, which computes the sum of `x` and `y`.\n\nYou can then use `Something.x_plus_y` in queries as shown below:\n\n```python\nfrom sqlalchemy import select\n\nprint(select(Something.x_plus_y))\n# Output: SELECT something.x + something.y AS anon_1 FROM something\n```\n\nThis approach allows you to mix both mapped and calculated columns within a class hierarchy using mixins, leveraging the power of SQLAlchemy's ORM features.",
+   "hits": [
+    "c02357",
+    "c02346",
+    "c02295",
+    "c01591",
+    "c01558"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The example in passage\u202f[1] shows a mixin using `@declared_attr` and `column_property` to combine mapped columns into a calculated column, demonstrating the described approach."
+  },
+  {
+   "id": "g078",
+   "answer": "To suppress legacy warnings in SQLAlchemy 2.0, you can use the `warnings` module to filter out specific types of warnings. Here's how you can do it based on the information provided in [1] and [3]:\n\n1. **Turn on RemovedIn20Warnings**: First, ensure that the `SQLALCHEMY_WARN_20` environment variable is set to `1` to enable deprecation warnings.\n\n    ```sh\n    SQLALCHEMY_WARN_20=1 python -W always::DeprecationWarning test3.py\n    ```\n\n2. **Resolve Warnings**: As each sub-category of warnings are resolved, you can add new patterns to the list of errors that need to be addressed.\n\n3. **Suppress Specific Warnings**: If you want to suppress specific types of legacy warnings without raising an error, you can use the `warnings.filterwarnings` function to ignore them.\n\n    ```python\n    import warnings\n    from sqlalchemy.exc import RemovedIn20Warning\n\n    # Suppress all RemovedIn20Warnings\n    warnings.filterwarnings(\"ignore\", category=RemovedIn20Warning)\n    ```\n\n4. **Transform Warnings to Exceptions**: If you want to transform specific warnings into exceptions, you can use the `error` filter.\n\n    ```python\n    import warnings\n    from sqlalchemy.exc import RemovedIn20Warning\n\n    # Transform RemovedIn20Warnings to exceptions\n    for msg in [\n        r\"The (?:Executable|Engine)\\.(?:execute|scalar)\\(\\) function\",\n        r\"The current statement is being autocommitted using implicit autocommit,\",\n        r\"The connection.execute\\(\\) method in SQLAlchemy 2.0 will accept \"\n        \"parameters as a single dictionary or a single sequence of \"\n        \"dictionaries only.\",\n        r\"The Connection.connect\\(\\) function/method is considered legacy\",\n        r\".*DefaultGenerator.execute\\(\\)\",\n    ]:\n        warnings.filterwarnings(\n            \"error\",\n            message=msg,\n            category=RemovedIn20Warning,\n        )\n    ```\n\nBy following these steps, you can effectively manage and suppress legacy warnings in your SQLAlchemy 2.0 application.",
+   "hits": [
+    "c01551",
+    "c01554",
+    "c01549",
+    "c02026",
+    "c01550"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "Passages [2] and [3] support enabling warnings and transforming them to errors, but they do not cover suppressing specific legacy warnings."
+  },
+  {
+   "id": "g079",
+   "answer": "To migrate `Query.options` to the new system in SQLAlchemy 2.0, you should use the `options` method directly on the `Session.execute` call. Here's how you can do it:\n\n```python\n# Legacy usage\nquery = session.query(User).options(joinedload(User.addresses))\nusers = query.all()\n\n# Migrated to Session.get and options in execute\nusers = (\n    session.execute(select(User).options(joinedload(User.addresses)).order_by(User.id))\n    .unique()\n    .all()\n)\n```\n\nThis approach ensures that the `joinedload` option is applied when executing the query through the `Session`. The `unique()` method is used to ensure that only unique results are returned, which is often necessary when using options like `joinedload` with collections.",
+   "hits": [
+    "c01592",
+    "c01589",
+    "c01169",
+    "c01180",
+    "c01586"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[2] shows using `session.execute(select(...).options(joinedload(...)))` and then calling `.unique()` to get unique results."
+  },
+  {
+   "id": "g080",
+   "answer": "In SQLAlchemy 2.0, you can use `load_only()` to limit which columns are loaded from a database table when querying multiple entities. However, unlike in SQLAlchemy 1.4, you cannot apply `load_only()` directly to multiple entities within the same query. Instead, you must use separate `load_only()` calls for each entity.\n\nHere's how you can do it:\n\n```python\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import load_only\n\n# Assuming User and Book are your mapped classes\nstmt = (\n    select(User, Book)\n    .join_from(User, Book)\n    .options(load_only(User.name), load_only(Book.title))\n)\n\nfor user, book in session.execute(stmt):\n    print(f\"{user.name} - {book.title}\")\n```\n\nIn this example:\n- `load_only(User.name)` applies to the `User` entity.\n- `load_only(Book.title)` applies to the `Book` entity.\n\nThis ensures that only the specified columns are loaded for each entity, reducing the amount of data fetched from the database.",
+   "hits": [
+    "c02764",
+    "c02765",
+    "c02766",
+    "c00945",
+    "c02762"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[1] states that `load_only()` applies to a single entity and that separate `load_only()` calls are required for each entity in a multi\u2011entity query."
+  },
+  {
+   "id": "g081",
+   "answer": "Yes, the option to disable autobegin is available in SQLAlchemy 2.0 [1]. You can do this by setting the `autobegin` parameter of the `Session` constructor to `False`. When disabled, you must explicitly call the `begin()` method before performing any operations that require a transaction.",
+   "hits": [
+    "c03009",
+    "c01279",
+    "c01199",
+    "c03008",
+    "c01200"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that `autobegin=False` disables implicit transactions and requires an explicit `begin()` call."
+  },
+  {
+   "id": "g083",
+   "answer": "No, the :meth:`_engine.Engine.execute()` method is deprecated and will be removed in SQLAlchemy 2.0 [1]. Instead, you should use the :meth:`_engine.Connection.execute()` method on a connection object obtained from the engine [4].",
+   "hits": [
+    "c00031",
+    "c01571",
+    "c01564",
+    "c01568",
+    "c01573"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [4] state that Engine.execute() is deprecated and Connection.execute() should be used."
+  },
+  {
+   "id": "g088",
+   "answer": "To unit test with 2.0 style transactions, you can follow the recipe provided in [2]. This involves establishing a `Connection` within a transaction and optionally a SAVEPOINT, then passing it to a `Session` as the \"bind\". The `join_transaction_mode` parameter is set to `\"create_savepoint\"`, which indicates that new SAVEPOINTs should be created for the `Session`. Here's an example:\n\n```python\nfrom sqlalchemy.orm import sessionmaker\nfrom sqlalchemy import create_engine\nfrom unittest import TestCase\n\n# global application scope.  create Session class, engine\nSession = sessionmaker()\n\nengine = create_engine(\"postgresql+psycopg2://...\")\n\n\nclass SomeTest(TestCase):\n    def setUp(self):\n        # connect to the database\n        self.connection = engine.connect()\n\n        # begin a non-ORM transaction\n        self.trans = self.connection.begin()\n\n        # bind an individual Session to the connection, selecting\n        # \"create_savepoint\" join_transaction_mode\n        self.session = Session(\n            bind=self.connection, join_transaction_mode=\"create_savepoint\"\n        )\n\n    def test_something(self):\n        # use the session in tests.\n\n        self.session.add(Foo())\n        self.session.commit()\n\n    def tearDown(self):\n        self.session.close()\n\n        # rollback - everything that happened with the\n        # Session above (including calls to commit())\n        # is rolled back.\n        self.trans.rollback()\n\n        # return connection to the Engine\n        self.connection.close()\n```\n\nThis recipe ensures that your tests can use ORM code with a `Session` and call methods like `commit`, while all changes are rolled back after each test.",
+   "hits": [
+    "c01292",
+    "c03100",
+    "c01291",
+    "c03101",
+    "c01561"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "The recipe described in passage\u202f[2] (and also in [4]) explicitly states that a Connection is opened in a transaction, optionally a SAVEPOINT is created, the Session is bound with `join_transaction_mode=\"create_savepoint\"`, and that the test\u2019s changes are rolled back after each test."
+  },
+  {
+   "id": "g098",
+   "answer": "To migrate from SQLAlchemy 1.4 to 2.0 and handle the removal of the \"backref cascade\" behavior, you can follow these steps:\n\n1. **Disable Backref Cascade on Specific Relationships**: If you need to keep the \"backref cascade\" behavior for specific relationships, set `cascade_backrefs=False` when defining the relationship in SQLAlchemy 2.0.\n\n   ```python\n   from sqlalchemy.orm import relationship\n\n   mapper_registry.map_imperatively(\n       Order,\n       order_table,\n       properties={\"items\": relationship(Item, backref=\"order\", cascade_backrefs=False)},\n   )\n   ```\n\n2. **Use Future Mode for Entire Session**: If you want to disable the \"backref cascade\" behavior across your entire application, use the `future` mode when creating a session.\n\n   ```python\n   from sqlalchemy.orm import sessionmaker\n\n   Session = sessionmaker(future=True)\n   session = Session()\n   ```\n\n3. **Review and Adjust Merging Logic**: Be aware that the \"backref cascade\" behavior has been removed, which might affect how you handle merging objects in your application. Ensure that your merging logic does not rely on this behavior.\n\n4. **Check for Unexpected State**: Pay attention to potential issues where an object is prematurely added to the session due to backref cascading. Review and adjust your code to avoid such situations.\n\nBy following these steps, you can migrate from SQLAlchemy 1.4 to 2.0 while handling the removal of the \"backref cascade\" behavior appropriately.",
+   "hits": [
+    "c02024",
+    "c00452",
+    "c03069",
+    "c02228",
+    "c00654"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages 1 and 2 describe disabling `cascade_backrefs` and using `Session.future=True` to turn off the behavior, while passage\u202f3 discusses merge logic and unexpected state caused by backref cascading."
+  },
+  {
+   "id": "g109",
+   "answer": "The ``yield_per`` execution option is not compatible with the :meth:`_engine.Result.unique` method; as this method relies upon storing a complete set of identities for all rows, it would necessarily defeat the purpose of using ``yield_per`` which is to handle an arbitrarily large number of rows.",
+   "hits": [
+    "c02752",
+    "c01127",
+    "c01130",
+    "c02749",
+    "c00029"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] (and [3]) explicitly states that ``yield_per`` is not compatible with :meth:`_engine.Result.unique` and explains that the method requires storing all identities, defeating the purpose of ``yield_per``."
+  },
+  {
+   "id": "g110",
+   "answer": "When `future=True` is passed to the `create_engine()` function, it enables \"2.0 style\" usage within SQLAlchemy 1.4. This means that the engine and connection objects created by `create_engine()` will support the new API fully and not at all any legacy features introduced in SQLAlchemy 2.0. Specifically, this includes:\n\n- The removal of implicit autocommit.\n- String statements requiring the use of the `_sql.text` construct unless the `exec_driver_sql` method is used.\n- Connectionless execution from the engine being removed.\n\nEnabling \"future\" mode ensures that your code will be compatible with SQLAlchemy 2.0 when you upgrade to it in the future.",
+   "hits": [
+    "c01464",
+    "c00209",
+    "c01139",
+    "c01555",
+    "c01845"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage\u202f[4] explicitly states that passing `future=True` enables the 2.0 API fully, removes implicit autocommit, requires `text()` for string statements unless using `exec_driver_sql`, and removes connectionless execution."
+  },
+  {
+   "id": "g111",
+   "answer": "In SQLAlchemy 1.x, using `engine.connect()` would automatically commit certain types of statements if they were data-changing operations like INSERT, UPDATE, DELETE, or DDL statements [4]. However, in SQLAlchemy 2.0, this automatic autocommit behavior has been removed [1].\n\nTo achieve the same functionality as before in SQLAlchemy 2.0, you need to explicitly begin a transaction using `engine.begin()` or by using the context manager pattern with `with engine.connect() as conn:` and then calling `conn.execute()` within that block. If you want to mimic the \"commit as you go\" behavior of SQLAlchemy 1.x, you can use the new methods `.commit()` and `.rollback()` on the connection object [2].\n\nHere's an example of how you might write code in SQLAlchemy 2.0 to achieve a similar outcome:\n\n```python\nwith engine.begin() as conn:\n    conn.execute(some_table.insert().values(foo=\"bar\"))\n    conn.execute(some_other_table.insert().values(bat=\"hoho\"))\n\n# Or using the connection context manager and explicit commit/rollback\nwith engine.connect() as conn:\n    with conn.begin():\n        conn.execute(some_table.insert().values(foo=\"bar\"))\n        conn.execute(some_other_table.insert().values(bat=\"hoho\"))\n    conn.commit()\n```\n\nThis ensures that each set of operations is treated within its own transaction, and you have full control over when to commit or rollback.",
+   "hits": [
+    "c01562",
+    "c01564",
+    "c01563",
+    "c00014",
+    "c01619"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passages [1] and [4] confirm the removal of automatic autocommit in 2.0, and [2] shows how to use `engine.begin()` or `conn.commit()/rollback()` to mimic the old behavior."
+  },
+  {
+   "id": "g112",
+   "answer": "In SQLAlchemy 1.4, you can use :meth:`_query.Query.count` to count rows returned by a query [1]. This method automatically wraps your query in a subquery and counts the number of rows in that subquery.\n\nFor example:\n```python\nsession.query(User).filter(User.name.like(\"%ed\")).count()\n```\nThis will generate SQL like:\n```sql\nSELECT count(*) AS count_1 FROM (SELECT users.id AS users_id, ...) AS anon_1 WHERE users.name LIKE ?\n```\n\nThe :meth:`_query.Query.count` method is designed to always return the correct count by using a subquery, which simplifies its implementation and ensures accurate results.",
+   "hits": [
+    "c01325",
+    "c01467",
+    "c01587",
+    "c01591",
+    "c01180"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "SUPPORTED",
+   "reason_nvidia": "Passage [1] states that `Query.count` always wraps the query in a subquery and returns the correct count."
+  },
+  {
+   "id": "g115",
+   "answer": "To migrate your connection to a database using SQLAlchemy 2.0, you should use the `create_engine` function from the `sqlalchemy` module. Here is how you can do it:\n\n```python\nfrom sqlalchemy import create_engine\n\nengine = create_engine(\"sqlite://\")\n```\n\nThis code snippet creates an engine that connects to a SQLite database. The connection string `\"sqlite://\"` specifies the type of database and its location.\n\nIf you are using a different type of database, such as PostgreSQL or MySQL, you would need to provide the appropriate connection string. For example:\n\n- PostgreSQL: `create_engine(\"postgresql://user:password@localhost/dbname\")`\n- MySQL: `create_engine(\"mysql+pymysql://user:password@localhost/dbname\")`\n\nMake sure to replace `\"sqlite://\"` with the correct connection string for your database.\n\nFor more information on connecting to different databases, you can refer to the [SQLAlchemy documentation](https://docs.sqlalchemy.org/en/14/core/engines.html#database-urls).",
+   "hits": [
+    "c01552",
+    "c01544",
+    "c01573",
+    "c01561",
+    "c01563"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "PARTIAL",
+   "reason_nvidia": "The snippet in passage\u202f[1] shows using `create_engine(\"sqlite://\")`, but the passages do not mention PostgreSQL, MySQL, or other connection strings."
+  },
+  {
+   "id": "g117",
+   "answer": "To access relationships with Async SQLAlchemy, you can use the `relationship` function provided by SQLAlchemy ORM. This function allows you to define relationships between different tables in your database schema.\n\nHere's an example of how to define and use a relationship in an asynchronous context:\n\n```python\nfrom sqlalchemy import create_async_engine, Column, Integer, String, ForeignKey\nfrom sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker\nfrom sqlalchemy.orm import declarative_base, relationship, sessionmaker\n\nBase = declarative_base()\n\nclass User(Base):\n    __tablename__ = \"user_account\"\n    \n    id = Column(Integer, primary_key=True)\n    name = Column(String)\n    fullname = Column(String)\n    \n    addresses = relationship(\"Address\", back_populates=\"user\")\n\nclass Address(Base):\n    __tablename__ = \"address\"\n    \n    id = Column(Integer, primary_key=True)\n    email_address = Column(String, nullable=False)\n    user_id = Column(Integer, ForeignKey(\"user_account.id\"))\n    \n    user = relationship(\"User\", back_populates=\"addresses\")\n\n# Create an async engine\nengine = create_async_engine(\"postgresql+asyncpg://scott:tiger@localhost/test\")\n\n# Create a sessionmaker for the async engine\nAsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession)\n\nasync def get_user_with_addresses(user_id):\n    async with AsyncSessionLocal() as session:\n        user = await session.get(User, user_id)\n        if user:\n            print(f\"User: {user.name}, Fullname: {user.fullname}\")\n            for address in user.addresses:\n                print(f\"  Address: {address.email_address}\")\n        else:\n            print(\"User not found\")\n\n# Example usage\nimport asyncio\n\nasyncio.run(get_user_with_addresses(1))\n```\n\nIn this example, the `relationship` function is used to define a relationship between the `User` and `Address` classes. The `back_populates` parameter ensures that both sides of the relationship are correctly linked.\n\nWhen querying for a user with their addresses, you can access the `addresses` attribute on the `User` object, which will return a list of associated `Address` objects.\n\nThis approach allows you to work with relationships in an asynchronous manner using SQLAlchemy.",
+   "hits": [
+    "c02502",
+    "c02491",
+    "c00797",
+    "c01870",
+    "c02019"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)",
+   "verdict_nvidia": "UNSUPPORTED",
+   "reason_nvidia": "None of the passages discuss using `relationship` for async SQLAlchemy."
+  },
+  {
+   "id": "g118",
+   "answer": "To join a table twice in SQLAlchemy, you can use the `aliased` function to create aliases for the table. This allows you to refer to the same table multiple times in your query with different names.\n\nHere's an example based on [2]:\n\n```python\nfrom sqlalchemy.orm import aliased\n\n# Create aliases for the Address table\nadalias1 = aliased(Address)\nadalias2 = aliased(Address)\n\n# Perform a join using these aliases\nquery = session.query(User.name, adalias1.email_address, adalias2.email_address) \\\n    .join(User.addresses.of_type(adalias1)) \\\n    .join(User.addresses.of_type(adalias2)) \\\n    .filter(adalias1.email_address == \"jack@google.com\") \\\n    .filter(adalias2.email_address == \"j25@yahoo.com\")\n\n# Execute the query\nfor username, email1, email2 in query:\n    print(username, email1, email2)\n```\n\nThis code snippet demonstrates how to join the `Address` table twice using aliases (`adalias1` and `adalias2`) to distinguish between the two instances of the table in the query.",
+   "hits": [
+    "c02606",
+    "c01336",
+    "c02604",
+    "c02601",
+    "c03271"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+  },
+  {
+   "id": "g120",
+   "answer": "Yes, `with_polymorphic()` is supposed to work on subclasses of a joined table inheritance base class. This can be inferred from the documentation provided in [3], which states that :func:`_orm.with_polymorphic` \"accepts as its arguments a similar form to that of :func:`_orm.selectin_polymorphic`, which is the base entity that is being queried, followed by a sequence of subclasses of that entity for which their specific attributes should be loaded for incoming rows.\" This indicates that `with_polymorphic()` can be used with subclasses in joined table inheritance scenarios.",
+   "hits": [
+    "c00881",
+    "c00882",
+    "c02851",
+    "c00888",
+    "c00883"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+  },
+  {
+   "id": "g119",
+   "answer": "No, `session.scalar(stmt)` is not equivalent to `session.execute(stmt).scalar_one_or_none()` in SQLAlchemy 2.0.\n\nThe sources do not answer this directly, but we can infer from the information provided:\n\n1. [3] mentions that `session.get(User, 42)` has been replaced with `session.get(User, 42)`, which is equivalent to `session.execute(select(User).get(42))`. This implies that `session.get()` is a direct method for fetching an object by primary key.\n\n2. [5] shows how to migrate from `session.query(User).filter_by(name=\"some user\").one()` to `session.execute(select(User).filter_by(name=\"some user\")).scalar_one()`. The `scalar_one()` method raises an error if no rows are found or more than one row is found, which aligns with the behavior of `session.get()`.\n\n3. [5] also shows how to migrate from `session.query(User).filter_by(name=\"some user\").first()` to `session.scalars(select(User).filter_by(name=\"some user\").limit(1)).first()`. The `scalars()` method returns a result proxy that yields scalar values, and calling `.first()` on it retrieves the first value or `None` if no rows are found.\n\n4. [5] does not provide an equivalent for `session.execute(stmt).scalar_one_or_none()`, which would return `None` if no rows are found instead of raising an error.\n\nTherefore, while `session.scalar(stmt)` and `session.execute(stmt).scalar_one()` have similar behaviors in some cases, they do not cover all possible scenarios. The sources do not provide a direct comparison between these two methods, so we cannot definitively state that they are equivalent.",
+   "hits": [
+    "c00562",
+    "c01180",
+    "c01589",
+    "c01603",
+    "c01585"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+  },
+  {
+   "id": "g121",
+   "answer": "To get a data row in SQLAlchemy 2.0, you can use the `scalars()` method to retrieve a list of scalar values or the `all()` method to retrieve a list of tuples [1]. For example:\n\n```python\nfrom sqlalchemy import select\nfrom sqlalchemy.orm import Session\n\nsession = Session(engine, future=True)\n\n# query from a class\nstatement = select(User).filter_by(name=\"ed\")\n\n# list of first element of each row (i.e. User objects)\nresult = session.execute(statement).scalars().all()\n```\n\nThis will return a list of `User` objects where the name is \"ed\". If you want to retrieve multiple classes, you can use:\n\n```python\nstatement = select(User, Address).join(\"addresses\").filter_by(name=\"ed\")\nresult = session.execute(statement).all()\n```\n\nThis will return a list of tuples containing `User` and `Address` objects.",
+   "hits": [
+    "c01180",
+    "c01576",
+    "c00321",
+    "c01552",
+    "c02835"
+   ],
+   "refused": false,
+   "empty": false,
+   "generator": "qwen2.5-coder:7b (lab, Round 16)"
+  }
+ ]
+}

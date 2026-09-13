@@ -353,6 +353,15 @@ def paired(new: list[dict], old: list[dict]) -> dict:
             "flag_differs": [i for i in common if a[i]["answer_in_prompt"] != b[i]["answer_in_prompt"]]}
 
 
+DELIVERED_IDS = judge.DELIVERABLES / "nemotron-all-delivered.json"   # Step 4f's input
+
+
+def delivered_ids(rows: list[dict], golden: dict, chunks: dict) -> list[str]:
+    """The answers that count toward end to end: answerable, page in the prompt, answered."""
+    return sorted(r["id"] for r in outcome_rows(rows, golden, chunks)
+                  if r["answerable"] and route.delivered(r))
+
+
 def verdict(p: dict) -> str:
     f, b = len(p["fixed"]), len(p["broken"])
     if f >= AHEAD_FIXED and b <= AHEAD_BROKEN and p["p"] < ALPHA:
@@ -569,6 +578,11 @@ def main() -> None:
         # Step 4e. --judge-qwen judges the lab qwen's answers with the same judge.
         ids, ROWS = ((repeat_ids(golden), ROWS_REPEAT) if "--repeat" in argv
                      else (all_ids(golden), ROWS_ALL))
+        if "--write-delivered" in argv:
+            ids_ = delivered_ids(json.loads(ROWS_ALL.read_text())["rows"], golden, score.load_chunks())
+            DELIVERED_IDS.write_text(json.dumps({"source": ROWS_ALL.name, "ids": ids_}, indent=1) + "\n")
+            print(f"wrote {DELIVERED_IDS.name}: {len(ids_)} ids")
+            return
         if "--judge-qwen" in argv:
             if not ROWS_QWEN_JUDGED.exists():
                 built = qwen_judge_rows(json.loads(QWEN_LAB.read_text())["D"],
