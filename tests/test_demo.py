@@ -120,3 +120,35 @@ def test_the_answer_panel_keeps_the_generator_notice():
     assert "does not describe these answers" in demo.render_answer({"answer": "a", "refused": False, "error": None})
     assert "the generator the project measured" in demo.render_answer(
         {"answer": "a", "refused": False, "error": None}, "ollama")
+
+
+def test_sphinx_roles_become_readable_names():
+    assert demo.readable("use :meth:`_orm.Query.get` or :class:`~sqlalchemy.engine.Row`") == \
+        "use `Query.get` or `Row`"
+    assert demo.readable(":ref:`the guide <migration_20>`") == "`the guide`"
+
+
+def test_citations_link_to_cards_but_never_inside_code_or_out_of_range():
+    answer = "Use it [2].\n```python\nrow[1]\nx = [1]\n```\nSee `a[1]` and [9]."
+    out = demo.link_citations(answer, n_sources=5)
+    assert "[[2]](#src-2)" in out
+    assert "row[1]" in out and "x = [1]" in out and "`a[1]`" in out   # code untouched
+    assert "[9]" in out and "#src-9" not in out                        # no card 9
+
+
+def test_cards_are_anchored_and_mark_what_the_answer_cited():
+    result = {"answer": "It is [2].", "sources": [
+        {"n": n, "version": "2.0.51", "path": "p.rst", "heading": "H", "text": ":meth:`_orm.Query.get`"}
+        for n in (1, 2)]}
+    page = demo.render_sources(result)
+    assert 'id="src-1"' in page and 'id="src-2"' in page
+    assert page.count(">cited<") == 1 and page.index(">cited<") > page.index('id="src-2"')
+    assert "Query.get" in page and ":meth:" not in page
+
+
+def test_a_role_and_a_citation_in_one_sentence_both_render():
+    """The bug seen in the browser: the role's backticks were taken for inline
+    code, so ':meth:' stayed on the page. The earlier tests never combined them."""
+    out = demo.link_citations("The :meth:`_orm.Query.get` method moves to :meth:`_orm.Session.get` [1].", 5)
+    assert out == "The `Query.get` method moves to `Session.get` [[1]](#src-1)."
+    assert ":meth:" not in out

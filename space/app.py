@@ -23,17 +23,24 @@ import gradio as gr  # noqa: E402
 
 from rag import demo  # noqa: E402
 
-LIMITER = demo.RateLimiter()
 # "nvidia" for a hosted page (key from the environment); "ollama" to run the
 # measured generator locally, which needs no key: DEMO_GENERATOR=ollama.
 BACKEND = os.environ.get("DEMO_GENERATOR", "nvidia")
+# The limits exist because a hosted page spends API credits. A local Ollama run
+# spends nothing, so it is not limited: two example clicks in a row just work.
+LIMITER = (demo.RateLimiter(per_hour=10**9, gap=0) if BACKEND == "ollama" else demo.RateLimiter())
 GENERATOR = "qwen2.5-coder:7b (Ollama, the measured model)" if BACKEND == "ollama" else demo.MODEL
 
-EXAMPLES = [  # golden-set questions, as real developers phrased them (D65)
-    "insert().values() keyword constructor style for update/delete broke",
-    "joinedload with a string relationship name TypeError or removed in 2.0",
-    "Column with `server_default` missing in __dict__ after flushing",
-    "engine.execute select gone AttributeError use connection instead",
+# Chosen from measurements, not taste (PHASE-6.md Step 4): the first four are
+# golden-set questions the measured model ANSWERED, citing its source, on the Mac
+# (framing-phase6.Darwin-arm64.json arm A). The last is one it DECLINES with the
+# answer page in hand -- a measured over-refusal (D72) -- shown on purpose.
+EXAMPLES = [
+    ("query(User).get(1) moved", "query(User).get(1) warns LegacyAPIWarning, where did get move to"),
+    ("backref= deprecated?", "backref= in relationship is deprecated what should I use instead"),
+    ("Session(autocommit=True) gone", "Session(autocommit=True) is gone, what replaces autocommit mode"),
+    ("insert(values=...) broke", "insert().values() keyword constructor style for update/delete broke"),
+    ("engine.execute gone (declines)", "engine.execute select gone AttributeError use connection instead"),
 ]
 
 HOW_IT_WORKS = f"""
@@ -50,10 +57,36 @@ answer with that page in hand (lab machine). This page is generating with **{GEN
 """
 
 CSS = """
-.app-header h1 { margin-bottom: 0.2em; }
+.app-header h1 { margin-bottom: 0.15em; }
 .app-header p { opacity: 0.8; margin-top: 0; }
+.example-row button { white-space: normal; text-align: left; }
+.answer-box { min-height: 180px; }
 footer { display: none !important; }
 """
+
+# Clicking "[2]" in an answer opens source card 2 and scrolls to it. A plain
+# #src-2 hash link was not enough, measured in the browser: the link rendered and
+# the card existed, but the hash never changed, so nothing opened. A delegated
+# click handler does not depend on hash navigation. The window flag stops a
+# second copy of this script (Gradio injected the head twice) from double-binding.
+HEAD = """<script>
+if (!window.__srcLinks) {
+  window.__srcLinks = true;
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest && event.target.closest('a[href^="#src-"]');
+    if (!link) return;
+    const card = document.getElementById(link.getAttribute("href").slice(1));
+    if (!card) return;
+    event.preventDefault();
+    card.open = true;
+    card.scrollIntoView({behavior: "smooth", block: "center"});
+  }, true);
+}
+</script>"""
+
+WORKING = ("**Searching 3284 documentation passages, then asking the model…**\n\n"
+           "<sub>The first question after start-up loads the models and can take about a minute.</sub>")
+EMPTY_ANSWER = "Ask a question, or pick an example on the left."
 
 
 def _key():
@@ -76,31 +109,50 @@ def ask(question: str, session: str):
     return demo.render_answer(result, BACKEND) + "\n\n" + meta, demo.render_sources(result), session
 
 
-with gr.Blocks(title="SQLAlchemy 1.4 → 2.0 upgrade assistant", fill_width=False) as app:
+def working():
+    return WORKING, demo.render_sources({})
+
+
+def clear():
+    return "", EMPTY_ANSWER, demo.render_sources({})
+
+
+with gr.Blocks(title="SQLAlchemy 1.4 → 2.0 upgrade assistant") as app:
     session = gr.State("")
     with gr.Column(elem_classes="app-header"):
         gr.Markdown(
             "# SQLAlchemy 1.4 → 2.0 upgrade assistant\n"
-            "Paste the error or describe the 1.4 code that broke. Every answer cites the documentation "
-            "pages it was given, and you can open each one below it."
+            "Paste the error, or describe the 1.4 code that broke. The answer cites the documentation "
+            "pages it was given; click a citation like **[1]** to open that page below."
         )
     with gr.Row(equal_height=False):
         with gr.Column(scale=4, min_width=320):
             question = gr.Textbox(
                 label="Your question", lines=4, max_length=demo.MAX_QUESTION_CHARS,
-                placeholder="e.g. session.query(User).get(5) is deprecated, what replaces it?",
+                placeholder="e.g. session.query(User).get(5) warns LegacyAPIWarning, what replaces it?",
                 submit_btn="Ask",
             )
-            gr.Examples(EXAMPLES, inputs=question, label="Real questions from the golden set")
+            clear_btn = gr.Button("Clear", size="sm", variant="secondary")
+            gr.Markdown("**Try a real question from the test set**")
+            with gr.Column(elem_classes="example-row"):
+                example_buttons = [(gr.Button(label, size="sm"), text) for label, text in EXAMPLES]
             with gr.Accordion("How this works, and what is measured", open=False):
                 gr.Markdown(HOW_IT_WORKS)
         with gr.Column(scale=6, min_width=380):
-            answer = gr.Markdown("Ask a question to see an answer here.", label="Answer",
-                                 container=True, padding=True, min_height=160)
+            answer = gr.Markdown(EMPTY_ANSWER, container=True, padding=True, elem_classes="answer-box")
             gr.Markdown("### Sources the answer was given")
             sources = gr.HTML(demo.render_sources({}))
-    question.submit(ask, inputs=[question, session], outputs=[answer, sources, session],
-                    show_progress="minimal")
+
+    outputs = [answer, sources, session]
+    # show_progress="hidden" on every step: Gradio's own "processing | 0.0s" label
+    # otherwise sits on top of the WORKING message (seen in the browser).
+    question.submit(working, None, [answer, sources], queue=False, show_progress="hidden").then(
+        ask, inputs=[question, session], outputs=outputs, show_progress="hidden")
+    for button, text in example_buttons:
+        button.click(lambda t=text: t, None, question, queue=False, show_progress="hidden").then(
+            working, None, [answer, sources], queue=False, show_progress="hidden").then(
+            ask, inputs=[question, session], outputs=outputs, show_progress="hidden")
+    clear_btn.click(clear, None, [question, answer, sources], queue=False, show_progress="hidden")
 
 if __name__ == "__main__":
-    app.launch(theme=gr.themes.Soft(primary_hue="indigo", neutral_hue="slate"), css=CSS)
+    app.launch(theme=gr.themes.Soft(primary_hue="indigo", neutral_hue="slate"), css=CSS, head=HEAD)

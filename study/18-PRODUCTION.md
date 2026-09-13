@@ -705,7 +705,24 @@ use connection instead"*: 28.7 seconds, and the answer was **"The sources do not
 That is one of `D72`'s over-refusals, the small model declining a page it has. **The local demo shows the
 measured defect, exactly as measured**, which is what a demo of a measured system should do.
 
-**The page, as it looks** (checked in a browser 2026-09-12): the question and four real golden-set
+**The page, second version, checked end to end in Chrome (2026-09-13).** Each change fixes something
+seen, not imagined:
+
+| seen | fixed |
+|---|---|
+| 3 of 4 example questions were measured over-refusals, so a visitor mostly saw declines | examples chosen from data: four the measured model **answered with a citation** on the Mac, one it **declines**, labelled so |
+| `[1]` in an answer went nowhere | `[n]` links to source card n and **opens it** (a click handler; a plain `#src-1` link did not change the URL in Gradio, measured) |
+| no way to tell which sources the answer used | cards the answer cited carry a **cited** badge |
+| `:meth:`_orm.Query.get`` leaked into answers and cards | Sphinx roles shown as names (`Query.get`); the first version skipped roles because their backticks looked like inline code, **caught in the browser**, now a test |
+| nothing happened for up to a minute after asking | an immediate "Searching…" message; Gradio's own "processing" label hidden |
+| truncated example labels; no clear button | short full labels on buttons that ask in one click; **Clear** |
+| the 20-second limit applied locally | limits apply only to the hosted backend, which spends credits |
+
+**Known limit, measured:** a click in the first second or two after the page loads, before Gradio wires
+its events, does nothing; after that the first click works (checked: question filled and "Searching…"
+shown within 2.5 s).
+
+**The page, first version** (checked in a browser 2026-09-12): the question and four real golden-set
 examples on the left; on the right a coloured status (*answered* / *declined rather than guess* / *not
 answered*), the answer, the generator notice, the time taken, and the five sources as numbered cards
 with a version badge (2.0.51 or 1.4.52) that open to the full page text. Source text is HTML-escaped,
