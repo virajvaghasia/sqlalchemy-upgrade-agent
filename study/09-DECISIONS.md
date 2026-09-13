@@ -4117,7 +4117,8 @@ was measured once, and still names 0.42 as qwen's. A test re-derives both number
 **Rejected — make nemotron the measured system.** It is ahead, but the project's system of record is the
 local model for a reason that has not changed: zero paid calls (`CLAUDE.md`), and free credits are
 finite. The cascade (`D98`–`D100`) remains the design that uses the bigger model only where the small
-one declines, at $1.81 against $3.45 per 1000 queries.
+one declines: on a paid plan that would be $1.81 against $3.45 per 1000 queries (shadow costs; these
+calls were free credits and cost nothing).
 
 **Rejected — call the faithfulness FAIL a pass because 77% is close.** The bar was written first. And
 `SUPPORTED` is not "correct" (`D100`, `D103`).

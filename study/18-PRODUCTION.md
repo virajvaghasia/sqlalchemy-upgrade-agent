@@ -28,7 +28,7 @@ use it?*
 | 2 | can a change that loses an answer merge quietly? | no: removing the reranker is blocked by name, `g017` | `D97` |
 | 3a | which questions should go to a bigger model? | the ones the small model *refused*, not the ones whose search scored low | `D98` |
 | 3b | does the bigger model answer them? | 16 of 20, but only 10 fully supported by the pages | `D99` |
-| 3c | what does escalating every refusal cost, and does it add fabrications? | **$1.81 per 1000 queries** at list price; **0** new fabrications | `D100` |
+| 3c | what does escalating every refusal cost, and does it add fabrications? | would be **$1.81 per 1000 queries** on a paid plan (a shadow cost: the calls were free, $0 spent); **0** new fabrications | `D100` |
 | 3d | are those answers *correct*, not just supported? | 10 of 16 agree with the human-verified page: end to end **0.42 → at most 0.53** | `D101` |
 | 4 | can a stranger use it? | the page works locally; Hugging Face now charges for it | `D102` |
 | 4d | what does the hosted model score on all 100? | **0.58** end to end vs qwen's 0.42 (16 gained, 1 lost), 0 fabrications, but **77%** supported, under the 80% bar | `D104` |
@@ -887,11 +887,21 @@ back `UNPARSED` and the report printed *"judged 69 of 69"*: an unreadable verdic
 Fixed with a test, `g025` asked once more (`PARTIAL`). The FAIL did not depend on it: 53/68 is 77.9%,
 and even a SUPPORTED retry would have been 54/69 = 78.3%.
 
-### What it costs, and what it does NOT change
+### What it would cost on a paid plan, and what it does NOT change
 
-**$0.34 for the 100, i.e. $3.45 per 1000 questions**, from the token counts the API returned and one
-reseller's list price. The calls were free credits. The cascade (R10.12) sends only qwen's refusals and
-costs $1.81 per 1000.
+**We paid nothing.** All 190 calls ran on NVIDIA's free credits. The dollar figure below is a **shadow
+cost** (R10.12): what the same calls *would* cost if someone paid for them, at one reseller's list price.
+It is there because free credits are a trial allowance, not a way to serve strangers: they run out, and a
+public demo or a team using this for real would be billed per token.
+
+```
+215177 prompt tokens × $0.000000625  = $0.1345
+ 67260 output tokens × $0.000003125  = $0.2102
+                                        $0.3447 for these 100 questions  ->  $3.45 per 1000
+```
+
+The cascade (R10.12) sends the bigger model only qwen's refusals, so on the same price it *would* cost
+$1.81 per 1000. **Neither number was spent.**
 
 **The demo's notice now carries this model's own numbers:** 0.58 end to end and 77% supported, "measured
 once", with the 0.42 still named as qwen's. A test recomputes both numbers from the saved rows.
@@ -966,7 +976,7 @@ generation didn't.”
 questions whose answer page was missing, which no bigger model can fix from the same pages. The router
 is a cascade: the free local model answers first, and only a refusal is escalated.”
 
-**The price and the gain.** “Escalating every refusal to a 550B model costs about $1.81 per 1000 queries
+**The price and the gain.** “Escalating every refusal to a 550B model would cost about $1.81 per 1000 queries on a paid plan
 at one reseller's list price, adds no fabrications on the unanswerable questions, and lifts end to end
 from 0.42 to at most 0.53. At most, because my judge checks faithfulness to pages, and when I ran two
 answers against the real library it had called a wrong one supported and a right one unsupported.”
@@ -980,7 +990,7 @@ its answers fully supported by their pages, under my 80% bar. The page quotes th
 
 - “CI blocks any quality regression.” It blocks *retrieval* regressions on the golden set.
 - “A stronger model fixed ten answers.” Ten became *supported*; correctness is an upper bound.
-- “Routing saves money.” It *costs* $1.81 per 1000 queries against a free local model; what it buys is
+- “Routing saves money.” On a paid plan it would *cost* $1.81 per 1000 queries against a free local model; what it buys is
   up to 11 points of end to end.
 - “The demo scores 0.42.” Only the local version runs qwen; the hosted model is 0.58, measured once.
 - “The bigger model is more faithful.” 77% failed the bar, and it was never judged beside qwen by one judge.
