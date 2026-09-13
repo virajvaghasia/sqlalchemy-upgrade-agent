@@ -292,3 +292,25 @@ def test_the_same_judge_verdict_uses_the_pre_registered_bar():
     assert escalate.faith_verdict({"fixed": ["x"] * 6, "broken": [], "p": ask_p(6, 0)}) == "MORE faithful"
     assert escalate.faith_verdict({"fixed": ["x"] * 12, "broken": ["y"] * 2, "p": ask_p(12, 2)}) == "LEVEL"
     assert escalate.faith_verdict({"fixed": [], "broken": ["y"] * 8, "p": ask_p(0, 8)}) == "LESS faithful"
+
+
+# --- Step 4f: which answers the correctness checks cover ----------------------
+
+def test_delivered_ids_are_answerable_page_present_and_answered():
+    golden = {"g1": gold("g1"), "g2": gold("g2"), "g3": gold("g3", answerable=False), "g4": gold("g4")}
+    rows = [gen("g1"), gen("g2", hits=("c9",)), gen("g3"), gen("g4", answer=ask.REFUSAL_OPENING + " this.")]
+    assert escalate.delivered_ids(rows, golden, CHUNKS) == ["g1"]
+
+
+def test_the_committed_delivered_list_matches_the_rows():
+    """tools/check_nemotron_all.py runs with nothing but SQLAlchemy installed, so it
+    reads this list from a file. The file must be what the rows compute."""
+    import json
+    import pytest
+    from rag import score
+    if not score.CHUNKS_PATH.exists():
+        pytest.skip("corpus/chunks.jsonl is generated and gitignored (D11)")
+    golden = {i["id"]: i for i in score.load_golden()}
+    rows = json.loads(escalate.ROWS_ALL.read_text())["rows"]
+    saved = json.loads(escalate.DELIVERED_IDS.read_text())["ids"]
+    assert saved == escalate.delivered_ids(rows, golden, score.load_chunks())
