@@ -693,6 +693,18 @@ use connection instead"*: 28.7 seconds, and the answer was **"The sources do not
 That is one of `D72`'s over-refusals, the small model declining a page it has. **The local demo shows the
 measured defect, exactly as measured**, which is what a demo of a measured system should do.
 
+**The page, as it looks** (checked in a browser 2026-09-12): the question and four real golden-set
+examples on the left; on the right a coloured status (*answered* / *declined rather than guess* / *not
+answered*), the answer, the generator notice, the time taken, and the five sources as numbered cards
+with a version badge (2.0.51 or 1.4.52) that open to the full page text. Source text is HTML-escaped,
+because the docs contain literal `<...>` that would otherwise be read as markup (a test checks it).
+
+**A second real question through the browser:** the `g048` example (*"joinedload with a string
+relationship name TypeError or removed in 2.0"*) came back **declined**, 74.4 s on a cold start, with
+source [1] being exactly the answer page (*"Joining / loading on relationships uses attributes, not
+strings"*). `g048` is one of the page-present refusals the router escalates (R10.11): the page shows
+the same defect the measurements found.
+
 **Run it yourself:**
 
 ```bash

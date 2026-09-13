@@ -56,7 +56,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 489 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 492 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -627,7 +627,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**489 tests**, **67/67** `# runnable`, **102** decisions, **§H empty**.
+**492 tests**, **74/74** `# runnable`, **102** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -673,8 +673,8 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 489 passed with Qdrant up; 484 + 5 skipped without
-uv run python -m tools.check_runnable    # 67/67 RUN blocks reproduce
+uv run pytest                            # 492 passed with Qdrant up; 487 + 5 skipped without
+uv run python -m tools.check_runnable    # 74/74 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097

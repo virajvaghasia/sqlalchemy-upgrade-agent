@@ -100,3 +100,23 @@ def test_ollama_down_is_a_page_error_not_a_dead_server():
     out = demo.answer("q", key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
                       retrieve=lambda q: [hit()], post=down)
     assert "Ollama" in out["error"] and out["sources"]
+
+
+def test_status_separates_answered_declined_and_error():
+    assert demo.status({"answer": "a [1]", "refused": False, "error": None}) == "answered"
+    assert demo.status({"answer": ask.REFUSAL_OPENING + " this.", "refused": True, "error": None}) == "declined"
+    assert demo.status({"error": "no key"}) == "error"
+
+
+def test_source_cards_escape_markup_from_the_docs():
+    """SQLAlchemy's pages contain literal <...>; unescaped, they become markup."""
+    page = demo.render_sources({"sources": [{"n": 1, "version": "2.0.51", "path": "a.rst",
+                                             "heading": "H <b>", "text": "<script>x</script> <User id=1>"}]})
+    assert "<script>" not in page and "&lt;script&gt;" in page and "&lt;User id=1&gt;" in page
+
+
+def test_the_answer_panel_keeps_the_generator_notice():
+    """The split page must not drop the sentence D102 requires."""
+    assert "does not describe these answers" in demo.render_answer({"answer": "a", "refused": False, "error": None})
+    assert "the generator the project measured" in demo.render_answer(
+        {"answer": "a", "refused": False, "error": None}, "ollama")
