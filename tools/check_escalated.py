@@ -367,8 +367,14 @@ def g028():
     engine = sa.create_engine("sqlite://")
     with engine.connect() as c:
         same = c.execution_options(isolation_level="AUTOCOMMIT") is c
-        level = c.get_isolation_level()
-    return CLAIM, same and level == "AUTOCOMMIT"
+        # CORRECTED AFTER THE FIRST RUN, and disclosed in PHASE-6.md Step 3e: the
+        # first version compared c.get_isolation_level() to "AUTOCOMMIT". On
+        # SQLite that method reports the database's level ("SERIALIZABLE") even
+        # in autocommit mode, so the check failed a correct answer. The driver
+        # is the ground truth: sqlite3 is in autocommit when isolation_level is
+        # None (it is '' before the option is set).
+        autocommit = c.connection.dbapi_connection.isolation_level is None
+    return CLAIM, same and autocommit
 
 
 def g036():
