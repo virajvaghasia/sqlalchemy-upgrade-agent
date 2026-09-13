@@ -749,7 +749,8 @@ on is then ready to run in SQLAlchemy 2.0.
 
 </details>
 
-**Human verdict:** PARTIAL  **Reason:** `autoload_with=engine|connection` and “explicit Engine/Connection required” are in [2]; the stronger claim that **bound metadata was removed** (and that section title) is not in the given excerpts — golden chunk `c01567` was not on the desk.
+**Human verdict:** SUPPORTED  **Reason:** Changed from PARTIAL by Viraj on 2026-09-13 (wording drafted by Claude at his direction). Source [2]'s heading, which `ask.build_prompt` gave the model, reads *"Implicit" and "Connectionless" execution, "bound metadata" removed*; with it, both the bound-metadata claim and `autoload_with=engine|connection` are on the desk. The first reason was written from a sheet that hid headings.  
+**Previous verdict:** PARTIAL  — reason: `autoload_with=engine|connection` and “explicit Engine/Connection required” are in [2]; the stronger claim that **bound metadata was removed** (and that section title) is not in the given excerpts — golden chunk `c01567` was not on the desk.
 
 ## g049 — case statement WHEN list constructor deprecated positional form
 

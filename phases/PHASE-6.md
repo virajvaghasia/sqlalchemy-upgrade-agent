@@ -1225,3 +1225,35 @@ against **less than the model saw**. The bias has one direction, harsher: a clai
 reads as unsupported. **Its size is not measured.** Paired comparisons (4e) are less exposed, since both
 arms lost the same headings, but the absolute rates (77%, 79%) may be understated. **Not fixed here:**
 adding headings changes the judge's input, so it is a re-measurement with its own rules and calls.
+
+**Viraj's decisions, 2026-09-13:** the six verdicts are his; **`g044` changed to SUPPORTED** (the sheet keeps
+the previous verdict and reason beneath it); and re-judge with headings, below.
+
+---
+
+## Step 4g — the judge given what the model was given (pre-registered 2026-09-13, before any call)
+
+**The question.** The judge has read page **text** only; the model reads each page as `ask.build_prompt`
+prints it: a source line, the heading line, then the text. Does giving the judge the heading line change
+its verdicts, and does it change any conclusion?
+
+**Held fixed.** Judge `openai/gpt-oss-20b`, the same judge prompt, the same saved answers, the same five
+pages per question. **One change:** each passage is exactly the block `ask.build_prompt` shows the model
+(source line + heading + text), without its `[n]`, which the judge prompt adds. A test pins that equality.
+New fields `verdict_nvidia_h` / `reason_nvidia_h`; the text-only verdicts stay in the rows untouched.
+
+**Calls: 136.** 69 nemotron answers + 47 lab qwen answers with headings, plus a **noise control**: the
+first 20 nemotron answers by id, judged again **text-only**. `gpt-oss-20b`'s repeatability was never
+measured, so without the control a verdict that moves could be the judge, not the heading.
+
+| question | rule, written first |
+|---|---|
+| noise | flips of SUPPORTED yes/no between the two text-only readings of the same 20 answers. **> 2 of 20 → "judge too noisy to attribute"**, and Q1 gives no verdict |
+| **Q1** do headings change verdicts? (each model, paired by id, text-only → headings) | **"headings matter"** if, in either model, the not-SUPPORTED → SUPPORTED flips are ≥ 3, outnumber the reverse, and exact McNemar p < 0.05, with noise ≤ 2 of 20. **Consequence if they matter:** the with-headings rate becomes the primary Phase 6 faithfulness figure, text-only quoted beside it. **If not:** the text-only figures stand, and this run is the evidence that they were not materially understated |
+| **Q2** 4e again, with headings | the 42 paired questions, the same LEVEL / MORE / LESS rule as Step 4e |
+| **Q3** nemotron's 80% bar, with headings | reported. `D104`'s FAIL is **restated** only if Q1 says headings matter **and** the with-headings rate is ≥ 80%; otherwise it stands |
+| named check | nemotron's `g044` (text-only PARTIAL) — its heading carries the claim; reported, not a gate |
+
+**Prediction (Claude).** Headings help a little and not significantly: nemotron 4 up / 1 down, qwen 2 up /
+1 down, both p > 0.05 → **"headings do not matter"**; noise 1 of 20; nemotron with headings ~80%; Q2 still
+LEVEL; `g044` flips to SUPPORTED.

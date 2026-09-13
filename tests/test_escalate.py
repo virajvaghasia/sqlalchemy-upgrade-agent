@@ -344,3 +344,62 @@ def test_the_review_sheet_is_never_regenerated_over_human_verdicts(tmp_path, mon
     with pytest.raises(SystemExit):
         escalate.write_sheet(_sheet_rows(), {"g1": {"question": "q", "answer_chunks": ["c1"]}})
     assert "mine" in sheet.read_text()
+
+
+# --- Step 4g: the judge given what the model was given --------------------------
+
+CHUNK = {"id": "c7", "text": "Use autoload_with.", "heading_path": ["Guide", "\"bound metadata\" removed"],
+         "sqlalchemy_version": "2.0.51", "source_path": "doc/build/changelog/migration_20.rst"}
+
+
+def test_a_passage_shown_to_the_judge_is_exactly_the_block_the_model_saw():
+    h = types.SimpleNamespace(payload=CHUNK)
+    prompt = ask.build_prompt("q?", [h])
+    block = prompt.split("SOURCES\n\n", 1)[1].split("\n\n---\n\n", 1)[0]
+    assert block == "[1] " + escalate.passage_as_shown(CHUNK)
+    assert "\"bound metadata\" removed" in escalate.passage_as_shown(CHUNK)
+
+
+def test_judging_with_headings_writes_new_fields_and_keeps_the_text_only_verdict():
+    seen = []
+
+    def judge(answer, passages):
+        seen.append(passages)
+        return {"verdict": "SUPPORTED", "reason": "heading [1]"}
+
+    rows = [dict(gen("g1", hits=("c7",)), verdict_nvidia="PARTIAL"), gen("g2", answer=ask.REFUSAL_OPENING + " x.")]
+    escalate.judge_into(rows, {"c7": CHUNK}, judge, field="verdict_nvidia_h", headings=True, log=lambda *a: None)
+    assert rows[0]["verdict_nvidia"] == "PARTIAL" and rows[0]["verdict_nvidia_h"] == "SUPPORTED"
+    assert "verdict_nvidia_h" not in rows[1], "a decline is not judged"
+    assert seen == [[escalate.passage_as_shown(CHUNK)]]
+
+
+def test_judge_into_text_only_and_resume_skips_readable_verdicts():
+    calls = []
+    judge = lambda a, p: calls.append(p) or {"verdict": "PARTIAL", "reason": ""}
+    rows = [dict(gen("g1", hits=("c7",)), verdict_nvidia_t2="SUPPORTED"), dict(gen("g2", hits=("c7",)), verdict_nvidia_t2="UNPARSED")]
+    escalate.judge_into(rows, {"c7": CHUNK}, judge, field="verdict_nvidia_t2", headings=False, log=lambda *a: None)
+    assert calls == [["Use autoload_with."]] and rows[1]["verdict_nvidia_t2"] == "PARTIAL"
+
+
+def test_flips_count_supported_changes_both_ways_over_readable_pairs():
+    rows = [{"id": "a", "x": "PARTIAL", "y": "SUPPORTED"}, {"id": "b", "x": "SUPPORTED", "y": "PARTIAL"},
+            {"id": "c", "x": "PARTIAL", "y": "UNSUPPORTED"}, {"id": "d", "x": "SUPPORTED", "y": "UNPARSED"},
+            {"id": "e", "x": "UNSUPPORTED", "y": "SUPPORTED"}]
+    f = escalate.flips(rows, "x", "y")
+    assert (f["n"], f["up"], f["down"]) == (4, ["a", "e"], ["b"])
+
+
+def test_noise_ids_are_the_first_twenty_answered_by_id():
+    rows = [gen(f"g{n:03d}") for n in range(30, 0, -1)] + [gen("g000", answer=ask.REFUSAL_OPENING + " x.")]
+    assert escalate.noise_ids(rows) == [f"g{n:03d}" for n in range(1, 21)]
+
+
+def test_the_headings_rule_needs_low_noise_and_a_significant_upward_shift():
+    up = lambda k: {"n": 60, "up": ["u"] * k, "down": [], "p": ask_p(k, 0)}
+    assert escalate.headings_matter([up(6)], noise_flips=1) == "headings MATTER"
+    assert escalate.headings_matter([up(6)], noise_flips=3) == "judge too noisy to attribute"
+    assert escalate.headings_matter([up(2)], noise_flips=0) == "headings do NOT matter"
+    assert escalate.headings_matter([{"n": 60, "up": ["u"] * 3, "down": ["d"] * 3, "p": 1.0}], noise_flips=0) == "headings do NOT matter"
+    assert ask_p(3, 12) < 0.05
+    assert escalate.headings_matter([{"n": 60, "up": ["u"] * 3, "down": ["d"] * 12, "p": ask_p(3, 12)}], noise_flips=0) == "headings do NOT matter", "a significant DOWNWARD shift is not headings helping"

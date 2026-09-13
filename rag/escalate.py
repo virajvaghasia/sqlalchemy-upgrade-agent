@@ -452,6 +452,102 @@ def report_same_judge(nem_rows: list[dict], qwen_judged: list[dict], nem_outs: l
     return p
 
 
+# --- Step 4g: the judge given what the model was given ---------------------------
+
+NOISE_N, NOISE_MAX = 20, 2    # PHASE-6.md Step 4g
+
+
+def passage_as_shown(chunk: dict) -> str:
+    """One source exactly as ask.build_prompt shows it to the model, minus its "[n] "
+    (the judge prompt numbers passages itself). A test holds the two byte-equal."""
+    heading = " > ".join(chunk["heading_path"]) or "(no heading)"
+    return (f"SQLAlchemy {chunk['sqlalchemy_version']} — {chunk['source_path']}\n"
+            f"     {heading}\n\n{chunk['text']}")
+
+
+def judge_into(rows: list[dict], chunks: dict, judge, *, field: str, headings: bool,
+               log=print, save=None, only: set | None = None) -> None:
+    """Judge answered rows into `field` (reason into `reason` + the suffix). Rows with a
+    readable verdict in that field are skipped, so a resume never asks twice and an
+    UNPARSED one is asked again. `judge(answer, passages)` returns {"verdict", "reason"}."""
+    reason_field = field.replace("verdict", "reason")
+    for r in rows:
+        if r.get("empty") or ask.refused(r["answer"]) or r.get(field) in faithful.VERDICTS:
+            continue
+        if only is not None and r["id"] not in only:
+            continue
+        passages = [passage_as_shown(chunks[c]) if headings else chunks[c]["text"] for c in r["hits"]]
+        try:
+            v = judge(r["answer"], passages)
+        except (TimeoutError, urllib.error.URLError) as exc:
+            log(f"  {r['id']} SKIPPED ({type(exc).__name__}); re-run to judge it")
+            continue
+        r[field], r[reason_field] = v["verdict"], v.get("reason", "")
+        log(f"  {r['id']} {field} {r[field]}")
+        if save:
+            save()
+
+
+def noise_ids(rows: list[dict]) -> list[str]:
+    """The noise control: the first 20 answered rows by id, chosen by position."""
+    return sorted(r["id"] for r in rows if not r.get("empty") and not ask.refused(r["answer"]))[:NOISE_N]
+
+
+def flips(rows: list[dict], a: str, b: str) -> dict:
+    """SUPPORTED yes/no from field a to field b, over rows readable in both."""
+    both = [r for r in rows if r.get(a) in faithful.VERDICTS and r.get(b) in faithful.VERDICTS]
+    up = sorted(r["id"] for r in both if r[a] != "SUPPORTED" and r[b] == "SUPPORTED")
+    down = sorted(r["id"] for r in both if r[a] == "SUPPORTED" and r[b] != "SUPPORTED")
+    return {"n": len(both), "up": up, "down": down, "p": score.mcnemar_exact(len(up), len(down))}
+
+
+def headings_matter(per_model: list[dict], noise_flips: int) -> str:
+    if noise_flips > NOISE_MAX:
+        return "judge too noisy to attribute"
+    if any(len(f["up"]) >= 3 and len(f["up"]) > len(f["down"]) and f["p"] < ALPHA for f in per_model):
+        return "headings MATTER"
+    return "headings do NOT matter"
+
+
+def report_headings(nem_rows: list[dict], qwen_rows: list[dict], nem_outs: list[dict],
+                    qwen_outs: list[dict]) -> dict:
+    print("\n  STEP 4g — THE JUDGE GIVEN THE HEADINGS THE MODEL SAW")
+    noise_rows = [r for r in nem_rows if r.get("verdict_nvidia_t2")]
+    nz = flips(noise_rows, "verdict_nvidia", "verdict_nvidia_t2")
+    noise = len(nz["up"]) + len(nz["down"])
+    print(f"    noise control  {nz['n']} nemotron answers judged text-only twice: flips {noise}"
+          f"  (up {' '.join(nz['up']) or '-'}; down {' '.join(nz['down']) or '-'})   rule <= {NOISE_MAX}")
+    per = []
+    for name, rows in (("nemotron", nem_rows), ("qwen2.5-coder:7b (lab)", qwen_rows)):
+        answered = [r for r in rows if not r.get("empty") and not ask.refused(r["answer"])]
+        f = flips(answered, "verdict_nvidia", "verdict_nvidia_h")
+        per.append(f)
+        judged = [r for r in answered if r.get("verdict_nvidia_h") in faithful.VERDICTS]
+        sup = sum(r["verdict_nvidia_h"] == "SUPPORTED" for r in judged)
+        rate = f"{sup / len(judged):.0%}" if judged else "-"
+        print(f"    {name:<24} with headings judged {len(judged):>2} of {len(answered):>2}   SUPPORTED {sup:>2} = {rate}"
+              f"   text-only -> headings: up {len(f['up'])}  down {len(f['down'])}  p = {f['p']:.4f}")
+        print(f"      up    {' '.join(f['up']) or '-'}")
+        print(f"      down  {' '.join(f['down']) or '-'}")
+    complete = all(r.get("verdict_nvidia_h") in faithful.VERDICTS for rows in (nem_rows, qwen_rows)
+                   for r in rows if not r.get("empty") and not ask.refused(r["answer"]))
+    complete = complete and nz["n"] == NOISE_N
+    verdict = headings_matter(per, noise) if complete else "no verdict until every answer and the noise control are judged"
+    print(f"    Q1  -> {verdict}")
+    nem = {r["id"]: r.get("verdict_nvidia_h") for r in nem_rows
+           if not r.get("empty") and not ask.refused(r["answer"])}
+    qwen = {r["id"]: r.get("verdict_nvidia_h") for r in qwen_rows}
+    flag_n = {r["id"]: r["answer_in_prompt"] for r in nem_outs}
+    flag_q = {r["id"]: r["answer_in_prompt"] for r in qwen_outs}
+    differ = {i for i in flag_n.keys() & flag_q.keys() if flag_n[i] != flag_q[i]}
+    p = paired_support(nem, qwen, drop=differ)
+    print(f"    Q2  paired over {p['n']}: nemotron-only SUPPORTED {len(p['fixed'])}  qwen-only {len(p['broken'])}"
+          f"  p = {p['p']:.4f}   -> {faith_verdict(p) if complete else 'no verdict yet'}")
+    g = next((r for r in nem_rows if r["id"] == "g044"), {})
+    print(f"    g044 (nemotron)  text-only {g.get('verdict_nvidia')}  ->  with headings {g.get('verdict_nvidia_h')}")
+    return {"noise": noise, "per_model": per, "verdict": verdict, "paired": p}
+
+
 def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict, *,
                qwen_lab: list[dict], qwen_mac: list[dict], prices: dict | None,
                qwen_judged: list[dict] | None = None) -> dict:
@@ -513,6 +609,8 @@ def report_all(rows: list[dict], repeat: list[dict], golden: dict, chunks: dict,
     if qwen_judged:
         qwen_outs = [dict(r, refused=ask.refused(r["answer"])) for r in qwen_lab]
         result["same_judge"] = report_same_judge(rows, qwen_judged, outs, qwen_outs)
+        if any(r.get("verdict_nvidia_h") for r in rows + qwen_judged):
+            result["headings"] = report_headings(rows, qwen_judged, outs, qwen_outs)
 
     if repeat:
         s = stability([r for r in rows if r["id"] in {x["id"] for x in repeat}], repeat)
@@ -589,6 +687,27 @@ def main() -> None:
             ids_ = delivered_ids(json.loads(ROWS_ALL.read_text())["rows"], golden, score.load_chunks())
             DELIVERED_IDS.write_text(json.dumps({"source": ROWS_ALL.name, "ids": ids_}, indent=1) + "\n")
             print(f"wrote {DELIVERED_IDS.name}: {len(ids_)} ids")
+            return
+        if "--judge-headings" in argv:
+            # Step 4g: noise control first (20 text-only), then both models with headings.
+            key = faithful.env_key(faithful.NVIDIA_KEY_VAR)
+            if not key:
+                sys.exit(f"no {faithful.NVIDIA_KEY_VAR} in the environment or .env; nothing called")
+            chunks = score.load_chunks()
+            post = faithful.retrying(faithful.nvidia_post)
+            judge_fn = lambda answer, passages: faithful.judge_answer(
+                answer, passages, key=key, model=faithful.NVIDIA_JUDGE, post=post)
+            for path, field, headings, only in (
+                    (ROWS_ALL, "verdict_nvidia_t2", False, "noise"),
+                    (ROWS_ALL, "verdict_nvidia_h", True, None),
+                    (ROWS_QWEN_JUDGED, "verdict_nvidia_h", True, None)):
+                data = json.loads(path.read_text())
+                ids_only = set(noise_ids(data["rows"])) if only == "noise" else None
+                save = lambda d=data, pth=path: pth.write_text(json.dumps(d, indent=1) + "\n")
+                print(f"== {path.name} {field} {'(noise control)' if ids_only else ''}", flush=True)
+                judge_into(data["rows"], chunks, judge_fn, field=field, headings=headings,
+                           log=lambda *a: print(*a, flush=True), save=save, only=ids_only)
+                save()
             return
         if "--judge-qwen" in argv:
             if not ROWS_QWEN_JUDGED.exists():
