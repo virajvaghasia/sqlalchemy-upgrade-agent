@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import threading
 import time
 import urllib.error
@@ -160,15 +161,61 @@ def render(result: dict, backend: str = "nvidia") -> str:
 # --- the page's pieces ------------------------------------------------------
 #
 # `render` above returns one Markdown string and stays for callers that want
-# that. The Gradio page shows three parts instead: a status line, the answer,
-# and the sources as numbered cards, so a reader can match "[2]" in the answer
-# to card 2 without scrolling through raw text.
+# that. The page shows the answer and the sources apart, so "[2]" in the answer
+# is a link to card 2, and the cards the answer actually cited are marked.
+# Everything here is DISPLAY ONLY: the measured answer text is never altered
+# before `ask.refused` or any score reads it.
 
 STATUS = {
     "answered": ("Answered from the sources", "#1f7a4d"),
-    "declined": ("The sources do not cover this: it declined rather than guess", "#8a6d1f"),
+    "declined": ("Declined: the sources do not cover this, so it did not guess", "#8a6d1f"),
     "error": ("Not answered", "#a33a3a"),
 }
+
+# Sphinx cross-references as the SQLAlchemy docs write them, e.g.
+# :meth:`_orm.Query.from_self`, :class:`~sqlalchemy.engine.Row`,
+# :paramref:`_orm.relationship.backref`, :ref:`some label <anchor>`.
+SPHINX_ROLE = re.compile(r":(?:py:)?[a-z]+:`(~)?([^`<]+?)\s*(?:<[^>`]*>)?`")
+FENCE = re.compile(r"(```.*?```)", re.S)
+INLINE_CODE = re.compile(r"(`[^`\n]*`)")
+
+
+def sphinx_name(match: re.Match) -> str:
+    tilde, target = match.group(1), match.group(2).strip()
+    target = re.sub(r"^_[a-z]+\.", "", target)          # _orm.Query -> Query
+    return target.split(".")[-1] if tilde else target      # ~a.b.C -> C
+
+
+def readable(text: str) -> str:
+    """Sphinx roles in answer prose become inline code: :meth:`_orm.Query.get` -> `Query.get`."""
+    return SPHINX_ROLE.sub(lambda m: f"`{sphinx_name(m)}`", text)
+
+
+def link_citations(answer: str, n_sources: int) -> str:
+    """[n] -> a link to source card n, outside code only, and only for n that exist.
+
+    Uses `judge.CITATION`, the repo's one citation pattern, which already skips
+    subscripts like `row[1]` (D79). Fenced blocks and inline code are left alone.
+    """
+    from rag import judge
+
+    def link(chunk: str) -> str:
+        return judge.CITATION.sub(
+            lambda m: f"[[{m.group(1)}]](#src-{m.group(1)})" if 1 <= int(m.group(1)) <= n_sources
+            else m.group(0), chunk)
+
+    # Order matters, and the first version had it wrong: a role's own backticks
+    # (:meth:`_orm.Query.get`) look like an inline code span, so splitting out
+    # inline code first hid every role from `readable`. Roles are converted
+    # first (outside fenced blocks), then citations are linked outside code.
+    out = []
+    for part in FENCE.split(answer):
+        if FENCE.fullmatch(part):
+            out.append(part)
+            continue
+        out.append("".join(bit if INLINE_CODE.fullmatch(bit) else link(bit)
+                           for bit in INLINE_CODE.split(readable(part))))
+    return "".join(out)
 
 
 def status(result: dict) -> str:
@@ -179,36 +226,46 @@ def status(result: dict) -> str:
 
 def render_answer(result: dict, backend: str = "nvidia") -> str:
     label, colour = STATUS[status(result)]
-    parts = [f'<span style="display:inline-block;padding:2px 10px;border-radius:999px;'
-             f'background:{colour};color:#fff;font-size:0.85em">{label}</span>']
+    parts = [f'<span style="display:inline-block;padding:3px 12px;border-radius:999px;'
+             f'background:{colour};color:#fff;font-size:0.85em;font-weight:600">{label}</span>']
     if result.get("error"):
-        parts.append(f"**{result['error']}**")
+        parts.append(f"**{html.escape(result['error'])}**")
     if result.get("answer"):
-        parts.append(result["answer"])
+        parts.append(link_citations(result["answer"], len(result.get("sources") or [])))
     notice = MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL
     parts.append(f"<sub>{notice}</sub>")
     return "\n\n".join(parts)
 
 
+def cited(result: dict) -> set[int]:
+    from rag import judge
+    return set(judge.citations(result.get("answer") or ""))
+
+
 def render_sources(result: dict) -> str:
-    """Numbered cards. Every piece of source text is HTML-escaped: SQLAlchemy's
-    docs contain literal `<...>` (doctest reprs, placeholders) that would
-    otherwise be parsed as markup on the page."""
+    """Numbered cards, anchored as #src-n. Every piece of source text is
+    HTML-escaped: SQLAlchemy's docs contain literal `<...>` (doctest reprs,
+    placeholders) that would otherwise be parsed as markup on the page."""
     sources = result.get("sources") or []
     if not sources:
-        return '<p style="opacity:.7">Sources appear here after a question.</p>'
+        return ('<p style="opacity:.7;margin:.5em 0">The five documentation pages the answer is '
+                'given will appear here, each one expandable.</p>')
+    used = cited(result)
     cards = []
     for s in sources:
         v = html.escape(s["version"])
         badge = "#3b5bdb" if v.startswith("2.") else "#6c757d"
+        mark = ('<span style="background:#1f7a4d;color:#fff;border-radius:6px;padding:1px 7px;'
+                'font-size:.75em;margin-left:6px">cited</span>') if s["n"] in used else ""
+        text = SPHINX_ROLE.sub(sphinx_name, s["text"])
         cards.append(
-            '<details style="border:1px solid rgba(128,128,128,.35);border-radius:10px;'
-            'padding:10px 14px;margin:0 0 10px">'
-            f'<summary style="cursor:pointer"><b>[{s["n"]}]</b> '
+            f'<details id="src-{s["n"]}" style="border:1px solid rgba(128,128,128,.35);'
+            'border-radius:10px;padding:10px 14px;margin:0 0 10px;scroll-margin-top:12px">'
+            f'<summary style="cursor:pointer;line-height:1.5"><b>[{s["n"]}]</b> '
             f'<span style="background:{badge};color:#fff;border-radius:6px;padding:1px 7px;'
-            f'font-size:.8em">SQLAlchemy {v}</span> {html.escape(s["heading"])}'
+            f'font-size:.8em">SQLAlchemy {v}</span>{mark} {html.escape(s["heading"])}'
             f'<div style="opacity:.65;font-size:.85em;margin-top:2px">{html.escape(s["path"])}</div>'
             '</summary>'
-            f'<pre style="white-space:pre-wrap;font-size:.85em;margin-top:10px">{html.escape(s["text"])}</pre>'
+            f'<pre style="white-space:pre-wrap;font-size:.85em;margin-top:10px">{html.escape(text)}</pre>'
             '</details>')
     return "".join(cards)
