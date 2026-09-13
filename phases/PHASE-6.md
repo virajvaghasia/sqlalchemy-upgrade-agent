@@ -777,3 +777,22 @@ its *items* were wrong in both directions: the third time this phase (`D96`, `D1
 
 **What it is not:** a human verification (`D06`). Claude wrote the checks and chose each answer's
 "central claim"; a correct central claim does not make every sentence of an answer correct.
+
+### Result — Step 4b, night of 2026-09-12: the local demo IS the measured system
+
+`RAG_DENSE=memory uv run python -m rag.score --refusals` (Mac, all 100; ENV — needs Ollama):
+
+```
+refused — over-refusal          45/91  (49%)
+  with the answer IN the prompt  19   g006, g008, g013, g021, g044, g048, g049, g050, g051, g064,
+                                      g084, g087, g090, g095, g099, g100, g103, g106, g116
+answered — FABRICATED           2/9   g056, g065
+answer reached the prompt       58/91
+...and was answered, not refused 39/91  = 0.43   END TO END
+```
+
+**Against the rule:** end to end **39/91**, exactly the reference; the 19 over-refused ids overlap
+today's Mac arm A (`framing-phase6.Darwin-arm64.json`) **19 of 19**, none only on one side; the two
+fabrications are the same two. **Pass: the demo's notice ("the generator the project measured … 0.43
+on the Mac") stands.** Same machine and same day as the reference, so this says nothing new about
+cross-day drift (`D84`); it says the in-memory search changed nothing that reaches the model.

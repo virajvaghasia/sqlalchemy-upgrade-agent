@@ -379,6 +379,8 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**STEP 4b CONFIRMED (night):** the local demo's in-memory path reproduces the measured refusals exactly — 39/91 = 0.43, same 19 over-refused ids, same 2 fabrications.
+
 **PHASE 6 STEP 3e (`D103`): ESCALATED ANSWERS EXECUTED ON 2.0.51.** `tools/check_escalated.py`
 (committed before its first run) turns each answer's central claim into a check: 3b **13 of 15
 checkable pass (87%)** → the 0.53 upper bound stands; 3c 12 of 13. The two 3b failures (`g087`,

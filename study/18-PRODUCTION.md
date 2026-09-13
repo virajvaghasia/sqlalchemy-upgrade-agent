@@ -717,6 +717,11 @@ source [1] being exactly the answer page (*"Joining / loading on relationships u
 strings"*). `g048` is one of the page-present refusals the router escalates (R10.11): the page shows
 the same defect the measurements found.
 
+**Is the local demo really the measured system? Measured overnight.** The whole refusal measurement
+re-run through the demo's own in-memory search: **39/91 = 0.43 end to end, the same 19 over-refused
+questions, the same two fabrications** as the Qdrant-based reference taken the same day. The notice is
+true, not hoped.
+
 **Run it yourself:**
 
 ```bash

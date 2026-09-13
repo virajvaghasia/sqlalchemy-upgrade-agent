@@ -4049,6 +4049,11 @@ page spends free credits.
 **Not done, and Viraj's:** pushing to Hugging Face and adding the secret; the first answer from the
 live link, which is the ROADMAP's gate.
 
+**Confirmed, night of 2026-09-12 (`PHASE-6.md` Step 4b):** the full refusal measurement through the
+demo's in-memory path gives **39/91 = 0.43** and **the same 19 over-refused ids** (19 of 19) and the
+same two fabrications as today's Mac reference. The local demo is the measured system. (Hugging Face
+later refused free hosting with HTTP 402; the demo runs locally.)
+
 **Interview question it answers:** *"Your system is measured on a local 7B model — what does the demo
 run?"* The same retrieval, gated to rank identically without Qdrant, and the same prompt, but a
 larger hosted model, because the host cannot run the local one. The page says the measured score is
