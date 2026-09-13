@@ -105,7 +105,7 @@ rag/                   retrieval (Phase 1-3), judge.py / faithful.py (Phase 4), 
 tools/                 check_runnable.py — every `# runnable` block, verified
 space/                 the demo: web.py + static/ page (shipped), app.py (older Gradio page), pins, build script (D102)
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 497 tests pinning what the docs claim
+tests/                 505 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
 ```
 
@@ -182,10 +182,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-497 tests collected in 22.84s
+505 tests collected in 22.84s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 497 passed with it up and 492
+Five of them skip when Qdrant is not running, so a run reports 505 passed with it up and 500
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 

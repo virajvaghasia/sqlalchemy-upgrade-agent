@@ -838,3 +838,46 @@ on a desktop they are beside it.
 remaining hosts (Modal, Oracle) run any Python process. **Checked:** built (36 files, 18.2 MiB), started
 from `space/dist/` with `uv run --no-project --python 3.11 --with-requirements requirements.txt python web.py`,
 asked *query.get() moved*: answered with `[1]` in 64.1 s (cold), and the click opened card 1.
+
+---
+
+## Step 4d — the demo's hosted generator on all 100 (pre-registered 2026-09-13, before any call)
+
+**The question.** The hosted demo would generate with `nvidia/nemotron-3-ultra-550b-a55b`, and its
+notice says the 0.42 "does not describe these answers" because nothing does yet. The 53 escalation
+rows (`D99`, `D100`) are only the questions qwen declined. **This run asks all 100**, shipped prompt,
+same retrieval, one sitting, on the Mac. Viraj approved ~200 NVIDIA free-credit calls (2026-09-13).
+
+**Why the Mac, not the lab.** Generation happens on NVIDIA's servers, and retrieval reproduces exactly
+across the two machines (`D83`; `route.join_check` found no page-present flag that differs). `D95`'s
+"the lab rules" was about the local qwen drifting on the Mac; it does not reach a hosted model.
+
+**Held fixed:** `ask.SYSTEM` + `ask.build_prompt`, temperature 0, `index.retrieve` at `DEFAULT_K = 5`
+(Qdrant), the 100 verified golden items. **Scored with the repo's own definitions:** `ask.refused`,
+`score.rank_of_first_hit` for "answer in the prompt", `route.delivered` for end to end (`D72`).
+
+**Layer 1 — generation, 100 calls.** Command: `rag.escalate --all --generate`, rows
+`deliverables/nemotron-all-phase6.json`.
+
+| measure | rule, written before the run |
+|---|---|
+| completeness | `EMPTY` (no answer text) or unasked rows **> 5 → the run is not quoted**; fewer are listed and dropped from both sides of every pairing |
+| end to end | `delivered / 91`, printed by the same `score.report_refusals` as qwen's |
+| vs qwen, paired | against the **lab's** qwen rows (`prompt-sweep-round16.Linux-x86_64.json`, `D`, 38/91), by id on `delivered`. **Ahead** if fixed ≥ 6, broken ≤ 1 and exact McNemar p < 0.05 (`D61`'s bar). **Behind** if broken > fixed with p < 0.05. Otherwise **level**. The Mac's `prompt-sweep-phase4.json` `D` (39/91) prints as context only |
+| fabrications | unanswerable items answered; **no worse** if ≤ 2 (qwen's count, `g056` `g065`) |
+
+**Layer 2 — faithfulness, one call per answered item.** Judge `openai/gpt-oss-20b` on NVIDIA
+(`faithful.NVIDIA_JUDGE`, the scored judge since Step 3b), reading each answer against **the five
+pages it was given**. Bar: **SUPPORTED ≥ 80%** of judged answers. **Not comparable with qwen's
+92% / 77–85%**, which came from a different judge (`gemma4:e4b`); judging qwen's answers with this
+judge would be ~48 more calls and is not in this run. And `SUPPORTED` is not "correct" (`D100`).
+
+**Repeat — 20 calls.** The first 20 golden ids in sorted order (chosen by position, not by result),
+asked again after the 100, into `nemotron-all-repeat-phase6.json`. **Decision stable** if
+answered/declined agrees on **≥ 19 of 20**. Identical answer text is counted, with no bar.
+
+**Prediction (Claude, before the run).** End to end **≈ 52/91 = 0.57**: qwen's 39 answered items stay
+answered, plus ~16 of the 20 page-present refusals (`D99` answered 16 of 20), minus ~2 new declines.
+Against the lab's 38: **fixed ~17, broken ~3 → ahead**. Fabrications **1**. SUPPORTED **~75%, below
+the bar** (`D99` was 62% on the hardest 20; easier items should do better but not reach 80%).
+Repeat: decisions **19–20 of 20**; identical text **fewer than half** (a reasoning model).
