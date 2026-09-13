@@ -18,7 +18,7 @@ quality-degrading PR gets auto-blocked.**
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
 | **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; **3d** (`D101`): 10/16 hold against verified pages → **0.42 → 0.53** upper bound |
-| 4 | deploy + package — a demo link and a README that opens with the product | not started |
+| **4** | deploy + package — a demo link and a README that opens with the product | **built** (`D102`): in-memory search gated (broken 0, moved 0), Space bundle builds; **push is Viraj's** |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
 
 **The gate comes before routing and deploy** because both of those change the system, and every
@@ -528,3 +528,84 @@ stronger generator cannot fix. **6 of the 26 page-absent refusals got answers th
 verified page** — from neighbour pages or the model's own knowledge (`g036`, for example, is the
 `MetaData(bind=)` removal, which 2.0.51 confirms). The cascade decision stands, and is stronger for it;
 the premise was too absolute. **54/91 = 0.59 is not pre-registered** and is exploration only.
+---
+
+## Step 4 — deploy + package (opened 2026-09-12, 17:15)
+
+**Viraj decided** (17:13): a **Hugging Face Space**, generating through the **NVIDIA API** with the key
+stored as a Space secret.
+
+**Constraints that shape it, each checked rather than assumed:**
+
+| constraint | consequence |
+|---|---|
+| a free Space has no Docker-in-Docker, so no Qdrant container | dense search runs **in memory** over `embeddings.npy` (`RAG_DENSE=memory`, `rag/index.py`) |
+| Qdrant's index is approximate; an exact search can rank differently | **the in-memory path must pass the CI gate against the committed baseline before it ships** (below) |
+| `qwen2.5-coder:7b`, the measured generator, is **not on NVIDIA's API** (catalog checked 17:14: no `qwen` model at all) | the demo generates with `nvidia/nemotron-3-ultra-550b-a55b`, the one model measured with this prompt (`D99`–`D101`); **the page says the 0.42 does not describe it** |
+| a public page spends Viraj's free credits | a per-session and global rate limit |
+
+**Rule for the in-memory search, written before scoring it:** `rag.gate` against
+`deliverables/gate-baseline.json` must show **`broken 0`**, and no ruler change. `moved` items are
+reported; the demo depends only on found / not-found matching.
+
+
+### Built (`D102`) — 17:30, not yet pushed
+
+**The in-memory search passed its rule.** Golden set through `RAG_DENSE=memory`, gated against the
+Qdrant baseline:
+
+```
+# runnable: RAG_DENSE=memory uv run python -m rag.score --save /tmp/rows-memory.json && uv run python -m rag.gate --baseline deliverables/gate-baseline.json --rows /tmp/rows-memory.json
+QUALITY GATE — retrieval, recall@5, paired by golden id
+
+  baseline   58/91 = 0.64
+  this run   58/91 = 0.64
+
+  fixed        0  -
+  broken       0  -
+  moved        0  (top-5 ids changed, found/not-found did not)
+  unpaired     0  (new items, no baseline yet)
+  exact McNemar p = 1.000  (context only; the gate reads `broken`)
+
+PASSED — no golden answer lost
+```
+
+**Stronger than the rule asked:** every top-5 is identical, and **96 of 100 top-20 lists** are — the
+four that differ do so below rank 5, which is Qdrant's approximate index showing.
+
+**What exists:**
+
+| file | job |
+|---|---|
+| `rag/demo.py` | question → the graded retrieval → the shipped prompt → NVIDIA → answer + every source; rate limits; the "not the measured model" notice. 7 tests |
+| `space/app.py` | the Gradio page, a thin wrapper; three example questions both judges supported (`D101`) |
+| `space/requirements.txt` | pinned to the versions **installed** where the baseline was gated |
+| `space/README.md` | the Space card: what it does, what is measured, and that 0.42 is not this model |
+| `space/build.py` | assembles `space/dist/` (gitignored): app, `rag/`, the corpus files, LFS attributes |
+
+**Checked, not assumed:** one real question end to end in 30 s (`g048`'s wording: cited the migration
+guide, correct on the string-name removal); the built bundle imports with the exact pins on Python
+3.11 and builds the page; and **the bundle ranks identically to the repo** on the same query
+(`c00456 c01567 c02028 c01569 c01573`, both).
+
+**Found:** the first `requirements.txt` pinned `numpy==2.5.2`, grepped from `uv.lock`, which needs
+Python 3.12; the gated environment runs 2.4.6 on 3.11. The resolver refused it before anything
+shipped, and the pins are now read from the installed environment.
+
+### To publish — Viraj's steps (Claude has no Hugging Face token and does not push)
+
+```bash
+uv run python space/build.py                       # rebuild space/dist/
+hf auth login                                      # once, with a write token
+hf repo create sqlalchemy-upgrade-agent --type space --space-sdk gradio
+cd space/dist && git init && git lfs install && git lfs track "*.npy" "*.jsonl"
+git remote add origin https://huggingface.co/spaces/<your-username>/sqlalchemy-upgrade-agent
+git add . && git commit -m "Space: first publish" && git push -u origin main
+```
+
+Then in the Space's **Settings → Variables and secrets**, add the secret **`NVIDIA_API_KEY`**. The
+page works without it (it says the key is missing) and never shows the key.
+
+**Still open for the ROADMAP's gate** (*"a stranger can click your demo link and get a cited answer"*):
+the push above, and a first answer from the live link. The CI gate's first real run (a PR) is the
+other half.

@@ -103,8 +103,9 @@ logs/                  the dated timeline
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   retrieval (Phase 1-3), judge.py / faithful.py (Phase 4), the agent (5), gate.py + route.py (6)
 tools/                 check_runnable.py — every `# runnable` block, verified
+space/                 the Hugging Face Space: app, pinned requirements, card, build script (D102)
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 480 tests pinning what the docs claim
+tests/                 487 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
 ```
 
@@ -146,7 +147,7 @@ to "§18" is unambiguous in either file.
 | [`study/16-JUDGE.md`](study/16-JUDGE.md) | **§R8 — Phase 4.** End to end **0.42–0.43** vs retrieval's **0.64** ceiling; 65% of answers cite nothing; position beats emphasis; the result that was wrong first time; the hosted judge capped at **20 calls a day per model** against a ~110-call run, so the judge went local (`D80`); and **§R8.9 — the second machine**, where retrieval reproduced *exactly* and generation reproduced nowhere, turning a p = 0.0039 prompt win into **6↑ 2↓, p = 0.289** and a hold (`D83`) — then the obvious explanation for the gap was tested and **disproved**, leaving a sharper finding about *which model on which box* reproduces — and the judge, asked to re-read its own verdicts seven days on, changed **3 of 110** while leaving the paired cells identical (`D84`) |
 | [`study/17-AGENT.md`](study/17-AGENT.md) | **§R9 — Phase 5.** What an agent actually is here (a function plus a paragraph, and the model only ever writes text); `check_api` as the `g065` post-mortem turned into a guardrail; **`0.02` and why that is not the finding**; fabricated citations to passages never fetched; **tool calls disagreeing across two machines on half the items**; and single-tool lookup rather than multi-step agency |
 | [`study/18-PRODUCTION.md`](study/18-PRODUCTION.md) | **§R10 — Phase 6.** The CI quality gate in Python and SQL terms; removing the reranker costs one point of recall, inside the noise band, and the gate blocks it by naming `g017`; why one broken item fails a net gain; why the ruler is read from the base branch; why generation is not in CI; and the reranker that was never pinned |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 101 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 102 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 
@@ -181,10 +182,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-480 tests collected in 22.84s
+487 tests collected in 22.84s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 480 passed with it up and 475
+Five of them skip when Qdrant is not running, so a run reports 487 passed with it up and 482
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 

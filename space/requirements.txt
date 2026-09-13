@@ -1,0 +1,9 @@
+# Pinned to the versions INSTALLED in the environment that produced the gated baseline
+# (Python 3.11; read with importlib.metadata, not grepped from uv.lock, which lists several
+# numpy entries by Python version -- the first grep picked 2.5.2, which needs 3.12). gradio is new.
+gradio==6.27.0
+sentence-transformers==5.7.0
+transformers==5.15.0
+torch==2.13.0
+numpy==2.4.6
+huggingface-hub==1.27.0

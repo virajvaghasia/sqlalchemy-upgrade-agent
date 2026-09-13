@@ -74,3 +74,6 @@ graphify-out/cache/
 graphify-out/.graphify_python
 graphify-out/.graphify_root
 graphify-out/cost.json
+
+# Phase 6 Step 4: the assembled Hugging Face Space bundle (space/build.py). A deployment, not source.
+space/dist/

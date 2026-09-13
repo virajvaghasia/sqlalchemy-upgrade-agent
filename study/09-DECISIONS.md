@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D101`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D102`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -4017,6 +4017,43 @@ confident?"* I judged them twice: once against the pages retrieval gave the mode
 page a human verified answers the question, after checking the second judge on two answers I'd run
 against the real library. Both said ten of sixteen, but only seven were the same ten. So I quote the
 rate, 0.42 to at most 0.53 end to end, and I don't claim to know exactly which ten.
+
+### D102 — the demo runs the graded retrieval in memory, a different generator, and says so
+
+**Decided 2026-09-12**, on Viraj's two choices (17:13): a Hugging Face Space, generating via the
+NVIDIA API with the key as a Space secret. Code `rag/demo.py`, `space/`; plan `PHASE-6.md` Step 4.
+
+**In-memory dense search replaces Qdrant, because it passed the gate.** A Space cannot run the Qdrant
+container; Qdrant's index is approximate, so an exact search could rank differently. The rule written
+first was `broken 0`. Result: **broken 0, moved 0, 96 of 100 top-20 lists identical**. Reproduce:
+`RAG_DENSE=memory uv run python -m rag.score --save … && rag.gate …` (block in `PHASE-6.md`).
+
+**Rejected — ship Qdrant anyway (managed Qdrant Cloud).** A second hosted service, a second key, for
+a search the gate shows is identical in memory at 3284 vectors. `D36` already said speed was never
+the reason for Qdrant at this size.
+
+**The generator is not the measured one, and the page says so on every answer.** `qwen2.5-coder:7b`
+is not on NVIDIA's API (no `qwen` model in the catalog, checked 2026-09-12). The demo uses
+`nvidia/nemotron-3-ultra-550b-a55b`, the one model measured with this prompt (`D99`–`D101`). A test
+asserts the notice is on the page.
+
+**Rejected — quote 0.42 next to the demo.** It was measured on a different model. `D95`'s rule
+applied to a web page.
+
+**Rate limits are chosen, not measured** (60 questions per hour globally, 20 s per visitor): a public
+page spends free credits.
+
+**Found:** `numpy==2.5.2` pinned from a `uv.lock` grep needs Python 3.12; the gated environment is
+2.4.6 on 3.11. Pins now come from the installed environment.
+
+**Not done, and Viraj's:** pushing to Hugging Face and adding the secret; the first answer from the
+live link, which is the ROADMAP's gate.
+
+**Interview question it answers:** *"Your system is measured on a local 7B model — what does the demo
+run?"* The same retrieval, gated to rank identically without Qdrant, and the same prompt, but a
+larger hosted model, because the host cannot run the local one. The page says the measured score is
+for a different model, because quoting it there would be the exact mistake the project is built to
+catch.
 ---
 
 ## Where the rest of the repo lives

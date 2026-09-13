@@ -54,6 +54,13 @@ from rag import corpus, embed
 URL = "http://127.0.0.1:6333"
 BATCH = 256
 
+# Where dense search runs. "qdrant" is what every measurement in this repo used.
+# "memory" is an exact dot product over corpus/embeddings.npy, for places with no
+# Qdrant -- the Phase 6 demo on a Hugging Face Space. It is only allowed to ship
+# if the golden set scores identically through it (`rag.gate`, `D102`), because
+# Qdrant's HNSW index is approximate and an exact search could rank differently.
+DENSE_ENV = "RAG_DENSE"
+
 
 def collection_name(stats: dict) -> str:
     """Project name, model, and the first 8 of the revision that produced it."""
@@ -92,6 +99,50 @@ def load_inputs():
         sys.exit(f"{len(missing)} ids are not in chunks.jsonl — re-run rag.chunk then rag.embed")
 
     return vectors, ids, stats, chunks
+
+
+_MEMORY = None
+
+
+def memory_points(query_vec, limit: int, version: str | None = None):
+    """Exact top-`limit` by dot product, shaped like Qdrant's points.
+
+    The vectors are unit length (EMBED_STATS "normalize": true), so the dot
+    product IS the cosine Qdrant computes. Ties break by row order.
+    """
+    import numpy as np
+    from types import SimpleNamespace
+    from rag import hybrid
+
+    global _MEMORY
+    if _MEMORY is None:
+        vectors, ids, _, chunks = load_inputs()
+        _MEMORY = (vectors, ids, chunks)
+    vectors, ids, chunks = _MEMORY
+    scores = vectors @ np.asarray(query_vec, dtype=np.float32)
+    rows = np.argsort(-scores, kind="stable")
+    out = []
+    for i in rows:
+        chunk = chunks[ids[i]]
+        if version and chunk["sqlalchemy_version"] != version:
+            continue
+        out.append(SimpleNamespace(score=float(scores[i]), payload=hybrid._payload_from_chunk(chunk)))
+        if len(out) == limit:
+            break
+    return out
+
+
+def dense_points_fn(stats, query_vec, limit: int, flt, version: str | None):
+    import os
+    if os.environ.get(DENSE_ENV, "qdrant") == "memory":
+        return memory_points(query_vec, limit, version)
+    return client().query_points(
+        collection_name=collection_name(stats),
+        query=query_vec,
+        limit=limit,
+        query_filter=flt,
+        with_payload=True,
+    ).points
 
 
 def client():
@@ -255,13 +306,7 @@ def retrieve(
             channel if (version or not dedupe)
             else dedup_mod.overfetch_limit(channel)
         )
-        dense_points = client().query_points(
-            collection_name=collection_name(stats),
-            query=query_vector(query),
-            limit=dense_fetch,
-            query_filter=flt,
-            with_payload=True,
-        ).points
+        dense_points = dense_points_fn(stats, query_vector(query), dense_fetch, flt, version)
         if dedupe and not version:
             dense_points = dedup_mod.dedupe_points(dense_points, channel)
         else:
@@ -297,13 +342,7 @@ def retrieve(
             fetch_limit if (version or not dedupe)
             else dedup_mod.overfetch_limit(fetch_limit)
         )
-        points = client().query_points(
-            collection_name=collection_name(stats),
-            query=query_vector(query),
-            limit=fetch,
-            query_filter=flt,
-            with_payload=True,
-        ).points
+        points = dense_points_fn(stats, query_vector(query), fetch, flt, version)
         if dedupe and not version:
             points = dedup_mod.dedupe_points(points, fetch_limit)
         else:
