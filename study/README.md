@@ -30,7 +30,7 @@ If a file dumps a bare `0.43` or an id with no question text, that is unfinished
 | [`06-POSTGRES.md`](06-POSTGRES.md) | database in the stack — role vs maintenance DB | §5 |
 | [`07-TESTS.md`](07-TESTS.md) | suite pins doc claims — collected vs passed | §6 |
 | [`08-LAB.md`](08-LAB.md) | lab PC runbook — VRAM vs RAM, AnyDesk vs SSH | — |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | register `D01`…`D107` — §H ≠ prompt H | — |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | register `D01`…`D108` — §H ≠ prompt H | — |
 | [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | RAG from zero — corpus/chunk/embedding named | §R1–§R2 |
 | [`11-GENERATION.md`](11-GENERATION.md) | after search — over-refusal / fabrication named | §R3 |
 | [`12-EVALUATION.md`](12-EVALUATION.md) | how to measure — two report cards, not one grade | §R4 |
@@ -122,7 +122,7 @@ Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 
 | file | § | what it is |
 |---|---|---|
-| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D107`. All phases in one register |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | — | `D01`…`D108`. All phases in one register |
 
 ### Phases 4–6
 
