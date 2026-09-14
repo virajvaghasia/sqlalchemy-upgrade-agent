@@ -77,10 +77,31 @@ with collapsed answers. You should never need a second file to finish a concept.
 
 ## Part 0 — How to use this
 
-**Every claim about runtime behaviour in this file has a command that proves it.** That
-command is `explore.py`, which builds the schema, seeds 21 traceable rows, and prints the
-SQL SQLAlchemy actually emits for each relationship. Each section carries its own output,
-under **Proof**.
+**Every claim about runtime behaviour in this file has a command that proves it.** Mostly that
+command is `explore.py`, which builds the schema, seeds a small traceable dataset, and prints the
+SQL SQLAlchemy actually emits for each relationship. Each section carries its own output, under
+**Proof**, and each Proof names the `explore.py` section it came from.
+
+**How big the seed is, counted by `explore.py`'s own section 8:**
+
+```
+# runnable   →   uv run python -m experiments.sqlalchemy_1_4_vs_2_0.explore 2>&1 | tail -10
+8. Row counts
+========================================================================
+users              2
+projects           1
+issues             9
+labels             3
+comments           3
+issue_assignments  3
+issue_labels       6
+issue_blocks       3
+```
+
+Read it in two groups. The first six tables are mapped classes, so each row is a Python object
+you can hold: `2 + 1 + 9 + 3 + 3 + 3 = 21` objects. The last two are bare junction tables, whose
+rows are only links: `6 + 3 = 9` link rows. **30 rows in 8 tables.** Small on purpose, so every
+row can be traced by hand.
 
 The rule, which you will be tempted to break: **predict before you run.** Given a traversal,
 write down what you think it returns *before* looking. A prediction is a derivation from the
@@ -113,42 +134,51 @@ out of them. Every "why" in Part 2 has a SQL answer here underneath it.
 
 ### §0 — The whole schema on one screen
 
-Before any single pattern, the map. Six tables, four shapes, and every arrow is a real
-`ForeignKey`:
+Before any single pattern, the map. Start with the real thing, not a drawing: every table in
+`models.py`, whether a class is mapped onto it, and every foreign key it holds.
+
+```
+# runnable: uv run python -c "
+#   from experiments.sqlalchemy_1_4_vs_2_0 import models as m
+#   for name, t in sorted(m.Base.metadata.tables.items()):
+#       fks = ', '.join(f'{fk.parent.name} -> {fk.column.table.name}.{fk.column.name}' for fk in sorted(t.foreign_keys, key=lambda f: f.parent.name))
+#       mapped = 'class' if any(mp.local_table is t for mp in m.Base.registry.mappers) else 'bare Table'
+#       print(f'{name:18} {mapped:11} {fks or \"-\"}')
+#   "
+comments           class       issue_id -> issues.id, user_id -> users.id
+issue_assignments  class       issue_id -> issues.id, user_id -> users.id
+issue_blocks       bare Table  blocked_id -> issues.id, blocker_id -> issues.id
+issue_labels       bare Table  issue_id -> issues.id, label_id -> labels.id
+issues             class       project_id -> projects.id
+labels             class       -
+projects           class       -
+users              class       -
+```
+
+**Eight tables, six mapped classes.** The two without a class, `issue_labels` and `issue_blocks`,
+are pure link tables (§7 says why they get no class). And notice what is **not** there: `issues`
+holds exactly one foreign key, `project_id`. An issue does not point at a label or a user. Those
+links live in the junction tables and in `comments`.
+
+The same eight tables as a picture. Each arrow is one foreign key from the block above, drawn from
+the table that holds the column to the table it points at:
 
 ```
 # illustration
 
-                        ┌────────────┐
-                        │  projects  │
-                        └─────┬──────┘
-                              │ 1
-                              │            §2  one-to-many
-                              │            FK sits on the MANY side
-                            ∞ ▼
-   ┌────────┐  1      ∞ ┌────────────┐ ∞      1  ┌────────┐
-   │ labels │◄──────────┤   issues   ├──────────►│ users  │
-   └───┬────┘           └──┬──────┬──┘           └────┬───┘
-       │                   │      │                   │
-       │  ┌────────────────┘      └───────┐           │
-       │  │                               │           │
-       ▼  ▼                               ▼           ▼
-  ┌──────────────┐   ┌──────────────┐  ┌──────────────────────┐
-  │ issue_labels │   │ issue_blocks │  │  issue_assignments   │
-  ├──────────────┤   ├──────────────┤  ├──────────────────────┤
-  │ issue_id  FK │   │ blocker_id FK│  │ issue_id          FK │
-  │ label_id  FK │   │ blocked_id FK│  │ user_id           FK │
-  └──────────────┘   └──────┬───────┘  │ role         ← DATA! │
-   §3  bare junction        │          │ assigned_at  ← DATA! │
-   no data of its own       │          └──────────────────────┘
-                            │           §4  junction WITH data
-                     both FKs point                │
-                     back at issues                ▼
-                     §5  self-referential    must become a CLASS (§7)
+  issues             ──project_id──►  projects      §2  one-to-many: the FK sits on the MANY side
 
+  issue_labels       ──issue_id────►  issues        §3  bare junction: the rows ARE the links,
+                     ──label_id────►  labels            no data of their own
 
-   comments ── FK ──► issues        two FKs, two parents
-   comments ── FK ──► users         (§2 twice over)
+  issue_assignments  ──issue_id────►  issues        §4  junction WITH data (role, assigned_at),
+                     ──user_id─────►  users             so it must become a class (§7)
+
+  issue_blocks       ──blocker_id──►  issues        §5  self-referential: BOTH FKs point at
+                     ──blocked_id──►  issues            the same table
+
+  comments           ──issue_id────►  issues        §2 twice over: two parents
+                     ──user_id─────►  users
 ```
 
 **Read it as four questions, in order:**
@@ -267,7 +297,8 @@ Many rows can point at the same project — that's what makes it "many."
 `relationship()` can be declared on either class (§10).
 
 
-**Proof — from a real run.**
+**Proof — from a real run** (`explore.py` section 7, the `apollo.issues` statement; the `AS` column
+aliases SQLAlchemy prints are trimmed here for reading).
 
 **Emitted SQL:**
 ```sql
@@ -276,7 +307,7 @@ SELECT issues.id, issues.title, issues.description, issues.status,
 FROM issues
 WHERE ? = issues.project_id
 ```
-**Result:** all 9 `Issue` objects.
+**Result:** all 9 `Issue` objects (section 2 prints `project_id values -> [1, 1, 1, 1, 1, 1, 1, 1, 1]`).
 
 **What it proves.** One SELECT against `issues` alone — no join, because the FK lives *on the
 issues table* (§2). The parameter is `apollo.id`. Note also that `project_id` came out `1` for
@@ -658,7 +689,7 @@ class IssueAssignment(Base):
 back to back so you feel it.
 
 
-**Proof — from a real run.**
+**Proof — from a real run** (`explore.py` section 5, first three lines).
 
 **Result:**
 ```
@@ -673,16 +704,28 @@ object* — and `.user` is a second hop. That extra hop is the entire cost of th
 object, and the reason it buys you `role`. There is no `issue.users` shortcut.
 
 
-**Proof — the two objects side by side.**
+**Proof — the two objects side by side.** (This block used to be typed by hand with no command
+behind it. It is a real run now.)
 
-**Result:**
 ```
-type(Label)             -> DeclarativeMeta          # a class
-type(Label.__table__)   -> sqlalchemy.sql.schema.Table
-type(issue_labels)      -> sqlalchemy.sql.schema.Table
-Label.__mapper__        -> mapped class Label->labels
+# runnable: uv run python -c "
+#   from experiments.sqlalchemy_1_4_vs_2_0.models import Label, issue_labels
+#   print('type(Label)                         ->', type(Label).__name__)
+#   print('type(Label.__table__)               ->', type(Label.__table__).__module__ + '.' + type(Label.__table__).__name__)
+#   print('type(issue_labels)                  ->', type(issue_labels).__module__ + '.' + type(issue_labels).__name__)
+#   print('Label.__mapper__                    ->', Label.__mapper__)
+#   print('hasattr(issue_labels, \"__mapper__\") ->', hasattr(issue_labels, '__mapper__'))
+#   "
+type(Label)                         -> DeclarativeMeta
+type(Label.__table__)               -> sqlalchemy.sql.schema.Table
+type(issue_labels)                  -> sqlalchemy.sql.schema.Table
+Label.__mapper__                    -> mapped class Label->labels
 hasattr(issue_labels, "__mapper__") -> False
 ```
+
+`DeclarativeMeta` is the *class of the class*: `class Label(Base)` is built by it, which is how
+`Base` gets the chance to create the `Table` and attach the mapper at the moment the class is
+defined.
 
 **What it proves.** `Label.__table__` and `issue_labels` are **the same kind of object** — both
 plain `Table`. The only difference is that a mapper was attached to one of them. That is the
@@ -808,7 +851,8 @@ junction row away and hands you the far-end objects, so there is physically nowh
 the association object (§7).
 
 
-**Proof — from a real run.**
+**Proof — from a real run** (`explore.py`: the SQL is section 7's per-issue labels query with its
+`AS` aliases trimmed; the result is section 3's `issue3.labels` line).
 
 **Emitted SQL:**
 ```sql
@@ -817,6 +861,10 @@ FROM labels, issue_labels
 WHERE ? = issue_labels.issue_id AND labels.id = issue_labels.label_id
 ```
 **Result:** `[<Label 1 'bug'>, <Label 3 'ui'>]`
+
+Notice the `FROM labels, issue_labels` with the join condition in `WHERE`. That is an inner join
+written the old comma way. It returns the same rows as `JOIN issue_labels ON …` in the sketch above;
+only the spelling differs.
 
 **Both halves of the question, answered:**
 - *Does `issue_labels` appear in the SQL?* **Yes** — it must, it holds the link.
@@ -932,9 +980,11 @@ new SQL concept.
 Swap `primaryjoin` and `secondaryjoin` and you get the exact opposite meaning — that's §10.
 
 
-**Proof — from a real run.**
+**Proof — from a real run** (`explore.py` section 6 for the results and the join conditions,
+section 7 for the SQL).
 
-The load-bearing comparison. Both queries, verbatim, differing in exactly two places:
+The load-bearing comparison. Both queries, with the column list shortened to `issues.*`, differing in
+exactly two places:
 
 ```sql
 --  issue3.blocks                                    -- issue7.blocked_by
@@ -1075,7 +1125,8 @@ some other file. This project uses `backref` **on purpose**, because it's the 1.
 future `deliverables/BREAKAGES.md` entry. Don't "fix" it.
 
 
-**Proof — from a real run.**
+**Proof — from a real run** (`explore.py` section 4, first line; the issue title is shortened to
+`'...'`).
 
 **Result:**
 ```
@@ -1450,7 +1501,44 @@ is this photocopy? Is it still trustworthy? Is the desk even there any more?
 | **transient** | a note you wrote by hand — not on the desk, not in the cabinet |
 | **pending** | you put it on the desk; still nothing filed |
 | **persistent** | filed *and* on your desk |
+| **deleted** | you pulled the file from the cabinet, but haven't signed off on it yet (`commit()`) |
 | **detached** | the desk was taken away; you're holding a loose photocopy |
+
+Four of those five show up in this repo's scripts. `deleted` does not, because nothing in
+`explore.py` or `states.py` deletes a row. So here it is, traced on its own, one `Project` through
+all five:
+
+```
+# runnable: uv run python -c "
+#   from sqlalchemy import create_engine, inspect
+#   from sqlalchemy.orm import Session
+#   from experiments.sqlalchemy_1_4_vs_2_0 import models as m
+#   def state(o):
+#       i = inspect(o)
+#       return next(n for n in ('transient', 'pending', 'persistent', 'deleted', 'detached') if getattr(i, n))
+#   e = create_engine('sqlite://'); m.Base.metadata.create_all(e)
+#   s = Session(e)
+#   p = m.Project(name='apollo');       print('Project(name=...)      ', state(p))
+#   s.add(p);                           print('session.add(p)         ', state(p))
+#   s.flush();                          print('session.flush()        ', state(p))
+#   s.delete(p);                        print('session.delete(p)      ', state(p), '  <- nothing sent yet')
+#   s.flush();                          print('session.flush()        ', state(p), '    <- DELETE sent, transaction still open')
+#   s.commit();                         print('session.commit()       ', state(p))
+#   "
+Project(name=...)       transient
+session.add(p)          pending
+session.flush()         persistent
+session.delete(p)       persistent   <- nothing sent yet
+session.flush()         deleted     <- DELETE sent, transaction still open
+session.commit()        detached
+```
+
+**Two surprises in six lines.** `session.delete(p)` does **not** make the object `deleted`: like
+`add()`, it only stages. The state changes when a flush actually sends the DELETE. And after
+`commit()` the object is not "deleted" forever. It is `detached`, a loose photocopy of a row that
+no longer exists. `deleted` only lasts while a `rollback()` could still bring the row back, and it
+does: checked on the same model, a `rollback()` after that flush returns the object to `persistent`
+and the row count to 1.
 
 ```
 # illustration
@@ -1783,8 +1871,8 @@ Split the number apart:
 ```
 
 The 1 is honest work. The 9 is the bug — and it scales with your data, which is why it's
-invisible in dev and fatal in production. At 200 issues this loop is 201 queries; at 200,000
-it's unusable.
+invisible in dev and fatal in production. At 200 issues this loop is 201 queries (Scope B's
+`1 + 200`; Scope A adds the `apollo.name` re-read for 202); at 200,000 it's unusable.
 
 **Careful with that extrapolation, though.** It holds here because `labels` is a *collection*,
 and a collection is never in the identity map as a whole, so every row pays. Substitute a
