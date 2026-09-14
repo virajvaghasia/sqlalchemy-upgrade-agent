@@ -219,15 +219,22 @@ def score_items(
     chunks: dict[str, dict],
     retrieve=None,
     *,
-    hybrid: bool = True,
-    rerank: bool = True,
+    hybrid: bool | None = None,
+    rerank: bool | None = None,
 ) -> list[dict]:
-    """One row per item. `retrieve` is injected so tests need no Qdrant."""
+    """One row per item. `retrieve` is injected so tests need no Qdrant.
+
+    `hybrid`/`rerank` are passed to index.retrieve ONLY when set. None means "whatever
+    index.retrieve ships", which is what rag.ask and the live page call. The quality
+    gate's demo PR (#30) turned the reranker off in index.retrieve and PASSED, because
+    this function used to pass rerank=True explicitly: the gate graded its own settings.
+    """
     if retrieve is None:
         from rag import index
+        overrides = {k: v for k, v in (("hybrid", hybrid), ("rerank", rerank)) if v is not None}
         retrieve = lambda q: [
             h.payload["chunk_id"]
-            for h in index.retrieve(q, limit=DEPTH, hybrid=hybrid, rerank=rerank)
+            for h in index.retrieve(q, limit=DEPTH, **overrides)
         ]
 
     rows = []
@@ -544,12 +551,13 @@ def main() -> None:
         report_refusals(refusal_rows(items, chunks))
 
     # Default is hybrid+rerank (`D67`/`D68`). Flags re-measure earlier rows.
-    hybrid = "--dense-only" not in argv
-    rerank = "--no-rerank" not in argv
+    # None = index.retrieve's shipped default; a flag is the only override.
+    hybrid = False if "--dense-only" in argv else None
+    rerank = False if "--no-rerank" in argv else None
     modes = []
-    if not hybrid:
+    if hybrid is False:
         modes.append("dense-only")
-    if not rerank:
+    if rerank is False:
         modes.append("no-rerank")
     if modes:
         print(f"mode: {', '.join(modes)}\n")

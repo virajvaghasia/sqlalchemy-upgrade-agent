@@ -104,6 +104,26 @@ bit-identical to MPS (max difference 1.3e-5), and 100 of 100 top-20 lists identi
 **Not done, and not Claude's to do:** open a PR so the workflow runs on a real runner, and mark the
 check *required* in branch protection. Both are actions on the GitHub repository.
 
+### The gate on a real runner — 2026-09-14 (PRs #29 and #30)
+
+**Linux x86 CPU ranks like the Mac's GPU.** PR #29 (the workflow change, no retrieval change) on
+`ubuntu-latest`: **58/91 = 0.64, fixed 0, broken 0, moved 0 → PASSED.** The question above is answered.
+Timings, first run, cold cache: **embed 2,737 s**, **score 626 s**, job **3,442 s**. PR #30's runner was
+slower: embed 6,560 s, score 1,467 s, job 8,089 s. Runners differ by more than 2x; quote a range.
+
+**The demo PR PASSED, and that exposed a real hole in what the gate grades.** PR #30 set
+`index.retrieve(rerank=False)`, the path `rag.ask` and the live page call. The gate still read 0.64,
+because `rag.score.score_items` **always passed `rerank=True` explicitly**: the gate graded its own
+settings, not the shipped defaults. A PR that quietly turned the reranker off for users would have passed.
+**Fixed** (test first, `test_the_scorer_grades_the_shipped_defaults_unless_a_flag_asks_otherwise`):
+`score_items` passes `hybrid`/`rerank` only when a flag sets them. The baseline cannot move: the shipped
+defaults are hybrid on, reranker on, which is what was passed before. PR #30 is re-run on the fixed code.
+
+**Also changed:** the `paths:` filter became a `changes` job, so `quality gate` is skipped (counted as
+passed) when retrieval cannot have moved; a required check that never reports freezes a PR. **`quality gate`
+is now a required check on `main`** (with `tests`, `2.0 evidence`, `image builds`, `docs reproduce`), set by
+Claude at Viraj's request after a first attempt was refused by the permission layer.
+
 ---
 
 ## Step 3a — can routing know which questions to send? (pre-registered 2026-09-12, 14:30)

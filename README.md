@@ -52,7 +52,7 @@ decision that holds the command and the reasoning.
 | nemotron's answers, main claim **run** on SQLAlchemy 2.0.51 | **47 of 51** checkable correct (92%) | `D105` |
 | invented answers on the 9 unanswerable questions | qwen **2**, nemotron **0** | `D72`, `D104` |
 | send only qwen's declines to nemotron | 0.42 → at most **0.53**, $1.81 per 1000 questions *if paid* (all calls were free credits) | `D100`, `D101` |
-| a pull request that removes the reranker | **blocked** by the CI quality gate, naming question `g017` | `D97` |
+| a pull request that removes the reranker | **blocked** by the CI quality gate, naming question `g017` (committed rows; the runner demo is PR #30) | `D97` |
 
 **What is not claimed:** that "supported" means correct (the judge called three wrong answers fully
 supported, `D105`); that the hosted model's numbers describe the local one; or anything measured on one
@@ -152,7 +152,7 @@ rag/                   retrieval (Phase 1-3), judge.py / faithful.py (Phase 4), 
 tools/                 check_runnable.py — every `# runnable` block, verified; check_*.py — answers run on 2.0.51, the demo page in a browser
 space/                 the demo: web.py + static/ (shipped), modal_app.py (Modal host, D106), app.py (older Gradio), pins, build script (D102)
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 528 tests pinning what the docs claim
+tests/                 529 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
 ```
 
@@ -229,10 +229,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-528 tests collected in 20.73s
+529 tests collected in 20.73s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 528 passed with it up and 523
+Five of them skip when Qdrant is not running, so a run reports 529 passed with it up and 524
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
