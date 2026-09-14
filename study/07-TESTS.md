@@ -57,42 +57,25 @@ is reachable. A headline number that changes with the environment is not a headl
 the block counts what is collected, which does not move. The CI job that verifies every
 `# runnable` block found this; reading never would have.
 
-Nineteen files, and the Phase 0 trio still do not check that SQLAlchemy works:
+Twenty-seven files (count the lines below), and the Phase 0 trio still do not check that SQLAlchemy works:
 
-```
-# runnable: uv run pytest --collect-only -q | grep '^tests/'
-tests/test_agent.py: 43
-tests/test_ask.py: 14
-tests/test_chunk.py: 37
-tests/test_compare_prompts.py: 28
-tests/test_corpus.py: 25
-tests/test_db_config.py: 5
-tests/test_dedup.py: 6
-tests/test_demo.py: 21
-tests/test_embed.py: 12
-tests/test_escalate.py: 35
-tests/test_faithful.py: 84
-tests/test_framing.py: 11
-tests/test_gate.py: 12
-tests/test_golden.py: 8
-tests/test_hybrid.py: 7
-tests/test_index.py: 10
-tests/test_judge.py: 51
-tests/test_models.py: 6
-tests/test_probe.py: 18
-tests/test_rerank.py: 6
-tests/test_route.py: 6
-tests/test_score.py: 38
-tests/test_seed.py: 6
-tests/test_textnorm.py: 5
-tests/test_toolcall.py: 19
-tests/test_tools.py: 13
-tests/test_verification_doc.py: 6
 ```
 
 `test_db_config.py`, `test_models.py` and `test_seed.py` are Phase 0's, and are what the rest
-of this section describes. The other two arrived with Phase 1 and pin a different kind of claim
-— not what the app does, but **what went into the retrieval index**:
+of this section describes. The other 24 arrived one phase at a time, each with the module it pins.
+Grouped by the commit that first added the file (`git log --diff-filter=A -- tests/<file>`):
+
+| phase | test files | what kind of claim they pin |
+|---|---|---|
+| 0 (2026-08-13) | `test_db_config` `test_models` `test_seed` | what the practice app's docs say about its schema and data |
+| 1 (08-14 → 08-18) | `test_corpus` `test_chunk` `test_embed` `test_index` `test_ask` `test_probe` `test_compare_prompts` `test_verification_doc` | what went into the index, what the prompt asks, what §R5 says |
+| 2 (08-18 → 08-19) | `test_score` `test_golden` | how the golden set is scored, and that no script can mark an item verified |
+| 3 (08-21 → 08-22) | `test_dedup` `test_hybrid` `test_rerank` `test_textnorm` | each retrieval lever, including the rejected Sphinx strip |
+| 4 (08-23 → 09-01) | `test_judge` `test_faithful` | citation integrity and the faithfulness judge |
+| 5 (2026-09-11) | `test_toolcall` `test_tools` `test_agent` | tool calls, the three tools, the loop's failure paths |
+| 6 (2026-09-12) | `test_gate` `test_route` `test_escalate` `test_demo` `test_framing` | the CI gate, the router, escalation, the demo page |
+
+Two of the Phase 1 files show the pattern best:
 
 - `test_corpus.py` (Step 1) — what is in the corpus and what was deliberately left out.
 - `test_chunk.py` (Step 2) — what the chunker must never do: split a code block, sever a
@@ -118,7 +101,7 @@ So:
 | `test_association_object_carries_its_own_data` | the association-object distinction | `03-PRACTICE-APP.md` |
 | `test_seed_is_deterministic` | every before/after number in the repo | `02-MIGRATION-2.0.md` |
 | `test_is_seeded_true_after_seeding` | the guard on the Postgres volume | `05-COMPOSE.md` §4.4 |
-| `test_db_url_defaults_to_sqlite` | that Part A measurements are still valid | `../BREAKAGES.md` |
+| `test_db_url_defaults_to_sqlite` | that Part A measurements are still valid | [`../deliverables/BREAKAGES.md`](../deliverables/BREAKAGES.md) |
 | `test_wait_for_db_gives_up_rather_than_hanging` | retry has a ceiling | `05-COMPOSE.md` §4.2 |
 
 **The rule this encodes:** a number in a doc should have a test under it, in the same way it
@@ -130,7 +113,8 @@ it.*
 Writing a passing test proves nothing on its own — a test asserting `True == True` also passes.
 The only way to know a test works is to break the thing it watches.
 
-Three mutations, three different tests caught them:
+Three mutations, three different tests caught them. These were run on 2026-08-13, when the suite
+was the Phase 0 trio's 17 tests, which is why each block ends `1 failed, 16 passed`:
 
 ```
 # runnable: change RANDOM_SEED = 20260803 to 12345, then uv run pytest
@@ -247,13 +231,20 @@ Saying what a suite does not cover is part of describing it honestly.
   version, in a throwaway environment. Duplicating that in pytest would mean either installing
   2.0 alongside 1.4 — impossible in one environment — or asserting on strings it already
   measures.
-- **The container.** Nothing here builds an image or starts Compose. Those need Docker, which a
-  CI runner may not have, and the stack is verified end to end by running it.
+- **The container, in pytest.** No test builds an image or starts Compose. CI does build and run
+  the image, in its own job (`image builds` in `.github/workflows/ci.yml`): it runs
+  `docker build`, then `docker run`, then fails unless the output contains `38 open issues`,
+  because a green build once hid a broken `CMD` (`04-DOCKER.md` §2.5). Compose, Postgres and
+  Qdrant are verified by running the stack, not by a test.
 - **`app.py`'s output.** It is the 1.4 specimen; its whole value is being unmodified. Pinning
   its behaviour in tests would make the file harder to leave alone.
 
-The gap worth closing next is a test that *fails on purpose*, so CI's blocking behaviour can be
-demonstrated. That is Day 8–9's gate, not this file's.
+**The gap this file named, since closed.** It said the next step was a test that *fails on
+purpose*, to show CI blocking a merge. That was done on 2026-08-13 (`08-LAB.md`): PR #3 added one
+failing file, `tests/test_ci_gate.py`, the `tests` check went red, and GitHub answered
+*"Pull request #3 is not mergeable: the base branch policy prohibits the merge."* It was closed
+unmerged. Phase 6 later did the same for answer quality: PR #30 removes the reranker and is blocked
+by the `quality gate` check (`18-PRODUCTION.md` §R10.7b).
 
 ---
 
