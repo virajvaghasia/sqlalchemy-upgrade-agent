@@ -1,6 +1,6 @@
 # Learning log — the timeline
 
-The **chronological** record of Phase 0: what got built, when, and what it took to get there.
+The **chronological** record of the project: what got built, when, and what it took to get there.
 It is deliberately *not* a place to explain concepts — those live in `study/01-CONCEPTS.md`, one
 canonical explanation each, and every entry below links to a section number (`§0`–`§15`)
 there.
@@ -15,6 +15,18 @@ This split is why the log stays readable: an idea gets one explanation in `study
 ---
 
 ## Where you are right now
+
+**Phase 6, production (2026-09-14).** The demo is live on Modal and answers with citations
+(`D106`); the CI quality gate is built but has not yet run on a GitHub runner or been made a required
+check (`D97`). Phase 0–5 are closed. Current plan: [`phases/PHASE-6.md`](../phases/PHASE-6.md); the
+latest entry below is the latest event.
+
+> **This log went stale for a month and was caught up on 2026-09-14.** No entry was written between
+> Aug 15 and Sep 13. The entries for Aug 17 – Sep 12 were **backfilled** from `CLAUDE.md`'s dated
+> session notes and `study/09-DECISIONS.md`, not written on the day; Sep 13 onward is first-hand.
+> Every number in them is quoted from those records, which carry the commands.
+
+### Phase 0, as it stood on Aug 3 (kept as the record)
 
 **All ten steps are done.** (`study/03-PRACTICE-APP.md` has the runbook.) Phase 0 Part A is complete
 and Part C is most of the way; `phases/ROADMAP.md` §10 has the per-part status, computed.
@@ -31,7 +43,7 @@ and Part C is most of the way; `phases/ROADMAP.md` §10 has the per-part status,
   22 of 24 patterns FAIL on 2.0.51
 ```
 
-The list below is the state as of **Aug 3**; everything after it is in the timeline.
+The list below is Phase 0's state as of **Aug 3**; everything after it is in the timeline.
 
 - ✅ **Step 1** — Python 3.11.15 + SQLAlchemy 1.4.52 pinned, `uv.lock` committed.
 - ✅ **Step 2** — `models.py`: all six relationship patterns built, including the
@@ -49,7 +61,7 @@ The list below is the state as of **Aug 3**; everything after it is in the timel
   `SQLALCHEMY_WARN_20` sweep, verification against real 2.0, and `deliverables/BREAKAGES.md`. Done Aug 4–6;
   see the timeline.
 
-**Immediate next action:** `tests/`, then CI. The Day 8–9 gate is *"a PR containing a
+**Next action, as it was on Aug 3:** `tests/`, then CI. The Day 8–9 gate is *"a PR containing a
 deliberately failing test that GitHub refuses to merge"*, and there is nothing for a workflow
 to run yet.
 
@@ -425,3 +437,105 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
   target including something it can never move.
 - **The report does not grade itself.** 19 answers, all marked `UNVERIFIED`. A script scoring
   its own model's output with the same model family measures self-consistency, not truth.
+
+### Aug 17 — Phase 1 verdicts closed, prompt D shipped, eleven lab rounds `(→ phases/PHASE-1.md, D51–D54)` *(backfilled)*
+
+- **19 verdicts: 10 / 3 / 6**, drafted from `BREAKAGES.md` and executed on 2.0.51, accepted by Viraj.
+- **Each lab round corrected the last:** raising `k` "does not reduce refusals" (`D51`) was measured at
+  `k=5`, where the answers were not retrieved, so `D54` corrects it in place. Prompt D ships.
+- Two bugs of mine found by measuring: the review sheet truncated answers at a nested code fence, and
+  symbol matching counted `relation` inside every `relationship` (798 recorded, 21 true).
+
+### Aug 18 — the chunk gate, the verification answers, and Phase 1 merged `(→ D56, study/13-VERIFICATION.md §R5, D58–D62)` *(backfilled)*
+
+- **Chunk gate passed with a written exception:** 2 of 10 sampled chunks fail; the audit of all 3284
+  finds **10.7%** show a broken shape and **6.3%** lose content (`D56`).
+- The cold sitting on the five verification questions **did not pass** (2 of 5); §R5 written.
+- **Phase 1 merged (PR #28).** Phase 2's design settled from measurements (`D58`–`D62`); `rag/score.py`
+  built. One question's answer chunk ranks **1** in docs phrasing and is **absent from the top 20** in
+  developer phrasing.
+
+### Aug 19 — the repo's own knowledge graph `(→ graphify-out/)` *(backfilled)*
+
+- 1074 nodes, 1841 edges; the decision correction chain is traversable.
+- A test guard written as `except Exception` could not catch `SystemExit`, and a commit was made on a red
+  build by chaining gates and commit in one command.
+
+### Aug 20 — the golden baseline: recall@5 0.51, and phrasing leaks `(→ study/14-MEASURE.md §R6, D63)` *(backfilled)*
+
+- **50 hand-verified golden items; recall@5 = 0.51.** `migration_guide` 0.73 vs `breakages` 0.41:
+  **phrasing leaks, not provenance** (`D63` corrects `D60`'s label).
+- `--refusals`: **7** answerable items refused with the answer in the prompt; end to end **17/47 = 0.36**
+  against recall 0.51. A fabricated side-by-side example of mine was caught before it shipped.
+
+### Aug 21 — the second 50, the signature, and Phase 3's first three levers `(→ PHASE-2.md, D65–D68)` *(backfilled)*
+
+- **50 real questions harvested** (Stack Overflow + GitHub). Real developers score worst:
+  **Stack Overflow 0.38**. Answer chunks proposed by BM25, not the graded retriever, to avoid grading
+  the benchmark against itself.
+- **§H closed** by a risk-weighted spot-check of ten; `g065`'s reason rewritten.
+- On 100 items, **2 fabrications** (`g056`, `g065`), and two items flipped overnight with nothing changed:
+  `D54` narrowed to "stable within a sitting".
+- Phase 3: twin collapse (`D66`), hybrid BM25 **0.52 → 0.63** (`D67`), seat-5 reranker **→ 0.64**, 7↑ 0↓ (`D68`).
+
+### Aug 22 — Phase 3 closed; Phase 4 opens on a 0.43 `(→ study/15-IMPROVE.md §R7, D69–D74)` *(backfilled)*
+
+- Sphinx strip **rejected** (0.64 → 0.58, `D69`); boundary re-chunking **rejected unbuilt**: the absents'
+  answer chunks are no more broken than the found ones (`D70`).
+- **Retrieval gained 15 points and the user got 8:** end to end **0.43** against a 0.64 ceiling (`D72`).
+- **65% of answers cite nothing** (`D73`); moving the citation rule into the user turn (prompt `H`) was the
+  lever (`D74`).
+
+### Aug 23 — H measured, and a detector the change itself broke `(→ D74, D76, D77)` *(backfilled)*
+
+- H: **9↑ 0↓, p = 0.0039** on the Mac, after fixing `ask.refused`, which scored `"[2] The sources do not
+  answer this."` as an answer (`D76`).
+- Groundedness without a judge: `g065`'s invented `op.create_view` becomes a cited paraphrase under H (`D77`).
+
+### Sep 3 — the prose judge, and a free tier of 20 calls a day `(→ study/16-JUDGE.md §R8, D80–D82)` *(backfilled)*
+
+- The hosted judge's free tier is **20 calls a day per model**, so the judge is local `gemma4:e4b` (`D80`).
+- Faithfulness: D **85%**, H **92%**, but paired only **5↑ 1↓, p = 0.22** (`D82`).
+
+### Sep 5–10 — the lab: retrieval reproduces, generation does not `(→ D83, D84)` *(backfilled)*
+
+- Lab 3060: recall@5 **0.64**, same 17 absents; every generation cell moved. H **6↑ 2↓, p = 0.289**, so
+  **H is held** by the rule written before the run (`D83`).
+- Round 16 killed my compute-path hypothesis: at 100% GPU the lab reproduced to the item (`D84`). The Mac's
+  judge drifts 3 in 110; the lab's re-run is byte-identical.
+
+### Sep 11 — Phase 4 closed, Phase 5 opened, and a truncation that reversed a conclusion `(→ D86–D93, study/17-AGENT.md §R9)` *(backfilled)*
+
+- Judge agreement with Viraj **7 of 10**; all three disagreements were `PARTIAL` (`D86`).
+- qwen can call tools, but in `message.content`, not the tool channel (`D87`).
+- **The agent was reading half of every page** (`[:600]`, `D93`). Fixed, it matched the one-shot pipeline
+  at 0.43, and I had written the opposite conclusion two hours earlier.
+
+### Sep 12 — Phase 5 closed on the lab; Phase 6: gate, router, prices, first demo `(→ D94–D103, study/18-PRODUCTION.md §R10)` *(backfilled)*
+
+- "The agent matches the pipeline" was a Mac claim; the lab says 0.27–0.36 (`D94`). Policy: the Mac
+  screens, the lab rules (`D95`).
+- Source framing rejected (`D96`). **CI gate built**: removing the reranker is blocked by name, `g017`; the
+  reranker had never been pinned (`D97`).
+- Routing: cascade on refusal beats a score predictor (`D98`); escalations **$1.81 per 1000 queries** if
+  paid; end to end **0.42 → at most 0.53**; 13 of 15 checked escalated answers correct on 2.0.51 (`D99`–`D103`).
+- Hugging Face refused a free Gradio Space (**HTTP 402**); the demo runs locally with in-memory search (`D102`).
+
+### Sep 13 — the hosted model measured, the judge corrected, the demo live `(→ PHASE-6.md Steps 4c–4g, D104–D107)`
+
+- **The new page, checked in a browser:** at 400 px one long code line made it 991 px wide (`1fr` vs
+  `minmax(0, 1fr)`). The first reading hid it because the real answer had no code block. Now scripted
+  (`tools/check_page.py`, the `webapp-testing` skill).
+- **nemotron on all 100:** 0.58 end to end vs qwen 0.42, 16↑ 1↓ (`D104`); same judge **level** with qwen;
+  **47 of 51** checkable answers correct on 2.0.51, and the judge's grade did not predict which (`D105`).
+- **The judge had never been shown page headings** the model saw, found through Viraj's `g044` review.
+  Rules first, noise control 2 of 20, then nemotron **77% → 91%** (11↑ 1↓), and `D104`'s FAIL restated (`D107`).
+- **Demo live on Modal** (`D106`), deployed by a parallel session in the same working tree. Lesson: two
+  sessions editing one tree cost a decision-id clash and a commit that swept in someone else's edits.
+- Money: Modal usage limit $30 = the monthly credits; storage 5.31 GiB inside the free 1 TiB. The dollar
+  figures in the router are **shadow costs**: nothing was spent.
+
+### Sep 14 — this log caught up `(event only)`
+
+- A month without entries, noticed because Viraj asked. Backfilled from the dated session notes; the
+  entries above are marked.
