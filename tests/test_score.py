@@ -564,3 +564,18 @@ def test_unanswerable_items_are_not_in_the_end_to_end_denominator():
     trap D62 refused when it split refusal accuracy out of recall."""
     rows = [_rrow("g001", True, False, True), _rrow("g002", False, True, False)]
     assert "1/1   = 1.00   END TO END" in _refusal_text(rows)
+
+
+def test_the_scorer_grades_the_shipped_defaults_unless_a_flag_asks_otherwise(monkeypatch):
+    """Found by the gate's demo PR (#30): it set index.retrieve(rerank=False) and the gate
+    PASSED, because score_items always passed rerank=True explicitly. The gate graded its
+    own parameters, not what rag.ask and the live page call. Now a flag is the only way
+    the scorer overrides retrieve's defaults."""
+    from rag import index
+    seen = []
+    monkeypatch.setattr(index, "retrieve", lambda q, limit=5, **kw: seen.append(kw) or [])
+    score.score_items([{"id": "g1", "question": "q", "answerable": False, "verified_by": "human", "provenance": "breakages"}], {})
+    score.score_items([{"id": "g1", "question": "q", "answerable": False, "verified_by": "human", "provenance": "breakages"}], {},
+                      hybrid=False, rerank=False)
+    assert seen[0] == {}, "no flag: retrieve's own defaults decide"
+    assert seen[1] == {"hybrid": False, "rerank": False}
