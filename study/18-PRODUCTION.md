@@ -1,9 +1,14 @@
 # §R10 — Phase 6: production — a gate, a priced router, and a demo
 
 Plan and measurements: [`../phases/PHASE-6.md`](../phases/PHASE-6.md). Decisions: `D96` (framing,
-rejected) through `D107` (judge given headings). **This file is the sitting; the plan is the
-record.** Every block marked `# runnable` reproduces with no model and no Qdrant, and CI checks
-that it still does.
+rejected) through `D108` (Langfuse traces the live demo). **This file is the sitting; the plan is the
+record.** Blocks marked `# runnable` are re-run by `tools.check_runnable`. The ones that need no model,
+no network and no Qdrant are compared verbatim on every PR; the rest are listed as `ENV` with the
+reason.
+
+**Where Phase 6 ended (2026-09-14).** Both halves of the ROADMAP's finish line are met: the public demo
+link answers with citations (R10.16), and on a real GitHub runner a pull request that removes the
+reranker is blocked by name, with the check required on `main` (R10.7b).
 
 **Study order:** finish [`17-AGENT.md`](17-AGENT.md) (§R9) first if you are reading the RAG sittings
 in order — Phase 5 closes the agent story; this file is what you do once you have a system worth
@@ -14,8 +19,8 @@ Three parts, in the order they were built:
 1. **A quality gate** (R10.1–R10.8): a pull request that loses a golden answer cannot merge quietly.
 2. **A router, priced and checked** (R10.9–R10.13): which questions go to a bigger model, what that
    costs, and whether the bigger model's answers are actually right.
-3. **Shipping it** (R10.14–R10.17): the demo page, the hosted model on all 100, the **live Modal
-   link** (`D106`), and keys.
+3. **Shipping it** (R10.14–R10.17b): the demo page, the hosted model on all 100, the **live Modal
+   link** (`D106`), keys, and Langfuse traces of real visitors (`D108`).
 
 ---
 
@@ -51,11 +56,11 @@ Do **not** read a decimal until the section has shown what was counted. Short ma
 | Section | One sentence | Read when |
 |---|---|---|
 | **R10.0** | Phase overview table | Starting cold |
-| **R10.1–R10.8** | Quality gate: broken/fixed/moved; demo blocks `g017` | Before shipping code |
+| **R10.1–R10.8** | Quality gate: broken/fixed/moved; demo blocks `g017`; the real runner and the bug it found (R10.7b) | Before shipping code |
 | **R10.9–R10.13** | Cascade router, escalation, shadow cost, supported ≠ correct | Before quoting dollars |
-| **R10.14–R10.17** | Demo page, nemotron on all 100, Modal live, keys | Before the live link |
+| **R10.14–R10.17b** | Demo page, nemotron on all 100, Modal live, keys, Langfuse | Before the live link |
 
-**If you have ten minutes:** R10.3 → R10.9 → R10.11 → R10.13 → R10.15b.
+**If you have ten minutes:** R10.3 → R10.7b → R10.9 → R10.13 → R10.15b.
 ### Golden questions this file names by id
 
 When a later section says only `g017`, look it up here. Full text is in
@@ -104,7 +109,9 @@ Do not treat these as synonyms for each other.
 | **fabrication** | Answered an unanswerable question (or invented an API). | R10.12 (`g056`/`g065`) |
 | **in-memory search** | Dense search over `embeddings.npy` in the process — no Qdrant container. Required for the hosted demo. | R10.14 |
 | **cold start** | First request after the container was asleep: load models, maybe download weights — can take minutes. | R10.16 |
-| **required check** | Repo setting: a red gate **cannot** be merged. Code is in the repo; flipping the setting is yours. | R10.1 |
+| **required check** | Repo setting: a red gate **cannot** be merged. The code lives in the repo; the setting lives on GitHub. `quality gate` has been required on `main` since 2026-09-14. | R10.1, R10.7b |
+| **cold / warm cache** | Cold: the runner has no saved embeddings and must compute all 3284 (about 1–2 hours). Warm: it restores them and only scores (about 2 minutes). | R10.6 |
+| **trace** | One saved record of one visitor's question: what was asked, which five pages came back, what the model wrote, tokens, time. Not a grade. | R10.17b |
 
 ---
 
@@ -129,6 +136,9 @@ use it?*
 | 4e | judged by the SAME judge, is the bigger model more faithful? | no: **level** (qwen **37 of 47**, nemotron **36 of 47**; paired 3 vs 6) | `D105` |
 | 4f | are its 53 delivered answers right when run? | **47 of 51** checkable pass; the judge's grade does not predict which | `D105` |
 | 4g | does the judge see what the model saw? | no, it never saw headings; given them, nemotron **53 of 69 → 63 of 69**; still level with qwen | `D107` |
+| 4h | does Phase 4's judge change when given headings? | no: prompt D **36 → 38 of 47**, H **56 → 57 of 61**, under the "matter" bar; Phase 4's figures stand | Round 22 |
+| 2, live | does the gate work on a real GitHub runner? | yes: a no-retrieval PR **moved 0**; the reranker PR **BLOCKED `g017`**, after fixing a scorer bug the first run exposed | `D97` |
+| 5 | what do real visitors do? | every question on the live page is a Langfuse trace; not an evaluation | `D108` |
 
 **Who does what in this phase.** Several models appear, and mixing them up is the fastest way to say
 something false:
@@ -161,9 +171,17 @@ This repo already had four checks in `ci.yml`: the tests, the `# runnable` block
 the Docker image. They answer *"is the code broken?"*. None of them answers *"did the answers get
 worse?"*. A PR could delete the reranker and every one of the four would stay green.
 
-**Gating** means a check whose red cross **blocks the merge**. Technically, blocking is a
-repository setting ("required status check") on top of a check that exits non-zero. The check is
-in this repo; the setting is Viraj's to switch on.
+**Gating** means a check whose red cross **blocks the merge**. Technically, blocking is two things,
+and they live in two places:
+
+```
+the check      .github/workflows/gate.yml runs rag.gate, which exits 1 on any broken item   (in the repo)
+the blocking   branch protection on main lists "quality gate" as a required status check  (a GitHub setting)
+```
+
+A check without the setting draws a red cross that anyone can merge past. The setting without the
+check has nothing to wait for. Since 2026-09-14 `main` requires five checks: `tests`, `2.0 evidence`,
+`image builds`, `docs reproduce`, and `quality gate`.
 
 ---
 
@@ -213,7 +231,7 @@ That is the whole gate. `rag/gate.py`, `paired()` and `blocked()`.
 | **Change** | Turn the reranker **off** (`rag.score --no-rerank`) — same search otherwise |
 | **Compared to** | Committed baseline: search **with** the shipped reranker |
 | **Questions** | Same 100 golden; only the **91** answerable count in the fraction |
-| **Machine for the rows** | Mac; rows committed so any box can re-check the verdict with no Qdrant |
+| **Machine for the rows** | Mac; rows committed so any box can re-check the verdict with no Qdrant. Repeated later as a real PR on a GitHub runner, same verdict (R10.7b) |
 
 ### What we counted
 
@@ -235,8 +253,13 @@ For each answerable question: was the verified answer page in the **top 5** befo
 | baseline | **58 / 91** | **0.64** |
 | no reranker | **57 / 91** | **0.63** |
 
-`0.64 → 0.63` sits inside the ±0.097 Wilson band. A gate that compared averages would call this
-noise and **pass**. The gate does not compare averages; it counts **broken**.
+**What `±0.097` is.** 91 questions is a small sample. If you wrote another 91 questions of the same
+kind, the share found in the top 5 would not come out at exactly 58 of 91 again. The Wilson interval
+is the usual way to say how far it could plausibly move at 95% confidence. For 58 of 91 it runs from
+**0.535 to 0.729**, which is `0.64 ± 0.097` (`rag/score.py`, `wilson_half_width(58/91, 91)`).
+
+`0.63` is well inside that range. A gate that compared averages would call this noise and **pass**.
+The gate does not compare averages; it counts **broken**.
 
 The ROADMAP's picture: *"open a PR that removes your reranker, and film CI rejecting it."* The
 committed rows reproduce that verdict:
@@ -288,14 +311,15 @@ Phase 1 (§R4.3): the page was found, one seat short.
 
 ## R10.4 — Why one broken item fails, even when five others were fixed
 
-**Side by side, two hypothetical PRs** (made-up numbers, to show the shape, not a measurement):
+**Side by side, two hypothetical PRs** (invented, to show the shape, not a measurement; the arithmetic
+is real). Both start from the baseline's 58 of 91:
 
 ```
-PR A    fixed 5   broken 0    recall 0.64 -> 0.70    PASS
-PR B    fixed 6   broken 1    recall 0.64 -> 0.70    BLOCKED
+PR A    fixed 5   broken 0    58 + 5 - 0 = 63 of 91    0.64 -> 0.69    PASS
+PR B    fixed 6   broken 1    58 + 6 - 1 = 63 of 91    0.64 -> 0.69    BLOCKED
 ```
 
-Same average. PR B took an answer away from someone. The gate does not say PR B is wrong. It says
+Same average, because an average only sees the total. PR B took an answer away from someone. The gate does not say PR B is wrong. It says
 **a human must look at `broken` and decide**, instead of the loss riding in unseen under a better
 average.
 
@@ -332,10 +356,31 @@ it should be reviewed as that, on its own.
 | step | on a CI runner | cost |
 |---|---|---|
 | fetch corpus, chunk | yes, same steps as `docs reproduce` | small; not separately timed |
-| **embed 3284 chunks with bge-m3** | yes, **CPU only** | **the long pole** — 1106 s on the Mac's 10-core CPU (`D97`); a runner's time is unmeasured |
+| **embed 3284 chunks with bge-m3** | yes, **CPU only** | **the long pole**: 1106 s on the Mac's 10-core CPU (`D97`); **2,737 s and 6,560 s** on two GitHub runners |
 | Qdrant | yes, a **service container**, same `v1.19.0` pin as Compose (`D41`) | seconds |
-| BM25, query embedding, reranker for 100 questions | yes, CPU | minutes |
+| BM25, query embedding, reranker for 100 questions | yes, CPU | 626 s and 1,467 s cold; **48 s** warm |
 | **generation (Ollama)** | **no** | not graded here |
+
+**The runner times, measured on 2026-09-14** (`PHASE-6.md`, "The gate on a real runner"):
+
+```
+                              embed      score     whole job
+PR #29, cold cache           2,737 s     626 s     3,442 s  = 57 min
+PR #30, cold cache           6,560 s   1,467 s     8,089 s  = 135 min
+PR #30 re-run, warm cache    skipped      48 s       123 s  = 2 min
+```
+
+**Why two cold runs of the same work differ by more than 2×** (`6560 ÷ 2737 = 2.4`): GitHub hands
+each job whichever machine is free, and they are not identical. So quote a range, not one figure.
+**Why the warm run is 2 minutes:** it restores the saved vectors and skips the embedding entirely.
+**What is not explained here:** why scoring itself took 626 s cold and 48 s warm. The record does not
+break that time down, and a guess is not a measurement.
+
+**Why it starts on every PR but only works on some.** The gate first used GitHub's `paths:` filter, so
+a docs-only PR never started it. That breaks once the check is required: a required check that never
+starts never reports, and GitHub waits for it forever, freezing every docs PR. So `gate.yml` now always
+starts, a small first job (`did retrieval change?`) diffs the PR against its base, and the real job is
+**skipped** when no retrieval file changed. GitHub counts a skipped required job as passed.
 
 **The embeddings are cached**, keyed on exactly what they are a function of: the chunk file's bytes,
 the model and revision, the window, normalisation, and the source of `embedding_input()`. A PR that
@@ -387,6 +432,92 @@ about comments. This one was wrong for three weeks and green the whole time.
 
 ---
 
+## R10.7b — The bug the real runner found: the gate graded its own settings
+
+**Plain job.** R10.3's demo was produced by *running the scorer with a flag* (`rag.score --no-rerank`).
+A real pull request does not do that. It changes the code that users get. So the demo was repeated the
+way a real change would arrive, as PR #30 on GitHub, and **the gate passed it.**
+
+### What PR #30 changed
+
+One default, in the function every user path calls:
+
+```
+rag/index.py, the PR's only file:
+-    rerank: bool = True,
++    rerank: bool = False,   # DEMO PR: the reranker removed. The quality gate must block this.
+```
+
+`rag.ask` and the live page call `index.retrieve` without saying `rerank=`, so after this PR users get
+no reranker. `g017` should lose its answer page. The gate should block.
+
+### What the gate did: PASSED, `0.64`
+
+The scorer did not call the function the way users call it. Before the fix, `rag/score.py`:
+
+```python
+def score_items(..., hybrid: bool = True, rerank: bool = True):
+    ...
+    index.retrieve(q, limit=DEPTH, hybrid=hybrid, rerank=rerank)    # always says rerank=True
+```
+
+Side by side, the two callers after PR #30:
+
+```
+rag.ask / the live page     index.retrieve(q)                  -> uses the new default: rerank=False
+rag.score (the gate)        index.retrieve(q, rerank=True)     -> overrides it: reranker still on
+```
+
+**So the gate graded the scorer's own settings, not the shipped system.** A PR that turned the reranker
+off for every user would have merged with a green tick.
+
+### The fix (commit `b9ea135`, test first)
+
+```python
+def score_items(..., hybrid: bool | None = None, rerank: bool | None = None):
+    ...
+    overrides = {k: v for k, v in (("hybrid", hybrid), ("rerank", rerank)) if v is not None}
+    index.retrieve(q, limit=DEPTH, **overrides)     # passes nothing unless a flag asked
+```
+
+`None` means "whatever `index.retrieve` ships". Only `--no-rerank` or `--dense-only` sets a value. The
+test that pins it, `test_the_scorer_grades_the_shipped_defaults_unless_a_flag_asks_otherwise`, swaps in
+a fake `retrieve` that records its keyword arguments, and asserts two things: with no flag the scorer
+passes **nothing** (`{}`), and with flags it passes exactly `{"hybrid": False, "rerank": False}`.
+
+**Why the baseline did not move.** The shipped defaults are hybrid on and reranker on, which is exactly
+what the old code passed explicitly. The fix changes *which* settings get graded only when a PR changes
+the defaults, and that is the case the gate exists for.
+
+### PR #30, re-run on the fixed scorer
+
+```
+QUALITY GATE — retrieval, recall@5, paired by golden id
+
+  baseline   58/91 = 0.64
+  this run   57/91 = 0.63
+
+  fixed        0  -
+  broken       1  g017
+  moved        3  (top-5 ids changed, found/not-found did not)
+  unpaired     0  (new items, no baseline yet)
+  exact McNemar p = 1.000  (context only; the gate reads `broken`)
+
+BLOCKED — 1 golden answer(s) left the top 5: g017
+```
+
+(Pasted from the runner's log into `PHASE-6.md`; it needs a runner, so it is not a `# runnable` block.)
+It is the same report, line for line, as R10.3's locally committed demo. **PR #30 stays open and
+unmerged as the record.**
+
+**What did NOT happen.** No test caught this, and no reading did. The scorer's tests either handed it a
+fake `retrieve`, or (the two end-to-end tests that use Qdrant) passed `hybrid=False, rerank=False`
+explicitly. Not one called the scorer with no flags and checked what reached `index.retrieve`, which is
+the only call the gate makes. It surfaced only because the demo was run as a real PR instead of a flag. **A gate is checked by feeding it the
+change it exists to stop, in the form that change would really take.**
+
+---
+
 ## R10.8 — The machine question (`D97`)
 
 The baseline rows were produced on the Mac: **MPS** for embeddings, queries and the reranker. The
@@ -410,9 +541,21 @@ hardware really does produce different floats, and the differences are far too s
 chunks. Saying "CPU and GPU give the same vectors" would be false; "they give the same rankings
 here" is what was measured.
 
-**What it is not:** a measurement of the runner. The runner is a Linux x86 CPU with a different
-math library from Apple's. If the first real run shows `moved` items on a PR that changed no
-retrieval code, that is this question coming back, and `D97` names the fallback design.
+**That was the Mac's CPU, not a runner's.** A GitHub runner is a Linux x86 CPU with a different maths
+library from Apple's, so the question stayed open until a real run.
+
+**Then the runner answered it (PR #29, 2026-09-14).** That PR changed the workflow and no retrieval
+code, so any movement would have come from the hardware:
+
+```
+ubuntu-latest, CPU     58/91 = 0.64    fixed 0   broken 0   moved 0   -> PASSED
+Mac baseline, MPS      58/91 = 0.64
+```
+
+`moved 0` means that for all 91 answerable questions the top-5 list came out identical, same ids in the
+same order, to the Mac GPU's (`rag/gate.py` compares `hits[:5]` as lists; unanswerable items are skipped). **What it is not:** a
+promise about every future runner image. If a PR that touches no retrieval code ever shows `moved`
+items, this is the first suspect, and `D97` names the fallback design.
 
 ---
 
@@ -494,10 +637,11 @@ B  cascade, escalate on refusal
 **Read it line by line:**
 
 - **`53 failures, 20 with the page PRESENT`.** Only those 20 are the kind a stronger model can fix.
-- **A catches 20 of 53; the bar was 27.** Random picking of 30 questions catches 16 on average, and
-  catches 20 or more 5.7% of the time. So the score is a weak real signal, and it fails the bar.
+- **A catches 20 of 53; the bar was 27.** Random picking of 30 questions out of 100 catches, on
+  average, 30% of the 53 failures: `30 × 53 ÷ 100 = 15.9`, which is why the report's median is 16. It catches
+  20 or more only 5.7% of the time. So the score is a weak real signal, and it still fails the bar.
 - **A's `caught, page present 3 of 20`.** This is the damning line. Random picking would catch about
-  6 of those 20. **A low retrieval score is exactly what a missing page looks like**, so the
+  `30% of 20 = 6` of those 20; the predictor caught half that. **A low retrieval score is exactly what a missing page looks like**, so the
   predictive router sends the questions no model can fix and keeps the ones one could.
 - **B's `page present 20 of 20`.** Every fixable failure is a refusal, by definition, so the cascade
   catches all of them.
@@ -605,7 +749,7 @@ model            qwen2.5-coder:7b                        nvidia/nemotron-3-ultra
 **The first attempt, and why it was abandoned.** It used Google's `gemini-3.7-flash` on its free
 tier. It answered 7 questions, then returned HTTP 429 (daily quota; the free tier is 20 calls a day
 per model, `D80`). Its 7 answers were all judged supported, but the judge was `gemma4:e4b`, **also a
-Google model**. You asked which models were in use, and that question exposed it: a Google model
+Google model**. Viraj asked which models were in use, and that question exposed it: a Google model
 grading a Google model is a weak form of grading your own homework. Both were replaced before any
 answer from the new models existed, and the 7 rows are kept in a separate `…-abandoned.json` file,
 never mixed in.
@@ -1287,8 +1431,24 @@ it was actually given; the 77% FAIL is restated, not deleted, and the demo notic
 with qwen is still level. **What it does not say:** that headings explain each of the 11 changes. Most of
 the judge's new reasons do not name a line; one names the version line (`g051`, *"confirms the same for
 SQLAlchemy 2.0"*). The noise control was at its limit, so a few of the 12 changes may be noise; the evidence
-is that 11 went one way. And Phase 4's faithfulness figures came from a different judge that also read text
-only, and were not re-run.
+is that 11 went one way.
+
+**Then Phase 4's judge got the same treatment (Step 4h, lab Round 22, 2026-09-14).** Phase 4's
+faithfulness figures came from a different judge, `gemma4:e4b`, which had also read text only. It was
+re-run on the lab with each page exactly as the model saw it, same saved answers, same rule:
+
+```
+prompt D   SUPPORTED   text-only 36/47 (77%)   with headings 38/47 (81%)   up 3  down 1   p = 0.625
+prompt H   SUPPORTED   text-only 56/61 (92%)   with headings 57/61 (93%)   up 2  down 1   p = 1.000
+rule -> headings do NOT matter
+```
+
+The rule needed at least 3 up, more up than down, **and** p < 0.05. D has the 3 up but p = 0.625, so it
+fails the rule. Phase 4's figures stand. **Why the lab, and why no noise control:** the lab's judge had
+re-read the same 110 answers five days apart and returned byte-identical verdicts (`D84`), so anything
+that moves there is the headings. **Why headings moved nemotron and not qwen's answers** is a
+hypothesis, not a finding: nemotron's answers are long and name sections and versions, qwen's are
+short. Two judges and two machines differ between the runs, so it is not a controlled comparison.
 
 **`g044` itself stayed PARTIAL with the judge.** Given the heading, it accepted the Engine/Connection part and
 asked for the removal of `autoload=True` to be stated, which the heading does not say. Viraj's SUPPORTED is his
@@ -1348,7 +1508,55 @@ this key, so a model has to be probed before it is chosen.
 
 **A public page spends your credits**, so the demo has rate limits: 60 questions an hour for everyone
 together, 20 seconds between questions from one visitor, 500 characters per question. **These numbers
-were chosen, not measured**, and the code says so.
+were chosen, not measured**, and the code says so (`GLOBAL_PER_HOUR`, `SESSION_MIN_SECONDS` and
+`MAX_QUESTION_CHARS` in `rag/demo.py`).
+
+---
+
+## R10.17b — Langfuse: seeing what visitors actually ask (`D108`)
+
+**Start from what the repo could not see.** Every measurement so far is on questions this project
+chose: the 100 golden ones. Each run saves its rows to a committed file. A visitor on the live page
+asks whatever they like, and until 2026-09-14 that question, the pages found and the answer
+disappeared when the request ended.
+
+**What one trace holds.** Each question on the live page becomes one record in Langfuse, a hosted
+service for storing these. `rag/demo.py` opens it and puts two steps inside:
+
+```
+demo.answer    span        input: the question and which backend       the whole request, start to finish
+  ├─ retrieve  retriever   input: the question                         output: the five page ids
+  └─ generate  generation  input: the full prompt (question + pages)   output: the answer, model name,
+                                                                        prompt and completion tokens
+```
+
+That is three observations per trace, the number Langfuse's API reported back when this was checked
+live: one question answered in 46.0 s with 5 sources, and the trace read back with 3 observations and
+a latency of 45.9 s.
+
+**It is off unless the keys are there.** `demo.langfuse_client()` returns nothing when
+`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are missing (or the `langfuse` package is not
+installed), and every tracing call then goes through `_observe`, which hands back a do-nothing stand-in.
+So the tests, the lab and every local run behave exactly as before. On Modal the keys come from a
+secret named `langfuse` (R10.17's rule: a key is a secret setting, never a file).
+
+**What it is NOT.**
+
+- **Not an evaluation.** Nothing in a trace says whether the answer was right. The golden set, the
+  judge and the CI gate grade quality; a trace records what happened.
+- **Not used on the golden-set runs.** Those already write every row to files the repo commits, so
+  tracing them would store the same thing twice (`D108`, rejected option).
+- **Not self-hosted.** Self-hosting Langfuse is about five containers (Postgres, ClickHouse, Redis,
+  MinIO, the web app), on a 16 GB Mac that had just run out of memory running the local demo. The
+  free Cloud plan was chosen instead.
+
+**The cost, said plainly:** visitors' questions now leave for a third party. When tracing is on, the
+page's footer adds: *"Questions and answers are logged (Langfuse) to measure this demo; do not paste
+secrets."* (`space/static/index.html`, shown only when `/api/config` reports `traced`).
+
+**Say this:** “Every question on the live demo is a trace: what was asked, which five pages came back,
+what the model wrote, tokens and time. It is for seeing real traffic, not for grading. Grading is the
+golden set and the gate.”
 
 ---
 
@@ -1358,7 +1566,9 @@ were chosen, not measured**, and the code says so.
 questions, and fails if any question whose answer was in the top five no longer is. Removing the
 reranker costs one point of recall, inside the noise band, and the gate blocks it by naming the one
 question, `g017`. It grades retrieval only, because retrieval reproduced exactly across my machines and
-generation didn't.”
+generation didn't. It's a required check on main, and it caught a bug in itself on its first real run:
+the scorer passed its own reranker setting, so a PR that turned the reranker off for users passed. Now
+it grades the shipped defaults, and that PR is blocked on a GitHub runner.”
 
 **The router.** “I don't predict which questions are hard; I tested that and it mostly picked
 questions whose answer page was missing, which no bigger model can fix from the same pages. The router
@@ -1458,10 +1668,16 @@ judge called it unsupported because the pages do not say so, and 2.0.51 raises a
 answer was right. A faithfulness judge measures the first question, never the second.
 
 **Q10. The project's number is 0.42. Why does the demo say that number does not describe it?**
-0.42 was measured with `qwen2.5-coder:7b` generating. A hosted demo cannot run that model (NVIDIA
-serves no qwen), so it would generate with Nemotron, a model never measured end to end on the golden
-set. Showing 0.42 next to it would quote a number for a system that did not produce it. The local demo
-runs qwen, so its notice says it is the measured model.
+0.42 is 38 of 91, measured with `qwen2.5-coder:7b` generating. A hosted demo cannot run that model
+(NVIDIA serves no qwen), so it generates with Nemotron. Showing 0.42 next to Nemotron's answers would
+quote a number for a system that did not produce them. When the hosted page was first built, Nemotron
+had never been measured on all 100, so the notice could only say "not this model". Step 4d then
+measured it (R10.15b), and the hosted notice (`NOT_THE_MEASURED_MODEL` in `rag/demo.py`) now reads:
+*"…measured once on the project's 100-question set with the same retrieval and prompt (2026-09-13): 0.58
+end to end, and 91% of its answers judged fully supported by the pages it was given (supported is not
+the same as correct). The 0.42 quoted elsewhere is for `qwen2.5-coder:7b`, a different model."* 0.58 is
+53 of 91 and 91% is 63 of 69; a test re-derives both from the saved rows. The local demo runs qwen, so
+its notice says it is the measured model.
 
 **Q11. Where is the public demo, and why that host?**
 https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run. Hugging Face Gradio Spaces returned HTTP
@@ -1470,12 +1686,34 @@ Modal's Starter credits fit, need no card, and scale to zero when idle. The firs
 deploy took about two minutes while it pulled the embedding models; the page itself was already up.
 
 **Q12. A pull request changes only a document, and the gate fails. What do you check first?**
-First, whether the gate should have run at all: it only triggers on changes to retrieval code, the
-corpus manifest, the golden set, the baseline, dependencies or its own workflow. If it ran on a
-code-free change and shows `broken` or `moved` items, the code did not cause it. Read the baseline's
+First, whether the real job ran at all. The workflow always starts, and its first job
+(`did retrieval change?`) diffs the PR against its base. The scoring job runs only if a file under
+`rag/`, the corpus manifest, the golden set, the baseline, `pyproject.toml`, `uv.lock` or `gate.yml`
+changed; otherwise it is skipped, and a skipped required job counts as passed. So a docs-only PR should
+show the gate skipped, not failed. If the scoring job did run on a change that cannot move retrieval
+and shows `broken` or `moved` items, the code did not cause it. Read the baseline's
 provenance line (which machine, which device, which model snapshots) and compare with the run:
 the usual suspects are a model snapshot changing (why both models are pinned) or the runner's CPU
-ranking a near-tie differently (R10.8).
+ranking a near-tie differently (R10.8). PR #29 measured the second one once, `moved 0`, which makes it
+less likely, not impossible.
+
+**Q14. The gate's demo passed as a real PR before it was blocked. What was wrong, and what does it
+teach?**
+PR #30 changed `index.retrieve`'s default to `rerank=False`, the path users get. The scorer called
+`index.retrieve(q, rerank=True)` explicitly, so it kept grading a system with the reranker on, and the
+gate read 0.64 and passed. The fix makes the scorer pass nothing unless a flag asks, so it grades
+whatever `index.retrieve` ships; a test records the keyword arguments to prove it. Re-run, the same PR
+was blocked on `g017`. The lesson: my earlier demo used a command-line flag, which is not how a real
+change arrives. A gate has to be fed the change it exists to stop, in the shape that change would
+really take.
+
+**Q15. What is Langfuse doing in this project, and what is it not doing?**
+It stores one trace per question asked on the live demo: the question, the five page ids retrieval
+returned, the prompt, the answer, token counts and time. That is the only place real visitors' questions
+are recorded; the golden-set runs already save their rows to committed files. It grades nothing: whether
+an answer is right is still the golden set, the judge and the gate. It is switched off whenever the keys
+are absent, so tests and local runs are unchanged, and the page tells visitors their questions are
+logged.
 
 **Q13. The bigger model scores 0.58 against the small model's 0.42. Why not just switch?**
 Start with what the 0.58 is. On the same 100 questions and the same five pages, nemotron answered 53 of
@@ -1496,6 +1734,8 @@ Flask-SQLAlchemy question, which is a reminder that "fewer declines" is not auto
 ## After this you can say
 
 - what a required status check is, and which half of it lives in the repo
+- what the runner measured: `moved 0` on Linux CPU, 57–135 minutes cold, about 2 minutes warm
+- how the demo PR first passed (the scorer passed `rerank=True` itself) and why a flag is not a real PR
 - why the gate compares question by question and ignores the p-value
 - why generation is not in CI, with the decision that measured it
 - why the embedding cache is saved before the gate runs, not after
@@ -1508,4 +1748,6 @@ Flask-SQLAlchemy question, which is a reminder that "fewer declines" is not auto
 - what the hosted model scores on all 100, why search is not the difference, and why 77% supported still fails
 - that the same judge rates both models level, and that the judge's grade did not predict which answers were right
 - that the judge had never been shown the headings the model saw, and what changed when it was (77% → 91%)
+- that Phase 4's judge, given headings too, did not move enough to matter (D 77% → 81%, H 92% → 93%)
 - where the public demo lives (Modal), why HF refused, and what 4 GB of memory rules out
+- what a Langfuse trace holds, and why it is not an evaluation
