@@ -3,6 +3,7 @@
 # numpy entries by Python version -- the first grep picked 2.5.2, which needs 3.12).
 # fastapi and uvicorn: the versions the page was checked with in Chrome (PHASE-6.md Step 4c).
 fastapi==0.141.1
+langfuse==4.15.2
 uvicorn==0.52.4
 sentence-transformers==5.7.0
 transformers==5.15.0

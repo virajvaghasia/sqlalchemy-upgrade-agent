@@ -188,7 +188,8 @@ q.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e
 
 fetch("/api/config").then((r) => r.json()).then((cfg) => {
   maxChars = cfg.max_chars; q.maxLength = cfg.max_chars;
-  $("foot").textContent = `Answers written by ${cfg.generator}. Retrieval graded on a 100-question golden set.`;
+  $("foot").textContent = `Answers written by ${cfg.generator}. Retrieval graded on a 100-question golden set.` +
+    (cfg.traced ? " Questions and answers are logged (Langfuse) to measure this demo; do not paste secrets." : "");
   for (const ex of cfg.examples) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (ex.declines ? " declines" : ""); b.textContent = ex.label; b.title = ex.q;

@@ -32,6 +32,7 @@ DIST = HERE / "dist"
 # build (the page never uses a GPU on Modal).
 DEPS = (
     "fastapi==0.141.1",
+    "langfuse==4.15.2",     # tracing; active only when the `langfuse` secret supplies keys
     "uvicorn==0.52.4",
     "sentence-transformers==5.7.0",
     "transformers==5.15.0",
@@ -66,7 +67,8 @@ app = modal.App("sqlalchemy-upgrade-agent")
 
 @app.function(
     image=image,
-    secrets=[modal.Secret.from_name("nvidia")],
+    # `langfuse`: LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_BASE_URL (US region).
+    secrets=[modal.Secret.from_name("nvidia"), modal.Secret.from_name("langfuse")],
     volumes={"/cache/huggingface": hf_cache},
     # ~4 GB for the two models + embeddings; headroom so the first load does not OOM.
     memory=8192,
