@@ -1036,3 +1036,73 @@ def test_a_disagreement_with_no_correction_is_still_a_disagreement(tmp_path):
     assert got["filled"] == 1 and got["agree"] == 0
     assert got["corrections"] == [{"id": None, "judge_said": "SUPPORTED",
                                    "should_be": None}]
+
+
+# --- Round 22: Phase 4's judge given the pages as the model saw them ------------
+
+def _payload():
+    return {"chunk_id": "c7", "text": "Use autoload_with.", "heading_path": ["Guide", "\"bound metadata\" removed"],
+            "sqlalchemy_version": "2.0.51", "source_path": "doc/build/changelog/migration_20.rst"}
+
+
+def test_passage_as_shown_is_the_block_ask_build_prompt_gives_the_model():
+    import types
+    from rag import ask, escalate
+    h = types.SimpleNamespace(payload=_payload())
+    block = ask.build_prompt("q?", [h]).split("SOURCES\n\n", 1)[1].split("\n\n---\n\n", 1)[0]
+    assert block == "[1] " + faithful.passage_as_shown(_payload())
+    assert escalate.passage_as_shown is faithful.passage_as_shown, "one definition, two callers"
+
+
+def test_passages_for_gives_text_only_or_the_whole_block():
+    import types
+    hits = [types.SimpleNamespace(payload=_payload())]
+    assert faithful.passages_for(hits, headings=False) == ["Use autoload_with."]
+    assert faithful.passages_for(hits, headings=True) == [faithful.passage_as_shown(_payload())]
+
+
+def test_a_headings_run_never_writes_over_the_text_only_rows():
+    assert faithful.judged_rows_path(headings=True) != faithful.judged_rows_path(headings=False)
+    assert "headings" in faithful.judged_rows_path(headings=True).name
+
+
+def _v(**by_id):
+    return [{"id": i, "verdict": v} for i, v in by_id.items()]
+
+
+def test_compare_headings_counts_flips_per_arm_and_pairs_the_arms_with_headings():
+    text = {"D": _v(g1="PARTIAL", g2="SUPPORTED", g3="PARTIAL"), "H": _v(g1="SUPPORTED", g2="PARTIAL", g4="SUPPORTED")}
+    head = {"D": _v(g1="SUPPORTED", g2="SUPPORTED", g3="UNPARSED"), "H": _v(g1="SUPPORTED", g2="SUPPORTED", g4="PARTIAL")}
+    c = faithful.compare_headings(text, head)
+    assert (c["D"]["n"], c["D"]["up"], c["D"]["down"]) == (2, ["g1"], [])
+    assert (c["H"]["up"], c["H"]["down"]) == (["g2"], ["g4"])
+    assert c["paired"]["n"] == 2 and c["paired"]["h_only"] == [] and c["paired"]["d_only"] == []
+
+
+def test_the_round_22_rule_matches_step_4g():
+    arm = lambda up, down: {"n": 50, "up": ["u"] * up, "down": ["d"] * down}
+    assert faithful.headings_verdict({"D": arm(6, 0), "H": arm(0, 0)}) == "headings MATTER"
+    assert faithful.headings_verdict({"D": arm(3, 12), "H": arm(0, 0)}) == "headings do NOT matter"
+    assert faithful.headings_verdict({"D": arm(2, 0), "H": arm(2, 0)}) == "headings do NOT matter"
+
+
+def test_a_headings_sweep_sends_the_heading_to_the_judge(monkeypatch):
+    """The wiring, end to end without a model: with headings=True the judge prompt
+    carries the heading line; without it, it does not."""
+    import types
+    from rag import index
+    hit = types.SimpleNamespace(payload=_payload())
+    monkeypatch.setattr(index, "retrieve", lambda q, limit=5, **kw: [hit])
+    prompts = []
+
+    def post(path, body, key, timeout=120):
+        prompts.append(json.dumps(body))
+        return {"candidates": [{"content": {"parts": [{"text": "SUPPORTED\nPassage [1]."}]}}]}
+
+    saved = {"D": [{"id": "g1", "answer": "Use autoload_with, since bound metadata was removed in 2.0. " * 2,
+                    "refused": False, "answerable": True, "answer_in_prompt": True}]}
+    items = [{"id": "g1", "question": "q", "answerable": True, "provenance": "breakages"}]
+    for headings in (False, True):
+        faithful.sweep_rows(saved, items, ["D"], key="k", post=post, headings=headings, log=lambda *a: None)
+    assert "Guide > " not in prompts[0] and "Guide > " in prompts[1], "the heading line reaches the judge only with headings"
+    assert "SQLAlchemy 2.0.51" in prompts[1] and "SQLAlchemy 2.0.51" not in prompts[0]
