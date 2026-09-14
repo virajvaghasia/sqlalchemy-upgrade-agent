@@ -10,8 +10,14 @@
 #      BRANCH, and fail if any answer that was in the top 5 is no longer there
 #
 # A separate workflow rather than a fifth job in ci.yml, for one reason: the
-# path filter below. Retrieval cannot change when only markdown changed, and a
+# path check below. Retrieval cannot change when only markdown changed, and a
 # docs PR should not wait on 100 retrievals to find that out.
+#
+# WHY THE PATH CHECK IS A JOB, NOT `on: pull_request: paths:` (2026-09-14)
+# A required check whose workflow is filtered out never reports, and GitHub then
+# waits for it forever: making `quality gate` required would have frozen every
+# docs-only PR. So the workflow always starts, `changes` decides, and the gate
+# job is SKIPPED when retrieval cannot have moved. A skipped job counts as passed.
 #
 # WHAT THIS DOES NOT GRADE: generation. No Ollama here, and D83 measured
 # generation not reproducing across machines at all, while retrieval did,
@@ -21,14 +27,6 @@ name: quality gate
 
 on:
   pull_request:
-    paths:
-      - "rag/**"
-      - "corpus/MANIFEST.json"
-      - "deliverables/golden.json"
-      - "deliverables/gate-baseline.json"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/gate.yml"
   # Manual runs, so the baseline can be re-derived on a runner (see D97).
   workflow_dispatch:
 
@@ -37,8 +35,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: did retrieval change?
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.diff.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: diff
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }}")
+          echo "$files"
+          # The same list the old `paths:` filter held.
+          if echo "$files" | grep -qE '^(rag/|corpus/MANIFEST\.json$|deliverables/golden\.json$|deliverables/gate-baseline\.json$|pyproject\.toml$|uv\.lock$|\.github/workflows/gate\.yml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   gate:
     name: quality gate
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     # A cold cache embeds 3284 chunks with bge-m3 on a CPU: 1106 s on the Mac's
     # 10-core CPU (D97). A runner's time is unmeasured until this runs, so the
