@@ -626,6 +626,8 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
   **Counts-first + jargon glossaries** applied across [`14`](../study/14-MEASURE.md)–[`18`](../study/18-PRODUCTION.md)
   and this decoder; R9.5 / R10.3 / R10.9 / R10.15b rewritten as *what we ran → what we counted →
   then the short form*.
+- Same afternoon: **every** `study/01`–`18` file got a **Stop — how to read** (or equivalent)
+  front matter; [`study/README.md`](../study/README.md) states the house rule.
 
 ### Sep 14 — the CI gate on a real runner, and the hole its own demo found `(→ PHASE-6.md Step 2, D97)`
 
@@ -639,4 +641,6 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
 - **Round 22 back from the lab:** Phase 4's judge given headings — D 77% → 81%, H 92% → 93%, **headings do not
   matter** for qwen's short answers (they did for nemotron's long ones, `D107`). Phase 4's figures stand.
   Alongside: with headings, H beats D on faithfulness 6 vs 0, p = 0.031 (`PHASE-6.md` Step 4h).
+- **Langfuse live on the demo** (`D108`): free cloud plan, one trace per question (search + model call with
+  tokens), off without keys. Verified by reading a real trace back through Langfuse's API: 3 steps, 45.9 s.
 

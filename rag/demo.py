@@ -27,8 +27,10 @@ this repo has measured.
 
 from __future__ import annotations
 
+import contextlib
 import html
 import json
+import os
 import re
 import threading
 import time
@@ -59,6 +61,27 @@ NOT_THE_MEASURED_MODEL = (
     "answers judged fully supported by the pages it was given (supported is not the same as correct). "
     "The 0.42 quoted elsewhere is for `qwen2.5-coder:7b`, a different model."
 )
+
+
+def langfuse_client():
+    """The Langfuse client when its keys are in the environment, else None.
+
+    Tracing is optional by design: tests, the lab and a local run have no keys and
+    behave exactly as before. On Modal the keys come from the `langfuse` secret.
+    Langfuse reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY and LANGFUSE_BASE_URL itself.
+    """
+    if not (os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY")):
+        return None
+    try:
+        from langfuse import get_client
+    except ImportError:
+        return None
+    return get_client()
+
+
+def _observe(tracer, **kw):
+    """A Langfuse observation, or a do-nothing stand-in when tracing is off."""
+    return tracer.start_as_current_observation(**kw) if tracer else contextlib.nullcontext(None)
 
 
 class RateLimiter:
@@ -105,9 +128,12 @@ def ollama_post(messages: list[dict], key: str | None) -> dict:
 
 
 def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter,
-           retrieve=None, post=nvidia_post, backend: str = "nvidia") -> dict:
+           retrieve=None, post=nvidia_post, backend: str = "nvidia", tracer=None) -> dict:
     """Question in, {'answer', 'sources', 'refused', 'error'} out. Never raises
-    for a visitor's input or a remote failure; the page shows `error` instead."""
+    for a visitor's input or a remote failure; the page shows `error` instead.
+
+    With `tracer` (a Langfuse client, see `langfuse_client`) each question is one
+    trace: `retrieve` (the five page ids) and `generate` (answer + token usage)."""
     question = (question or "").strip()
     if not question:
         return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0."}
@@ -121,18 +147,40 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
         from rag import index
         retrieve = lambda q: index.retrieve(q, limit=ask.DEFAULT_K)
 
-    hits = retrieve(question)
+    model = "qwen2.5-coder:7b" if backend == "ollama" else MODEL
+    with _observe(tracer, as_type="span", name="demo.answer",
+                  input={"question": question, "backend": backend}) as root:
+        result = _answer_traced(question, key, session, limiter, retrieve, post, tracer, root, model)
+    if tracer:
+        tracer.flush()   # a Modal container can stop minutes later; do not lose the trace
+    return result
+
+
+def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root, model) -> dict:
+    with _observe(tracer, as_type="retriever", name="retrieve", input=question) as r:
+        hits = retrieve(question)
+        if r:
+            r.update(output=[h.payload.get("chunk_id") for h in hits])
     sources = [{"n": n, "version": h.payload["sqlalchemy_version"],
                 "path": h.payload["source_path"],
                 "heading": " > ".join(h.payload["heading_path"]) or "(no heading)",
                 "text": h.payload["text"]} for n, h in enumerate(hits, 1)]
     blocked = limiter.check(session)
     if blocked:
+        if root:
+            root.update(output={"error": blocked}, level="WARNING")
         return {"error": blocked, "sources": sources}
     messages = [{"role": "system", "content": ask.SYSTEM},
                 {"role": "user", "content": ask.build_prompt(question, hits)}]
     try:
-        data = post(messages, key)
+        with _observe(tracer, as_type="generation", name="generate", model=model,
+                      input=messages[1]["content"]) as g:
+            data = post(messages, key)
+            if g:
+                usage = data.get("usage") or {}
+                g.update(output=(data["choices"][0]["message"].get("content") or "").strip(),
+                         usage_details={k: v for k, v in usage.items()
+                                        if k in ("prompt_tokens", "completion_tokens") and isinstance(v, int)})
     except SystemExit:
         # ask.generate exits when Ollama is unreachable -- right for a CLI,
         # wrong for a web page. SystemExit is not an Exception (CLAUDE.md traps).
@@ -142,6 +190,8 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
         return {"error": f"The answer model did not respond ({type(exc).__name__}). "
                          "The search still ran, and its sources are listed.", "sources": sources}
     text = (data["choices"][0]["message"].get("content") or "").strip()
+    if root:
+        root.update(output={"refused": ask.refused(text), "answer": text})
     return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None}
 
 

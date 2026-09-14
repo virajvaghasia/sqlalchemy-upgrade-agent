@@ -51,12 +51,12 @@ Meta, Google, Apple, Anthropic, and startups).
   §R1–§R10 RAG) plus the two runbooks (`03`, `08`).
 - **`study/08-LAB.md`** — lab PC from-scratch sitting (Day 3 → Day 10). Not pushed until
   Viraj says so.
-- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D107`: what was decided, what was
+- **`study/09-DECISIONS.md`** — the decision register, `D01`…`D108`: what was decided, what was
   rejected, why, and the interview question it answers. **Cite entries by ID from other docs.**
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 529 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 532 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -383,7 +383,7 @@ role force quoting in every statement. It matches the Compose service it belongs
 == Mac MPS); the reranker-removal demo PR #30 first PASSED because `rag.score` passed `rerank=True` itself —
 fixed (the scorer now grades the shipped defaults), re-run **BLOCKED `g017`**, identical to the local demo.
 `quality gate` required on `main`. Cold job 57–135 min, warm ~2 min. **Round 22 CLOSED (lab):** Phase 4 judge + headings → **do NOT
-matter** (D 77→81%, H 92→93%); `D82`/`D83` stand; alongside, H > D faithfulness 6 vs 0, p = 0.031. **Open:** close-out of Phase 6 docs, Langfuse (optional), `.env.example` for Viraj to review.
+matter** (D 77→81%, H 92→93%); `D82`/`D83` stand; alongside, H > D faithfulness 6 vs 0, p = 0.031. **Open:** close-out of Phase 6 docs, `.env.example` for Viraj to review. **Langfuse LIVE** (`D108`): every demo question is a trace in Viraj's US project.
 
 **PHASE 6 STEP 4g (`D107`, 2026-09-13): THE JUDGE NEVER SAW HEADINGS; GIVEN THEM, NEMOTRON PASSES.** Viraj
 confirmed the six sheet verdicts and changed `g044` to SUPPORTED. Rules first (`8693726`), 136 NVIDIA calls:
@@ -696,7 +696,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**529 tests**, **76/76** `# runnable`, **107** decisions, **§H empty**.
+**532 tests**, **76/76** `# runnable`, **108** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -742,7 +742,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 529 passed with Qdrant up; 524 + 5 skipped without
+uv run pytest                            # 532 passed with Qdrant up; 527 + 5 skipped without
 uv run python -m tools.check_runnable    # 76/76 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED

@@ -26,6 +26,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 BACKEND = os.environ.get("DEMO_GENERATOR", "nvidia")
 # Limits exist because a hosted page spends API credits; a local Ollama run spends nothing.
 LIMITER = demo.RateLimiter(per_hour=10**9, gap=0) if BACKEND == "ollama" else demo.RateLimiter()
+# Langfuse tracing when its keys are set (the Modal `langfuse` secret); None otherwise.
+TRACER = demo.langfuse_client()
 
 # Same measured choice as space/app.py: four the measured model answered with a
 # citation on the Mac, one it declines with the page in hand (D72), labelled.
@@ -59,7 +61,7 @@ def index():
 @app.get("/api/config")
 def config():
     return {"examples": EXAMPLES, "generator": "qwen2.5-coder:7b" if BACKEND == "ollama" else demo.MODEL,
-            "max_chars": demo.MAX_QUESTION_CHARS}
+            "max_chars": demo.MAX_QUESTION_CHARS, "traced": TRACER is not None}
 
 
 @app.post("/api/ask")
@@ -69,7 +71,8 @@ async def ask(request: Request):
     started = time.perf_counter()
     # The model call blocks for up to a minute; run it off the event loop.
     result = await run_in_threadpool(demo.answer, str(body.get("question", "")), key=_key(),
-                                     session=session, limiter=LIMITER, backend=BACKEND)
+                                     session=session, limiter=LIMITER, backend=BACKEND,
+                                     tracer=TRACER)
     return JSONResponse(demo.payload(result, BACKEND, time.perf_counter() - started))
 
 

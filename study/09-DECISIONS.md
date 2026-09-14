@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D107`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D108`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -24,6 +24,24 @@ it. The shape is always the same:
   dangerous ones, and §H collects them. **Do not invent a rationale for these in an
   interview.** "We picked it and haven't yet earned the choice" is a defensible answer;
   a fabricated benchmark is not.
+
+---
+
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`D01` … `D107`** | One design decision: decided / instead of / because / asked as | A section number, a score, or a date |
+| **`§A` … `§H`** | Groupings of decisions in *this* register | RAG sittings (`§R1`…) or SQLAlchemy `§0` |
+| **§H** | “Not yet justified” — chosen but reasoning never recorded | Prompt **H** (a wording in Phase 4) |
+| **🔒 Locked** | Reopening costs more than it saves | “Always correct forever” |
+| **⚠️ Not yet justified** | Do **not** invent a rationale in an interview | A green light to guess |
+
+**Cite by id** (`D97`) from other docs. When a decision is made or reversed, update this file in
+the same commit — a register that lags is worse than none.
+
+**Counts and rates** that appear inside an entry (e.g. `38 of 91`) follow the same rule as
+[`17-AGENT.md`](17-AGENT.md): fraction first; the short decimal is optional.
 
 ---
 
@@ -4245,6 +4263,26 @@ the section headings the model under test saw. I wrote the rules first, measured
 re-read noise (2 in 20), re-judged, and nemotron went from 77% to 91% with an 11-to-1 shift, while the
 comparison between models stayed level. The published FAIL became a PASS, and I restated it rather than
 quietly updating the number.
+
+
+### D108 — Langfuse Cloud traces the live demo; self-hosting rejected
+
+**Decided 2026-09-14** at Viraj's request; `PHASE-6.md` Step 5. The standing decision kept Langfuse last and on
+demand; this is the demand, after both halves of Phase 6's finish line were met.
+
+**Chosen:** Langfuse Cloud, free Hobby plan (50k units/month, 30-day retention, no card, pricing page read
+2026-09-14), US region, keys as the Modal secret `langfuse`. One trace per question: `retrieve` + `generate`
+with token usage. Off without keys, so no test, lab run or local run changes.
+
+**Rejected — self-host** (Postgres + ClickHouse + Redis + MinIO + web): memory on a 16 GB Mac that had just
+killed the local demo. **Rejected — trace the golden-set runs:** those already save every row to files the
+repo commits; tracing is for traffic nobody wrote down.
+
+**Checked live:** a `demo.answer` trace with 3 observations and 45.9 s latency, read back through Langfuse's API.
+**Cost of the change:** visitors' questions now leave for a third party, and the page says so.
+
+**Interview question it answers:** *"How would you know what users do with it?"* Every question on the live demo
+is a trace: what was asked, which five pages were found, what the model wrote, how many tokens, how long.
 
 ---
 

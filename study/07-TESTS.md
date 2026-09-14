@@ -9,6 +9,24 @@ next.
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§6.x`** | Sections in *this* file (test suite) | Scores out of 6 |
+| **`532 tests collected`** | How many tests exist (environment-independent) | How many *passed* (that moves with Qdrant) |
+| **mutation-checked** | We deliberately broke the claim and watched the right test go red | “We wrote a test” |
+
+### Words
+
+| Word | Plain meaning |
+|---|---|
+| **fixture** | Setup code pytest injects into tests (here: a throwaway DB, never `issues.db`) |
+| **`conftest.py`** | Where shared fixtures live — imported automatically, no `import` in the test file |
+| **pin a claim** | A test that fails when a doc or count drifts, not when SQLAlchemy “works” |
+
+---
+
 ## The short version
 
 - **These tests do not test SQLAlchemy.** They pin claims the docs make, so code drift breaks a
@@ -30,11 +48,11 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-529 tests collected in 20.73s
+532 tests collected in 20.73s
 ```
 
-**Collected, not passed — and the difference is the point.** `uv run pytest` reports *529 passed*
-with Qdrant up and *524 passed, 5 skipped* without, because five checks skip when no Qdrant
+**Collected, not passed — and the difference is the point.** `uv run pytest` reports *532 passed*
+with Qdrant up and *527 passed, 5 skipped* without, because five checks skip when no Qdrant
 is reachable. A headline number that changes with the environment is not a headline number, so
 the block counts what is collected, which does not move. The CI job that verifies every
 `# runnable` block found this; reading never would have.
@@ -50,7 +68,7 @@ tests/test_compare_prompts.py: 28
 tests/test_corpus.py: 25
 tests/test_db_config.py: 5
 tests/test_dedup.py: 6
-tests/test_demo.py: 18
+tests/test_demo.py: 21
 tests/test_embed.py: 12
 tests/test_escalate.py: 35
 tests/test_faithful.py: 84

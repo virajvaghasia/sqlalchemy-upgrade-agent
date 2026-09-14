@@ -19,7 +19,7 @@ quality-degrading PR gets auto-blocked.**
 | **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **done** (`D97`): Linux runner PASSED with `moved 0` (PR #29); removing the reranker **BLOCKED `g017`** on the runner (PR #30); required on `main`. Found: the scorer had graded its own settings, not the shipped defaults — fixed |
 | **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; **3d** (`D101`): 10/16 hold against verified pages → **0.42 → 0.53** upper bound |
 | **4** | deploy + package — a demo link and a README that opens with the product | **live on Modal** (`D106`): https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — HF Gradio refused (402); in-memory path still `D102` |
-| 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
+| 5 | Langfuse — traces, tokens, latency, cost per query | **live on the demo** (`D108`, 2026-09-14): one trace per question — retrieve, generate (tokens) |
 
 **The gate comes before routing and deploy** because both of those change the system, and every
 change after this point should arrive with the gate already watching. Built last, it would grade
@@ -1481,4 +1481,21 @@ the 45 items both arms answered, with headings: **H-only SUPPORTED 6, D-only 0, 
 text-only rows on the same comparison read 8 vs 2, p = 0.11, and `D82` (Mac) read 5↑ 1↓, p = 0.22. It clears
 `D61`'s bar (about six clean fixes, no regressions). One machine, one run. **It does not reopen the hold on H**,
 which rests on refusals (`D83`, `D84`), not faithfulness.
+
+## Step 5 — Langfuse on the live demo (2026-09-14, `D108`)
+
+Viraj created a Langfuse Cloud project (free Hobby plan: 50k units a month, 30 days of data, no card; US
+region) and put its keys in `.env`. **Self-hosting was rejected:** a ~5-container stack on a Mac that had just
+killed the local demo for memory.
+
+**What was built.** `demo.answer` opens one trace per question with two observations inside: `retrieve` (the
+five page ids) and `generate` (the model's answer and its token counts). **It is off unless the keys are
+present** (`demo.langfuse_client`), so tests, the lab and local runs are unchanged. On Modal the keys come from
+the secret `langfuse`; the page's footer says questions are logged when tracing is on. 3 tests with a fake tracer.
+
+**Checked live, not assumed:** `/api/config` reports `traced: True`; one question answered in 46.0 s with 5
+sources; Langfuse's API then returned a `demo.answer` trace with 3 observations and latency 45.9 s.
+
+**What it is not:** an evaluation. The golden set, the judge and the CI gate grade quality; Langfuse records
+what visitors actually do.
 

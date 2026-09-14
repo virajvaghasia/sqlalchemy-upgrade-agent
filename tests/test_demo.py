@@ -185,3 +185,54 @@ def test_payload_carries_linked_answer_marked_sources_and_the_notice():
     assert [s["cited"] for s in p["sources"]] == [False, True] and p["sources"][0]["text"] == "Row"
     assert "the generator the project measured" in p["notice"] and p["seconds"] == 12.3
     assert "a different model" in demo.payload(result, "nvidia", 1)["notice"]
+
+
+# --- tracing (Langfuse), 2026-09-14 ----------------------------------------------
+
+class FakeTracer:
+    """Records observations the way the Langfuse client's context managers are used."""
+    def __init__(self):
+        self.obs, self.flushed = [], 0
+
+    def start_as_current_observation(self, *, as_type, name, **kw):
+        tracer = self
+        class Obs:
+            def __enter__(self_):
+                self_.rec = {"type": as_type, "name": name, **kw}
+                tracer.obs.append(self_.rec)
+                return self_
+            def __exit__(self_, *a):
+                return False
+            def update(self_, **kw2):
+                self_.rec.update(kw2)
+        return Obs()
+
+    def flush(self):
+        self.flushed += 1
+
+
+def test_one_question_is_one_trace_with_search_and_the_model_call_inside():
+    t = FakeTracer()
+    out = demo.answer("q", key="k", session="s", limiter=demo.RateLimiter(), tracer=t,
+                      retrieve=lambda q: [hit()], post=lambda m, k: {**reply("an answer [1]"),
+                                                                    "usage": {"prompt_tokens": 10, "completion_tokens": 3}})
+    assert out["answer"] == "an answer [1]"
+    assert [o["name"] for o in t.obs] == ["demo.answer", "retrieve", "generate"]
+    gen = t.obs[2]
+    assert gen["type"] == "generation" and gen["output"] == "an answer [1]"
+    assert gen["usage_details"] == {"prompt_tokens": 10, "completion_tokens": 3}
+    assert t.obs[0]["output"]["refused"] is False and t.flushed == 1
+
+
+def test_a_rate_limited_question_is_traced_without_a_model_call():
+    t = FakeTracer()
+    lim = demo.RateLimiter(per_hour=0)
+    demo.answer("q", key="k", session="s", limiter=lim, tracer=t, retrieve=lambda q: [hit()],
+                post=lambda m, k: (_ for _ in ()).throw(AssertionError("must not call the model")))
+    assert [o["name"] for o in t.obs] == ["demo.answer", "retrieve"] and t.obs[0]["level"] == "WARNING"
+
+
+def test_no_langfuse_keys_means_no_tracing(monkeypatch):
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
+    assert demo.langfuse_client() is None
