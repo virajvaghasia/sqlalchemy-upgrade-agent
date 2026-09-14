@@ -399,7 +399,7 @@ that relates to Phase 0 without merging the two jobs.
               └──────── JSON yes/no ◄────────┘
 ```
 
-**Why two Pythons.** `experiments/` is an instrument pointed at **1.4.52** (`D04`). The process
+**Why two Pythons.** `experiments/` is an instrument pointed at **1.4.52** (`D17`: the app under test must stay broken). The process
 asking “does this exist in **2.0**?” cannot import 2.0 in-process — it would be a different
 library fighting the project pin. So:
 
