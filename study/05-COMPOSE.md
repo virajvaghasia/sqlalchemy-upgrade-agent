@@ -643,7 +643,7 @@ records it; `D84` re-ran the round at `100% GPU`).
 
 ### 4.6 `POSTGRES_USER` does not give you a limited account
 
-A fresh Postgres container has three databases:
+A fresh Postgres container with `POSTGRES_DB=issues` has four databases: ours, plus the three every server ships (`06-POSTGRES.md` §5.3):
 
 ```
 # runnable: docker compose exec db psql -U app -d issues -tAc \
