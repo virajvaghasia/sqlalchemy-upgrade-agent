@@ -21,7 +21,7 @@ heading will feel like a score.
 | **`R9.0` … `R9.8`** | Subsections *inside* this file (like §R8.1 in `16-JUDGE.md`) | Metrics, versions, or priorities |
 | **`R9.7b`, `R9.7c`** | Extra subsections that grew under R9.7 (bug story, then landing) | Separate phases |
 | **`D87`, `D95`…** | Decision IDs in [`09-DECISIONS.md`](09-DECISIONS.md) | Section numbers |
-| **File `17-…`** | Reading-order filename (`01`…`17`) | Related to §R9’s digit |
+| **File `17-…`** | Reading-order filename (`01`…`18`) | Related to §R9’s digit |
 
 So **`R9.4` means “section 4 of the Phase 5 study notes.”** Not “score 9.4,” not “SQLAlchemy 9.4.”
 
@@ -43,7 +43,7 @@ decimal until R9.5 has shown you what was counted.** The short map:
 
 | Section | One sentence | Read when |
 |---|---|---|
-| **R9.0** | Interview skim list | Starting cold |
+| **R9.0** | The one sentence to say about Phase 5, and the slogan not to say | Starting cold |
 | **R9.1** | Before: one lookup always. Now: the model chooses when to look up. | First |
 | **R9.2** | A “tool” = Python function + description. Model writes JSON; our code runs it. | First |
 | **R9.3** | Three tools; `check_api` is the “does `op.create_view` exist?” check from the fake Alembic answer (`g065`), offered *before* writing. | First |
@@ -53,6 +53,7 @@ decimal until R9.5 has shown you what was counted.** The short map:
 | **R9.7** | Almost never chains two tools — until a NOT FOUND nudge; then 7/10 on two-part questions. | Agency limit |
 | **R9.7b** | Our own `[:600]` truncation made the agent look worse than it was. | The bug story |
 | **R9.7c** | Where Phase 5 landed; lab withdrew the Mac headline; drill. | Closing |
+| **R9.7d** | Copy the agent's conversation *shape* into the one-shot pipeline, no tools: refusals fall, guesses rise just as much. | After R9.7c |
 | **R9.8** | What to say out loud in an interview. | Before interviews |
 
 **If you have ten minutes:** R9.2 → R9.5 → R9.7b → R9.8.
@@ -89,7 +90,7 @@ short meaning; the named section is the full story.
 | **coin flip** | Across Mac and lab, half the items disagree on “call a tool or not.” | R9.6 |
 | **temperature 0** | Sampling setting that makes the model pick the most likely next token. Does **not** guarantee the same answer on two machines. | R9.6 |
 | **paired / ↑ ↓** | Same questions before and after a change: how many newly fixed vs newly broken. | R9.7, R9.7c |
-| **p = 0.0156** | Exact McNemar probability that the paired flips are chance. Smaller ≈ stronger evidence. | R9.7 |
+| **p = 0.0156** | Exact McNemar p-value. If the change did nothing, each flipped item is a coin toss between “fixed” and “broken”; p is how often coin tosses would come out at least this lopsided. 7 fixed, 0 broken → 0.0156. Smaller = harder to explain as luck. **Not** “the chance the result is wrong.” | R9.7 (worked arithmetic) |
 | **SUPPORTED / PARTIAL / UNSUPPORTED** | A *judge model’s* grades: claims fully on the pages / partly / not on the pages. Not the same as “correct on real SQLAlchemy.” | R9.7d; Phase 4 / 6 |
 | **must-call prompt** | System text that orders the model to call a tool instead of answering from memory. | R9.6–R9.7c |
 
@@ -194,32 +195,65 @@ once to the model.”
 
 **A tool is two things glued together:**
 
-**1. A normal function** you could call from a shell:
+**1. A normal function** you could call from a shell. Here is the one the model can ask for, run
+by hand, with its real output:
 
 ```
-uv run python -m rag.tools --check Query.from_self
+$ uv run python -m rag.tools --check Query.from_self
+Query.from_self  (in sqlalchemy 2.0.51)
+  exists     False
+  signature  None
 ```
 
-**2. A paragraph in the system prompt** that lists the name, when to use it, and the argument
-shape:
+`exists False` is an **answer**, not an error: `Query.from_self` was removed in 2.0, and the
+function says so.
 
-```json
-{"name": "check_api",
- "description": "Check whether a symbol still exists in SQLAlchemy 2.0 …",
- "parameters": {"symbol": "A dotted symbol, e.g. 'Query.from_self'"}}
+**2. A description sent with every request.** Each request to Ollama carries a `tools` list next to
+the messages (`TOOLS` in `rag/toolcall.py`, sent by `toolcall.ask_messages`). This is the real
+entry for `check_api`, shortened only in its argument block:
+
+```python
+{"type": "function",
+ "function": {
+     "name": "check_api",
+     "description": ("Check whether a symbol still exists in SQLAlchemy 2.0 and "
+                     "what its signature is. Use to confirm whether something was "
+                     "removed, renamed, or is still available."),
+     "parameters": {... "symbol" ...}}}
+```
+
+It is **not** part of the system prompt. The system prompt is a separate, short text that says
+*how* to use tools. This is the agent's default one, `SYSTEM_MUSTCALL` in `rag/agent.py`:
+
+```
+You help a developer upgrade code from SQLAlchemy 1.4 to 2.0.
+You have two tools. You MUST call a tool before answering — do not answer from memory.
+Call ONE tool at a time and wait for its result. Once you have tool results, answer in prose and cite sources as [1], [2].
+If the tools cannot establish the answer, reply "The sources do not answer this."
 ```
 
 The model’s “tool call” is **more text that looks like JSON**. If it writes garbage JSON, the loop
 fails that step — the model did not “crash a function”; it failed to write a parseable request.
 
-**Named example.** Model writes:
+**Named example, the whole round trip.** The model writes:
 
 ```json
 {"name": "check_api", "arguments": {"symbol": "Query.from_self"}}
 ```
 
-Our code runs `check_api`, gets `exists=False`, pastes that back. The model never imported
-SQLAlchemy.
+Our code runs `check_api`, gets `exists: False`, and pastes this sentence back as the next message
+(`_observation` in `rag/agent.py`, word for word):
+
+```
+check_api: NOT FOUND. This symbol does not exist in the pinned version. That is a definite answer, not an error.
+```
+
+The model never imported SQLAlchemy. It read one sentence that our code wrote.
+
+**Where the JSON actually arrives.** Ollama has a dedicated `tool_calls` field for these
+requests. `qwen2.5-coder:7b` never used it: **0 of 120** calls in Step 0 came through that field,
+and every one arrived as JSON inside ordinary reply text (`D87`). The loop reads the text. That is a
+fact about this model, not a failure of the loop: `gemma4:e4b` used the field through the same code.
 
 **What it is not.**
 
@@ -243,13 +277,8 @@ the function and feeds the result back.”
 ## R9.3 — The three tools (and why one of them is the argument)
 
 **Plain job.** Show the menu, then spend the time on `check_api` — the only tool that exists
-because a Phase 4 bug was measured.
-
-| tool | what it does | where it came from |
-|---|---|---|
-| `search_docs` | Corpus lookup via `index.retrieve` | Phases 1–3, **unchanged** |
-| `get_function_source` | Real source from real SQLAlchemy **2.0.51** | New |
-| **`check_api`** | Does this symbol exist in 2.0, and what is its signature? | The Phase 4 bug below, turned into a tool |
+because a Phase 4 bug was measured. The menu table is further down, after the story that explains
+its last row.
 
 ### Two ordinary words, with the day they happened
 
@@ -272,13 +301,22 @@ op.drop_view(...)         # FAKE — same
 ```
 
 Nothing crashed when it wrote that. A user who trusted the answer would have pasted two
-invented calls next to two real ones. **We only caught it afterwards**, by running:
+invented calls next to two real ones. **We only caught it afterwards.** The check, as it runs today:
 
 ```
-uv run python -m rag.tools --g065
+# runnable: uv run python -m rag.tools --g065
+g065 — the fabricated Alembic script, checked against real alembic (D77)
   OK alembic.operations.Operations.create_table       exists=True  (expected True)
   OK alembic.operations.Operations.create_view        exists=False (expected False)
+  Two invented calls beside two working ones — and the tool separates them.
 ```
+
+Two lines, one real call and one invented one, and the only difference between them is
+`exists=True` against `exists=False`. That is the whole check: import the longest importable part of
+the dotted name (`alembic.operations`), then `getattr` each remaining name in turn (`Operations`,
+then `create_view`). The first `None` means the symbol does not exist. It runs inside a throwaway
+Python that has the library installed (R9.4 says why it has to be a throwaway one). The code is the
+`_PROBE` string in `rag/tools.py`.
 
 That *afterwards* check is what people call a **post-mortem** (literally: looking at a failure
 after it is already dead — like an autopsy, or an after-action review at work). The answer was
@@ -287,7 +325,7 @@ being written.
 
 **Day two — stop it before it is written (Phase 5).**
 
-We took **the same** `hasattr(...)` check and exposed it as a tool named `check_api`. Now the
+We took **the same** existence check and exposed it as a tool named `check_api`. Now the
 model, *while answering*, can ask: *"Does `Operations.create_view` exist?"* and get `False`
 **before** it invents a script. That is what people call a **guardrail**: a barrier that is
 supposed to keep you from falling off, not a report written after you fell.
@@ -296,7 +334,8 @@ supposed to keep you from falling off, not a report written after you fell.
   AFTER the bad answer (Phase 4)         BEFORE the answer (Phase 5)
   ─────────────────────────────         ────────────────────────────
   Model already wrote create_view  →    Model may call check_api first
-  Human runs hasattr(...)          →    Same check, callable as a tool
+  Human runs hasattr(Operations,   →    Same question, callable as a tool
+             "create_view")
   You learn it was wrong           →    Model can see "does not exist" first
   = post-mortem                    →    = guardrail
 ```
@@ -308,13 +347,20 @@ supposed to keep you from falling off, not a report written after you fell.
 **Alembic** is the SQLAlchemy project's official migration tool (separate package). The bug is
 not “Alembic is fake”; it is “`create_view` is not on `Operations`.”
 
-### Picture for the three tools
+### The menu: three tools built, two offered
 
-| tool | what it does | where it came from |
-|---|---|---|
-| `search_docs` | Corpus lookup via `index.retrieve` | Phases 1–3, **unchanged** |
-| `get_function_source` | Real source from real SQLAlchemy **2.0.51** | New |
-| **`check_api`** | Does this symbol exist in 2.0 (or alembic)? | **`g065` post-mortem → guardrail** (`D77`) |
+| tool | what it does | where it came from | offered to the agent? |
+|---|---|---|---|
+| `search_docs` | Corpus lookup via `index.retrieve` | Phases 1–3, **unchanged** | **yes** |
+| **`check_api`** | Does this symbol exist in 2.0 (or alembic), and what is its signature? | **`g065` post-mortem → guardrail** (`D77`, `D88`) | **yes** |
+| `get_function_source` | Real source from real SQLAlchemy **2.0.51** | New in Phase 5 | **no** |
+
+**Read the last column before you say "three tools" out loud.** All three are functions in
+`rag/tools.py`, each testable from a shell (`--check`, `--source`, `--g065`). But the list the
+model is sent with every request, `TOOLS` in `rag/toolcall.py`, has two entries: `search_docs` and
+`check_api`. That is why the system prompt says *"You have two tools."* Every agent number in this
+file was measured with those two. `get_function_source` is built and tested, and the model never
+saw it.
 
 **What `check_api` is NOT.**
 
@@ -493,8 +539,20 @@ Difference:
 | probe → **100/100** | *“Call **exactly one**. **Do not answer from memory.**”* |
 | agent → **4/100** | *“You **may** call tools.”* |
 
-Must-call A/B on the lab (n=20): **6** newly delivered, **0** newly broken; bad citations
-**9 → 0**.
+**The same swap, measured inside the agent** (Round 18, `D90`). Both prompts on the same **20**
+answerable questions, lab PC, item by item:
+
+```
+                                   "You may call tools"   "You MUST call a tool"
+out-of-range citations ([n] with          9                        0
+  no source behind it), of 20
+delivered: newly fixed / newly broken     —                  6 fixed, 0 broken   (p = 0.031)
+```
+
+The citation fix is the one the prompt was **designed** for, and it reproduced on the Mac too (3 → 0).
+The `delivered` gain did **not** reproduce: on the Mac it was 0 fixed, 1 broken. So the must-call
+prompt became the agent's default for fixing citations, not for its score. The p-value arithmetic is
+in R9.7.
 
 **Say this:** “On the lab the agent skipped search on 96 of 100 questions, so end-to-end was
 only 2 of 91. That is not ‘20× worse RAG’ — the one-shot number assumes a lookup that the agent
@@ -546,8 +604,13 @@ the coarse yes/no *“should I look something up?”* flips by machine.
 | **R9.6** | The **coarse** decision: call a tool or don’t |
 
 **Why it matters.** The lab’s full-run **96 of 100** never called a tool (R9.5). That is *the lab’s*
-no-tool rate, not “the system.” And it put the must-call prompt in the same hole as prompt H:
-strong on one box until the other is measured.
+no-tool rate, not “the system.”
+
+It also put the must-call prompt in the same hole as **prompt `H`**. `H` is Phase 4's candidate
+answer prompt (§R8, `D74`): it moved the "cite your sources" sentence into the question turn, and on
+the Mac it fixed 9 answers and broke 0. On the lab it fixed 6 and broke 2, so it was never shipped
+(`D83`). The lesson carried over: a prompt that looks strong on one machine is a candidate until the
+other machine has measured it.
 
 ### The refinement (after R9.7’s nudge existed)
 
@@ -590,6 +653,11 @@ sentence is the **nudge**. It is not a second prompt rewrite and not a new model
   [2] model DECLINES                ← abandoned the "how do I replace it?" half
 ```
 
+The first half is real and you can run it: `uv run python -m rag.tools --check MetaData.bind` prints
+`exists False`, because 2.0 removed bound metadata. What the model read back was the sentence from
+R9.2: *"check_api: NOT FOUND. This symbol does not exist in the pinned version. That is a definite
+answer, not an error."* Nothing in that sentence says the question has a second half.
+
 ### What we counted before the nudge
 
 Across **two machines, two prompts, eighty runs**: tools were chained (two or more in one
@@ -624,6 +692,54 @@ nudged            0          3                  7
 
 **Chaining went from 0 of 10 → 7 of 10.** Paired exact McNemar p = 0.0156. Lab matched Mac
 **question by question** (same seven chained).
+
+### Where `p = 0.0156` comes from, and every other p in this file
+
+A p-value sounds like a statistics black box. Here it is a coin, and you can do it by hand.
+
+Only the questions that **changed** count. A question that chained under both prompts, or under
+neither, says nothing about the nudge. Seven questions changed, and all seven changed the same way
+(plain: one tool → nudged: two).
+
+Now suppose the nudge did nothing. Then each of those seven changes is a coin toss: as likely to go
+"fixed" as "broken". Seven heads in a row is `0.5 ** 7 = 1/128 = 0.0078`. Seven tails in a row would
+be just as surprising, so both count: `2 × 0.0078 = 0.0156`. That is the whole calculation.
+
+When some flips go each way, you add up every outcome at least as lopsided. The same function, over
+every paired result this file quotes:
+
+```
+# runnable: uv run python -c "
+#   from math import comb
+#   def p(fixed, broken):
+#       n, k = fixed + broken, min(fixed, broken)
+#       return min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2 ** n)
+#   print('if nothing changed, each flipped item is a coin toss: fixed or broken')
+#   for fixed, broken, where in [(7, 0, 'R9.7   nudge, chained'), (6, 0, 'R9.5   must-call, lab delivered'), (16, 0, 'R9.7b  whole pages vs half'), (8, 0, 'R9.7c  lab levers'), (4, 0, 'R9.7c  Mac levers'), (6, 1, 'R9.7d  arm B, Mac')]:
+#       print(f'{where:33} {fixed:2} fixed {broken} broken   p = {p(fixed, broken):.5f}')
+#   print('the smallest p that 4 flips can ever give:', 2 * 0.5 ** 4)
+#   "
+if nothing changed, each flipped item is a coin toss: fixed or broken
+R9.7   nudge, chained              7 fixed 0 broken   p = 0.01562
+R9.5   must-call, lab delivered    6 fixed 0 broken   p = 0.03125
+R9.7b  whole pages vs half        16 fixed 0 broken   p = 0.00003
+R9.7c  lab levers                  8 fixed 0 broken   p = 0.00781
+R9.7c  Mac levers                  4 fixed 0 broken   p = 0.12500
+R9.7d  arm B, Mac                  6 fixed 1 broken   p = 0.12500
+the smallest p that 4 flips can ever give: 0.125
+```
+
+**Read the last line with the Mac levers row.** Four fixes and zero breaks is the best result four
+flips can produce, and its p is still 0.125. So *"not significant"* there says the sample of changed
+questions was small. It does **not** say the levers did nothing. The lab's eight clean fixes clear
+the same bar easily (0.0078).
+
+**And read the last two rows together.** "4 fixed 0 broken" and "6 fixed 1 broken" give the same p.
+One break costs about as much evidence as two extra fixes buy.
+
+**What a p-value is not.** It is not "the chance the finding is wrong", and it is not a size. `D61`
+is why this project reports the fixed and broken **ids** beside it: a p says whether the flips could
+be luck, and only the ids say *which* questions a user gains or loses.
 
 **Honest denominator: 7 of 9.** One item searched docs first on both boxes, so NOT FOUND never
 happened and the nudge never fired. Counting it would inflate a result the experiment never
@@ -675,8 +791,12 @@ one-shot pipeline puts in the prompt.
 | agent (half pages) | **22 of 45** |
 | one-shot (full pages) | **19 of 58** |
 
-Sixteen points with **no mechanism** if you believe both saw the same page. A model does not get
-more cowardly because a different function called it.
+As rates: `22 ÷ 45 = 49%` for the agent, `19 ÷ 58 = 33%` for the one-shot. **Sixteen points** with
+**no mechanism** if you believe both saw the same page. A model does not get more cowardly because a
+different function called it.
+
+The two denominators differ (45 against 58) because the agent searched on fewer questions. That is
+why the comparison is a rate and not a raw count: 22 and 19 look close and are not.
 
 ### After deleting the slice — what we counted
 
@@ -777,6 +897,14 @@ one-shot pipeline             58         39   39/91    67%         19        —
 Short forms for delivered ÷ 91: Mac default **0.43**, Mac levers **0.47**, lab default **0.27**,
 lab levers **0.36**, one-shot **0.43**.
 
+**Every column is arithmetic on the first two**, so you can check any row: `conv` = delivered ÷
+ceiling (lab levers: `33 ÷ 45 = 73%`), `over-ref` = ceiling − delivered (lab levers: `45 − 33 = 12`).
+
+**The lab default's `100%` is not a good sign.** Its ceiling is only **25**, and the biggest reason
+is that **51 of 100** questions never called a tool, so no page could arrive for them. On the 25 where a page did arrive, the model
+answered every one. A perfect conversion on a small ceiling still delivers the fewest answers in the
+table.
+
 > **“The agent matches the one-shot pipeline” is a MAC claim. Withdrawn.** Lab default is
 > **25 of 91**. Pass/fail named that outcome before the run.
 
@@ -787,15 +915,17 @@ lab levers **0.36**, one-shot **0.43**.
 | levers, paired | 4↑ 0↓, p = 0.125 | **8↑ 0↓, p = 0.0078** |
 | chaining after levers | 6 | 7 |
 | force: no-tool-call | 23 → 1 | 51 → 4 |
-| over-refusals vs pipeline’s 19 | **6** | **0** |
+| over-refusals, default prompt, vs pipeline’s 19 | **6** | **0** |
 
 Lab no-tool **51 of 100** vs Mac **23 of 100** — R9.6’s coin flip with score consequences.
 
 > **The score is machine-dependent. The findings (levers help, chaining appears, fewer over-refusals
 > than one-shot) are not.**
 
-**Best system that holds on both boxes:** one-shot pipeline (**39 of 91** / lab **38 of 91**). An
-agent whose score halves by machine is not “better” on its best day.
+**Best system that holds on both boxes:** one-shot pipeline (Mac **39 of 91** / lab **38 of 91**, one
+apart). The agent's default goes from **39 of 91** on the Mac to **25 of 91** on the lab, fourteen
+apart on the same questions. An agent that loses fourteen answers when you change the machine is not
+“better” because of its best machine.
 
 ### Policy (`D95`)
 
@@ -875,8 +1005,12 @@ wordings (`D74`).
 **not** there, refusing is the honest outcome, so a prompt that answers *more* there is not
 improving. It is guessing more.
 
+Each count below is a number of questions where **arm A declined and arm B answered**. It is not a
+net figure: the few that went the other way are in the next table.
+
 ```
-                         page present: answered more   page ABSENT: answered more
+                         page present: A declined,     page ABSENT: A declined,
+                         B answered                    B answered
 Mac, B vs A              6   (g008 g021 g049 g050 ...)   6   (g005 g016 g028 g085 g113 g114)
 lab, B vs A              5   (g021 g029 g049 g050 g100)  4   (g005 g016 g113 g114)
 ```
@@ -968,8 +1102,8 @@ planning; nudge **p = 0.0156**, both boxes item-identical.
 
 | they say | you say |
 |---|---|
-| *“So the agent is a failure.”* | It zeroed fabricated citations when it retrieved; it has not shown general multi-step agency — different claims, both numbered. |
-| *“Why not a bigger model?”* | Unmeasured. Constraint is zero paid APIs + 12 GiB card. |
+| *“So the agent is a failure.”* | Once it was made to search, its out-of-range citations went to zero (lab 9 → 0, Mac 3 → 0, `D90`); it has not shown general multi-step agency — different claims, both numbered. |
+| *“Why not a bigger model?”* | **As the agent: unmeasured.** Phase 6 did run a 550B hosted model, `nemotron-3-ultra-550b`, but as the **one-shot** generator on free credits (§R10.15b), never inside this loop. The local constraint is zero paid APIs and a 12 GiB card. |
 | *“Isn’t 0.02 vs 0.42 just bad?”* | Show **2/91** vs **38/91** first. Different setups: one-shot always searches; agent skipped search on 96/100. Real comparison was citation harm, then the must-call A/B. |
 | *“You changed the prompt after seeing results — tuning?”* | Thresholds written first; several were **missed** and recorded as misses; changes argued in the register (`D87`…). |
 | *“Does the LLM use verify_2_0?”* | No. Breakages runner is Phase 0. Tools reuse its **pin + subprocess**; the model never imports it. |
@@ -978,7 +1112,8 @@ planning; nudge **p = 0.0156**, both boxes item-identical.
 
 ## After this you can say
 
-- A tool is a function + a paragraph; the model only writes text.
+- A tool is a function + a description sent in the request's `tools` list; the model only writes text.
+- Three tools are built; the agent was offered two (`search_docs`, `check_api`).
 - `check_api` is the `g065` / `op.create_view` post-mortem as a guardrail.
 - First lab agent run: **2 of 91** end-to-end because it skipped search — not “20× worse RAG.”
 - Call-or-not flipped on half the items across Mac/lab (ambiguous decisions).
