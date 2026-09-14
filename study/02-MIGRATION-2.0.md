@@ -22,6 +22,7 @@ Section numbering continues from `01-CONCEPTS.md`, so a reference to "§18" is n
 | **`future=True`** | A Session/Engine flag: run **2.0’s rules** while still installed on **1.4** | Installing 2.0 |
 | **`BREAKAGES.md`** | 23 measured failures on real 2.0.51 — the Phase 0 deliverable | A tutorial |
 | **`# runnable`** | Command output that must reproduce verbatim | A hand-typed sketch |
+| **`(§4)` after a command** | The **script's own printed section**: `migration.py (§4)` means the block headed `4.` in that script's output | This file's §4 (there is none; this file starts at §16) |
 
 ### Words this file uses
 
@@ -48,11 +49,12 @@ Section numbering continues from `01-CONCEPTS.md`, so a reference to "§18" is n
 - **Predictions** — *deliberately unanswered; you settle these by running the upgrade*
 
 Blocks are labelled `# runnable`, `# summary of` or `# illustration`, with the contracts
-defined in [`01-CONCEPTS.md` Part 0](CONCEPTS.md#part-0--how-to-use-this). These commands produce
-all of it — the seed goes first, because §7 counts queries against the 200-issue database:
+defined in [`01-CONCEPTS.md` Part 0](01-CONCEPTS.md#part-0--how-to-use-this). These commands produce
+all of it — the seed goes first, because `migration.py`'s section 7 (used in §21) counts queries
+against the 200-issue database:
 
 ```bash
-# seed first — §7 counts queries against the 200-issue database
+# seed first — migration.py section 7 counts queries against the 200-issue database
 uv run python -m experiments.sqlalchemy_1_4_vs_2_0.seed
 
 uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration     # §16–§21, sections 1–9
@@ -63,7 +65,7 @@ SQLALCHEMY_WARN_20=1 uv run python -W always::DeprecationWarning \
 uv run python -m experiments.sqlalchemy_1_4_vs_2_0.sweep         # §19, every module
 ```
 
-One more, which backs no block in this file but is the tool §20 points at for planning the
+One more, which backs one count in §20 and is the tool §20 points at for planning the
 upgrade — it lists patterns worth testing, **not** breakages:
 
 ```bash
@@ -516,9 +518,9 @@ nothing like a cascade, and it's the form most likely to be scattered through a 
       issue_assignments        3     0   <-- GONE, silently
 ```
 
-`issues` survive — they're attached with `projects.issues.append(issue)` (`seed.py:122`).
-`comments` and `assignments` do not — they're attached with `comment.issue = issue`
-(`seed.py:136`) and `a.issue = issue` (`seed.py:147`).
+`issues` survive — they're attached with `rng.choice(projects).issues.append(issue)`
+(`seed.py:192`). `comments` and `assignments` do not — they're attached with `comment.issue = issue`
+(`seed.py:206`) and `a.issue = issue` (`seed.py:217`).
 
 **The seed would still "succeed."** No exception, no runtime warning, a database that looks
 populated. Every comment and every assignment silently absent — and `01-CONCEPTS.md` §15's N+1
@@ -534,7 +536,9 @@ Compare the two shapes of breakage:
 | caught by a test suite? | every test that touches it | only if a test asserts on row counts |
 
 Counted off the mappers, **7 of the 14 relationships in `models.py` are declared with
-`backref=`**, so every one of them carries the droppable leg.
+`backref=`**. The 14 includes the 7 reverse attributes those `backref=`s create, so every
+relationship in the file is either a `backref` declaration or the attribute one generated: all of
+them sit on one side or the other of a droppable leg.
 
 **The fix is to say what you meant:** `session.add(comment)`. Relying on the cascade was always
 implicit; 2.0 removes the implicitness, not the capability. You can adopt the 2.0 behaviour
@@ -889,10 +893,22 @@ What to do with this
 ==============================================================================
 ```
 
-**Four distinct breakages in the entire project.** That is the `deliverables/BREAKAGES.md` list, and you
-could not have got it from any single file: `app.py` contributes rows two and three, `states.py`
-contributes row four, and row one — the only one that fails silently — comes from the modules
-that write data.
+**Four distinct `RemovedIn20Warning`s in this project's own code**, and you could not have got
+them from any single file: `app.py` contributes rows two and three, `states.py` contributes row
+four, and row one — the only one that fails silently — comes from the modules that write data.
+
+**What that is NOT: the `deliverables/BREAKAGES.md` list.** That file has **23** entries, not 4,
+because it was built a different way. The sweep can only report constructs these six modules
+actually execute, and only the ones 1.4 knows how to warn about. `BREAKAGES.md` came from writing
+1.4 patterns on purpose (`patterns.py`) and running each one on real 2.0.51 (`verify_2_0.py`). The
+named example of the gap is its entry **#17**, `row['colname']`: no warning on 1.4, and on 2.0.51
+
+```
+row["id"] -> TypeError: tuple indices must be integers or slices, not str
+```
+
+So: the sweep sizes the migration of *this code*. It does not enumerate what 2.0 breaks. §20 shows
+the whole group the sweep cannot see.
 
 **Four distinct, in both states.** Seeded, the occurrences total 29; unseeded, 1029. The
 *distinct* count does not move, because the same fix repeated is still one fix. That is why it
@@ -1195,16 +1211,32 @@ from inside the tool you used — a short list looks exactly like a clean one.
 This is precisely why `phases/PHASE-0.md` asks for breakages *"personally caused, hit, and fixed"*
 rather than swept. The third group only comes into existence when the code actually runs on 2.0.
 
-`candidates.py` runs this classification over a wider batch — 22 patterns worth testing, split
-6 / 11 / 5 across the three groups:
+`candidates.py` runs this classification over a wider batch. Its closing count today:
 
-```bash
-uv run python -m experiments.sqlalchemy_1_4_vs_2_0.candidates
 ```
+# runnable: uv run python -m experiments.sqlalchemy_1_4_vs_2_0.candidates 2>&1 | grep -A7 "candidates worth testing"
+  21 candidates worth testing, 3 rejected as non-breakages.
+========================================================================================
+      4  caught by BOTH the sweep and future=True
+     12  warned by the sweep, but future=True runs them —
+         construction-time removals the engine never sees
+      5  NO warning at all — only running the code finds these
+
+  The last group is the reason a swept list is not an inventory, and the
+```
+
+`4 + 12 + 5 = 21`. (This paragraph used to say 22, split 6 / 11 / 5. The script's list changed and
+the sentence did not.)
 
 **Read its header before using its output.** It emits *candidates*, not entries. A row there is
 a hypothesis about 2.0; a `deliverables/BREAKAGES.md` entry is a result you obtained by hitting the error
-yourself. Pasting one into the other is the "grade your own homework with your own answer key"
+yourself.
+
+**The named example of why, from its own output.** One of its three "rejected" rows is
+`row['colname'] mapping access … not a breakage (works in 2.0)`: no warning, and `future=True` runs
+it. Real 2.0.51 raises `TypeError: tuple indices must be integers or slices, not str` on exactly that
+line, and it is `BREAKAGES.md` entry #17. Both 1.4-side tools called it safe. Only running 2.0 found
+it. Pasting one into the other is the "grade your own homework with your own answer key"
 failure that §21 warns about, wearing a lab coat.
 
 This is why §22 keeps the warning sweep and the flag as **separate steps** rather than treating
@@ -1325,8 +1357,8 @@ other.) The real answer here:
 ```
 
 **Read the breakdown, not the total.** `issue_report()` touches two relationships per issue, so
-the obvious estimate is `1 + 200 + 200`. It's off by 197, and the reason is the correction
-already made in `01-CONCEPTS.md` §13:
+the obvious estimate is `1 + 200 + 200 = 401`. It's off by `401 − 204 = 197`, and the reason is
+the identity-map wrinkle in `01-CONCEPTS.md` §2 (drill answer 3) and §14 ("The identity map"):
 
 | in the loop | relationship | queries | why |
 |---|---|---|---|
@@ -1422,7 +1454,8 @@ next one boring.
 └────────────────────────────────────────────────────────────────────────┘
                                     ↓
 ┌─ 2. TRIAGE ────────────────────────────────────────────────────────────┐
-│  RemovedIn20Warning  →  must fix.  These are the deliverables/BREAKAGES.md entries. │
+│  RemovedIn20Warning  →  must fix. Candidates for BREAKAGES.md — but    │
+│                         not all of it: some breakages never warn (§20) │
 │  MovedIn20Warning    →  one-line import change.                        │
 │  LegacyAPIWarning    →  optional.                                      │
 │  no warning          →  not a migration item at all.            (§19)  │
@@ -1443,8 +1476,10 @@ next one boring.
 │  ← THE STEP PEOPLE SKIP. It is the one that makes step 5 boring.       │
 └────────────────────────────────────────────────────────────────────────┘
                                     ↓
-┌─ 5. BUMP THE VERSION ──────────────────────────────────────────────────┐
-│  Nothing should be left to find.                                       │
+┌─ 5. BUMP THE VERSION, THEN RUN EVERYTHING ON 2.0 ──────────────────────┐
+│  Steps 1–4 leave one group unfound: code that is legal on 1.4, warns   │
+│  about nothing, and still fails on 2.0 (row['colname'], Query.filter   │
+│  with a raw string). Only running 2.0 reports it.               (§20)  │
 └────────────────────────────────────────────────────────────────────────┘
                                     ↓
 ┌─ 6. MODERNISE AT LEISURE (optional, never urgent) ─────────────────────┐
