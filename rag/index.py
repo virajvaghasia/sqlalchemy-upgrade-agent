@@ -270,7 +270,7 @@ def retrieve(
     *,
     dedupe: bool = True,
     hybrid: bool = True,
-    rerank: bool = True,
+    rerank: bool = False,   # DEMO PR: the reranker removed. The quality gate must block this.
 ):
     """Top-`limit` hits. Shared by --search, rag.ask, and rag.score.
 
