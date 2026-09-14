@@ -37,7 +37,7 @@ given. The stack must be up for most of these — `docker compose up --build` fi
 
 - **You do not need a published port to use the database.** `docker compose exec` runs psql
   *inside* the running container (§5.1)
-- **A fresh server has three databases**, and two are machinery you never touch (§5.3)
+- **Every server ships three databases** you never put tables in; ours makes four (§5.3)
 - **`postgres` is the maintenance database**, not yours — application tables belong in one of
   your own (§5.3)
 - **The same `models.py` produces different DDL** on Postgres and SQLite. Postgres uses a real
@@ -104,7 +104,11 @@ You are connected to database "issues" as user "app" via socket in "/var/run/pos
 
 It answers "am I even where I think I am" before you start doubting your query.
 
-### 5.3 Three databases, two of which are machinery
+### 5.3 Four databases, three of which ship with the server
+
+(This heading used to say "three databases, two of which are machinery" above a listing of four. Count
+the lines of the output: `issues` is the one `POSTGRES_DB` created; the other three exist on every
+Postgres server before you create anything.)
 
 ```
 # runnable: docker compose exec db psql -U app -d issues -tAc \
@@ -154,21 +158,31 @@ and the two answers differ in ways worth knowing.
 
 ```
 # runnable: docker compose exec db psql -U app -d issues -c "\d issues"
-   Column    |            Type             | Nullable |              Default
--------------+-----------------------------+----------+------------------------------------
- id          | integer                     | not null | nextval('issues_id_seq'::regclass)
- title       | character varying           |          |
- description | character varying           |          |
- status      | character varying           |          |
- created_at  | timestamp without time zone |          |
- project_id  | integer                     |          |
+                                         Table "public.issues"
+   Column    |            Type             | Collation | Nullable |              Default
+-------------+-----------------------------+-----------+----------+------------------------------------
+ id          | integer                     |           | not null | nextval('issues_id_seq'::regclass)
+ title       | character varying           |           |          |
+ description | character varying           |           |          |
+ status      | character varying           |           |          |
+ created_at  | timestamp without time zone |           |          |
+ project_id  | integer                     |           |          |
 Indexes:
     "issues_pkey" PRIMARY KEY, btree (id)
 Foreign-key constraints:
     "issues_project_id_fkey" FOREIGN KEY (project_id) REFERENCES projects(id)
 Referenced by:
     TABLE "comments" CONSTRAINT "comments_issue_id_fkey" FOREIGN KEY (issue_id) REFERENCES issues(id)
+    TABLE "issue_assignments" CONSTRAINT "issue_assignments_issue_id_fkey" FOREIGN KEY (issue_id) REFERENCES issues(id)
+    TABLE "issue_blocks" CONSTRAINT "issue_blocks_blocked_id_fkey" FOREIGN KEY (blocked_id) REFERENCES issues(id)
+    TABLE "issue_blocks" CONSTRAINT "issue_blocks_blocker_id_fkey" FOREIGN KEY (blocker_id) REFERENCES issues(id)
+    TABLE "issue_labels" CONSTRAINT "issue_labels_issue_id_fkey" FOREIGN KEY (issue_id) REFERENCES issues(id)
 ```
+
+(Re-run 2026-09-14; the only edit is the trailing spaces psql pads each row with. The version of this
+block before that date had dropped the empty `Collation` column and four of the five `Referenced by`
+lines, while still being labelled `# runnable`. Docker blocks are `ENV` to `check_runnable`, so
+nothing caught it.)
 
 **SQLite, same model:**
 
@@ -200,8 +214,13 @@ its internal rowid and has no such object. The sequence has state you can read:
 200
 ```
 
+`200` is the last number it handed out, and it matches the 200 issues the seed inserted without
+naming ids. (Re-run 2026-09-14.)
+
 That matters the first time you load rows with explicit ids: the sequence does not advance, and
-the next insert collides with a row that already exists. SQLite never presents that problem, so
+the next insert collides with a row that already exists. (Not reproduced in this repo, because it
+would mean breaking the live database on purpose; it is how Postgres sequences are documented to
+behave, linked at the bottom.) SQLite never presents that problem, so
 it is a genuine "worked locally, broke on Postgres" bug.
 
 **`timestamp without time zone`.** SQLAlchemy's `DateTime` maps to the naive type by default —
@@ -210,8 +229,11 @@ gets you `timestamptz`. SQLite's `DATETIME` is a string with no opinion at all, 
 distinction is invisible until you move.
 
 **Postgres shows you the reverse direction.** `Referenced by:` lists every table pointing *at*
-this one — the incoming half of the foreign-key graph. SQLite has no equivalent, and it is
-genuinely useful for "what breaks if I drop this".
+this one — the incoming half of the foreign-key graph. Here it is five constraints from four tables:
+`issue_blocks` appears twice, once for `blocked_id` and once for `blocker_id`, because both of its
+columns point at `issues` (`01-CONCEPTS.md` §5). SQLite has no equivalent, and it is genuinely useful
+for "what breaks if I drop this": the answer here is four tables, which the trimmed version of this
+block reduced to one.
 
 **Types are checked.** `character varying` with no length is unbounded here, but Postgres
 enforces types on write; SQLite applies type *affinity* and will cheerfully store a string in an
