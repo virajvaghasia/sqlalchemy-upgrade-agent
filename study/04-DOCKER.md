@@ -142,6 +142,11 @@ Seed a database in one container, then run the app in another:
 sqlite3.OperationalError: no such table: issues
 ```
 
+(Measured on the Day 4 image, before §3.4 added an entrypoint. Today's image seeds at the start of
+every container, so the second command now runs the app, and its output includes `38 open issues` (checked on the
+local image, 2026-09-14) — which proves the same point
+from the other side: that container seeded its own fresh copy.)
+
 **The seed worked. The app still can't see it.** Container 1 wrote `issues.db` into *its own*
 writable layer and `--rm` deleted the whole layer on exit. Container 2 started from the same
 read-only image and got a fresh, empty writable layer of its own.
@@ -348,7 +353,38 @@ with it.
 
 ## Part 2 — The instructions, walked through this repo's Dockerfile
 
-The file:
+**Two versions of the same file, and this Part teaches from the first.** Part 2 walks through the
+Dockerfile as it was written on Day 4. Part 3 then fixes three things wrong with it, and §3.4 adds an
+entrypoint. So the file in the repo today is longer than the one below. Here is today's, with the
+comments stripped so only the instructions remain:
+
+```
+# runnable: grep -v '^\s*#' Dockerfile | grep -v '^\s*$' | grep -v '^ &&'
+FROM python:3.11-slim
+WORKDIR /app
+RUN useradd --system --uid 10001 --create-home app \
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=app:app . .
+COPY --chmod=755 --chown=app:app entrypoint.sh .
+USER app
+ENTRYPOINT ["./entrypoint.sh"]
+CMD ["python", "-m", "experiments.sqlalchemy_1_4_vs_2_0.app"]
+```
+
+(The `RUN useradd … \` line continues onto a `&& chown app:app /app` line that the last `grep`
+hides.) Ten instructions. Side by side with the Day 4 version, every addition has a section:
+
+| Day 4 (below) | today | why it changed |
+|---|---|---|
+| — | `RUN useradd … && chown app:app /app` | stop running as root (§3.1) |
+| `RUN pip install -r requirements.txt` | `… --no-cache-dir …` | stop shipping pip's download cache (§3.2) |
+| `COPY . .` | `COPY --chown=app:app . .` | the files belong to the new user (§3.1) |
+| — | `COPY --chmod=755 … entrypoint.sh .` | a later `COPY` would reset the mode (§2.3) |
+| — | `USER app` | the switch itself (§3.1) |
+| — | `ENTRYPOINT ["./entrypoint.sh"]` | seed at container start (§3.4) |
+
+The Day 4 file, which the rest of Part 2 reads line by line:
 
 ```dockerfile
 FROM python:3.11-slim
@@ -363,7 +399,9 @@ Six instructions. That's most of the vocabulary.
 
 ### 2.1 `FROM` — and why it was worth arguing about
 
-Every image starts from another image. This one line decided **87% of your final image size**.
+Every image starts from another image. This one line decided **87% of your final image size**. The
+arithmetic is at the end of the file ("Everything measured"): your own three instructions added about
+35 MB to a 260 MB image, and `(260 − 35) ÷ 260 = 87%` came from `FROM`.
 
 | | disk usage | download size |
 |---|---|---|
@@ -374,8 +412,8 @@ Every image starts from another image. This one line decided **87% of your final
 # runnable: docker images python
 ```
 
-7.6× on disk, 8.7× on the wire — and the wire cost is paid on *every* CI run and every deploy,
-forever.
+`1620 ÷ 214 = 7.6×` on disk, `416 ÷ 48 = 8.7×` on the wire — and the wire cost is paid on *every* CI
+run and every deploy, forever.
 
 **Two columns, two different costs.** *Content size* is the compressed layers crossing the
 network. *Disk usage* is uncompressed, sitting on your 16GB Mac and the lab PC. You pay both.
@@ -607,7 +645,7 @@ docker run --rm sqlalchemy-upgrade-agent ls -a /app
 | **`CMD`** | Default: run this if nobody says otherwise | **Replace** the whole command |
 | **`ENTRYPOINT`** | Always run this program | **Append** as arguments to that program |
 
-Your image uses **only `CMD`** (no `ENTRYPOINT`). Measured:
+**On Day 4** the image used **only `CMD`** (no `ENTRYPOINT`). Measured then:
 
 ```
 # runnable: docker run --rm sqlalchemy-upgrade-agent echo "this replaced the CMD"
@@ -616,7 +654,7 @@ this replaced the CMD
 
 Python never ran. Extra args became the command. Same reason `ls -a /app` worked.
 
-Your config is just:
+The config at that point was just:
 
 ```
 Entrypoint: []
@@ -624,6 +662,19 @@ Cmd: [python, -m, experiments.sqlalchemy_1_4_vs_2_0.app]
 ```
 
 So: no fixed program. Whatever you put after `sqlalchemy-upgrade-agent` *is* the program.
+
+**Today's image is different**, because §3.4 added an entrypoint. Read from the image itself:
+
+```
+# runnable: docker image inspect sqlalchemy-upgrade-agent:latest --format 'Entrypoint: {{json .Config.Entrypoint}}{{"\n"}}Cmd: {{json .Config.Cmd}}{{"\n"}}User: {{.Config.User}}'
+Entrypoint: ["./entrypoint.sh"]
+Cmd: ["python","-m","experiments.sqlalchemy_1_4_vs_2_0.app"]
+User: app
+```
+
+So today `echo "this replaced the CMD"` still replaces the `CMD`, but it runs **after** the entrypoint
+script has seeded the database, as the last line of that script (`exec "$@"`). §3.4 walks through
+exactly that, four ways.
 
 If you later add an entrypoint, the usual good shape is:
 
@@ -867,7 +918,9 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: issue
 ```
 
 `app.py` never creates its own tables — it says so in its own docstring (*"seed it first"*).
-`seed.py` is a separate entry point that does `drop_all` + `create_all` + populate.
+`seed.py` is a separate entry point that, on Day 4, did `drop_all` + `create_all` + populate.
+(Since Day 6 it first checks `is_seeded()` and leaves a populated database alone unless you pass
+`--force`; see the consequences list below.)
 
 So compare the two builds:
 
@@ -1039,7 +1092,9 @@ Two consequences worth knowing:
 
 - **Every `docker run` now seeds**, including `docker run sqlalchemy-upgrade-agent ls`. Harmless here — fast,
   and the data is disposable — but production entrypoints usually guard it with "only seed if
-  the schema is missing."
+  the schema is missing." **This repo added that guard on Day 6** (`is_seeded()` in `seed.py`),
+  when Postgres got a volume and a re-seed on every start would have wiped real data. With SQLite
+  inside a `--rm` container the guard never fires, because every container starts empty.
 - **`--entrypoint` is the escape hatch.** `docker run --entrypoint ls sqlalchemy-upgrade-agent /app` skips the
   script entirely. Needing it is the tell that you understand `ENTRYPOINT` (§2.5).
 
@@ -1064,19 +1119,25 @@ That file keeps the §4 numbering, so every `§4.x` reference below still resolv
 
 ## Everything measured on this project
 
-| Measurement | Value | Command |
-|---|---|---|
-| Full vs slim base, disk | 1.62GB vs **214MB** | `docker images python` |
-| Full vs slim base, download | 416MB vs **48MB** | `docker images python` |
-| Your image | 260MB disk / 58.1MB content | `docker images sqlalchemy-upgrade-agent` |
-| Build context, no `.dockerignore` | **13.51MB** | `docker build` → `transferring context` |
-| Build context, with it | **1.53kB** | same line, after the file existed |
-| pip cache shipped in the image | 3.3MB | `docker run --rm sqlalchemy-upgrade-agent sh -c 'du -sh /root/.cache'` |
-| Process user | uid=0 (root) | `docker run --rm sqlalchemy-upgrade-agent id` |
-| SQLAlchemy 1.4.52 wheels / sdists | 45 / 1 | the PyPI one-liner in §2.1 |
-| …of those, `musllinux` | **0** | same one-liner |
-| Dependency install, no compiler | 4.3s | `docker build` → step `[4/5]` |
-| Docker Desktop VM | linux / aarch64 | `docker info` |
+Most of this table was taken on **Day 4**, before Part 3's fixes. Where Part 3 changed a value, the
+"after" column says so.
+
+| Measurement | Day 4 | after Part 3 | Command |
+|---|---|---|---|
+| Full vs slim base, disk | 1.62GB vs **214MB** | — | `docker images python` |
+| Full vs slim base, download | 416MB vs **48MB** | — | `docker images python` |
+| Your image | 260MB disk / 58.1MB content | 295MB → **276MB** (§3.2; measured later than the 260MB, after more dependencies were added) | `docker images sqlalchemy-upgrade-agent` |
+| Build context, no `.dockerignore` | **13.51MB** | — | `docker build` → `transferring context` |
+| Build context, with it | **1.53kB** | — | same line, after the file existed |
+| pip cache shipped in the image | 3.3MB | 9.1MB just before the fix, then **none** (§3.2) | `docker run --rm sqlalchemy-upgrade-agent sh -c 'du -sh /root/.cache'` |
+| Process user | uid=0 (root) | **uid=10001 (app)** (§3.1) | `docker run --rm --entrypoint id sqlalchemy-upgrade-agent` |
+| SQLAlchemy 1.4.52 wheels / sdists | 45 / 1 | — | the PyPI one-liner in §2.1 |
+| …of those, `musllinux` | **0** | — | same one-liner |
+| Dependency install, no compiler | 4.3s | — | `docker build` → step `[4/5]` |
+| Docker Desktop VM | linux / aarch64 | — | `docker info` |
+
+(The build-context line reads 1.53kB here and 1.44kB in §1.4's four-step list. They are two builds on
+different days, with slightly different files in the context; neither is a typo.)
 
 Layer sizes in your own image, read bottom-up:
 
@@ -1091,8 +1152,14 @@ Layer sizes in your own image, read bottom-up:
       0B  CMD [...]                               ← metadata only
 ```
 
-**Your three instructions account for ~35MB of a 260MB image.** `FROM` decided the other 87%.
-That is why it was worth twenty minutes of argument.
+**Your three instructions account for ~35MB of a 260MB image.** `34.6MB + 12.3kB + 541kB ≈ 35MB`,
+and `(260 − 35) ÷ 260 = 87%` came from `FROM`. That is why it was worth twenty minutes of argument.
+
+**One thing that does not add up, said rather than hidden.** The three base layers in this `history`
+listing sum to `109 + 52.1 + 4.99 = 166MB`, and adding your 35MB gives about 201MB, not the 260MB
+that `docker images` reports. The two commands count size differently, so the 87% uses `docker images`'
+260MB throughout. Why they differ on this Docker Desktop was not measured, and this file does not
+guess.
 
 ---
 
@@ -1101,23 +1168,29 @@ That is why it was worth twenty minutes of argument.
 Answer cold, no notes, or the phase isn't done. Questions 1–5 are from
 [`../phases/PHASE-0.md`](../phases/PHASE-0.md); 6–11 came out of building the thing.
 
-1. *"I moved `COPY . .` above `COPY requirements.txt`. Your build got slow. Why?"*
-2. *"Your container can't reach Postgres. Walk me through how you'd diagnose it."*
-3. *"What's the difference between `CMD` and `ENTRYPOINT`, and when does it bite you?"*
-4. *"`depends_on` says Postgres starts first, but your app still crashes on startup. Why?"*
-5. *"How do you know your model is on the GPU and not silently running on CPU?"*
+The section after each question is where its answer, and the measurement behind it, lives. Try the
+question first; open the section after.
+
+1. *"I moved `COPY . .` above `COPY requirements.txt`. Your build got slow. Why?"* → §1.3
+2. *"Your container can't reach Postgres. Walk me through how you'd diagnose it."* → §4.0–§4.1
+3. *"What's the difference between `CMD` and `ENTRYPOINT`, and when does it bite you?"* → §2.5
+4. *"`depends_on` says Postgres starts first, but your app still crashes on startup. Why?"* → §4.2
+5. *"How do you know your model is on the GPU and not silently running on CPU?"* → §4.5
 6. *"Why is `.dockerignore` not just a tidiness thing?"* — two answers, and the megabytes are
-   the weaker one.
-7. *"You deleted a 500MB file in a later layer. Why is the image still huge?"*
-8. *"Your build succeeded and the container crashes instantly. How is that possible?"*
-9. *"Why is Alpine not automatically the right choice for a Python image?"*
-10. *"Your `.dockerignore` has `__pycache__/` and they're still in the image. Why?"*
-11. *"Who is your container running as, and why should you care?"*
-12. *"`COPY requirements.txt .` says the file isn't found. `ls` says it's there. Explain."*
+   the weaker one. → §1.4, "Why `.venv` mattered more than the megabytes"
+7. *"You deleted a 500MB file in a later layer. Why is the image still huge?"* → §1.2, §3.3
+8. *"Your build succeeded and the container crashes instantly. How is that possible?"* → §2.5,
+   "A related trap"
+9. *"Why is Alpine not automatically the right choice for a Python image?"* → §2.1
+10. *"Your `.dockerignore` has `__pycache__/` and they're still in the image. Why?"* → §1.4,
+    "`.dockerignore` is not `.gitignore`"
+11. *"Who is your container running as, and why should you care?"* → §3.1
+12. *"`COPY requirements.txt .` says the file isn't found. `ls` says it's there. Explain."* → §1.4,
+    "Two programs, not one"
 13. *"You ran the seed command in a container. The next container says the table doesn't exist.
-    Why?"*
+    Why?"* → §1.1
 14. *"Your container worked last week and the only thing you changed was adding a
-    `.dockerignore`. What kind of dependency did you just discover?"*
+    `.dockerignore`. What kind of dependency did you just discover?"* → §3.4
 
 **Every one is a "why," not a "how."** Deliberate — anyone can `docker run`. These are built so
 that copied knowledge fails them.
