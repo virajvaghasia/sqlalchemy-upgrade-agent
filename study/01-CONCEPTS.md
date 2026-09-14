@@ -20,6 +20,7 @@ Exactly what made it impossible to read.
 | **`§16` … `§22`** | Sections in the companion [`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md) | Still part of “concepts,” different file |
 | **`D##`** | A decision id in [`09-DECISIONS.md`](09-DECISIONS.md) | A section of this file |
 | **`# runnable`** | A command block whose output must paste back verbatim | A sketch or summary |
+| **`(§5)` after a command** | That **script's own printed section**: `states.py (§5)` is the block headed `5.` in its output | This file's §5 |
 
 ### Words this file uses that are not everyday English
 
