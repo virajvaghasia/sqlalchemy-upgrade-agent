@@ -4233,6 +4233,8 @@ aggregate 11-to-1 asymmetry, not twelve explained verdicts.
 **Rejected — call Phase 4's faithfulness figures understated.** `D82`'s judge (`gemma4:e4b`) also read text
 only, but it was not re-run; the direction is plausible and the size is unmeasured.
 
+**Measured afterwards, lab Round 22 (2026-09-14, `PHASE-6.md` Step 4h):** Phase 4's judge given headings — D 36→38/47, H 56→57/61 → **headings do NOT matter** for qwen's answers; `D82`/`D83` stand. Reported alongside, not a decision: with headings, H is more faithful than D on the 45 both answered, **6 vs 0, p = 0.031** (text-only, same lab: 8 vs 2, p = 0.11). It does not reopen H's hold, which rests on refusals.
+
 **Found, and it is the lesson:** a human reviewer and a judge model were both shown less than the model
 under test, and the same omission produced a wrong human reason (`g044`) and a 14-point understatement of a
 rate. **A judge must see what the judged saw.** Predictions wrong and kept: "headings do not matter", `g044`

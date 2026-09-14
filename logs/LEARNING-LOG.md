@@ -636,4 +636,7 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
 - **Phase 6's finish line met:** a stranger gets a cited answer from the live link, and a quality-degrading
   PR is rejected by name, with the check required on `main`.
 - Round 22 (Phase 4's judge given headings) queued and running on the lab.
+- **Round 22 back from the lab:** Phase 4's judge given headings — D 77% → 81%, H 92% → 93%, **headings do not
+  matter** for qwen's short answers (they did for nemotron's long ones, `D107`). Phase 4's figures stand.
+  Alongside: with headings, H beats D on faithfulness 6 vs 0, p = 0.031 (`PHASE-6.md` Step 4h).
 

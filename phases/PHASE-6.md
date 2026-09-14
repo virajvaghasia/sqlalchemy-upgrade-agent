@@ -1448,3 +1448,37 @@ moves there is the headings, with no noise control needed. The Mac's judge drift
 
 **Prediction (Claude).** **"Headings do NOT matter"** for both arms, because qwen's answers are short and
 Step 4g moved qwen by 3 up / 2 down. D ~79%, H ~92%; D vs H still not significant.
+
+### Result — Step 4h, 2026-09-14 (lab PC, RTX 3060, `gemma4:e4b`; no API calls)
+
+The lab's run, re-derived on the Mac from the committed rows with the same command:
+
+```
+PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — gemma4:e4b on Linux-x86_64
+  text-only rows  faithfulness-phase4.Linux-x86_64.json  (Linux-x86_64)
+  headings rows   faithfulness-phase4-headings.Linux-x86_64.json
+  D  SUPPORTED text-only 36/47  with headings 38/47   up 3  down 1  p = 0.6250
+     up    g014 g019 g120
+     down  g098
+  H  SUPPORTED text-only 56/61  with headings 57/61   up 2  down 1  p = 1.0000
+     up    g031 g062
+     down  g036
+  D vs H with headings, paired over 45: H-only SUPPORTED 6  D-only 0  p = 0.0312
+  rule -> headings do NOT matter
+```
+
+**Against the rule: headings do NOT matter** for Phase 4's judge on qwen's answers. D 77% → 81%, H 92% → 93%.
+**Consequence as written:** `D82`/`D83`'s text-only figures stand, and this run is the evidence they were not
+materially understated. **Prediction right** (D ~79%, H ~92%, no effect). The lab's run died once at 41/64 and
+was resumed; the text-only rows were not touched.
+
+**Why nemotron moved and qwen did not (4g vs 4h), stated as a hypothesis, not a finding:** nemotron's answers
+are long and name sections and versions; qwen's are short. Two judges and two machines differ between the two
+runs, so the contrast is not a controlled comparison.
+
+**Reported, not pre-registered as a decision: prompt H is now significantly more faithful than D.** Paired over
+the 45 items both arms answered, with headings: **H-only SUPPORTED 6, D-only 0, p = 0.031**. The same lab's
+text-only rows on the same comparison read 8 vs 2, p = 0.11, and `D82` (Mac) read 5↑ 1↓, p = 0.22. It clears
+`D61`'s bar (about six clean fixes, no regressions). One machine, one run. **It does not reopen the hold on H**,
+which rests on refusals (`D83`, `D84`), not faithfulness.
+

@@ -382,8 +382,8 @@ role force quoting in every statement. It matches the Compose service it belongs
 **PHASE 6 FINISH LINE MET (2026-09-14).** CI gate on GitHub runners: PR #29 PASSED (`moved 0`, Linux CPU
 == Mac MPS); the reranker-removal demo PR #30 first PASSED because `rag.score` passed `rerank=True` itself —
 fixed (the scorer now grades the shipped defaults), re-run **BLOCKED `g017`**, identical to the local demo.
-`quality gate` required on `main`. Cold job 57–135 min, warm ~2 min. **Open:** Round 22 on the lab (Phase 4
-judge + headings), close-out of Phase 6 docs, Langfuse (optional), `.env.example` for Viraj to review.
+`quality gate` required on `main`. Cold job 57–135 min, warm ~2 min. **Round 22 CLOSED (lab):** Phase 4 judge + headings → **do NOT
+matter** (D 77→81%, H 92→93%); `D82`/`D83` stand; alongside, H > D faithfulness 6 vs 0, p = 0.031. **Open:** close-out of Phase 6 docs, Langfuse (optional), `.env.example` for Viraj to review.
 
 **PHASE 6 STEP 4g (`D107`, 2026-09-13): THE JUDGE NEVER SAW HEADINGS; GIVEN THEM, NEMOTRON PASSES.** Viraj
 confirmed the six sheet verdicts and changed `g044` to SUPPORTED. Rules first (`8693726`), 136 NVIDIA calls:
