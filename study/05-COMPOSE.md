@@ -34,8 +34,25 @@ produces it is given.
 
 ---
 
-§4.0–§4.4 and §4.6 describe the stack in this repo's `docker-compose.yml`, measured. §4.5 is
-Day 7 and still concepts-only, because the lab machine isn't reachable.
+§4.0–§4.4 and §4.6 describe the stack in this repo's `docker-compose.yml`, measured on the Mac.
+§4.5 is Day 7, measured on the lab PC on 2026-08-13 (the full sitting is in
+[`08-LAB.md`](08-LAB.md)).
+
+**What the file runs today.** The Day 6 stack was two services, `app` and `db`. A third, `qdrant`
+(the vector database for Phase 1's search), arrived on 2026-08-14, and §4.2's healthcheck bug is from
+that day. The top-level keys of `docker-compose.yml`:
+
+```
+# runnable: grep -n "^  [a-z]*:$" docker-compose.yml
+16:  db:
+65:  qdrant:
+120:  app:
+155:  pgdata:
+156:  qdrantdata:
+```
+
+Three services and two named volumes: `pgdata` holds Postgres's files and `qdrantdata` holds Qdrant's
+(§4.4 says why each is a named volume).
 
 ## The short version
 
@@ -560,8 +577,9 @@ files owned by uid 10001 on the host — a uid that may belong to nobody, or to 
 The symptoms are `Permission denied` for a file you can see, or root-owned files appearing in
 your working tree that your editor cannot save over.
 
-*Not measured here — the lab machine is unreachable, and this Mac cannot reproduce native
-Linux behaviour. Flagged rather than asserted, and worth re-testing on the PC.*
+*Not measured. When this was written the lab machine was unreachable; it has been reachable over
+remote desktop since 2026-08-13, but this particular test has never been run there, and this Mac cannot
+reproduce native Linux behaviour. Flagged rather than asserted, and still worth re-testing on the PC.*
 
 The usual fixes: run the container as your own uid (`--user "$(id -u):$(id -g)"`), or make the
 container's uid match a real group on the host. **Named volumes sidestep the whole question**,
@@ -598,6 +616,30 @@ reporting CUDA is actually available.
 
 That's why the Day 7 gate says *"`docker run --gpus all ...` reports the 3060 from inside a
 container"* rather than "the model ran."
+
+**Measured on the lab PC, 2026-08-13, and the gate passed.** Pasted from that sitting
+(`08-LAB.md`, "Later — Day 7"; abridged there by hand, so it is a summary, not a `# runnable`):
+
+```
+# summary of: docker info | grep Runtimes     # AFTER installing the toolkit
+Runtimes: io.containerd.runc.v2 nvidia runc
+
+# summary of: docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+NVIDIA-SMI 595.71.05    Driver Version: 595.71.05    CUDA Version: 13.2
+GPU 0: NVIDIA GeForce RTX 3060    538MiB / 12288MiB
+```
+
+Read the two blocks in order. **`nvidia` in the runtimes list** is what the toolkit installed: a
+second way for Docker to start containers, used only when you pass `--gpus`. Ordinary containers
+still start with `runc`. **The `nvidia-smi` table came from inside a container**, which is the whole
+gate: the host's `nvidia-smi` already worked before the toolkit existed, and that proves nothing about
+containers. `12288MiB` is the card's total memory, the budget every local model in this project has to
+fit in; `538MiB` was already in use when the command ran.
+
+**What it is not:** proof that a given *model* is on the GPU. That check is per program. For Ollama it
+is `ollama ps` reading `100% GPU`. That exact line caught something real: during lab Round 14 it read
+`52%/48% CPU/GPU` for the generator, on the machine whose `nvidia-smi` had passed this gate (`D83`
+records it; `D84` re-ran the round at `100% GPU`).
 
 ### 4.6 `POSTGRES_USER` does not give you a limited account
 
