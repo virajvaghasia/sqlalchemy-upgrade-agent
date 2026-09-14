@@ -603,6 +603,52 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
 
 ---
 
+# Round 22 — does Phase 4's judge change its verdicts when it sees headings? (OPEN, written 2026-09-14 on the Mac)
+
+**Why the lab and not the Mac.** The judge was only ever given page text; the model reads a source line, a
+heading line and the text. On the Mac's hosted judge that moved nemotron 77% → 91% (`PHASE-6.md` Step 4g).
+This round asks the same of Phase 4's local judge on **your** rows, because your `gemma4:e4b` re-read 110
+answers twice and came back byte-identical (`D84`): here, a verdict that changes is the headings, not noise.
+Rules and prediction: `PHASE-6.md` **Step 4h**, written before this round.
+
+**Branch: `phase-6/production`.** Needs Ollama with `gemma4:e4b`, and Qdrant up (the sweep re-retrieves the
+five pages). About as long as Round 15's judge run (~1–2 hours). No NVIDIA or Gemini calls.
+
+## ASK 22.0 — sync, and confirm the code is there
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-6/production && git pull
+uv run pytest tests/test_faithful.py -q 2>&1 | tail -1
+grep -c "def passage_as_shown" rag/faithful.py
+ollama list | grep gemma4:e4b
+docker compose up -d qdrant && sleep 5 && curl -s http://127.0.0.1:6333/readyz
+```
+
+**Paste all of it.** Stop if the tests fail or `passage_as_shown` counts 0.
+
+## ASK 22.1 — the run (resumable)
+
+```bash
+nohup uv run python -u -m rag.faithful --sweep --local --headings > /tmp/round22.log 2>&1 &
+disown
+tail -3 /tmp/round22.log
+# if it dies: the same command with --resume appended picks up where it stopped
+```
+
+**Check before walking away:** the first log line must say `judging D, H from prompt-sweep-phase4.json with
+gemma4:e4b`, and `deliverables/faithfulness-phase4-headings.Linux-x86_64.json` must appear after 10 items.
+
+## ASK 22.2 — the comparison, then commit (you may commit, 2026-09-11 policy)
+
+```bash
+uv run python -m rag.faithful --headings-report
+git add deliverables/faithfulness-phase4-headings.Linux-x86_64.json
+git commit -m "lab: Round 22 — Phase 4 judge given headings" && git push
+```
+
+**Paste the whole `--headings-report` output here, raw.** The rule in Step 4h reads it; do not summarise it.
+
 # Round 21 — does the prompt's SHAPE move the over-refusals? (CLOSED, lab 2026-09-12)
 
 **The finding this comes from.** Same model, same corpus, same retrieved pages — the shipped

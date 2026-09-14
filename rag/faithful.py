@@ -655,11 +655,69 @@ def judge_answer(answer: str, passages: list[str], *, key: str,
 CHECKPOINT_EVERY = 10
 
 
+# --- the page as the model saw it (PHASE-6.md Step 4g, Round 22) -------------
+#
+# ask.build_prompt gives the model each source as a source line, a heading line
+# and the text. This judge was given the text only, in every run before
+# 2026-09-13, so a claim that rests on a heading read as unsupported. The
+# default stays text-only so the committed runs remain reproducible; `headings`
+# is the re-measurement. A test holds this byte-equal to build_prompt's block.
+
+def passage_as_shown(payload: dict) -> str:
+    heading = " > ".join(payload["heading_path"]) or "(no heading)"
+    return (f"SQLAlchemy {payload['sqlalchemy_version']} — {payload['source_path']}\n"
+            f"     {heading}\n\n{payload['text']}")
+
+
+def passages_for(hits, headings: bool) -> list[str]:
+    return [passage_as_shown(h.payload) if headings else h.payload["text"] for h in hits]
+
+
+def compare_headings(text: dict, head: dict) -> dict:
+    """Per arm: SUPPORTED yes/no flips from the text-only run to the headings run,
+    over items readable in both. Then D vs H paired, both judged with headings."""
+    from rag import score
+    readable = lambda v: v in VERDICTS
+    out = {}
+    for arm in sorted(text.keys() & head.keys()):
+        a = {r["id"]: r["verdict"] for r in text[arm]}
+        b = {r["id"]: r["verdict"] for r in head[arm]}
+        both = sorted(i for i in a.keys() & b.keys() if readable(a[i]) and readable(b[i]))
+        up = [i for i in both if a[i] != "SUPPORTED" and b[i] == "SUPPORTED"]
+        down = [i for i in both if a[i] == "SUPPORTED" and b[i] != "SUPPORTED"]
+        rate = lambda d: (sum(d[i] == "SUPPORTED" for i in d if readable(d[i])),
+                          sum(readable(d[i]) for i in d))
+        out[arm] = {"n": len(both), "up": up, "down": down,
+                    "p": score.mcnemar_exact(len(up), len(down)), "text": rate(a), "headings": rate(b)}
+    if "D" in head and "H" in head:
+        d = {r["id"]: r["verdict"] for r in head["D"]}
+        h = {r["id"]: r["verdict"] for r in head["H"]}
+        both = sorted(i for i in d.keys() & h.keys() if readable(d[i]) and readable(h[i]))
+        h_only = [i for i in both if h[i] == "SUPPORTED" and d[i] != "SUPPORTED"]
+        d_only = [i for i in both if d[i] == "SUPPORTED" and h[i] != "SUPPORTED"]
+        out["paired"] = {"n": len(both), "h_only": h_only, "d_only": d_only,
+                         "p": score.mcnemar_exact(len(h_only), len(d_only))}
+    return out
+
+
+def headings_verdict(compared: dict) -> str:
+    """Round 22's rule, the same as Step 4g's: an arm moves if >= 3 answers become
+    SUPPORTED, more than move the other way, at exact McNemar p < 0.05."""
+    from rag import score
+    for arm, c in compared.items():
+        if arm == "paired":
+            continue
+        up, down = len(c["up"]), len(c["down"])
+        if up >= 3 and up > down and score.mcnemar_exact(up, down) < 0.05:
+            return "headings MATTER"
+    return "headings do NOT matter"
+
+
 def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
                key: str, model: str = MODEL, post=_post, k: int | None = None,
                retrieve=None, log=print, checkpoint=None,
                pace: float = 0.0, sleep=time.sleep,
-               resume: dict | None = None, workers: int = 1) -> dict:
+               resume: dict | None = None, workers: int = 1, headings: bool = False) -> dict:
     """Judge each variant's answers against the pages that variant was given.
 
     Returns `{variant: [row, ...]}`. Refused, failed and unanswered rows are
@@ -674,7 +732,7 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
         k = k or ask.DEFAULT_K
 
         def retrieve(question):
-            return [h.payload["text"] for h in index.retrieve(question, limit=k)]
+            return passages_for(index.retrieve(question, limit=k), headings)
 
     by_id = {i["id"]: i for i in items}
     saved_rows = {v: {r["id"]: r for r in saved[v]} for v in variants}
@@ -1179,6 +1237,13 @@ SWEEP_DEFAULT = REPO / "deliverables" / "prompt-sweep-phase4.json"
 # first place -- and comparing the two runs is the entire point of running it
 # twice (`D83`).
 ROWS_DEFAULT = REPO / "deliverables" / f"faithfulness-phase4.{machine()}.json"
+
+
+def judged_rows_path(headings: bool = False) -> pathlib.Path:
+    """A headings run gets its own file, so it can never overwrite the text-only
+    rows it is compared against (Round 22)."""
+    return (REPO / "deliverables" / f"faithfulness-phase4-headings.{machine()}.json"
+            if headings else ROWS_DEFAULT)
 ROWS_LEGACY = REPO / "deliverables" / "faithfulness-phase4.json"
 SHEET_DEFAULT = REPO / "deliverables" / "JUDGE-AGREEMENT.md"
 CROSSCHECK_DEFAULT = REPO / "deliverables" / "JUDGE-CROSSCHECK.json"
@@ -1208,7 +1273,7 @@ def main() -> None:
     argv = sys.argv[1:]
     local = "--local" in argv
     key = api_key()
-    if not key and not local:
+    if not key and not local and "--headings-report" not in argv:
         sys.exit(
             f"no {KEY_VAR}.\n"
             f"  put it in {ENV_FILE} as {KEY_VAR}=... (that file is gitignored)\n"
@@ -1246,6 +1311,31 @@ def main() -> None:
             sys.exit(1)
         return
 
+    if "--headings-report" in argv:
+        # Round 22: the committed text-only rows against the headings rows, same machine.
+        text_path = pathlib.Path(_arg(argv, "--text", str(ROWS_DEFAULT)))
+        head_path = pathlib.Path(_arg(argv, "--head", str(judged_rows_path(True))))
+        text = json.loads(text_path.read_text())
+        head = json.loads(head_path.read_text())
+        c = compare_headings(text["variants"], head["variants"])
+        print(f"PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — {head.get('judge_model')} on {head.get('machine')}")
+        print(f"  text-only rows  {text_path.name}  ({text.get('machine')})")
+        print(f"  headings rows   {head_path.name}")
+        for arm in ("D", "H"):
+            if arm in c:
+                a = c[arm]
+                print(f"  {arm}  SUPPORTED text-only {a['text'][0]}/{a['text'][1]}  with headings "
+                      f"{a['headings'][0]}/{a['headings'][1]}   up {len(a['up'])}  down {len(a['down'])}"
+                      f"  p = {a['p']:.4f}")
+                print(f"     up    {' '.join(a['up']) or '-'}")
+                print(f"     down  {' '.join(a['down']) or '-'}")
+        if "paired" in c:
+            q = c["paired"]
+            print(f"  D vs H with headings, paired over {q['n']}: H-only SUPPORTED {len(q['h_only'])}  "
+                  f"D-only {len(q['d_only'])}  p = {q['p']:.4f}")
+        print(f"  rule -> {headings_verdict(c)}")
+        return
+
     if "--sweep" in argv:
         # Judges SAVED answers. It does not generate: D54 says a re-run drifts,
         # and a faithfulness row describing a different answer than the one
@@ -1272,7 +1362,8 @@ def main() -> None:
         # side of the gap. A resume across a model change is refused rather
         # than silently mixed.
         resume = None
-        _rows_path = pathlib.Path(_arg(argv, "--save", str(ROWS_DEFAULT)))
+        headings = "--headings" in argv
+        _rows_path = pathlib.Path(_arg(argv, "--save", str(judged_rows_path(headings))))
         if "--resume" in argv and _rows_path.exists():
             prior = json.loads(_rows_path.read_text())
             if prior.get("judge_model") != model:
@@ -1287,7 +1378,7 @@ def main() -> None:
         # under a per-minute API ceiling and would add 11 minutes for nothing.
         post = retrying(local_post) if local else retrying()
         pace = 0.0 if local else PACE_SECONDS
-        out = pathlib.Path(_arg(argv, "--save", str(ROWS_DEFAULT)))
+        out = pathlib.Path(_arg(argv, "--save", str(judged_rows_path(headings))))
         if out.exists() and "--resume" not in argv:
             prior = json.loads(out.read_text()).get("machine")
             if prior and prior != machine():
@@ -1301,6 +1392,7 @@ def main() -> None:
         def save(rows):
             out.write_text(json.dumps({"judge_model": model,
                                        "machine": machine(),
+                                       "passages": "as the model saw them" if headings else "text only",
                                        "source": src_path.name,
                                        "variants": rows}, indent=1) + "\n")
 
@@ -1310,7 +1402,7 @@ def main() -> None:
             rows = sweep_rows(saved, items, variants, key=key or "", model=model,
                               post=post, checkpoint=save, pace=pace,
                               resume=resume,
-                              workers=int(_arg(argv, "--workers", "1")),
+                              workers=int(_arg(argv, "--workers", "1")), headings=headings,
                               log=lambda line: print(line, flush=True))
         except urllib.error.HTTPError as exc:
             # D75: a sweep that dies with nothing written is the expensive

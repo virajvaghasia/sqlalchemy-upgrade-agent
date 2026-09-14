@@ -1378,3 +1378,28 @@ REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
 - **Phase 4's faithfulness figures (`D82`: D 77–85%, H 92%, judge `gemma4:e4b`) were also judged text-only and
   are NOT re-measured here.** They may be understated the same way; that re-run is Ollama-local and ~110
   generations.
+
+---
+
+## Step 4h — Phase 4's judge given the pages as the model saw them, on the lab (pre-registered 2026-09-14, before any run)
+
+**The question.** `D82`/`D83`'s faithfulness rates (lab: D 77%, H 92%, judge `gemma4:e4b`) came from a judge
+given page text only, like every judge before Step 4g. Does giving it the source and heading lines change
+them? **Run on the lab, not the Mac** (Viraj's question, answered from data): the lab's judge re-read the same
+110 answers five days apart and came back **byte-identical, reasons included** (`D84`), so a verdict that
+moves there is the headings, with no noise control needed. The Mac's judge drifts 3 in 110.
+
+**Held fixed:** the same saved answers (`prompt-sweep-phase4.json`, arms D and H), the same judge
+(`gemma4:e4b`, local), the same five re-retrieved pages. **One change:** each passage is
+`faithful.passage_as_shown`, byte-equal to `ask.build_prompt`'s block (test). Rows go to
+`faithfulness-phase4-headings.Linux-x86_64.json`; the committed text-only lab rows are never touched.
+
+| question | rule, written first |
+|---|---|
+| does either arm move? | **headings MATTER** if, in D or H, ≥ 3 answers become SUPPORTED, more than move the other way, exact McNemar p < 0.05 (`faithful.headings_verdict`, the 4g rule) |
+| consequence if they matter | the with-headings lab rates become Phase 4's primary faithfulness figures; `D82`/`D83` are restated, not deleted |
+| D vs H, with headings | paired over items both arms answered and the judge read; reported, and `D82`'s "not significant" is re-checked on it |
+| not in scope | the ship decision on prompt `H` (it rests on refusals, `D83`/`D84`, not on faithfulness) |
+
+**Prediction (Claude).** **"Headings do NOT matter"** for both arms, because qwen's answers are short and
+Step 4g moved qwen by 3 up / 2 down. D ~79%, H ~92%; D vs H still not significant.

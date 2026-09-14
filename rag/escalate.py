@@ -457,12 +457,8 @@ def report_same_judge(nem_rows: list[dict], qwen_judged: list[dict], nem_outs: l
 NOISE_N, NOISE_MAX = 20, 2    # PHASE-6.md Step 4g
 
 
-def passage_as_shown(chunk: dict) -> str:
-    """One source exactly as ask.build_prompt shows it to the model, minus its "[n] "
-    (the judge prompt numbers passages itself). A test holds the two byte-equal."""
-    heading = " > ".join(chunk["heading_path"]) or "(no heading)"
-    return (f"SQLAlchemy {chunk['sqlalchemy_version']} — {chunk['source_path']}\n"
-            f"     {heading}\n\n{chunk['text']}")
+# One definition, shared with the Phase 4 judge (Round 22).
+passage_as_shown = faithful.passage_as_shown
 
 
 def judge_into(rows: list[dict], chunks: dict, judge, *, field: str, headings: bool,
