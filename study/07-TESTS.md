@@ -60,6 +60,35 @@ the block counts what is collected, which does not move. The CI job that verifie
 Twenty-seven files (count the lines below), and the Phase 0 trio still do not check that SQLAlchemy works:
 
 ```
+# runnable: uv run pytest --collect-only -q | grep '^tests/'
+tests/test_agent.py: 43
+tests/test_ask.py: 14
+tests/test_chunk.py: 37
+tests/test_compare_prompts.py: 28
+tests/test_corpus.py: 25
+tests/test_db_config.py: 5
+tests/test_dedup.py: 6
+tests/test_demo.py: 21
+tests/test_embed.py: 12
+tests/test_escalate.py: 35
+tests/test_faithful.py: 84
+tests/test_framing.py: 11
+tests/test_gate.py: 12
+tests/test_golden.py: 8
+tests/test_hybrid.py: 7
+tests/test_index.py: 10
+tests/test_judge.py: 51
+tests/test_models.py: 6
+tests/test_probe.py: 18
+tests/test_rerank.py: 6
+tests/test_route.py: 6
+tests/test_score.py: 38
+tests/test_seed.py: 6
+tests/test_textnorm.py: 5
+tests/test_toolcall.py: 19
+tests/test_tools.py: 13
+tests/test_verification_doc.py: 6
+```
 
 `test_db_config.py`, `test_models.py` and `test_seed.py` are Phase 0's, and are what the rest
 of this section describes. The other 24 arrived one phase at a time, each with the module it pins.
