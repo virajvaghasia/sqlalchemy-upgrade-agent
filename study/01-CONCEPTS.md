@@ -8,7 +8,35 @@ casually, or the log's links rot.
 
 If you find the same idea explained twice in this file, that's a bug — report it. The old
 learning log explained `backref` three times in three different framings, and that is
-exactly what made it impossible to read.
+Exactly what made it impossible to read.
+
+---
+
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§0` … `§15`** | Section numbers in *this* file (stable anchors for the learning log) | Scores, versions, or priorities |
+| **`§16` … `§22`** | Sections in the companion [`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md) | Still part of “concepts,” different file |
+| **`D##`** | A decision id in [`09-DECISIONS.md`](09-DECISIONS.md) | A section of this file |
+| **`# runnable`** | A command block whose output must paste back verbatim | A sketch or summary |
+
+### Words this file uses that are not everyday English
+
+| Word | Plain meaning (show, then name) | Where |
+|---|---|---|
+| **ORM** | Code that turns rows into Python objects and back — the library sits *on top of* SQL | Part 2 |
+| **ForeignKey / FK** | A column that points at another table’s primary key — the database’s truth | §1–§2 |
+| **relationship()** | A Python attribute that *uses* an FK; it does not create the link in the DB | §6 |
+| **mapper** | SQLAlchemy’s map from a class to a table | §12 |
+| **session** | The “desk”: objects you are working on before they are written to the DB | §14 |
+| **flush** | Push pending INSERT/UPDATE/DELETE to the DB *inside* the current transaction | §14 |
+| **commit** | Flush (if needed) **and** end the transaction | §14 |
+| **lazy load / N+1** | Accessing `issue.comments` later fires a new SELECT — nine issues → nine more queries | §15 |
+| **backref** | One `relationship()` declaration that also creates the reverse attribute on the other class | §10 |
+
+**Rule:** if a later § uses a bold word, that word was shown with an example earlier. If it was not,
+that is a bug in the file.
 
 ---
 

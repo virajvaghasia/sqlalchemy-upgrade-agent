@@ -16,6 +16,26 @@ to write a sentence a developer can read. That writing step is **generation**. T
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§R3`** | This sitting — generation (writing the answer) | A score |
+| **prompt A / B / C / D** | Wordings of the standing instructions — **D ships** | Decision ids |
+| **over-refusal** | Right pages were already on the desk; model still said “sources do not answer” | A search miss |
+| **fabrication** | Model invented an API / answer the pages do not support | A wrong search rank |
+
+### What “generation” means here
+
+Search already picked five pages. **Generation** is the step that turns those pages + instructions
+into a paragraph. Nothing is trained. The script is `rag/ask.py`; the model is still
+`qwen2.5-coder:7b` via Ollama.
+
+Named example for over-refusal: *“why can't I call `engine.execute` any more?”* — pages had the
+answer; the model still refused (§R3.4).
+
+---
+
 ## If search already picked five pages, what is left to get wrong?
 
 Plenty. A wrong *instruction* at the top of the message can:

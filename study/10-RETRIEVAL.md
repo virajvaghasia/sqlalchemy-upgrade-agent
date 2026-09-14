@@ -31,6 +31,30 @@ R1.1–R1.6 are the ideas. **R1.7 is a real run that proved R1.5 half-wrong.** R
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§R1` / `§R2`** | Sittings in *this* file (`R` = RAG teaching series) | “Retrieval score 1” or a grade |
+| **`§R3`…** | Later sittings in `11`–`18` | Missing from this file on purpose |
+| **`D##`** | Decision register entry | A section here |
+| **3284 / 1024 / float32** | Measured corpus facts (chunk count, embedding width, dtype) | Magic constants — each has arithmetic beside it in §R2 |
+
+### Words (shown in the library picture below, then named)
+
+| Word | Plain meaning |
+|---|---|
+| **corpus** | The stack of documentation files we search (here: SQLAlchemy docs we fetched) |
+| **chunk** | One cut piece of a doc page — what search returns |
+| **embedding / vector** | A fixed list of numbers that stands for a chunk’s meaning |
+| **top-k / `DEFAULT_K`** | How many chunks land on the “desk” (ships at **5**) |
+| **dense retrieval** | Rank by vector similarity only (Phase 1, deliberately simple) |
+
+**Rule:** a measured number with no “why” beside it is unfinished. Prefer **fractions** when a
+later file quotes rates (`58 of 91`, not bare `0.64`).
+
+---
+
 ## If you have never built one of these — five facts, then a picture
 
 Forget the jargon for one page. Here is the whole system as a library.

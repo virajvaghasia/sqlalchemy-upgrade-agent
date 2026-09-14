@@ -11,12 +11,27 @@ Part of [`sqlalchemy-upgrade-agent`](../README.md). **§R7**, continuing the `R`
 
 ---
 
+## Stop — rates in this file (counts first)
+
+| You will see | What was counted | Section |
+|---|---|---|
+| **`0.51` → `0.64`** | Recall@5 vs the **50**-item baseline artifact: answer page in top 5 more often after Phase 3 | picture below; R7.1–R7.3 |
+| **`0.52` → `0.63`** | Dense-only (after twin collapse) → hybrid BM25 | `D67` |
+| **`0.63` → `0.64`** | Hybrid → seat-5 cross-encoder promotion | `D68` |
+| **`0.64` → `0.58`** | Sphinx-strip re-embed — **rejected** | `D69` |
+| **`7↑ 0↓`** | Paired vs baseline: 7 questions newly found in top 5, 0 newly lost | gate for shipping |
+| **absents `22 → 17`** | Answerable items with answer page **not** in the top 20 at all | R7 |
+
+`R7.2` is a section. `D68` is a decision id. Neither is a score.
+
+---
+
 ## If you are lost — one picture
 
 ```
   Phase 2 baseline (50-item artifact)     after Phase 3 retrieval work
   ─────────────────────────────────       ────────────────────────────
-  recall@5 = 0.51                         recall@5 = 0.64   ← quote this
+  recall@5 ≈ 24/47 (= 0.51)               recall@5 ≈ 58/91 (= 0.64)   ← quote this
   duplicate seats in top-5: lots          duplicate seats: 0
   absents (not in top-20): many           absents: 17
   vs that baseline: —                     7 fixed, 0 broken (p = 0.016)

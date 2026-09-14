@@ -20,6 +20,27 @@ that is not Sitting 6 of Phase 1.
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§R5` / Q1…Q5** | Five cold interview questions about *this* build | A vocabulary quiz |
+| **`DEFAULT_K = 5`** | Pages on the desk — named lever in several answers | “Top-k in general” |
+| **`D##`** | Decision register — cite the id when you defend a choice | Section numbers |
+| **`14-MEASURE.md` §R6** | Phase 2 scorecard (after this sitting) | Sitting 6 of Phase 1 |
+
+### Words
+
+| Word | Plain meaning in the answers |
+|---|---|
+| **dense-only on purpose** | Phase 1 search used only vectors so failures were visible before hybrid/rerank |
+| **answer key vs corpus** | Golden/probe labels are for grading; they are not smuggled into the search index |
+| **prose / `::` / severed listing** | Three different chunk-boundary failure shapes (Q3) |
+
+Answer **the last clause** of each question — that is what failed the cold sitting once.
+
+---
+
 ## §R5 — The five questions, and what a good answer to each contains
 
 ### R5.0 What these questions are

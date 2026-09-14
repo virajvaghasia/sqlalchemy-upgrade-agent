@@ -15,6 +15,23 @@ mode, and the failure mode is the interesting part.
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§R4`** | This sitting — *how* to measure (not the Phase 2 scorecard) | The final system grade |
+| **report card A / B** | Search vs answer quality — keep them apart | One blended “% good” |
+| **recall@k / MRR / rank** | Search metrics (definitions with the `backref`@6 example below) | Generation quality |
+| **`DEFAULT_K = 5`** | How many pages reach the prompt | “Tune k” as a slogan |
+
+**Phase 2’s measured numbers** (50/100 golden, refusals) live in [`14-MEASURE.md`](14-MEASURE.md)
+§R6 — this file teaches the *instruments*, not that scorecard.
+
+When a later doc says `0.64`, read it as **58 of 91** answer pages in the top 5 unless it says
+otherwise.
+
+---
+
 ## If you are lost — two report cards, not one grade
 
 Forget the metric names for one page. You already know the library picture from §R1:

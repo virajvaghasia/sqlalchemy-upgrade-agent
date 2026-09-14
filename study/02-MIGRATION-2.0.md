@@ -13,6 +13,28 @@ Section numbering continues from `01-CONCEPTS.md`, so a reference to "§18" is n
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§16` … `§22`** | Sections in *this* file (numbering continues from `01`) | Scores or “migration version 16” |
+| **`RemovedIn20Warning`** | A real warning class 1.4 can emit about code that dies on 2.0 | “Any deprecation” |
+| **`future=True`** | A Session/Engine flag: run **2.0’s rules** while still installed on **1.4** | Installing 2.0 |
+| **`BREAKAGES.md`** | 23 measured failures on real 2.0.51 — the Phase 0 deliverable | A tutorial |
+| **`# runnable`** | Command output that must reproduce verbatim | A hand-typed sketch |
+
+### Words this file uses
+
+| Word | Plain meaning | Named example |
+|---|---|---|
+| **breakage** | Code that works on 1.4 and **errors or silently misbehaves** on 2.0 | `engine.execute(...)` → AttributeError |
+| **papercut** | Still works, but the API shape changed and bites every beginner | forgetting `.scalars()` on `session.execute(select(...))` |
+| **cascade_backrefs** | Attaching via the many-to-one side no longer enrolls the object — **no exception**, the INSERT just never runs | comment via `comment.issue = issue` |
+| **autobegin** | A plain SELECT opens a transaction; you did not call `begin()` | §18 |
+| **Result API** | `session.execute` returns `Result` / `Row`, not the old Query object | §17 |
+
+---
+
 ## Contents
 
 - **§16 — Why 2.0 exists: one API instead of two**

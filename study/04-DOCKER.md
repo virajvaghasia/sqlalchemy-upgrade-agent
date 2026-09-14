@@ -7,6 +7,29 @@ Reading material for Phase 0 Part C (Days 4–7). **Mobile-friendly: read it awa
 keyboard.** Every number in here was measured on this repo, and the command that produces it
 is given — so you can check it rather than believe it.
 
+---
+
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§1` … `§3`** | Sections in *this* file (one container) | Scores |
+| **`§4` …** | Sections in [`05-COMPOSE.md`](05-COMPOSE.md) (several containers) | Still “Docker,” different file |
+| **`§5` …** | Sections in [`06-POSTGRES.md`](06-POSTGRES.md) | The database chapter |
+
+### Words (same four as the short version below, expanded)
+
+| Word | Plain meaning | What it is **not** |
+|---|---|---|
+| **image** | Frozen filesystem snapshot — nothing running | A running app |
+| **container** | One running copy of an image; writes vanish when it stops unless a volume holds them | The image itself |
+| **layer / cache** | Each Dockerfile line is a stacked step; unchanged steps are reused on rebuild | “Make it faster” magic |
+| **ENTRYPOINT vs CMD** | Entry point is the fixed program; CMD is the default argument list | Interchangeable words |
+
+The short version below is the one-line map; the `§` sections are the measurements.
+
+---
+
 ## How this doc is split, and why
 
 **This file is about ONE container** — §1–§3: images, layers, the build cache, and every line

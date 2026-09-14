@@ -25,18 +25,19 @@ heading will feel like a score.
 
 So **`R9.4` means “section 4 of the Phase 5 study notes.”** Not “score 9.4,” not “SQLAlchemy 9.4.”
 
-### 2. Scores like `0.02` and `0.42` — measured rates
+### 2. Rates like `2/91` — counts first, decimals later
 
-| Number | Plain meaning | Where it lives |
+Scores in this file are **fractions of golden questions**, not section numbers. **Do not read a
+decimal until R9.5 has shown you what was counted.** The short map:
+
+| You will see | What was counted | Section that shows the arithmetic |
 |---|---|---|
-| **`0.42` / `0.43`** | One-shot RAG (Phase 4): right page in the prompt **and** the model answered | Lab / Mac |
-| **`0.02`** | Same *definition* of end-to-end for the **agent** on the lab’s first full run — almost always zero because the agent skipped search | R9.5 |
-| **`96/100`**, **`4/100`** | How often the agent called a tool (or didn’t) | R9.5 |
-| **`0.25` → `0.43`** | Agent after the `[:600]` truncation bug was fixed (Mac) | R9.7b |
-| **`0.47`** | Agent with force+nudge levers (Mac screen — lab did **not** match the level) | R9.7c |
+| **`2/91` → written `0.02`** | Agent on the lab: only **2** of **91** answerable questions both looked up a page *and* answered | **R9.5** (start there) |
+| **`38/91` → written `0.42`** | Same box, same fraction, but the **one-shot** system (always searches; no tools) | R9.5 side-by-side |
+| **`96/100` skipped tools** | How often the agent never called `search_docs` — the reason `2/91` is tiny | R9.5 |
+| later `0.43`, `0.47` | Agent after bugs/levers; Mac vs lab disagree on the level | R9.7b–R9.7c |
 
-When a title says *“the result: `0.02`”*, that **`0.02` is a score**. The **`R9.5`** in front is
-only the heading.
+`R9.5` in a heading is still just “section 5.” The rate lives *inside* that section.
 
 ### 3. Map of this file
 
@@ -45,9 +46,9 @@ only the heading.
 | **R9.0** | Interview skim list | Starting cold |
 | **R9.1** | Before: one lookup always. Now: the model chooses when to look up. | First |
 | **R9.2** | A “tool” = Python function + description. Model writes JSON; our code runs it. | First |
-| **R9.3** | Three tools; `check_api` is the `g065` / `op.create_view` check offered *before* writing. | First |
+| **R9.3** | Three tools; `check_api` is the “does `op.create_view` exist?” check from the fake Alembic answer (`g065`), offered *before* writing. | First |
 | **R9.4** | Why we cannot `import` 2.0 from this 1.4 env — reuses an *old spawn trick*, not the breakages runner. | Before tools code |
-| **R9.5** | Lab score `0.02` — and why “20× worse than 0.42” is the wrong story. | Core result |
+| **R9.5** | Lab agent almost never searched; `2/91` is not “20× worse than one-shot.” | Core result |
 | **R9.6** | Same prompt, Mac vs lab: call-a-tool-or-not flipped on half the items. | Reproducibility |
 | **R9.7** | Almost never chains two tools — until a NOT FOUND nudge; then 7/10 on two-part questions. | Agency limit |
 | **R9.7b** | Our own `[:600]` truncation made the agent look worse than it was. | The bug story |
@@ -55,6 +56,57 @@ only the heading.
 | **R9.8** | What to say out loud in an interview. | Before interviews |
 
 **If you have ten minutes:** R9.2 → R9.5 → R9.7b → R9.8.
+
+### Words this file uses that are not Python
+
+Read this table once. Every later section assumes it. When a word appears again, the table is the
+short meaning; the named section is the full story.
+
+| Word | Plain meaning (show, then name) | Where the story is |
+|---|---|---|
+| **agent** | A loop: model writes text → if the text asks for a tool, *our* code runs a Python function → we paste the result back → model writes again. Not “the model browses the internet.” | R9.1–R9.2 |
+| **one-shot / pipeline** | The Phase 1–4 system: search once, stuff five pages into one prompt, answer once. No tools, no loop. | R9.1 |
+| **tool** | A normal Python function plus a short description the model can read. The model does not run it; it writes JSON asking for it. | R9.2 |
+| **tool call** | That JSON request (“please run `check_api` with …”). | R9.2 |
+| **`tool_calls` channel** | Ollama’s special field for tool requests. Our model put the JSON in ordinary chat text instead — still usable, but not the “official” channel. | R9.5 / `D87` |
+| **fabrication** | Model answered a question it should have refused, and invented content. | R9.3 (`g065`, `g056`) |
+| **post-mortem** | Looking at a failure *after* it already happened (autopsy / after-action). | R9.3 day one |
+| **guardrail** | A check meant to stop the bad thing *before* it ships. | R9.3 day two |
+| **over-refusal** | Right doc page was already in the five pages on the desk, and the model still said “sources do not answer.” | R9.7b; Phase 4 |
+| **ceiling** | Count of questions where search found the answer page — upper bound on what answering can get right. | R9.7b |
+| **delivered** | Ceiling items the model actually answered (did not decline). | R9.7c |
+| **conversion** | Delivered ÷ ceiling — “of the ones search found, how many did generation finish?” | R9.7b |
+| **end to end (e2e)** | Delivered ÷ all answerable questions (91). The number users feel. | R9.5, R9.7c |
+| **nudge** | One extra sentence *we* append to a tool result to push a second step. The model did not invent it. | R9.7 |
+| **chaining** | Calling two or more tools in one question (step 1, then step 2). | R9.7 |
+| **agency / multi-step** | Planning several tool uses on its own. Measured here: almost never, until the nudge. | R9.7 |
+| **truncation** | Cutting text short. Our bug: only the first 600 characters of each page reached the agent. | R9.7b |
+| **lever** | A deliberate change we turn on to measure (force a tool call; add the nudge). Not shipped as default unless said so. | R9.7c |
+| **force** | Code that makes the model call a tool even if it wanted to answer from memory. | R9.7c |
+| **screen (Mac screen)** | A result measured only on this laptop — useful for hunting bugs, **not** the number to quote until the lab agrees. | R9.7c / `D95` |
+| **framing** | Changing the *shape* of the prompt (system/user turns) without adding tools. | R9.7d |
+| **willingness** | Answering more often — including when the pages do not support an answer (guessing). | R9.7d |
+| **coin flip** | Across Mac and lab, half the items disagree on “call a tool or not.” | R9.6 |
+| **temperature 0** | Sampling setting that makes the model pick the most likely next token. Does **not** guarantee the same answer on two machines. | R9.6 |
+| **paired / ↑ ↓** | Same questions before and after a change: how many newly fixed vs newly broken. | R9.7, R9.7c |
+| **p = 0.0156** | Exact McNemar probability that the paired flips are chance. Smaller ≈ stronger evidence. | R9.7 |
+| **SUPPORTED / PARTIAL / UNSUPPORTED** | A *judge model’s* grades: claims fully on the pages / partly / not on the pages. Not the same as “correct on real SQLAlchemy.” | R9.7d; Phase 4 / 6 |
+| **must-call prompt** | System text that orders the model to call a tool instead of answering from memory. | R9.6–R9.7c |
+
+When in doubt: **open the section in the right column**, do not invent a meaning from the word alone.
+
+### Golden questions this file names by id
+
+Same rule as production: an id is one row in `deliverables/golden.json`, not a score.
+
+| id | the developer's question (short) | why this file names it |
+|---|---|---|
+| **`g065`** | Create table and view in the same migration | Invented `op.create_view`; becomes the `check_api` tool |
+| **`g056`** | Query property for models in 1.4–2.0 | Fabrication in *prose* — `check_api` cannot see it |
+| **`g003`** | `engine.table_names()` attribute error | Agent cited `[1]` with **no** retrieved sources |
+| **`g050`** | `engine.execute` gone — use connection | Page-present over-refusal; framing arm B “fixed” it |
+| **`g043`** | `select()` keyword args no longer work | Framing arm B **broke** a good A answer on both machines |
+| **`g114`** | `Row is not mapped` when deleting | Page **absent**; arm B answered anyway (guess) |
 
 ---
 
@@ -66,8 +118,8 @@ R9.7c’s tables on day one.
 **Say this:** “Phase 5 measured a tool-using loop on the same 7B model. The headline is not a
 score — it is what the model would and would not do with tools.”
 
-**Do not say:** “We built an agent and it got 2%.” (That sentence is how R9.5 starts, and R9.5
-exists to kill it.)
+**Do not say:** “We built an agent and it got 2%.” (R9.5 shows what was counted; that slogan
+skips the count and invents a comparison.)
 
 ---
 
@@ -197,30 +249,30 @@ because a Phase 4 bug was measured.
 |---|---|---|
 | `search_docs` | Corpus lookup via `index.retrieve` | Phases 1–3, **unchanged** |
 | `get_function_source` | Real source from real SQLAlchemy **2.0.51** | New |
-| **`check_api`** | Does this symbol exist in 2.0, and what is its signature? | **`D77`, turned around** |
+| **`check_api`** | Does this symbol exist in 2.0, and what is its signature? | The Phase 4 bug below, turned into a tool |
 
-### Picture for `check_api`
+### Two ordinary words, with the day they happened
 
-```
-  Phase 4 (after the fact)          Phase 5 (before the answer)
-  ─────────────────────             ──────────────────────────
-  Bad answer already written   →    Model may call check_api first
-  Human runs hasattr(...)      →    Same check, as a tool
-  Post-mortem                  →    Guardrail
-```
+This section used to say *"post-mortem → guardrail"* and assume you knew both. You do not need
+to. Here is what actually happened, then the names.
 
-### Named example — `g065`
+**Day one — the failure already happened (Phase 4, Aug 21).**
 
-Prompt D answered an unanswerable “table + view in one migration” question with an Alembic script:
+A developer on Stack Overflow asked: *"Create table and view in the same migration in
+SQLAlchemy"* (golden id `g065`). Our docs do **not** teach that recipe, so the honest system
+answer is *"The sources do not answer this."*
+
+Instead the model wrote a confident Alembic script:
 
 ```python
-op.create_table(...)      # real
+op.create_table(...)      # real — exists on Alembic
 sa.Column(...)            # real
-op.create_view(...)       # DOES NOT EXIST
-op.drop_view(...)         # DOES NOT EXIST
+op.create_view(...)       # FAKE — this method does not exist
+op.drop_view(...)         # FAKE — same
 ```
 
-Proved, not guessed:
+Nothing crashed when it wrote that. A user who trusted the answer would have pasted two
+invented calls next to two real ones. **We only caught it afterwards**, by running:
 
 ```
 uv run python -m rag.tools --g065
@@ -228,23 +280,59 @@ uv run python -m rag.tools --g065
   OK alembic.operations.Operations.create_view        exists=False (expected False)
 ```
 
-> **The measurement that caught the bug becomes the tool that prevents it.** That is how you know
-> a guardrail guards something real, not something imagined.
+That *afterwards* check is what people call a **post-mortem** (literally: looking at a failure
+after it is already dead — like an autopsy, or an after-action review at work). The answer was
+already produced. The check explained *why it was wrong*. It did not stop the wrong answer from
+being written.
 
-**Alembic is official** — the SQLAlchemy project’s migration tool, separate package. The
-fabrication is not “Alembic is fake”; it is “`create_view` is not on `Operations`.”
+**Day two — stop it before it is written (Phase 5).**
+
+We took **the same** `hasattr(...)` check and exposed it as a tool named `check_api`. Now the
+model, *while answering*, can ask: *"Does `Operations.create_view` exist?"* and get `False`
+**before** it invents a script. That is what people call a **guardrail**: a barrier that is
+supposed to keep you from falling off, not a report written after you fell.
+
+```
+  AFTER the bad answer (Phase 4)         BEFORE the answer (Phase 5)
+  ─────────────────────────────         ────────────────────────────
+  Model already wrote create_view  →    Model may call check_api first
+  Human runs hasattr(...)          →    Same check, callable as a tool
+  You learn it was wrong           →    Model can see "does not exist" first
+  = post-mortem                    →    = guardrail
+```
+
+> **Nothing magical.** We did not train the model to know Alembic. We did not enlarge the
+> corpus. We offered it one Python function that returns yes/no for a dotted name — the same
+> function we used by hand when we caught `g065`.
+
+**Alembic** is the SQLAlchemy project's official migration tool (separate package). The bug is
+not “Alembic is fake”; it is “`create_view` is not on `Operations`.”
+
+### Picture for the three tools
+
+| tool | what it does | where it came from |
+|---|---|---|
+| `search_docs` | Corpus lookup via `index.retrieve` | Phases 1–3, **unchanged** |
+| `get_function_source` | Real source from real SQLAlchemy **2.0.51** | New |
+| **`check_api`** | Does this symbol exist in 2.0 (or alembic)? | **`g065` post-mortem → guardrail** (`D77`) |
 
 **What `check_api` is NOT.**
 
-- Not a prose fact-checker. `g056` lied in *sentences*; this tool is blind to that (`D77`).
+- Not a prose fact-checker. *"Query property for models…"* (`g056`) lied in *sentences* with no
+  fake API name — this tool never sees that, because there is no dotted symbol to look up.
 - Not “does this advice help the user?” — only “does this dotted name resolve in the pinned 2.0
   (or alembic) install?”
 - Not `verify_2_0.py` (that script runs breakages patterns). See R9.4.
+- Not automatic. The model must **choose** to call it. If it never calls the tool, there is no
+  guardrail that day — only the option of one.
 
-**Say this:** “`check_api` is the `g065` post-mortem offered to the model before it writes.”
+**Say this:** “In Phase 4 we caught a fake `op.create_view` after the answer was written. In
+Phase 5 that same check is a tool the model can call before it writes.”
 
 **Do not say:** “The agent verifies every answer against SQLAlchemy.” (Only if it chooses this
 tool, and only for symbols.)
+**Do not say:** “post-mortem” or “guardrail” in an interview without the day-one / day-two story
+above — the words alone sound like buzzwords; the timeline is the proof.
 
 ---
 
@@ -304,39 +392,82 @@ for the LLM.”
 
 ---
 
-## R9.5 — Score `0.02`: why that number is not the finding
+## R9.5 — The agent almost never looked anything up
 
-*(Heading `R9.5` ≠ score. `0.02` below is the rate.)*
+**Plain job.** Show what we ran and what we counted on the lab. Only then name the fraction
+people shorten to `0.02` — and show why “twenty times worse than `0.42`” is the wrong sentence.
 
-**Plain job.** Separate three stories that look like one bad score: metric definition, citation
-harm, and a one-word prompt cause.
+### What we ran (before any decimal)
 
-**Picture — what “end to end” requires:**
+| | |
+|---|---|
+| **Machine** | Lab PC (RTX 3060) |
+| **System** | The Phase 5 **agent** — model may call tools; code does not force a search |
+| **Questions** | All **100** golden items (same set Phase 4 used) |
+| **Model** | Same 7B generator as the one-shot pipeline (`qwen2.5-coder:7b`) |
+
+Of those 100, **91** are answerable (9 are deliberately unanswerable). The fraction below uses
+91 as the denominator, not 100.
+
+### What we counted first: did it call a tool at all?
 
 ```
-  One-shot (Phase 4):   code ALWAYS retrieves  →  page may be present  →  model answers
-  Agent (first lab run): model MUST call search_docs or the page is absent by construction
+  of 100 questions:
+
+      never called any tool     96
+      called exactly one tool    4
+      called two or more         0
 ```
 
-Lab, 100 golden questions through the agent:
+So on **96 of 100** questions the agent never ran `search_docs`. No lookup → no doc pages on
+the desk → it either declined or answered from memory.
+
+### Then: of the 91 answerable, how many “worked end to end”?
+
+This project’s **end-to-end** count needs **both**:
+
+1. the verified answer page somehow reached the model, **and**
+2. the model answered (did not decline).
+
+For the **one-shot** system, step 1 is automatic: our code always searches and pastes five pages
+into the prompt. For the **agent**, step 1 only happens if the model chooses `search_docs`.
 
 ```
-end to end     2/91 = 0.02        (one-shot on same box: 38/91 = 0.42)
-no tool call   96      one tool 4      two or more 0
+  Lab, agent, first full run:
+
+      both (1) and (2) true     2 of 91
+
+  Same lab, same 91, one-shot pipeline (always searches):
+
+      both (1) and (2) true    38 of 91
 ```
 
-**“Twenty times worse” is the wrong sentence.** Three separate facts:
+**Now the decimals** (same fractions, written short):
 
-### First — definition, not quality
+| system | fraction | often written |
+|---|---|---|
+| agent, that run | **2 / 91** | **0.02** |
+| one-shot, same box | **38 / 91** | **0.42** |
 
-For the agent, “right page reached the model” requires a `search_docs` call. **96 of 100** got no
-tool call. Of those, 43 declined and **53 answered from memory**. Those 53 are scored **zero by
-construction** — not because they were graded wrong, because the metric cannot see an answer with
-no lookup.
+`0.02` is not a section number and not “2% quality.” It is **2 successes out of 91 answerable
+questions** under that agent run.
 
-> Comparing `0.02` to `0.42` as one quantity is the blending mistake this project keeps killing.
+### Why “20× worse” is the wrong sentence
 
-### Second — those 53 were not secretly fine
+Someone sees `0.42 / 0.02 ≈ 21` and says the agent is twenty times worse than RAG. That blends
+two different setups:
+
+```
+  One-shot:   code ALWAYS retrieves  →  pages may be present  →  model answers
+  Agent:      model MUST call search_docs or pages are absent by construction
+```
+
+Of the **96** no-tool questions, **53** still *answered* from memory. Those 53 count as **zero**
+on end-to-end — not because a human graded them wrong, but because the metric requires a lookup
+that never happened. Comparing `2/91` to `38/91` as one “quality” number is the blending mistake
+this project keeps killing.
+
+### Those 53 memory answers were not secretly fine
 
 | of the 53 answers with no retrieval | |
 |---|---|
@@ -345,27 +476,33 @@ no lookup.
 | containing code | 42 |
 | …code with no source at all | 41 |
 
-**`n_sources` is zero on all 53**, so every `[1]` points at a passage that was never fetched.
+**Zero sources were fetched**, so every `[1]` points at a passage that was never on the desk.
 Named example: **`g003` cites `[1]` against nothing.**
 
 > Phase 4’s defect was answers that cite **nothing**. This is answers that cite **something that
-> does not exist.** Worse on the axis the citation work was about. So `0.02` was *generous*.
+> does not exist.** Worse on the citation axis. So treating `2/91` as the whole story was
+> *generous* to the agent.
 
-### Third — cause was one word (permission vs obligation)
+### Cause was one word: permission vs obligation
 
-Standalone probe on the **same** questions: **100/100** tool calls. Agent: **4/100**. Difference:
+A standalone probe on the **same** questions got **100/100** tool calls. The agent got **4/100**.
+Difference:
 
 | | instruction |
 |---|---|
 | probe → **100/100** | *“Call **exactly one**. **Do not answer from memory.**”* |
 | agent → **4/100** | *“You **may** call tools.”* |
 
-Must-call A/B on lab, n=20: **6↑ 0↓**, p = 0.031 on delivered; bad citations **9 → 0**.
+Must-call A/B on the lab (n=20): **6** newly delivered, **0** newly broken; bad citations
+**9 → 0**.
 
-**Say this:** “0.02 meant the agent skipped search, so end-to-end could not fire — and the memory
-answers fabricated citations. The fix was obligation, not a new retriever.”
+**Say this:** “On the lab the agent skipped search on 96 of 100 questions, so end-to-end was
+only 2 of 91. That is not ‘20× worse RAG’ — the one-shot number assumes a lookup that the agent
+never made. The memory answers also invented citations. The fix was obligation, not a new
+retriever.”
 
-**Do not say:** “The agent is 20× worse than RAG.” / “Tools don’t work on 7B.”
+**Do not say:** “The agent is 20× worse than RAG.” / “Tools don’t work on 7B.” / “We scored 0.02”
+without saying **2 of 91** and **skipped search**.
 
 ---
 
@@ -374,16 +511,29 @@ answers fabricated citations. The fix was obligation, not a new retriever.”
 **Plain job.** Show that *whether to call a tool* is not a stable system property on ambiguous
 questions — then show what *does* reproduce.
 
-**Picture:**
+### What we ran (before any claim about “the system”)
+
+| | |
+|---|---|
+| **Machines** | This Mac **and** the lab PC |
+| **System** | Same agent prompt, same model (`qwen2.5-coder:7b`), temperature **0** |
+| **Questions** | Same **20** golden items on both boxes |
+
+### What we counted
 
 ```
-  Same prompt, same model, temperature 0, same 20 items
+  of those 20 questions, how many got NO tool call at all?
 
-       Mac:  no tool on  9/20
-       Lab:  no tool on 19/20
+       Mac:   9 of 20
+       Lab:  19 of 20
 
-       10 of 20 items FLIP which box skips the tool
+  how many items DISAGREED (one box called a tool, the other did not)?
+
+       10 of 20   ← half the set
 ```
+
+That half-disagreement is what this section means by **coin flip**: not random noise in wording —
+the coarse yes/no *“should I look something up?”* flips by machine.
 
 > Whether the agent calls a tool at all disagrees between two machines on **half** the items.
 
@@ -395,8 +545,9 @@ questions — then show what *does* reproduce.
 | `D84` | 2 of 7 items overnight on Mac generator |
 | **R9.6** | The **coarse** decision: call a tool or don’t |
 
-**Why it matters.** `96/100` is *the lab’s* no-tool rate, not “the system.” And it put the
-must-call prompt in the same hole as prompt H: strong on one box until the other is measured.
+**Why it matters.** The lab’s full-run **96 of 100** never called a tool (R9.5). That is *the lab’s*
+no-tool rate, not “the system.” And it put the must-call prompt in the same hole as prompt H:
+strong on one box until the other is measured.
 
 ### The refinement (after R9.7’s nudge existed)
 
@@ -425,7 +576,12 @@ no-tool rate as a system property.”
 
 **Plain job.** Separate “cannot plan two steps” from “does not know the first step was incomplete.”
 
-**Picture — the failure mode:**
+### What “nudge” means here (before the numbers)
+
+After a tool returns, *our code* can append one extra sentence the model did not write. That
+sentence is the **nudge**. It is not a second prompt rewrite and not a new model.
+
+### The failure mode (named example)
 
 ```
   Q: "Was MetaData.bind removed in 2.0, and how do I replace it?"
@@ -434,9 +590,11 @@ no-tool rate as a system property.”
   [2] model DECLINES                ← abandoned the "how do I replace it?" half
 ```
 
-Across **two machines, two prompts, eighty runs**: tools were chained **exactly once** before the
-nudge work. Measured read: this 7B setup does **single-tool lookup**, not multi-step agency — until
-told otherwise at the right moment.
+### What we counted before the nudge
+
+Across **two machines, two prompts, eighty runs**: tools were chained (two or more in one
+question) **exactly once**. Measured read: this 7B setup does **single-tool lookup**, not
+multi-step agency — until told otherwise at the right moment.
 
 **What that is NOT.** Not “agents don’t work.” Not “this model is bad.” It names **7B + this task +
 these tools**. A larger model is unmeasured here.
@@ -456,13 +614,16 @@ Nudge text, appended **only** when `check_api` returns NOT FOUND:
 > *“That settles whether the symbol exists. If the question also asks what to use instead, search
 > the docs before answering.”*
 
+### What we counted with the nudge
+
 ```
-            no tool   one  two+
-plain             0    10     0
-nudged            0     3     7
+            no tool   one tool   two or more tools
+plain             0         10                  0
+nudged            0          3                  7
 ```
 
-**0 → 7 of 10**, paired p = 0.0156. Lab matched Mac **question by question** (same seven chained).
+**Chaining went from 0 of 10 → 7 of 10.** Paired exact McNemar p = 0.0156. Lab matched Mac
+**question by question** (same seven chained).
 
 **Honest denominator: 7 of 9.** One item searched docs first on both boxes, so NOT FOUND never
 happened and the nudge never fired. Counting it would inflate a result the experiment never
@@ -475,7 +636,7 @@ steps, when *told* the first was partial. Says nothing about three steps.
 a stopping failure.
 
 **Say this:** “It stopped after a correct NOT FOUND. One sentence at that moment took chaining
-0 → 7/10 on both machines.”
+from 0 of 10 to 7 of 10 on both machines.”
 
 **Do not say:** “We solved multi-hop agents.” / “Prompting fixed planning.”
 
@@ -486,38 +647,62 @@ a stopping failure.
 **Plain job.** Show a gap with no mechanism, then the four characters that created it — and the
 conclusion that reversed.
 
-**Picture:**
+### What was wrong in the code (show, then name)
+
+Each time the agent retrieved a doc page, our code passed the model only the **first 600
+characters**:
+
+```
+  hit["text"][:600]
+```
+
+That cut is **truncation**. The median chunk in the corpus is **1299** characters; **2755 of
+3284** chunks are longer than 600. So for most pages the model saw about **half** of what the
+one-shot pipeline puts in the prompt.
 
 ```
   One-shot pipeline:  full chunk text in the prompt
-  Agent (buggy):      hit["text"][:600]   ← median chunk is 1299 chars
-                                          ← 2755 of 3284 chunks exceed 600
+  Agent (buggy):      first 600 characters only
 
   Answer sitting in characters 601…1299  →  model never saw it
                                          →  correctly "refuses" a page that looks empty
 ```
 
-**The suspicious table** (same model, same machine, page *did* reach the agent):
+### The suspicious count (same model, same machine, page *did* reach the agent)
 
-| | refused anyway |
+| | refused even though search found the page |
 |---|---|
-| agent | 22 of 45 = **49%** |
-| one-shot | 19 of 58 = **33%** |
+| agent (half pages) | **22 of 45** |
+| one-shot (full pages) | **19 of 58** |
 
 Sixteen points with **no mechanism** if you believe both saw the same page. A model does not get
 more cowardly because a different function called it.
 
-**After deleting the slice:**
+### After deleting the slice — what we counted
+
+Three words used below (same as the glossary at the top of this file):
+
+- **ceiling** — how many of the 91 answerable had the answer page retrieved at all
+- **delivered** — of those, how many the model actually answered
+- **conversion** — delivered ÷ ceiling
 
 ```
-                     ceiling      delivered     conversion
-agent, half pages     45/91      23/91 = 0.25      51%
-agent, whole pages    45/91      39/91 = 0.43      87%
-one-shot pipeline     58/91      39/91 = 0.43      67%
+                     ceiling      delivered              conversion
+agent, half pages     45 of 91    23 of 91               23/45 = 51%
+agent, whole pages    45 of 91    39 of 91               39/45 = 87%
+one-shot pipeline     58 of 91    39 of 91               39/58 = 67%
 ```
 
-**16↑ 0↓**, p = 0.00003. Ceiling unchanged (same 45 items retrieved). Generation conversion
-exploded.
+**Now the short forms** people write for delivered ÷ 91:
+
+| | fraction | often written |
+|---|---|---|
+| agent, half pages | **23 / 91** | **0.25** |
+| agent, whole pages | **39 / 91** | **0.43** |
+| one-shot | **39 / 91** | **0.43** |
+
+Paired: **16** newly delivered, **0** newly broken after the fix (p = 0.00003). Ceiling unchanged
+(same 45 items retrieved). Generation conversion exploded.
 
 ### Conclusion reversed
 
@@ -525,14 +710,15 @@ Before the fix: “agent refusal ≈ Phase 4 over-refusal.” **Backwards.** Aft
 over-refusals agent **6** vs pipeline **19**.
 
 > Agent *generation* (with full pages) refuses less than the one-shot. Agent *retrieval discipline*
-> is worse (many questions never look up). On the Mac those cancelled to the same **0.43**.
+> is worse (many questions never look up). On the Mac those cancelled to the same **39 of 91**.
 
 **The habit worth keeping:** a gap you cannot explain is a bug until proven otherwise. “Agents are
 lossy” would have fitted the data and been wrong.
 
-**Say this:** “0.25 vs 0.43 was my truncation of every retrieved chunk to 600 characters.”
+**Say this:** “23 of 91 vs 39 of 91 was my truncation of every retrieved chunk to 600 characters —
+not ‘agents refuse more.’”
 
-**Do not say:** “Agents naturally over-refuse more than RAG.”
+**Do not say:** “Agents naturally over-refuse more than RAG.” / lead with `0.25` without **23 of 91**.
 
 **Code.** Comment in `rag/agent.py` next to the full-text path — the `[:600]` is gone on purpose.
 
@@ -545,38 +731,54 @@ and the failure-path drill.
 
 ### The two levers (kept because measured)
 
-| Lever | What it does | Constraint |
+| Lever | What it does in plain words | Constraint |
 |---|---|---|
-| **force** | If the model writes prose before any tool ran, refuse **once** and say so | Cap, not a loop — unbounded refusal → infinite retry |
+| **force** | If the model writes an answer before any tool ran, refuse **once** and say so | Cap, not a loop — unbounded refusal → infinite retry |
 | **nudge** | After `check_api` → NOT FOUND, one sentence that half the question may remain | Fires *only* there |
 
-### Mac screen (not the final claim)
+### Mac screen — counts first (not the final claim)
+
+A **screen** means: measured on this laptop only. Useful for hunting; **not** the number to quote
+until the lab agrees (`D95`).
 
 ```
-              default  force+nudge   one-shot pipeline
-ceiling            45           54                 58
-delivered          39           43                 39
-over-refused        6           11                 19
-no tool call       23            1                  —
-two or more         0            6                  —
-end to end       0.43         0.47               0.43
+                         default     force+nudge     one-shot pipeline
+ceiling (of 91)               45              54                    58
+delivered (of 91)             39              43                    39
+over-refused                   6              11                    19
+no tool call (of 100)         23               1                     —
+two or more tools              0               6                     —
 ```
 
-Mac levers vs Mac default: **4↑ 0↓**, p = 0.125 (no regressions; not significant at this n).
+**Same counts as short end-to-end rates** (delivered ÷ 91):
+
+| | fraction | often written |
+|---|---|---|
+| Mac default | **39 / 91** | **0.43** |
+| Mac levers | **43 / 91** | **0.47** |
+| one-shot | **39 / 91** | **0.43** |
+
+Mac levers vs Mac default: **4** newly delivered, **0** newly broken, p = 0.125 (no regressions;
+not significant at this n).
 
 ### Lab — headline withdrawn (`D94`)
 
+Same columns, both machines:
+
 ```
-                ceiling  delivered    e2e   conv  over-ref  no-tool  two+
-Mac default          45         39   0.43    87%         6       23     0
-Mac levers           54         43   0.47    80%        11        1     6
-lab default          25         25   0.27   100%         0       51     0
-lab levers           45         33   0.36    73%        12        4     7
-one-shot pipeline    58         39   0.43    67%        19        —     —
+                         ceiling  delivered   of 91    conv   over-ref  no-tool  two+
+Mac default                   45         39   39/91    87%          6       23     0
+Mac levers                    54         43   43/91    80%         11        1     6
+lab default                   25         25   25/91    100%         0       51     0
+lab levers                    45         33   33/91    73%         12        4     7
+one-shot pipeline             58         39   39/91    67%         19        —     —
 ```
 
-> **“The agent matches the one-shot pipeline” is a MAC claim. Withdrawn.** Lab default **0.27**.
-> Pass/fail named that outcome before the run.
+Short forms for delivered ÷ 91: Mac default **0.43**, Mac levers **0.47**, lab default **0.27**,
+lab levers **0.36**, one-shot **0.43**.
+
+> **“The agent matches the one-shot pipeline” is a MAC claim. Withdrawn.** Lab default is
+> **25 of 91**. Pass/fail named that outcome before the run.
 
 **What reproduced (behaviours), what did not (level):**
 
@@ -587,13 +789,13 @@ one-shot pipeline    58         39   0.43    67%        19        —     —
 | force: no-tool-call | 23 → 1 | 51 → 4 |
 | over-refusals vs pipeline’s 19 | **6** | **0** |
 
-Lab no-tool **51/100** vs Mac **23/100** — R9.6’s coin flip with score consequences.
+Lab no-tool **51 of 100** vs Mac **23 of 100** — R9.6’s coin flip with score consequences.
 
 > **The score is machine-dependent. The findings (levers help, chaining appears, fewer over-refusals
 > than one-shot) are not.**
 
-**Best system that holds on both boxes:** one-shot pipeline (**0.43 / 0.42**). An agent whose score
-halves by machine is not “better” on its best day.
+**Best system that holds on both boxes:** one-shot pipeline (**39 of 91** / lab **38 of 91**). An
+agent whose score halves by machine is not “better” on its best day.
 
 ### Policy (`D95`)
 
@@ -617,8 +819,8 @@ model switches to the **other** tool and answers.
 
 > An agent with no failure path is decoration — shown, not asserted.
 
-**Say this:** “On the Mac the levered agent tied 0.43; on the lab default it was 0.27. Behaviours
-reproduced; the level did not. One-shot still wins as the portable system.”
+**Say this:** “On the Mac the levered agent delivered 43 of 91; on the lab default it was 25 of 91.
+Behaviours reproduced; the level did not. One-shot still wins as the portable system.”
 
 **Do not say:** “Our agent beats RAG at 0.47.” (Mac screen; withdrawn as a cross-machine claim.)
 
@@ -627,8 +829,16 @@ reproduced; the level did not. One-shot still wins as the portable system.”
 ## R9.7d — Was it just the shape of the conversation? (`D96`)
 
 **Plain job.** The agent refused far less than the pipeline when the right page was in front of it
-(6 on the Mac, 0 on the lab, against the pipeline's 19–20). Before crediting the tools, check the
-cheaper explanation: maybe it is only *how the pages arrive*.
+(**6** on the Mac, **0** on the lab, against the pipeline's **19–20**). Before crediting the tools,
+check the cheaper explanation: maybe it is only *how the pages arrive*.
+
+### What we ran
+
+| | |
+|---|---|
+| **Arms** | **A** = shipped one-shot shape; **B** = agent conversation shape with **no tools** and one call |
+| **Held fixed** | Same model, same system prompt, same five pages, same `[1]`…`[5]` numbering |
+| **Machines** | Mac and lab both |
 
 ### The two prompts, side by side
 
@@ -682,12 +892,24 @@ which is a page that does not hold the answer (the lab's answer was not judged).
 
 ### Read the ids, not the counts
 
+Each id below is one golden question (see the **Golden questions this file names by id** table
+near the top of this file).
+
 ```
                        both machines              Mac only     lab only
 page present  fixed    g021 g049 g050 g100        g008 g116    g029
 page present  broken   g043                       --           g019
 page absent   extra    g005 g016 g113 g114        g028 g085    --
 ```
+
+Named so the table is readable without opening `golden.json`:
+
+| id | short question | role in this experiment |
+|---|---|---|
+| `g050` | `engine.execute` gone | page present; B answered where A refused |
+| `g043` | `select()` keyword args gone | page present; **B broke** a good A answer on both boxes |
+| `g114` | `Row is not mapped` | page **absent**; B guessed on both boxes |
+| `g056` / `g065` | query property / table+view migration | fabrications — **unchanged** under both arms |
 
 - **What reproduces is four fixes and one break**, not six and one. `g008` and `g116` were Mac
   extras. On the lab, B still refused them.
@@ -722,17 +944,18 @@ of one row. The second machine and the second row both disagree.
 **Plain job.** Five spoken claims + the follow-ups that kill soft answers.
 
 **"I was wrong three times in one night, and the register says so."**
-Predicted single-tool ceiling = planning failure — it was stopping; nudge **0 → 7/10**. Predicted
-levered ~50 delivered at ceiling 58 — got 54/43. Wanted “agent matches pipeline” — lab **0.27**,
-withdrawn. **Predictions written before the runs.**
+Predicted single-tool ceiling = planning failure — it was stopping; nudge **0 of 10 → 7 of 10**.
+Predicted levered ~50 delivered at ceiling 58 — got ceiling 54 / delivered 43. Wanted “agent matches
+pipeline” — lab **25 of 91**, withdrawn. **Predictions written before the runs.**
 
 **"The agent looked 18 points worse than the pipeline, and it was four characters of my own code."**
-**0.25** vs **0.43** until `[:600]` died. Then **16↑ 0↓**, and over-refusals **6 vs 19** — generation
-better, retrieval discipline worse.
+**23 of 91** vs **39 of 91** until `[:600]` died. Then **16↑ 0↓**, and over-refusals **6 vs 19** —
+generation better, retrieval discipline worse.
 
-**"My agent scored 0.02 and I did not report that as the finding."**
-Metric needed a retrieval the agent skipped; 53 zeros by construction; those answers also cited
-missing passages; must-call fixed fabricated citations **9 → 0** on the A/B.
+**"On the lab the agent searched on 4 of 100; end-to-end was 2 of 91 — and that was not the finding."**
+Metric needed a lookup the agent skipped; 53 memory answers scored zero by construction; those
+answers also cited passages that were never fetched; must-call fixed fabricated citations **9 → 0**
+on the A/B. Do not report “0.02 vs 0.42” as one quality ratio.
 
 **"Whether it calls a tool at all disagrees across my two machines on half the items."**
 Same prompt, temperature 0, **10/20** flip. Stopped quoting `96/100` as a system constant.
@@ -747,7 +970,7 @@ planning; nudge **p = 0.0156**, both boxes item-identical.
 |---|---|
 | *“So the agent is a failure.”* | It zeroed fabricated citations when it retrieved; it has not shown general multi-step agency — different claims, both numbered. |
 | *“Why not a bigger model?”* | Unmeasured. Constraint is zero paid APIs + 12 GiB card. |
-| *“Isn’t 0.02 vs 0.42 just bad?”* | Different quantities: one assumes unconditional retrieval. Real comparison was citation harm, then the must-call A/B. |
+| *“Isn’t 0.02 vs 0.42 just bad?”* | Show **2/91** vs **38/91** first. Different setups: one-shot always searches; agent skipped search on 96/100. Real comparison was citation harm, then the must-call A/B. |
 | *“You changed the prompt after seeing results — tuning?”* | Thresholds written first; several were **missed** and recorded as misses; changes argued in the register (`D87`…). |
 | *“Does the LLM use verify_2_0?”* | No. Breakages runner is Phase 0. Tools reuse its **pin + subprocess**; the model never imports it. |
 
@@ -757,11 +980,11 @@ planning; nudge **p = 0.0156**, both boxes item-identical.
 
 - A tool is a function + a paragraph; the model only writes text.
 - `check_api` is the `g065` / `op.create_view` post-mortem as a guardrail.
-- `0.02` was skipped search + fake citations — not “20× worse RAG.”
+- First lab agent run: **2 of 91** end-to-end because it skipped search — not “20× worse RAG.”
 - Call-or-not flipped on half the items across Mac/lab (ambiguous decisions).
 - Chaining moved with a NOT FOUND nudge on two-part questions (**7/10**, both boxes).
-- `[:600]` made 0.25; full text made 0.43 on the Mac and reversed the refusal story.
-- Lab withdrew “agent matches pipeline”; portable winner stays the one-shot (**~0.43**).
+- `[:600]` made **23 of 91**; full text made **39 of 91** on the Mac and reversed the refusal story.
+- Lab withdrew “agent matches pipeline”; portable winner stays the one-shot (**~39 of 91** / lab **38 of 91**).
 
 **Commands:**
 

@@ -1,16 +1,110 @@
 # §R10 — Phase 6: production — a gate, a priced router, and a demo
 
 Plan and measurements: [`../phases/PHASE-6.md`](../phases/PHASE-6.md). Decisions: `D96` (framing,
-rejected) through `D104` (the demo's model, measured). **This file is the sitting; the plan is the record.** Every
-block marked `# runnable` reproduces with no model and no Qdrant, and CI checks that it still does.
+rejected) through `D107` (judge given headings). **This file is the sitting; the plan is the
+record.** Every block marked `# runnable` reproduces with no model and no Qdrant, and CI checks
+that it still does.
+
+**Study order:** finish [`17-AGENT.md`](17-AGENT.md) (§R9) first if you are reading the RAG sittings
+in order — Phase 5 closes the agent story; this file is what you do once you have a system worth
+shipping.
 
 Three parts, in the order they were built:
 
 1. **A quality gate** (R10.1–R10.8): a pull request that loses a golden answer cannot merge quietly.
 2. **A router, priced and checked** (R10.9–R10.13): which questions go to a bigger model, what that
    costs, and whether the bigger model's answers are actually right.
-3. **Shipping it** (R10.14–R10.17): the demo page, the hosted model measured on all 100 (R10.15b),
-   why it is not on a public link yet, and keys.
+3. **Shipping it** (R10.14–R10.17): the demo page, the hosted model on all 100, the **live Modal
+   link** (`D106`), and keys.
+
+---
+
+## Stop — how to read the ids and rates in this file
+
+Same three systems as [`17-AGENT.md`](17-AGENT.md). Skim once.
+
+### 1. Labels that are not scores
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`R10.4`** | Section 4 of *this* sitting | A score out of 10 |
+| **`D97`, `D106`…** | One design decision in [`09-DECISIONS.md`](09-DECISIONS.md) | A section number or a grade |
+| **`g017`, `g050`…** | One question in the 100-item golden set | A metric family |
+
+### 2. Rates — counts first, decimals later
+
+Do **not** read a decimal until the section has shown what was counted. Short map:
+
+| You will see | What was counted | Section that shows the arithmetic |
+|---|---|---|
+| **`58/91` → `0.64`** | Search only: answer page in the top 5 (retrieval ceiling). **Not** “the system scores 0.64.” | R10.3 |
+| **`38/91` → `0.42`** | Lab one-shot: page in the five **and** local qwen answered | R10.9, R10.11 |
+| **`48/91` → at most `0.53`** | Lab 38 + 10 escalated answers that agree with the verified page (upper bound) | R10.13 |
+| **`53/91` → `0.58`** | Same 91, hosted nemotron answered with the page present | R10.15b |
+| **`53/69` → `77%`** then **`91%`** | Judge said SUPPORTED (text-only fail → with headings pass) | R10.15b / `D107` |
+| **`$1.81` / 1000** | Shadow cost of escalating every local refusal — **$0 spent**; free credits | R10.12 |
+
+`g017` is the *question* that loses its answer page when you remove the reranker — not a rate.
+
+### 3. Map of this file
+
+| Section | One sentence | Read when |
+|---|---|---|
+| **R10.0** | Phase overview table | Starting cold |
+| **R10.1–R10.8** | Quality gate: broken/fixed/moved; demo blocks `g017` | Before shipping code |
+| **R10.9–R10.13** | Cascade router, escalation, shadow cost, supported ≠ correct | Before quoting dollars |
+| **R10.14–R10.17** | Demo page, nemotron on all 100, Modal live, keys | Before the live link |
+
+**If you have ten minutes:** R10.3 → R10.9 → R10.11 → R10.13 → R10.15b.
+### Golden questions this file names by id
+
+When a later section says only `g017`, look it up here. Full text is in
+`deliverables/golden.json`.
+
+| id | answerable? | the developer's question (short) | why this file names it |
+|---|---|---|---|
+| **`g017`** | yes | joinedload returns duplicate parents — do I need `unique()`? | **CI gate demo:** removing the reranker drops this answer out of the top 5 |
+| **`g050`** | yes | `engine.execute` gone — use connection instead | Over-refusal with the page in hand; demo "declines" example; escalation gain |
+| **`g016`** | yes | `row.keys()` AttributeError — where did keys go? | Judge said SUPPORTED; **2.0.51 says the method is gone** (supported ≠ correct) |
+| **`g007`** | yes | `MetaData(bind=engine)` TypeError — how do I `create_all`? | Judge said UNSUPPORTED/PARTIAL; **2.0.51 agrees it is removed** |
+| **`g044`** | yes | `autoload=True` without `autoload_with` — 2.0 way? | Human review found the sheet hid a **heading** the model had seen |
+| **`g053`** | yes | Flask-SQLAlchemy `User.query.get(1)` in 2.0? | The **one** question nemotron lost vs qwen (stricter decline) |
+| **`g056`** | **no** | Query property for models in 1.4–2.0 | Fabrication in prose (not caught by `check_api`) |
+| **`g065`** | **no** | Create table and view in the same migration | Fabrication: invented `op.create_view` (Phase 4 / agent `check_api`) |
+| **`g087`** | yes | `server_default` missing in `__dict__` after flush | Escalation / nemotron checkable **fail** on 2.0.51 |
+| **`g099`** | yes | `MappedAsDataclass` + callable `default=` | Same: checkable **fail** on 2.0.51 |
+
+Other ids in tables below (`g013`, `g021`, …) are the same kind of thing: one golden question each.
+If you need the wording, open `golden.json` — do not invent what `g021` "means" from the id alone.
+
+### Words this file uses that are not Python
+
+Same rule as [`17-AGENT.md`](17-AGENT.md): the table is the short meaning; the section is the story.
+Do not treat these as synonyms for each other.
+
+| Word | Plain meaning (show, then name) | Where the story is |
+|---|---|---|
+| **CI / check / gate** | GitHub can run a program on every pull request. If it exits non-zero, the check is red. A **gate** is a check that is allowed to **block merge** when answers get worse — not only when code crashes. | R10.1–R10.3 |
+| **pull request (PR)** | “Please merge these commits into `main`.” | R10.1 |
+| **baseline** | The saved scorecard of “how search ranked each golden question *before* this PR.” The gate compares the PR against that file, not against a moving average. | R10.3, R10.5 |
+| **broken** | A question whose answer page **was** in the top 5 before, and **is not** after the change. Gate fails on any broken. | R10.2–R10.4 |
+| **fixed** | The opposite: was missing from the top 5, now found. | R10.2 |
+| **moved** | Still found (or still missing), but the five page ids reshuffled. Reported; does not fail the gate by itself. | R10.3 |
+| **reranker** | A second model that reorders search hits. Here it only promotes one strong candidate into seat 5. Turning it off breaks `g017`. | R10.3, R10.7 |
+| **router** | Policy for “which questions go to a bigger, costlier model?” | R10.9 |
+| **predictive routing** | *Before* answering, guess which questions are hard (e.g. low search score) and send those. **Failed** here — it mostly picked missing pages. | R10.9 design A |
+| **cascade** | Let the cheap local model answer first; send to the bigger model **only if it refused**. Catches every page-present over-refusal. | R10.9 design B |
+| **escalate** | Actually call the bigger model on those routed questions. | R10.11 |
+| **shadow cost** | Tokens × published $/token for calls that ran on **free** credits. What you *would* pay if billed — **$0 was spent**. | R10.12 |
+| **SUPPORTED / PARTIAL / UNSUPPORTED** | Judge grades: answer fully on the given pages / partly / not. **Not** “correct when you run SQLAlchemy.” | R10.11, R10.13 |
+| **faithfulness** | “Does the answer stick to the pages it was given?” — the judge’s job. | R10.15b |
+| **correct / checkable** | “Does the answer’s central claim hold on real `sqlalchemy==2.0.51`?” — a small Python check, not the judge. | R10.13, R10.15b 4f |
+| **page present / page absent** | Was the verified answer chunk among the five pages in the prompt, or not? | R10.9 |
+| **over-refusal** | Page present, model still declined. | R10.9 (`g050`) |
+| **fabrication** | Answered an unanswerable question (or invented an API). | R10.12 (`g056`/`g065`) |
+| **in-memory search** | Dense search over `embeddings.npy` in the process — no Qdrant container. Required for the hosted demo. | R10.14 |
+| **cold start** | First request after the container was asleep: load models, maybe download weights — can take minutes. | R10.16 |
+| **required check** | Repo setting: a red gate **cannot** be merged. Code is in the repo; flipping the setting is yours. | R10.1 |
 
 ---
 
@@ -20,21 +114,21 @@ Three parts, in the order they were built:
 it would ask: *can a bad change sneak in? would a bigger model help, and at what price? can a stranger
 use it?*
 
-**The whole phase on one page:**
+**The whole phase on one page** (fractions first; decimals are the same count written short):
 
 | step | the question | the answer, measured | decision |
 |---|---|---|---|
 | 1 | does the *shape* of the prompt move the over-refusals? | a little, but it makes the model more willing to guess, not better at reading | `D96`: rejected |
-| 2 | can a change that loses an answer merge quietly? | no: removing the reranker is blocked by name, `g017` | `D97` |
+| 2 | can a change that loses an answer merge quietly? | no: removing the reranker is blocked by name on *"joinedload… do I need unique?"* (`g017`) | `D97` |
 | 3a | which questions should go to a bigger model? | the ones the small model *refused*, not the ones whose search scored low | `D98` |
-| 3b | does the bigger model answer them? | 16 of 20, but only 10 fully supported by the pages | `D99` |
-| 3c | what does escalating every refusal cost, and does it add fabrications? | would be **$1.81 per 1000 queries** on a paid plan (a shadow cost: the calls were free, $0 spent); **0** new fabrications | `D100` |
-| 3d | are those answers *correct*, not just supported? | 10 of 16 agree with the human-verified page: end to end **0.42 → at most 0.53** | `D101` |
-| 4 | can a stranger use it? | the page works locally; Hugging Face now charges for it | `D102` |
-| 4d | what does the hosted model score on all 100? | **0.58** end to end vs qwen's 0.42 (16 gained, 1 lost), 0 fabrications, but **77%** supported, under the 80% bar | `D104` |
-| 4e | judged by the SAME judge, is the bigger model more faithful? | no: **level** (qwen 79%, nemotron 77%; paired 3 vs 6, p = 0.51) | `D105` |
-| 4g | does the judge see what the model saw? | no, it never saw headings; given them, nemotron **77% → 91%** (11 up, 1 down), qwen 79% → 81%, still level | `D107` |
-| 4f | are its 53 delivered answers right when run? | **47 of 51 checkable = 92%**; the judge's grade does not predict which | `D105` |
+| 3b | does the bigger model answer them? | **16 of 20** answered; only **10 of 16** fully supported by the pages | `D99` |
+| 3c | what does escalating every refusal cost, and does it add fabrications? | shadow cost **$1.81 per 1000 queries** if billed (**$0 spent**); **0** new fabrications | `D100` |
+| 3d | are those answers *correct*, not just supported? | **10 of 16** agree with the human-verified page → at most **48 of 91** end to end (lab alone was **38 of 91**) | `D101` |
+| 4 | can a stranger use it? | **yes — live on Modal** (HF Gradio returned HTTP 402 on free); in-memory search gated first | `D102`, `D106` |
+| 4d | what does the hosted model score on all 100? | **53 of 91** vs qwen's **38 of 91** (16 gained, 1 lost); **0** fabrications; judge **53 of 69** supported under text-only (bar 80%) | `D104` |
+| 4e | judged by the SAME judge, is the bigger model more faithful? | no: **level** (qwen **37 of 47**, nemotron **36 of 47**; paired 3 vs 6) | `D105` |
+| 4f | are its 53 delivered answers right when run? | **47 of 51** checkable pass; the judge's grade does not predict which | `D105` |
+| 4g | does the judge see what the model saw? | no, it never saw headings; given them, nemotron **53 of 69 → 63 of 69**; still level with qwen | `D107` |
 
 **Who does what in this phase.** Several models appear, and mixing them up is the fastest way to say
 something false:
@@ -42,7 +136,7 @@ something false:
 | role | model | where it runs | why this one |
 |---|---|---|---|
 | writing this repo's code and docs | Claude | this conversation | the project itself never calls Claude |
-| **the system's generator** (the 0.42) | `qwen2.5-coder:7b` | Ollama, local | free, fits the lab's GPU; every end-to-end number is this model |
+| **the system's generator** (lab **38 of 91**) | `qwen2.5-coder:7b` | Ollama, local | free, fits the lab's GPU; every local end-to-end number is this model |
 | search | `BAAI/bge-m3` + BM25 + `BAAI/bge-reranker-base` | local | Phases 1–3 |
 | the **bigger model** escalations go to, and the hosted demo's generator | `nvidia/nemotron-3-ultra-550b-a55b` | NVIDIA API, free credits | the largest model the key could actually call (most returned 404); measured on all 100 in R10.15b |
 | the **judge** whose verdicts count | `openai/gpt-oss-20b` | NVIDIA API | a different lab from every model it grades |
@@ -110,9 +204,42 @@ That is the whole gate. `rag/gate.py`, `paired()` and `blocked()`.
 
 ## R10.3 — The demo: remove the reranker
 
-The ROADMAP's picture of this phase is *"open a PR that removes your reranker, and film CI
-rejecting it."* The rows for that PR were measured on the Mac (`rag.score --no-rerank`) and
-committed, so the gate's verdict reproduces on any machine with no Qdrant:
+**Plain job.** Show one change that should fail the gate — and that the average alone would miss it.
+
+### What we ran (before any decimal)
+
+| | |
+|---|---|
+| **Change** | Turn the reranker **off** (`rag.score --no-rerank`) — same search otherwise |
+| **Compared to** | Committed baseline: search **with** the shipped reranker |
+| **Questions** | Same 100 golden; only the **91** answerable count in the fraction |
+| **Machine for the rows** | Mac; rows committed so any box can re-check the verdict with no Qdrant |
+
+### What we counted
+
+For each answerable question: was the verified answer page in the **top 5** before? After?
+
+```
+  with reranker (baseline):     answer page in top 5 on  58 of 91
+  without reranker (this run):  answer page in top 5 on  57 of 91
+
+  newly FIXED (was out, now in):   0
+  newly BROKEN (was in, now out):  1   ← g017
+  MOVED (still in or still out, ids reshuffled):  3
+```
+
+**Now the decimals** (same fractions, short form — and why they are not the gate):
+
+| | fraction | often written |
+|---|---|---|
+| baseline | **58 / 91** | **0.64** |
+| no reranker | **57 / 91** | **0.63** |
+
+`0.64 → 0.63` sits inside the ±0.097 Wilson band. A gate that compared averages would call this
+noise and **pass**. The gate does not compare averages; it counts **broken**.
+
+The ROADMAP's picture: *"open a PR that removes your reranker, and film CI rejecting it."* The
+committed rows reproduce that verdict:
 
 ```
 # runnable: uv run python -m rag.gate --baseline deliverables/gate-baseline.json --rows deliverables/gate-demo-no-rerank.json; echo "exit $?"
@@ -133,18 +260,16 @@ baseline provenance: {"machine": "Darwin-arm64", "embed_model": "BAAI/bge-m3", "
 exit 1
 ```
 
-**Read every number:**
+**Read every line of the report:**
 
-- **`58/91` → `57/91`.** 91 is the answerable items (100 minus the 9 unanswerable). One item left
-  the top 5. **`0.64` → `0.63` is inside the ±0.097 band**, so a gate that compared averages would
-  call this noise and pass it.
-- **`broken 1 g017`.** The item. This is `D68`'s only fix, so the gate blocks exactly the question
-  the reranker was shipped to answer.
+- **`broken 1 g017`.** The item — *"joinedload collection query returns duplicate parents, do I
+  need unique?"* This is `D68`'s only fix, so the gate blocks exactly the question the reranker
+  was shipped to answer.
 - **`moved 3`.** `g013`, `g037`, `g041` had their top 5 reshuffled, still found or still not found.
   Not a failure. It is the line to read first when a result surprises you.
 - **`p = 1.000`.** One broken, zero fixed: no evidence of a *systematic* change. The gate ignores
   p on purpose. A statistically invisible loss of one answer is still a lost answer for whoever asks
-  `g017`.
+  that joinedload/`unique()` question (`g017`).
 - **`exit 1`.** What makes GitHub draw the red cross. A gate that prints BLOCKED and exits 0 is a
   comment. There is a test for exactly that (`test_main_exits_nonzero_and_writes_the_job_summary`).
 
@@ -301,12 +426,34 @@ retrieval code, that is this question coming back, and `D97` names the fallback 
 paid one. The ROADMAP wants the sentence *"routing saves $X at a Y-point quality cost."* Before any
 dollar figure there is a simpler question: **does the router send the right questions?**
 
-**Start from the two ways a question fails here**, in the lab's run of the shipped prompt:
+### What we ran (before any design name)
+
+| | |
+|---|---|
+| **Machine** | Lab PC |
+| **System** | One-shot pipeline, shipped prompt D (always searches; no tools) |
+| **Questions** | Same 100 golden |
+| **Generator** | Local `qwen2.5-coder:7b` |
+
+### What we counted on that run
+
+Of the **91** answerable questions:
 
 ```
-page ABSENT   33 answerable questions: retrieval never put the answer page in the prompt.
+  page in the five AND model answered     38 of 91     (often written 0.42)
+  failed somehow                          53 of 91
+
+  of those 53 failures:
+      answer page was in the five         20           ← only these can a bigger model fix from the same pages
+      answer page was NOT in the five     33           ← bigger model gets the same wrong five pages
+```
+
+**Two ways a question fails — named example for each:**
+
+```
+page ABSENT   33 answerable: search never put the answer page in the prompt.
               Send one to a stronger model and it gets the same five wrong pages.
-              It can only answer from memory -- the move that produced g065's invented
+              It can only answer from memory — the move that produced g065's invented
               op.create_view on 2026-08-21.
 
 page PRESENT  g050, "engine.execute select gone AttributeError use connection instead":
@@ -315,13 +462,17 @@ page PRESENT  g050, "engine.execute select gone AttributeError use connection in
               A stronger model reading the same page plausibly answers it.
 ```
 
-**Routing can only fix the second kind.** That sentence decides everything below.
+**Routing can only fix the second kind** (with a later correction in R10.13). That sentence decides
+everything below.
 
-**Two designs, rules written before the numbers** (`PHASE-6.md` Step 3a):
+### Two designs, rules written before the numbers (`PHASE-6.md` Step 3a)
 
-- **A, predictive:** before generating, score the five pages with the cross-encoder, and send the 30
-  questions whose best page scores lowest.
-- **B, cascade:** let the local model answer first; send only the questions it refused.
+Show what each does, then the name:
+
+| Design | What it does in plain words | Name |
+|---|---|---|
+| **A** | *Before* answering, score the five pages; send the **30** questions whose best page looks weakest | **predictive** routing |
+| **B** | Let the local model answer first; send only the questions it **refused** | **cascade** (escalate on refusal) |
 
 ```
 # runnable: uv run python -m rag.route --report
@@ -427,18 +578,28 @@ committed tool should agree; when they do not, that disagreement is a finding.
 
 ## R10.11 — Does a bigger model answer the refusals it gets? (`D99`)
 
-**Plain job.** The cascade sends a bigger model the 20 questions our small model refused *with the
-right page in hand*. Same question, same five pages, same prompt, word for word. Only the model
+**Plain job.** The cascade sends a bigger model the **20** questions our small model refused *with
+the right page in hand*. Same question, same five pages, same prompt, word for word. Only the model
 changes. Does it answer?
+
+### What we ran (before any rate)
+
+| | |
+|---|---|
+| **Questions** | The **20** page-present refusals from the lab one-shot run (of 53 total failures) |
+| **Pages + prompt** | Retrieved once; identical for both models (a test asserts the prompt is byte-identical) |
+| **Small model** | Local `qwen2.5-coder:7b` — on the full 91 it delivered **38 of 91** |
+| **Bigger model** | `nvidia/nemotron-3-ultra-550b-a55b` on free credits |
+| **Judge** | `openai/gpt-oss-20b` (different lab from qwen and nemotron) |
 
 **What was held fixed, side by side:**
 
 ```
-                 the small model (the 0.42)           the bigger model (escalation)
-question         g050 "engine.execute select gone…"   the same
-pages            the same five, retrieved once        the same five
-prompt           ask.SYSTEM + ask.build_prompt        byte for byte the same (a test asserts it)
-model            qwen2.5-coder:7b                     nvidia/nemotron-3-ultra-550b-a55b
+                 local qwen (lab: 38 of 91)              bigger model (escalation)
+question         g050 "engine.execute select gone…"      the same
+pages            the same five, retrieved once           the same five
+prompt           ask.SYSTEM + ask.build_prompt           byte for byte the same
+model            qwen2.5-coder:7b                        nvidia/nemotron-3-ultra-550b-a55b
 ```
 
 **The first attempt, and why it was abandoned.** It used Google's `gemini-3.7-flash` on its free
@@ -495,13 +656,22 @@ the full answer, the judge's reason and all five pages, with the verdict line bl
 ## R10.12 — What it costs: the shadow cost (`D100`)
 
 **Plain job.** The calls ran on free credits and cost nothing. The ROADMAP still wants a dollar
-figure, because a real deployment would pay. A **shadow cost** is what those exact calls *would* have
-cost at a published price: counted tokens × price per token. Nothing was spent to get it.
+figure, because a real deployment would pay.
+
+### What “shadow cost” means (show, then name)
+
+1. Count the tokens the API returned for the real calls.
+2. Multiply by a **published** price per token (here: OpenRouter’s list for that model).
+3. The dollar figure is what those calls *would* have cost if billed.
+
+That product is the **shadow cost**. **$0 was spent** — free credits covered the run. The number
+is a what-if, not a receipt.
 
 **The price, and its limits.** `deliverables/prices-phase6.json` holds OpenRouter's published list
 price for the model, fetched 2026-09-12 22:51 UTC: **$0.000000625 per prompt token** and
 **$0.000003125 per output token** ($0.625 and $3.125 per million). It is **one reseller's price, not
 NVIDIA's**, and prices change, which is why the file records where and when.
+
 
 **A real cascade escalates every refusal, not only the 20.** It cannot tell which refusals had the page.
 So Step 3c sent the other 33 too (26 page-absent, 7 unanswerable), and they carry their own risk: a
@@ -562,8 +732,19 @@ the golden set is 100 queries, so per 1000 queries  = $1.81
 
 ## R10.13 — "Supported" is not "correct" (`D100`, `D101`)
 
-**Plain job.** The judge is asked *"do these five pages say this?"* It is easy to read its `SUPPORTED`
-as "right". Two page-absent answers, run against the real library, show why not.
+**Plain job.** The judge is asked *"do these five pages say this?"* It is easy to read its grade
+`SUPPORTED` as *"the answer is right."* Those are different questions. Show both failing in opposite
+directions on real SQLAlchemy 2.0.51.
+
+### Three words that must stay apart
+
+| Word | Plain question | Who answers it |
+|---|---|---|
+| **SUPPORTED** | Do these *pages* back the answer? | The judge model |
+| **correct** | Is this true of SQLAlchemy **2.0.51**? | Running the code, or a person who knows the library |
+| **checkable** | Can we turn the answer’s central claim into a small Python check? | `tools/check_escalated.py` |
+
+Two page-absent answers, run against the real library, show why “SUPPORTED” is not “right”:
 
 ```
 # runnable: uv run --no-project --with 'sqlalchemy==2.0.51' python -c "
@@ -600,11 +781,6 @@ g007  "MetaData(bind=engine) TypeError, how do I create_all now"
 answer came from the model's own knowledge, which the pages do not contain; the wrong one came from
 misreading a page.
 
-| word | question it answers | who can answer it |
-|---|---|---|
-| **supported** | do the pages say this? | a judge model reading the pages |
-| **correct** | is this true of SQLAlchemy 2.0.51? | running the code, or a person who knows the library |
-
 **What was done about it: a reference judge, calibrated first.** The same judge read every escalated
 answer against the page **a human verified** answers the question (`D06`), instead of the five
 retrieved ones. Before trusting it, it had to pass on the two answers whose truth was *executed*:
@@ -634,12 +810,13 @@ REFERENCE JUDGE — escalated answers against the verified answer chunks (D06)
 - **3b: 10 of 16 again, but only 7 the same items.** Against retrieved pages and against verified pages,
   the *rate* is 10 both times; three answers swap in each direction. Quote the rate, not a list of
   "the ten".
-- **The pre-registered quote: 38 + 10 = 48/91 = 0.53** end to end, against the lab's 38/91 = 0.42.
+- **The pre-registered quote: lab 38 + 10 reference-SUPPORTED = 48 of 91** (often written **0.53**)
+  end to end, against the lab alone **38 of 91** (often **0.42**).
   An upper bound: it assumes each of the 10 is also correct on the real library, which is checked for
-  none of them.
+  none of them at this line.
 - **3c: 6 of 13 page-absent answers agree with the verified page.** That corrected `D98`'s claim that
-  page-absent failures cannot be fixed. The 0.59 you get by counting them was **not** written down
-  before the run, so it is labelled exploration and not quoted.
+  page-absent failures cannot be fixed. Counting those six as well gives **54 of 91** (often **0.59**)
+  — that figure was **not** written down before the run, so it is labelled exploration and not quoted.
 
 **Then correctness was executed, not judged (`D103`).** Each escalated answer's central claim was
 written as a check and run on 2.0.51 (`tools/check_escalated.py`, committed before its first run).
@@ -662,16 +839,24 @@ And six answers it called only PARTIAL have correct central claims. **Same rate,
 **Plain job.** Every measurement in this repo used Qdrant, a database running in Docker. A free web
 host cannot run that container. So the demo does the search itself, in memory.
 
+### What we compared (before any claim of “safe”)
+
+| | |
+|---|---|
+| **Baseline** | Qdrant search — answer page in top 5 on **58 of 91** |
+| **Candidate** | In-memory exact search (`RAG_DENSE=memory`) — same 100 questions |
+| **Gate rule (written first)** | `broken` must be **0** (no answerable question loses its top-5 page) |
+
 **Why that needed proof, not assumption.** Qdrant finds nearest neighbours with an **approximate** index
 (HNSW), fast but allowed to miss. The in-memory version is **exact**: multiply every stored vector by
 the question's vector and sort (`vectors @ query`). Exact and approximate can return different top
 fives, and a different top five is a different system from the one that was graded.
 
-**So the gate graded it.** The rule, written first: `broken 0` against the committed baseline.
+**What we counted:**
 
 ```
-Qdrant (approximate)      the baseline, 58/91 found in the top 5
-in memory (exact)         58/91; broken 0, moved 0 (every top 5 identical)
+Qdrant (approximate)      58 of 91 found in the top 5
+in memory (exact)         58 of 91; broken 0, moved 0 (every top 5 identical)
 top-20 lists identical    96 of 100 (the four that differ, differ only below rank 5)
 ```
 
@@ -708,13 +893,13 @@ the free plan (R10.16), so the bundle now carries the page that was actually che
 
 | where | generator | the notice under every answer |
 |---|---|---|
-| your Mac (`DEMO_GENERATOR=ollama`) | `qwen2.5-coder:7b`, the measured model | this is the model the 0.42 (lab) / 0.43 (Mac) was measured on |
-| a hosted page (`nvidia`) | `nemotron-3-ultra-550b` | the 0.42 is for a different model and does not describe these answers |
+| your Mac (`DEMO_GENERATOR=ollama`) | `qwen2.5-coder:7b`, the measured model | this is the model the lab **38 of 91** / Mac **39 of 91** was measured on |
+| a hosted page (`nvidia`) | `nemotron-3-ultra-550b` | the **38 of 91** is for a different model and does not describe these answers |
 
 **Why the notice is a test, not a nicety.** NVIDIA's API serves no qwen model at all (catalog checked
-2026-09-12), so a hosted page *cannot* run the measured model. Printing "0.42" next to a model that did
-not produce it is the exact mistake `D95` exists to stop. `test_the_page_always_says_the_measured_score_is_not_this_model`
-fails if the sentence disappears.
+2026-09-12), so a hosted page *cannot* run the measured model. Printing “0.42” (or **38 of 91**) next
+to a model that did not produce it is the exact mistake `D95` exists to stop.
+`test_the_page_always_says_the_measured_score_is_not_this_model` fails if the sentence disappears.
 
 **A real question through the local page.** `g050`'s wording, *"engine.execute select gone AttributeError
 use connection instead"*: 28.7 seconds, and the answer was **"The sources do not answer this."**
@@ -831,19 +1016,27 @@ catches it and says Ollama is not running.
 
 ## R10.15b — The hosted model, asked all 100 questions (`D104`)
 
-**Start from what was missing.** The hosted demo would answer with `nemotron-3-ultra-550b`, and the
-page could only say *"the 0.42 is not this model."* That is an honest sentence with no number in it. We
-had asked that model 53 questions before, but only the ones qwen declined (R10.11). A visitor asks
-anything, so the question was: **what does it score on all 100, the same way qwen was scored?**
+**Start from what was missing.** The hosted demo answers with `nemotron-3-ultra-550b`. The page
+could only say *"lab qwen’s end-to-end is not this model"* — honest, but no number for the model
+visitors actually hit. We had asked nemotron **53** questions before, but only the ones qwen
+declined (R10.11). A visitor asks anything, so the question was: **what does it score on all 100,
+counted the same way qwen was scored?**
 
-**What was held fixed, and what did NOT happen.** Same 100 golden questions, same five pages for each
-(the search is identical on both machines, `D83`), same prompt, word for word. **Nothing was trained,
-tuned or re-searched.** One thing changed: which model reads the five pages. So any difference is the
-model's. The rules and a prediction were committed before the first call (`51174aa`).
+### What we ran (before any decimal)
 
-**Why the Mac and not the lab.** The lab rules generation numbers because the local qwen drifts on the
-Mac (`D84`). Here the model runs on NVIDIA's servers, so both machines would send the same request to
-the same place. The Mac can also run unattended.
+| | |
+|---|---|
+| **Questions** | All **100** golden (score uses the **91** answerable) |
+| **Pages + prompt** | Same five pages per question, same prompt — search identical (`D83`) |
+| **Local comparison** | Lab qwen: **38 of 91** delivered |
+| **Hosted model** | `nemotron-3-ultra-550b` via NVIDIA key (Mac sent the requests; generation is remote) |
+| **What did NOT happen** | No retrain, no re-search, no prompt edit — only which model reads the five pages |
+
+Rules and a prediction were committed before the first call (`51174aa`).
+
+**Why the Mac sent the requests.** Generation is remote (NVIDIA). Search is identical on both boxes
+(`D83`), so either machine would get the same answers. The Mac can run unattended; the lab does not
+need to sit this one.
 
 ### How the test runs, one question walked through (`g050`)
 
@@ -910,18 +1103,18 @@ the NVIDIA key (`g050` came back `SUPPORTED`).
 
 ### The result, one question at a time
 
-The score everything here is built on: a question counts only if **its answer page was among the five
-AND the model answered** (`D72`). Same 91 answerable questions, both models:
+A question counts only if **its answer page was among the five AND the model answered** (`D72`).
+Same **91** answerable questions, both models:
 
 ```
-                           page among the five   answered it   END TO END   declined with page in hand
-qwen2.5-coder:7b (lab)            58                 38           0.42             20
-nemotron-3-ultra-550b             58                 53           0.58              5
+                           page among the five   answered it   fraction   often written   declined with page in hand
+qwen2.5-coder:7b (lab)            58                 38        38/91         0.42                    20
+nemotron-3-ultra-550b             58                 53        53/91         0.58                     5
 ```
 
-**The 58 is identical, so search did not change.** The difference is the last column: qwen had the right
-page in front of it 20 times and said *"The sources do not answer this."* anyway. Nemotron did that 5
-times. Retrieval got the page there both times; the bigger model reads it.
+**The 58 is identical, so search did not change.** The difference is the last column: qwen had the
+right page in front of it **20** times and said *"The sources do not answer this."* anyway. Nemotron
+did that **5** times. Retrieval got the page there both times; the bigger model reads it.
 
 **Paired, question by question** (the same way every change in this project is judged, `D61`): **16
 questions** nemotron delivers and qwen does not, **1** the other way, exact McNemar **p = 0.0003**. The
@@ -983,7 +1176,9 @@ public demo or a team using this for real would be billed per token.
 The cascade (R10.12) sends the bigger model only qwen's refusals, so on the same price it *would* cost
 $1.81 per 1000. **Neither number was spent.**
 
-**The demo's notice now carries this model's own numbers:** 0.58 end to end and 77% supported, "measured
+**The demo's notice now carries this model's own numbers:** **53 of 91** end to end (often written
+0.58) and **53 of 69** supported under the text-only judge (77%; later **63 of 69** with headings),
+"measured
 once", with the 0.42 still named as qwen's. A test recomputes both numbers from the saved rows.
 
 **The system of record stays qwen**, and that is not an oversight: this project runs on zero paid calls,
@@ -1171,12 +1366,12 @@ is a cascade: the free local model answers first, and only a refusal is escalate
 
 **The price and the gain.** “Escalating every refusal to a 550B model would cost about $1.81 per 1000 queries on a paid plan
 at one reseller's list price, adds no fabrications on the unanswerable questions, and lifts end to end
-from 0.42 to at most 0.53. At most, because my judge checks faithfulness to pages, and when I ran two
+from **38 of 91** to at most **48 of 91**. At most, because my judge checks faithfulness to pages, and when I ran two
 answers against the real library it had called a wrong one supported and a right one unsupported.”
 
 **The demo.** “The demo uses the graded search, proven identical without the database, and the shipped
 prompt. Hosted on Modal at a public URL, it needs a different generator, so I measured that one on the
-same 100 questions: 0.58 end to end against the local model's 0.42, sixteen gained and one lost, no
+same 100 questions: **53 of 91** against the local model's **38 of 91**, sixteen gained and one lost, no
 fabrications, and 91% of its answers fully supported by the pages as the model saw them (77% when my judge
 was shown text only). The page
 quotes those numbers.”

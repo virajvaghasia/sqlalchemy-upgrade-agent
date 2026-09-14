@@ -24,6 +24,24 @@ bare command, the file is incomplete — that is a bug, not a style choice.
 
 Clone branch: **`phase-0/repo-structure`** (not default `main`).
 
+---
+
+## Stop — how to read this file
+
+This is a **runbook** (ordered commands for one sitting), not a concepts chapter. Docker theory
+stays in `04` / `05`.
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **Day 3 … Day 10** | Lab sitting order from `PHASE-0.md` | Section numbers from `01` or Docker `§` |
+| **lab / Mac** | Ubuntu build box (RTX 3060) vs this laptop | Interchangeable machines |
+| **VRAM vs RAM** | GPU memory (**12288 MiB**, tight) vs system memory (**31 GiB**, not the bottleneck) | The old “12 GB system RAM” guess |
+| **AnyDesk / Tailscale / sshd** | How you reach the box today vs later remote SSH | Already done unless the file says so |
+
+**Rule:** every command block must carry a **why + example**. A bare command is a bug in this file.
+
+---
+
 Repo is **public**: `https://github.com/virajvaghasia/sqlalchemy-upgrade-agent.git`
 HTTPS clone needs no GitHub login. Push from this PC later will, and that push
 must be **Viraj's** GitHub, not whoever already uses this box.

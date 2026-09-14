@@ -7,26 +7,40 @@ Every number in these files was measured against this repo, and the command that
 given, so any claim can be checked rather than believed. Where a claim turned out to be wrong
 when measured, the correction is kept rather than quietly edited out.
 
+### House rule for every file below (2026-09-14)
+
+Each study file opens with **Stop — how to read this file** (or an equivalent Part 0):
+
+1. **Labels vs rates** — `§R9.5`, `D97`, `g017` are not scores. Rates are **fractions first**
+   (`38 of 91`), short decimals optional (`0.42`).
+2. **Show, then name** — jargon gets a plain meaning and a named example before it is used as a
+   label.
+3. **What it is not** — said in the same breath as what it is.
+
+If a file dumps a bare `0.43` or an id with no question text, that is unfinished — same rule as
+[`17-AGENT.md`](17-AGENT.md) / [`18-PRODUCTION.md`](18-PRODUCTION.md).
+
 | file | what it covers | sections |
 |---|---|---|
-| [`01-CONCEPTS.md`](01-CONCEPTS.md) | the relational model, the ORM layer, the session at runtime | §0–§15 |
-| [`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md) | the 1.4 → 2.0 upgrade: what breaks, what only looks like it does | §16–§22 |
-| [`03-PRACTICE-APP.md`](03-PRACTICE-APP.md) | the app under test — why this schema, and the ten-step runbook | — |
-| [`04-DOCKER.md`](04-DOCKER.md) | one container: images, layers, the build cache, the Dockerfile | §1–§3 |
-| [`05-COMPOSE.md`](05-COMPOSE.md) | several containers: networking, volumes, healthchecks | §4 |
-| [`06-POSTGRES.md`](06-POSTGRES.md) | the database inside one of them | §5 |
-| [`07-TESTS.md`](07-TESTS.md) | the test suite, and how to tell whether tests cover anything | §6 |
-| [`08-LAB.md`](08-LAB.md) | lab PC from scratch: SSH, Tailscale, clone, Docker Engine, GPU, Ollama. Includes the 2026-08-13 sitting diary in Ubuntu words | — |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | **every design decision, what was rejected, and why** — written for interview revision. Cite entries by ID (`D19`) | — |
-| [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | **RAG from zero** — why we look things up instead of asking from memory (§R1); what the 1024 numbers on disk actually are (§R2). Two sittings; stop after the first | §R1–§R2 |
-| [`11-GENERATION.md`](11-GENERATION.md) | what happens *after* search: the prompt as a component. Three wordings of one sentence; C fabricates, A over-refused once, B ships (§R3) | §R3– |
-| [`12-EVALUATION.md`](12-EVALUATION.md) | how you find out whether any of it worked: what a script can and cannot score, and the rank measurement that split one planned fix into four different problems (§R4) | §R4 |
-| [`13-VERIFICATION.md`](13-VERIFICATION.md) | **defending it out loud** — the five cold questions Phase 1 closes on, each with the plain answer, the mechanism, the measurement and the spoken version, plus the wrong answer it attracts. §R5.7 runs all five end to end for rehearsal (§R5) | §R5 |
-| [`14-MEASURE.md`](14-MEASURE.md) | **Phase 2's scorecard** — 50-item baseline + 100-item run (real questions score worst), refusals, 9 ceilings (`answerable: false`), signature closed by spot-check. Continues the `R` run after Phase 1 (§R6) | §R6 |
-| [`15-IMPROVE.md`](15-IMPROVE.md) | **Phase 3 retrieval work** — twin collapse, hybrid BM25, seat-5 CE; Sphinx strip and boundary re-chunking both rejected with numbers. What ships, what broke ten items, what needs the lab next (§R7) | §R7 |
-| [`16-JUDGE.md`](16-JUDGE.md) | **Phase 4 — judging the answer, not the search.** End to end **0.43** against retrieval's **0.64** ceiling; 65% of answers cite nothing; moving one sentence beat rewriting it; the result that was wrong the first time; the prose judge, and the day it went 503 on its pinned id and turned out to allow **20 calls a day per model**; and **§R8.9 — the second machine**, where retrieval reproduced exactly, generation reproduced nowhere, and a p = 0.0039 prompt win became **6↑ 2↓, p = 0.289** and a hold (`D83`) — and then the obvious explanation for that gap (the lab ran the model half on CPU) was **tested and disproved**, leaving a sharper finding about which model reproduces — and the judge re-reading its own verdicts a week later changed **3 of 110**, moving grades without moving the paired cells (`D84`) | §R8 |
-| [`18-PRODUCTION.md`](18-PRODUCTION.md) | **Phase 6 — production, all of it.** Three parts: the CI gate (removing the reranker blocked by name, `g017`; the unpinned reranker; CPU vs GPU); the router (cascade beats predictor, the hypergeometric bug checkable by hand, **$1.81 per 1000 queries**, supported ≠ correct with `g016`/`g007`, **0.42 → at most 0.53**); shipping (in-memory search gated, the page that names its generator, Hugging Face's 402, **Modal live** `D106`, keys and secrets). Ends with 12 cold questions and full answers (§R10) | §R10 |
-| [`17-AGENT.md`](17-AGENT.md) | **Phase 5 — the agent.** Opens with what `R9.x` vs scores like `0.02` mean; every section has plain job / picture / named example / say–don’t-say. Tools = function + paragraph; `check_api` = `g065` post-mortem; `0.02` ≠ “20× worse”; Mac↔lab call-or-not coin flip; NOT FOUND nudge **0→7/10**; `[:600]` bug; lab withdrew “matches pipeline” (§R9) | §R9 |
+| [`01-CONCEPTS.md`](01-CONCEPTS.md) | relational model, ORM, session — Stop + word list up front | §0–§15 |
+| [`02-MIGRATION-2.0.md`](02-MIGRATION-2.0.md) | 1.4 → 2.0 — breakage vs papercut glossary | §16–§22 |
+| [`03-PRACTICE-APP.md`](03-PRACTICE-APP.md) | the app under test — six classes / eight tables named | — |
+| [`04-DOCKER.md`](04-DOCKER.md) | one container — image/container/layer decoder | §1–§3 |
+| [`05-COMPOSE.md`](05-COMPOSE.md) | several containers — network/volume/healthcheck decoder | §4 |
+| [`06-POSTGRES.md`](06-POSTGRES.md) | database in the stack — role vs maintenance DB | §5 |
+| [`07-TESTS.md`](07-TESTS.md) | suite pins doc claims — collected vs passed | §6 |
+| [`08-LAB.md`](08-LAB.md) | lab PC runbook — VRAM vs RAM, AnyDesk vs SSH | — |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | register `D01`…`D107` — §H ≠ prompt H | — |
+| [`10-RETRIEVAL.md`](10-RETRIEVAL.md) | RAG from zero — corpus/chunk/embedding named | §R1–§R2 |
+| [`11-GENERATION.md`](11-GENERATION.md) | after search — over-refusal / fabrication named | §R3 |
+| [`12-EVALUATION.md`](12-EVALUATION.md) | how to measure — two report cards, not one grade | §R4 |
+| [`13-VERIFICATION.md`](13-VERIFICATION.md) | five cold questions — answer the last clause | §R5 |
+| [`14-MEASURE.md`](14-MEASURE.md) | Phase 2 scorecard — rates as fractions | §R6 |
+| [`15-IMPROVE.md`](15-IMPROVE.md) | Phase 3 levers — counts-first rates table | §R7 |
+| [`16-JUDGE.md`](16-JUDGE.md) | Phase 4 — **58 of 91** vs **39 of 91** | §R8 |
+| [`17-AGENT.md`](17-AGENT.md) | Phase 5 — **2 of 91**, not bare `0.02` (read before 18) | §R9 |
+| [`18-PRODUCTION.md`](18-PRODUCTION.md) | Phase 6 — gate, cascade, Modal live | §R10 |
+
 
 ## By phase — which file belongs to what
 

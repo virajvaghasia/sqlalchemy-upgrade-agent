@@ -7,6 +7,20 @@ produce the code.** That rule is the point of the phase, not a formality.
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **Step 1 … Step 10** | The Phase 0 Days 1–2 runbook order | Section numbers from `01` / Docker `§` |
+| **six mapped classes / eight tables** | Counted from `models.py` — two numbers on purpose | “Six tables” (that claim was wrong once) |
+| **`secondary=`** | A junction *table* with no extra columns of its own | An association *object* (mapped class with its own fields) |
+| **N+1** | One query for parents + one query **per** parent for children | “Slow SQL” in general |
+
+This file is the **thing you break** — the practice app. Concepts live in `01`; breakages live in
+`deliverables/BREAKAGES.md`.
+
+---
+
 ## Why an issue tracker
 
 The domain is irrelevant. What matters is the **surface area of 1.4 patterns the schema

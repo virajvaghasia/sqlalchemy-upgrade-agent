@@ -10,6 +10,24 @@ Decisions: **`D71`–`D86`**.
 
 ---
 
+## Stop — rates in this file (counts first)
+
+Same rule as later sittings: **fraction first, short decimal only after**.
+
+| You will see | What was counted | Section |
+|---|---|---|
+| **`58/91` → `0.64`** | Search: answer page among the five on the desk (retrieval ceiling) | picture below |
+| **`39/91` → `0.43`** | Page on desk **and** model answered under shipped prompt D (Mac; lab often **38/91**) | §R8.1 / `D72` |
+| **`31/48` → ~65%** | Of answered items under D, how many cite **nothing** | §R8.2 / `D73` |
+| **`47/91` → `0.52`** under H | Prompt H on the Mac — **held** after lab **6↑ 2↓** | §R8.3 / `D74`, `D83` |
+| **uncited `65% → 10%`** | Citation effect of H (designed effect; reproduced) | §R8.3 |
+| **faithfulness D ~77–85% / H 92%** | Judge grades SUPPORTED; paired not significant | §R8.6–§R8.7 |
+
+**Say `39 of 91` (or lab `38 of 91`).** Say `0.64` only with the word **retrieval** in the same breath.
+`R8.1` is a section label, not a score. `g050` is one golden question.
+
+---
+
 ## If you are lost — one picture
 
 **“Desk” = the five pages the model is allowed to read for this one question.**
@@ -27,16 +45,17 @@ the **desk**. A “desk page” is one of those excerpts — not a special file 
 Same idea as §R7’s desk seats. Here we care what the model does *after* those five arrived.
 
 ```
-  Search finds the right page     0.64     ← that page was among the five on the desk
-  Model actually answers          0.43     ← Phase 4 headline. Quote THIS.
-  ─────────────────────────────   ────
-  Lost after search already won   0.21
+  Search finds the right page     58 of 91 (= 0.64)   ← that page was among the five on the desk
+  Model actually answers          39 of 91 (= 0.43)   ← Phase 4 headline. Quote THIS.
+  ─────────────────────────────   ─────────────────
+  Lost after search already won   19 of 91 (~0.21)
 ```
 
 Same **91** answerable questions. Most of the gap: the right page was already on the desk, and
 the model still said *"The sources do not answer this."*
 
-**Say `0.43`.** Say `0.64` only with the word **retrieval** in the same breath.
+**Say `39 of 91` (often written `0.43`).** Say `58 of 91` / `0.64` only with the word **retrieval**
+in the same breath.
 
 ---
 
@@ -63,8 +82,8 @@ track; most of the time they mean E, and E is the last human work, not the first
 
 | Track | Plain question | Section | Tool / file | Needs a second LLM? | Status |
 |---|---|---|---|---|---|
-| **A. End to end** | Right page on desk **and** model answered? | §R8.1 | `rag.score --refusals`, `rag.judge --report` | No | Measured — **0.43** under D (`D72`) |
-| **B. Citations** | Can you open a `[n]` and check the claim? | §R8.2 | `rag.judge --citations` | No | Measured — **65%** of D answers cite nothing (`D73`) |
+| **A. End to end** | Right page on desk **and** model answered? | §R8.1 | `rag.score --refusals`, `rag.judge --report` | No | Measured — **39 of 91** under D (`D72`) |
+| **B. Citations** | Can you open a `[n]` and check the claim? | §R8.2 | `rag.judge --citations` | No | Measured — **31 of 48** D answers cite nothing (`D73`) |
 | **C. Groundedness (code)** | Do API names in **code** appear on the desk pages? | §R8.5 | `ungrounded_calls()` in `rag/judge.py` | No | Measured — D 2 ungrounded / H 0 (`D77`) |
 | **D. Open cell** | Golden page **missed** the desk — is the answer still right on real 2.0.51? | §R8.5a | `deliverables/OPEN-CELL-REVIEW.md` | No (you read it) | **Done** — 35/35 marked |
 | **E. Prose faithfulness** | Does this **sentence** match the passages? | §R8.6–§R8.7 | `rag.faithful --sweep --local`, `JUDGE-AGREEMENT.md` | Yes — local `gemma4:e4b` | Measured (`D82`); human agreement **7/10 = 70%** (`D86`) |

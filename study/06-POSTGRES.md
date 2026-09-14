@@ -15,6 +15,24 @@ given. The stack must be up for most of these — `docker compose up --build` fi
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§5.x`** | Sections in *this* file (database inside the stack) | Scores |
+| **`app` / `issues`** | Postgres **role** and **database** name in this repo | The Compose project name |
+| **`postgres` database** | The server’s built-in maintenance DB | Where your app tables live |
+
+### Words
+
+| Word | Plain meaning |
+|---|---|
+| **`docker compose exec`** | Run a command *inside* an already-running container (no published port needed) |
+| **DDL** | The CREATE TABLE / sequence statements the engine emits for your models |
+| **superuser** | What `POSTGRES_USER` creates — renaming it does not make a limited account |
+
+---
+
 ## The short version
 
 - **You do not need a published port to use the database.** `docker compose exec` runs psql

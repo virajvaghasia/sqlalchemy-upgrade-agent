@@ -20,13 +20,30 @@ interview rehearsal with a scorecard. The split rule's condition is met (`D64`).
 
 ---
 
+## Stop — rates in this file (counts first)
+
+Same rule as [`17-AGENT.md`](17-AGENT.md) / [`18-PRODUCTION.md`](18-PRODUCTION.md): do not read a
+decimal until you know the fraction.
+
+| You will see | What was counted | Section |
+|---|---|---|
+| **`24/47` → `0.51`** | Of **47** answerable items in the **50**-item baseline, how often the answer page was in the top 5 | R6.1 |
+| **`~45/91` → `0.49`** | Same definition on the **100**-item set (91 answerable) | R6.1 |
+| **`0.73` / `0.41` / `0.38`** | Same recall@5 **split by where the question came from** — quote **0.38** (Stack Overflow) for a stuck developer | R6.1 |
+| **end to end `17/47` → `0.36`** then **`32/91` → `0.35`** | Page in the five **and** model answered (generation, not search) | R6.2 |
+| **`7/9` refused, 2 fabricated** | Unanswerable items: correct declines vs invented answers (`g056`, `g065`) | R6.2–R6.3 |
+
+`R6.1` is a **section label**, not a score. `g065` is one golden question id, not a metric.
+
+---
+
 ## If you are lost — three numbers, not one grade
 
 Forget the section titles for half a page. Phase 2 produced three facts that must stay apart:
 
 ```
                                        50-item set (the baseline)   100-item set (2026-08-21)
-  1. Did the right page reach          recall@5 = 0.51              recall@5 = 0.49
+  1. Did the right page reach          recall@5 ≈ 24/47 (= 0.51)    recall@5 ≈ 45/91 (= 0.49)
      the prompt?                       0.73 migration_guide         0.73 migration_guide
                                        0.41 breakages               0.38 stackoverflow ← quote this
   2. Did the model refuse when         3/3 unanswerable declined    7/9 declined, 2 FABRICATED

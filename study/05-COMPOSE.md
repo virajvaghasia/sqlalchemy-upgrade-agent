@@ -14,6 +14,26 @@ produces it is given.
 
 ---
 
+## Stop — how to read this file
+
+| You see | What it is | What it is **not** |
+|---|---|---|
+| **`§4.0` … `§4.7`** | Sections in *this* file | Scores out of 4 |
+| **`§1`–`§3`** | Single-container material in [`04-DOCKER.md`](04-DOCKER.md) | Missing from this file on purpose |
+| **service name (`app`, `db`)** | Hostname on the Compose network | A folder name or image tag |
+| **healthcheck** | Probe that says “ready,” not merely “process started” | `depends_on` alone |
+
+### Words
+
+| Word | Plain meaning | Named trap |
+|---|---|---|
+| **Compose** | Runs several containers together; calls the Dockerfile, does not replace it | Thinking Compose builds without a Dockerfile |
+| **user-defined network + DNS** | Containers reach each other by **service name** | Using `localhost` (that is *this* container) |
+| **volume** | Data that outlives the container | “The database is in the image” |
+| **`ports:`** | For traffic from *outside* the network | Required between `app` and `db` (it is not) |
+
+---
+
 §4.0–§4.4 and §4.6 describe the stack in this repo's `docker-compose.yml`, measured. §4.5 is
 Day 7 and still concepts-only, because the lab machine isn't reachable.
 
