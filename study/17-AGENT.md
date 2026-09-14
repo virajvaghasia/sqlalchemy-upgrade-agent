@@ -46,7 +46,7 @@ decimal until R9.5 has shown you what was counted.** The short map:
 | **R9.0** | The one sentence to say about Phase 5, and the slogan not to say | Starting cold |
 | **R9.1** | Before: one lookup always. Now: the model chooses when to look up. | First |
 | **R9.2** | A “tool” = Python function + description. Model writes JSON; our code runs it. | First |
-| **R9.3** | Three tools; `check_api` is the “does `op.create_view` exist?” check from the fake Alembic answer (`g065`), offered *before* writing. | First |
+| **R9.3** | Three tools built, two offered to the model; `check_api` is the “does `op.create_view` exist?” check from the fake Alembic answer (`g065`), offered *before* writing. | First |
 | **R9.4** | Why we cannot `import` 2.0 from this 1.4 env — reuses an *old spawn trick*, not the breakages runner. | Before tools code |
 | **R9.5** | Lab agent almost never searched; `2/91` is not “20× worse than one-shot.” | Core result |
 | **R9.6** | Same prompt, Mac vs lab: call-a-tool-or-not flipped on half the items. | Reproducibility |
