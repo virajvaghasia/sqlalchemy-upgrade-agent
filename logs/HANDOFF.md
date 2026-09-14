@@ -36,14 +36,15 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-12, lab)
+## Where things stand — read this first (updated 2026-09-14, lab)
 
-**→ ROUND 21 CLOSED on the lab.** Source framing A/B, tip this commit, branch `phase-5/agent`,
-Ollama **0.32.9**, generator **100% GPU**. Artifact:
-`deliverables/framing-phase6.Linux-x86_64.json`.
+**→ ROUND 22 CLOSED on the lab.** Branch `phase-6/production`, tip this commit. Phase 4 judge
+given headings (`gemma4:e4b`): **headings do NOT matter** (Step 4h rule). Artifact:
+`deliverables/faithfulness-phase4-headings.Linux-x86_64.json`.
 
 | round | state |
 |---|---|
+| **22** | **CLOSED** — D 36→38/47 (3↑1↓ p=0.625), H 56→57/61 (2↑1↓ p=1.0) → **headings do NOT matter** |
 | **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
 | **19** | **CLOSED** — E4 **0→7** chained (`D91` holds); E2 no-tool **8→0**; golden **0.02→0.19** (retracted as comparison, `D93`) |
@@ -52,7 +53,29 @@ Ollama **0.32.9**, generator **100% GPU**. Artifact:
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-### LAB RESULT — Round 21 (Mac: read this — the ids)
+### LAB RESULT — Round 22 (Mac: read this — raw report)
+
+Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), judge `gemma4:e4b` @ 100% GPU / 8192 ctx.
+Died once at 41/64 (no traceback); resumed. Text-only lab rows untouched.
+
+```
+PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — gemma4:e4b on Linux-x86_64
+  text-only rows  faithfulness-phase4.Linux-x86_64.json  (Linux-x86_64)
+  headings rows   faithfulness-phase4-headings.Linux-x86_64.json
+  D  SUPPORTED text-only 36/47  with headings 38/47   up 3  down 1  p = 0.6250
+     up    g014 g019 g120
+     down  g098
+  H  SUPPORTED text-only 56/61  with headings 57/61   up 2  down 1  p = 1.0000
+     up    g031 g062
+     down  g036
+  D vs H with headings, paired over 45: H-only SUPPORTED 6  D-only 0  p = 0.0312
+  rule -> headings do NOT matter
+```
+
+With-headings rates: D **81%** (38/47), H **93%** (57/61). Prediction (Claude) matched. `D82`/`D83`
+text-only figures stand; with-headings is the evidence they were not materially understated.
+
+### LAB RESULT — Round 21 (kept)
 
 Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), qwen at **100% GPU**, interleaved arms,
 retrieval once per item. Unanswerable rows merged after (`--unanswerable`, no answerable regen).
@@ -603,7 +626,7 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
 
 ---
 
-# Round 22 — does Phase 4's judge change its verdicts when it sees headings? (OPEN, written 2026-09-14 on the Mac)
+# Round 22 — does Phase 4's judge change its verdicts when it sees headings? (CLOSED, lab 2026-09-14)
 
 **Why the lab and not the Mac.** The judge was only ever given page text; the model reads a source line, a
 heading line and the text. On the Mac's hosted judge that moved nemotron 77% → 91% (`PHASE-6.md` Step 4g).
@@ -648,6 +671,41 @@ git commit -m "lab: Round 22 — Phase 4 judge given headings" && git push
 ```
 
 **Paste the whole `--headings-report` output here, raw.** The rule in Step 4h reads it; do not summarise it.
+
+### REPLY 22.0
+
+```
+2bbf72e feat(phase-6): Round 22 queued for the lab — Phase 4's judge given headings; code committed before any run
+tests/test_faithful.py: 84 passed
+passage_as_shown count: 1
+gemma4:e4b present
+qdrant: all shards are ready
+```
+
+### REPLY 22.1
+
+```
+judging D, H from prompt-sweep-phase4.json with gemma4:e4b - one sitting, both arms, identical passages (D78)
+died silently at [41/64] g065; resumed with --resume; finished 64/64
+saved 110 rows to faithfulness-phase4-headings.Linux-x86_64.json
+  D 81% (38/47)  H 93% (57/61)
+```
+
+### REPLY 22.2 — raw --headings-report
+
+```
+PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — gemma4:e4b on Linux-x86_64
+  text-only rows  faithfulness-phase4.Linux-x86_64.json  (Linux-x86_64)
+  headings rows   faithfulness-phase4-headings.Linux-x86_64.json
+  D  SUPPORTED text-only 36/47  with headings 38/47   up 3  down 1  p = 0.6250
+     up    g014 g019 g120
+     down  g098
+  H  SUPPORTED text-only 56/61  with headings 57/61   up 2  down 1  p = 1.0000
+     up    g031 g062
+     down  g036
+  D vs H with headings, paired over 45: H-only SUPPORTED 6  D-only 0  p = 0.0312
+  rule -> headings do NOT matter
+```
 
 # Round 21 — does the prompt's SHAPE move the over-refusals? (CLOSED, lab 2026-09-12)
 
