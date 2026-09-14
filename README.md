@@ -1,32 +1,79 @@
 # sqlalchemy-upgrade-agent
 
-A retrieval system that helps developers upgrade Python code from **SQLAlchemy 1.4 → 2.0**.
+**Ask why your code broke after upgrading SQLAlchemy 1.4 → 2.0. Get an answer written only from the
+SQLAlchemy documentation, with every claim linked to the page it came from.**
 
-The corpus it retrieves from is not scraped. It is **measured**: a deliberately 1.4-style
-application in this repo, run against real 2.0, with every failure recorded as it actually
-happened. `deliverables/BREAKAGES.md` is that record, and it becomes the golden dataset the retrieval
-system is later evaluated against.
+**Try it:** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — paste an error or a line of 1.4
+code. The first question after the page has been idle takes about a minute while it wakes up.
 
-**Status:** Phase 0 complete except its Day 3 tunnel, which is blocked on someone else rather
-than on work. **Phase 1 is built, not complete** — a question typed at a terminal returns an answer with its
-sources, and all five steps run. Three of the phase's own gates are still open, and all three
-are human: ten chunks to eyeball, 19 answer verdicts, five cold questions. Pinned to SQLAlchemy
-**1.4.52**; breakages verified against **2.0.51**. See [`phases/ROADMAP.md`](phases/ROADMAP.md)
-for the six-phase arc.
+```
+you:  query(User).get(1) warns LegacyAPIWarning, where did get move to
+
+it:   Based on the provided sources, the `query(User).get(1)` method has moved to `Session.get(User, 1)`.
+      Source [1] explicitly states: > The `Query.get` method remains for legacy purposes, but ...
+
+      [1] SQLAlchemy 2.0.51 — doc/build/changelog/migration_20.rst
+          ... > 2.0 Migration - ORM Usage > ORM Query - get() method moves to Session
+```
+
+(A real answer from the live page, 2026-09-13, shortened with `...`.)
+
+When the pages it finds do not answer the question, it says so instead of guessing.
+
+## How it works
+
+```mermaid
+flowchart LR
+    Q[question] --> S["search 3,284 doc passages<br/>meaning (bge-m3) + keywords (BM25)"]
+    S --> D[drop duplicate 1.4/2.0 copies]
+    D --> R["reranker may promote<br/>one page into the top 5"]
+    R --> P["prompt: rules + the 5 pages"]
+    P --> G["model writes the answer<br/>citing [n] or declining"]
+    G --> A[answer + the 5 source cards]
+```
+
+Nothing is trained. The model is given five pages and told to answer from them only. The live demo writes
+with `nvidia/nemotron-3-ultra-550b-a55b`; the system is measured on the free local model `qwen2.5-coder:7b`,
+and both are reported below.
+
+## What is measured
+
+Every number comes from a 100-question golden set **checked by hand**: 50 written in this repo (from the
+migration guide and from breakages measured on real 2.0) and 50 real questions found on Stack Overflow and
+GitHub. 9 have no answer in the docs, on purpose. Each row names the
+decision that holds the command and the reasoning.
+
+| measure | result | decision |
+|---|---|---|
+| right page among the five shown (retrieval) | **64%** of 91 answerable, ±9.7 points; was 49% before Phase 3's changes | `D65`, `D68` |
+| right page shown **and** answered, local `qwen2.5-coder:7b` | **0.42** (lab GPU) / 0.43 (Mac) | `D72`, `D83` |
+| same, hosted `nemotron-3-ultra-550b` (the demo) | **0.58**; 16 questions gained, 1 lost vs qwen | `D104` |
+| answers fully supported by their pages (same judge) | nemotron **91%**, qwen **81%**: level, p = 0.45 | `D107` |
+| nemotron's answers, main claim **run** on SQLAlchemy 2.0.51 | **47 of 51** checkable correct (92%) | `D105` |
+| invented answers on the 9 unanswerable questions | qwen **2**, nemotron **0** | `D72`, `D104` |
+| send only qwen's declines to nemotron | 0.42 → at most **0.53**, $1.81 per 1000 questions *if paid* (all calls were free credits) | `D100`, `D101` |
+| a pull request that removes the reranker | **blocked** by the CI quality gate, naming question `g017` | `D97` |
+
+**What is not claimed:** that "supported" means correct (the judge called three wrong answers fully
+supported, `D105`); that the hosted model's numbers describe the local one; or anything measured on one
+machine only (`D95`).
+
+**Status (2026-09-14):** Phase 6 of 6, production. The demo is live; the CI gate's first run on a GitHub
+runner is next. Plan: [`phases/PHASE-6.md`](phases/PHASE-6.md). Pinned to SQLAlchemy **1.4.52**; every
+2.0 claim verified against **2.0.51**. The six-phase arc: [`phases/ROADMAP.md`](phases/ROADMAP.md).
 
 ---
 
 ## Start here
 
-This repo is 17 documents and about 11,000 lines, which is a book, and reading it front to back
-is the wrong move. **Almost none of it is meant to be read in order.** Pick the question you
-actually have:
+This repo is a book, and reading it front to back is the wrong move. **Almost none of it is meant to be
+read in order.** Pick the question you actually have:
 
 | if you want to… | read, in this order | roughly |
 |---|---|---|
-| **know where the project is** | this Status line → [`phases/PHASE-1.md`](phases/PHASE-1.md) → the last entry of [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | 15 min |
-| **understand what was built most recently** | [`phases/PHASE-1.md`](phases/PHASE-1.md) Steps 1–2 → `rag/corpus.py`, `rag/chunk.py` → `tests/test_chunk.py` | 30 min |
-| **learn what Phase 1 is actually doing** | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) §R1 — from zero, no retrieval background assumed | 45 min |
+| **know where the project is** | this Status line → [`phases/PHASE-6.md`](phases/PHASE-6.md) → the last entry of [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | 15 min |
+| **understand what was built most recently** | [`study/18-PRODUCTION.md`](study/18-PRODUCTION.md) §R10.0 (the whole phase on one page) → §R10.15 onward | 45 min |
+| **learn how the retrieval system works, from zero** | [`study/10-RETRIEVAL.md`](study/10-RETRIEVAL.md) §R1, then `11`–`18` in order | days |
 | **revise for an interview** | [`study/09-DECISIONS.md`](study/09-DECISIONS.md) — every decision, what was rejected, and why. **Start here for this**, not with the study files | 1 hour |
 | **go deeper on the evidence** | [Three findings](#three-findings-worth-knowing-before-you-read-anything-else) below → [`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md) Groups A–H → [`study/02-MIGRATION-2.0.md`](study/02-MIGRATION-2.0.md) §16–§22 | a few hours |
 | **learn SQLAlchemy properly** | [`study/README.md`](study/README.md), then follow its numbering | days |
@@ -34,11 +81,11 @@ actually have:
 | **work on the lab PC** | [`study/08-LAB.md`](study/08-LAB.md) — it is a runbook, so jump to the section you need | as needed |
 
 **The three long files are reference, not reading.** `study/01-CONCEPTS.md` (1875 lines),
-`study/02-MIGRATION-2.0.md` (1458) and `deliverables/BREAKAGES.md` (1266) are things you look
+`study/02-MIGRATION-2.0.md` (1511) and `deliverables/BREAKAGES.md` (1266) are things you look
 *into* when you have a specific question. Nobody, including the person who wrote them, reads
 them straight through.
 
-**If you only open one file, open [`phases/PHASE-1.md`](phases/PHASE-1.md).** It says what the
+**If you only open one file, open [`phases/PHASE-6.md`](phases/PHASE-6.md).** It says what the
 current phase is, what the next step is, and why each decision already made was made.
 
 ---
