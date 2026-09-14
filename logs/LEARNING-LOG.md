@@ -9,17 +9,38 @@ This split is why the log stays readable: an idea gets one explanation in `study
 *recurrence* here becomes a new dated link rather than a fresh re-explanation.
 
 > **The standing rule:** append a dated **event** to the timeline here; edit concept **prose**
-> in `study/01-CONCEPTS.md`. If you're about to explain *how something works* in this file, stop —
-> that belongs in a `§` section, and this entry just links to it.
+> in `study/01-CONCEPTS.md` (SQLAlchemy) or the matching `study/1*-….md` RAG sitting. If you're
+> about to explain *how something works* in this file, stop — that belongs in a `§` section, and
+> this entry just links to it.
+
+### Decoder — every id shape this log uses (read once, then the dated entries)
+
+| You see | What it is | Where the full story lives |
+|---|---|---|
+| **`g017`, `g056`, …** | One question in the **golden set** (100 hand-checked upgrade questions). The number is only a file id. **Never quote an id without the question text next to it in this log.** | `deliverables/golden.json`; scorecard in [`study/14-MEASURE.md`](../study/14-MEASURE.md) |
+| **`D54`, `D106`, …** | One row in the **decision register**: what we chose, what we rejected, why. Cite it; do not treat it as a score. | [`study/09-DECISIONS.md`](../study/09-DECISIONS.md) — search the id |
+| **prompt D / prompt H** | Two *wordings* of the system prompt we compared. **D** is what ships. **H** moves the "cite your sources" rule into the user turn; it looked great on the Mac and did **not** reproduce on the lab, so it was **not** shipped. | [`study/16-JUDGE.md`](../study/16-JUDGE.md) §R8 |
+| **§H** (section H) | A checklist item in the decision register ("awaiting human stamp"), **not** prompt H. Closed when Viraj approved a spot-check of ten golden questions. | `study/09-DECISIONS.md` §H |
+| **`k` / `DEFAULT_K`** | How many doc pages go into the prompt (ships at **5**). | `rag/ask.py`; [`study/12-EVALUATION.md`](../study/12-EVALUATION.md) |
+| **recall@5** | Of the answerable golden questions, how often search put the verified answer page in the top 5. Ceiling on what generation can get right. Prefer **58 of 91** over bare `0.64`. | [`study/14-MEASURE.md`](../study/14-MEASURE.md) §R6; [`15-IMPROVE.md`](../study/15-IMPROVE.md) |
+| **end to end** | Share of answerable questions where the page was in the prompt **and** the model answered instead of declining. Prefer **38 of 91** (lab) / **39 of 91** (Mac) over bare `0.42` / `0.43`. | same §R6; Phase 4 headline in [`16-JUDGE.md`](../study/16-JUDGE.md) |
+| **7↑ 0↓, p = …** | Paired before/after: that many questions newly answered (or newly found in top 5), that many newly broken, exact McNemar p-value. | decision `D61` |
+| **Mac / lab** | This laptop vs the Ubuntu box with the RTX 3060. Retrieval matches across them; generation often does not. Prefer the lab number when they disagree. | decisions `D83`, `D84`, `D95` |
+| **qwen / nemotron / gemma** | Generators/judges: local `qwen2.5-coder:7b` (lab **38 of 91**), hosted `nemotron-3-ultra-550b` (demo, **53 of 91**), local judge `gemma4:e4b`. | [`study/18-PRODUCTION.md`](../study/18-PRODUCTION.md) §R10 |
+| **cascade / shadow cost** | Escalate only local refusals; dollar figure = tokens × list price on free-credit calls (**$0 spent**). | [`18-PRODUCTION.md`](../study/18-PRODUCTION.md) R10.9–R10.12 |
+| **post-mortem / guardrail** | Check *after* a bad answer vs check *before* shipping one — day-one / day-two of `g065` → `check_api`. | [`17-AGENT.md`](../study/17-AGENT.md) R9.3 |
+
+**Rule for decimals in dated entries below:** write the fraction once (`38 of 91`), then the short
+form is optional. An id without the question text is incomplete.
 
 ---
 
 ## Where you are right now
 
 **Phase 6, production (2026-09-14).** The demo is live on Modal and answers with citations
-(`D106`); the CI quality gate is built but has not yet run on a GitHub runner or been made a required
-check (`D97`). Phase 0–5 are closed. Current plan: [`phases/PHASE-6.md`](../phases/PHASE-6.md); the
-latest entry below is the latest event.
+(decision `D106`); the CI quality gate is built but has not yet run on a GitHub runner or been
+made a required check (`D97`). Phase 0–5 are closed. Current plan:
+[`phases/PHASE-6.md`](../phases/PHASE-6.md); the latest entry below is the latest event.
 
 > **This log went stale for a month and was caught up on 2026-09-14.** No entry was written between
 > Aug 15 and Sep 13. The entries for Aug 17 – Sep 12 were **backfilled** from `CLAUDE.md`'s dated
@@ -428,9 +449,10 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
   by experiment before the real cause was found. Removing the clause entirely made it invent a
   method signature. The clause is necessary AND over-fires; the wording that threads it was
   chosen by testing both failure directions.
-- **`simple` and `broken` are different.** D04 withholds hybrid search and reranking. It does
-  not license shipping a component that does not work — with the bad prompt in place, every
-  Step 5 failure would have been unattributable.
+- **`simple` and `broken` are different.** An early design choice (decision `D04`) deliberately
+  withholds hybrid search and reranking so Phase 1 stays naive. That does **not** license shipping a
+  component that does not work — with the bad prompt in place, every Step 5 failure would have been
+  unattributable.
 - **The finding that makes Phase 3 measurable:** a retrieval miss means two different things.
   The symbol is in the corpus and search missed it (**fixable**), or it is in no chunk at all
   (**the ceiling**). Step 5 found 4 and 1. Without the split, Phase 3 would be graded against a
@@ -438,104 +460,180 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
 - **The report does not grade itself.** 19 answers, all marked `UNVERIFIED`. A script scoring
   its own model's output with the same model family measures self-consistency, not truth.
 
-### Aug 17 — Phase 1 verdicts closed, prompt D shipped, eleven lab rounds `(→ phases/PHASE-1.md, D51–D54)` *(backfilled)*
+### Aug 17 — Phase 1 verdicts closed, the shipped prompt, eleven lab rounds `(→ phases/PHASE-1.md; decisions D51–D54)` *(backfilled)*
 
-- **19 verdicts: 10 / 3 / 6**, drafted from `BREAKAGES.md` and executed on 2.0.51, accepted by Viraj.
-- **Each lab round corrected the last:** raising `k` "does not reduce refusals" (`D51`) was measured at
-  `k=5`, where the answers were not retrieved, so `D54` corrects it in place. Prompt D ships.
+- **19 probe answers were graded by hand** against real SQLAlchemy 2.0.51: **10 correct / 3
+  partial / 6 wrong**, accepted by Viraj. That closed Phase 1's second human gate.
+- **Lab rounds corrected each other.** First claim: "raising how many pages go in the prompt does
+  not reduce refusals" (`D51`) — but that run used only 5 pages, and for those questions the right
+  page was not among the 5, so of course more pages would not help *generation*. Later rounds put
+  the page in the prompt and re-measured; the decision was corrected in place (`D54`). The wording
+  that ships is **prompt D** (refusal clause kept, softer than the first draft).
 - Two bugs of mine found by measuring: the review sheet truncated answers at a nested code fence, and
-  symbol matching counted `relation` inside every `relationship` (798 recorded, 21 true).
+  symbol matching counted the substring `relation` inside every `relationship` (798 recorded, 21 true).
 
-### Aug 18 — the chunk gate, the verification answers, and Phase 1 merged `(→ D56, study/13-VERIFICATION.md §R5, D58–D62)` *(backfilled)*
+### Aug 18 — the chunk gate, the verification answers, and Phase 1 merged `(→ study/13-VERIFICATION.md §R5; decisions D56, D58–D62)` *(backfilled)*
 
-- **Chunk gate passed with a written exception:** 2 of 10 sampled chunks fail; the audit of all 3284
-  finds **10.7%** show a broken shape and **6.3%** lose content (`D56`).
-- The cold sitting on the five verification questions **did not pass** (2 of 5); §R5 written.
-- **Phase 1 merged (PR #28).** Phase 2's design settled from measurements (`D58`–`D62`); `rag/score.py`
-  built. One question's answer chunk ranks **1** in docs phrasing and is **absent from the top 20** in
-  developer phrasing.
+- **Chunk quality gate:** Viraj eyeballed ten random chunks; **2 of 10 failed** (one ends mid-sentence
+  on *"is as follows:"*, one opens with *"While the above example…"* with no above). Written exception,
+  not a silent pass (`D56`). An audit of all **3284** chunks found **10.7%** show one of those broken
+  shapes and **6.3%** lose content entirely.
+- Cold sitting on the five interview-style verification questions **did not pass** (2 of 5); the
+  spoken answers were written up as §R5.
+- **Phase 1 merged (PR #28).** Phase 2's scoring rules settled from measurements (`D58`–`D62`); the
+  scorer `rag/score.py` was built. Named finding: one question's answer page ranks **#1** when asked
+  in docs vocabulary and is **not in the top 20** when asked the way a stuck developer types it.
 
 ### Aug 19 — the repo's own knowledge graph `(→ graphify-out/)` *(backfilled)*
 
-- 1074 nodes, 1841 edges; the decision correction chain is traversable.
+- 1074 nodes, 1841 edges; the decision correction chain is traversable (e.g. which later decision
+  reversed which earlier one).
 - A test guard written as `except Exception` could not catch `SystemExit`, and a commit was made on a red
   build by chaining gates and commit in one command.
 
-### Aug 20 — the golden baseline: recall@5 0.51, and phrasing leaks `(→ study/14-MEASURE.md §R6, D63)` *(backfilled)*
+### Aug 20 — the golden baseline: search finds the page 51% of the time `(→ study/14-MEASURE.md §R6; decision D63)` *(backfilled)*
 
-- **50 hand-verified golden items; recall@5 = 0.51.** `migration_guide` 0.73 vs `breakages` 0.41:
-  **phrasing leaks, not provenance** (`D63` corrects `D60`'s label).
-- `--refusals`: **7** answerable items refused with the answer in the prompt; end to end **17/47 = 0.36**
-  against recall 0.51. A fabricated side-by-side example of mine was caught before it shipped.
+- **50 hand-verified golden questions; recall@5 = 0.51** (the verified answer page is in the top 5
+  about half the time). Split by where the question came from: migration-guide-style **0.73**,
+  breakage-style **0.41**. Earlier we had blamed the *source* of the question; the measurement says
+  it is **how the question is phrased** (`D63` corrects the label on `D60`).
+- When we also ran the generator: **7** answerable questions were refused even though the answer
+  page was already in the five pages on the desk; end to end **17 of 47 = 0.36** against that 0.51
+  recall. A fabricated side-by-side example of mine was caught before it shipped.
 
-### Aug 21 — the second 50, the signature, and Phase 3's first three levers `(→ PHASE-2.md, D65–D68)` *(backfilled)*
+### Aug 21 — fifty real questions, two inventions, Phase 3's first levers `(→ PHASE-2.md; study/14-MEASURE.md §R6.2; decisions D65–D68)` *(backfilled)*
 
-- **50 real questions harvested** (Stack Overflow + GitHub). Real developers score worst:
-  **Stack Overflow 0.38**. Answer chunks proposed by BM25, not the graded retriever, to avoid grading
-  the benchmark against itself.
-- **§H closed** by a risk-weighted spot-check of ten; `g065`'s reason rewritten.
-- On 100 items, **2 fabrications** (`g056`, `g065`), and two items flipped overnight with nothing changed:
-  `D54` narrowed to "stable within a sitting".
-- Phase 3: twin collapse (`D66`), hybrid BM25 **0.52 → 0.63** (`D67`), seat-5 reranker **→ 0.64**, 7↑ 0↓ (`D68`).
+- **50 more questions harvested from Stack Overflow and GitHub** (titles kept verbatim). Real
+  stuck developers score worst: **Stack Overflow recall@5 = 0.38**. Proposed answer pages came from
+  BM25 (keyword search), not from the dense retriever we grade — otherwise the benchmark would
+  grade the system against its own top hits.
+- **Human stamp checklist (§H) closed.** Viraj approved a risk-weighted spot-check of ten items.
+  One was *"Create table and view in the same migration"* (`g065`): its note claimed the corpus had
+  zero relevant chunks — wrong; the FAQ chunks exist, they just do not teach that recipe — so the
+  note was rewritten and the "this corpus cannot answer" label kept.
+- On all **100** questions, nine are labelled unanswerable from this corpus. The model correctly
+  refused seven and **answered two it should have declined** (fabrications). The two:
+  - **`g065`** (same migration question) — invented Alembic `op.create_view` / `op.drop_view`, which
+    do not exist on real Alembic next to real `create_table`.
+  - **`g056`** ("Query property for models…") — answered with an unrelated Python `@property` and
+    put the refusal sentence *inside* the answer (why the refuse detector must be a prefix test).
+  Full scripts and checks: §R6.2. Separately, two answerable items flipped overnight with the prompt
+  unchanged → "deterministic" narrowed to **stable within one sitting** (`D54`).
+- Phase 3 retrieval levers, in order: collapse duplicate cross-version chunks (`D66`); add keyword
+  search and fuse it with dense (`D67`, recall@5 **0.52 → 0.63**); promote one strong candidate into
+  seat 5 with a cross-encoder (`D68`, **→ 0.64**, seven questions fixed and none broken vs the old
+  baseline).
 
-### Aug 22 — Phase 3 closed; Phase 4 opens on a 0.43 `(→ study/15-IMPROVE.md §R7, D69–D74)` *(backfilled)*
+### Aug 22 — Phase 3 closed; Phase 4 opens on what the user actually gets `(→ study/15-IMPROVE.md §R7; decisions D69–D74)` *(backfilled)*
 
-- Sphinx strip **rejected** (0.64 → 0.58, `D69`); boundary re-chunking **rejected unbuilt**: the absents'
-  answer chunks are no more broken than the found ones (`D70`).
-- **Retrieval gained 15 points and the user got 8:** end to end **0.43** against a 0.64 ceiling (`D72`).
-- **65% of answers cite nothing** (`D73`); moving the citation rule into the user turn (prompt `H`) was the
-  lever (`D74`).
+- Two more retrieval ideas **rejected with numbers**: stripping Sphinx markup made recall worse
+  (0.64 → 0.58, `D69`); re-cutting chunk boundaries was not built because the 17 questions search
+  never finds are not missing because of severed chunks (`D70`).
+- **Retrieval improved a lot; the user got about half of that.** After Phase 3, search puts the
+  right page in the top 5 for **0.64** of answerable questions, but the model only delivers an
+  answer with that page in hand for **0.43** (`D72`). The gap is generation declining when the
+  evidence is already on the desk.
+- **65% of the answers that did come back cited no source page** (`D73`). The lever that moved
+  citations was **prompt H**: same words as D, but the cite-your-sources rule sits next to
+  `ANSWER:` in the user turn (`D74`). H is a *candidate* here; it is not yet shipped.
 
-### Aug 23 — H measured, and a detector the change itself broke `(→ D74, D76, D77)` *(backfilled)*
+### Aug 23 — prompt H on the Mac, and a detector the change itself broke `(→ decisions D74, D76, D77; fabrication story §R6.2)` *(backfilled)*
 
-- H: **9↑ 0↓, p = 0.0039** on the Mac, after fixing `ask.refused`, which scored `"[2] The sources do not
-  answer this."` as an answer (`D76`).
-- Groundedness without a judge: `g065`'s invented `op.create_view` becomes a cited paraphrase under H (`D77`).
+- Full 100-question run of prompt H vs shipped D on the Mac: **nine questions newly answered, none
+  newly broken** (p = 0.0039) — after fixing a detector bug (`D76`): H sometimes wrote
+  `"[2] The sources do not answer this."`, which is a refusal wearing a citation, and the old
+  prefix test scored it as an answer.
+- **Same `g065` migration question, groundedness without a judge model (`D77`).** Under D the
+  model invented fake Alembic calls. Under H it stopped inventing code and paraphrased the FAQ
+  with a citation. Both still count as "answered an unanswerable item", but the harm is different
+  — which is why a raw fabrication *count* of 2 under every wording is not enough by itself.
 
-### Sep 3 — the prose judge, and a free tier of 20 calls a day `(→ study/16-JUDGE.md §R8, D80–D82)` *(backfilled)*
+### Sep 3 — grading the prose, and a free tier of 20 calls a day `(→ study/16-JUDGE.md §R8; decisions D80–D82)` *(backfilled)*
 
-- The hosted judge's free tier is **20 calls a day per model**, so the judge is local `gemma4:e4b` (`D80`).
-- Faithfulness: D **85%**, H **92%**, but paired only **5↑ 1↓, p = 0.22** (`D82`).
+- A hosted Gemini judge answered **503** / hit a **20 calls per day per model** free-tier ceiling,
+  so the faithfulness judge became local **`gemma4:e4b`** on Ollama — a different family from the
+  generator, so nothing self-grades (`D80`).
+- Share of answers the judge called fully supported by their pages: shipped prompt D **85%**,
+  candidate H **92%**. On the questions **both** answered, the paired gap is only **5 better / 1
+  worse**, not statistically clear (`D82`). So do not say "H is more faithful" — say "H answers
+  more, and the extras mostly hold up."
 
-### Sep 5–10 — the lab: retrieval reproduces, generation does not `(→ D83, D84)` *(backfilled)*
+### Sep 5–10 — the lab: search matches the Mac; answers do not `(→ decisions D83, D84)` *(backfilled)*
 
-- Lab 3060: recall@5 **0.64**, same 17 absents; every generation cell moved. H **6↑ 2↓, p = 0.289**, so
-  **H is held** by the rule written before the run (`D83`).
-- Round 16 killed my compute-path hypothesis: at 100% GPU the lab reproduced to the item (`D84`). The Mac's
-  judge drifts 3 in 110; the lab's re-run is byte-identical.
+- On the lab RTX 3060: recall@5 still **0.64**, same 17 questions search never finds — retrieval
+  bit-identical to the Mac. Every *generation* cell moved. Prompt H there: **6 newly answered, 2
+  newly broken**, p = 0.289. The ship rule was written *before* the run: one regression holds H
+  back — so **H does not ship** (`D83`).
+- A follow-up (Round 16) forced the lab generator fully onto the GPU and still reproduced the same
+  six-and-two to the item — so "maybe it was half on CPU" was wrong (`D84`). The Mac's judge drifts
+  a little across days; the lab's re-run of the same 110 verdicts is byte-identical.
 
-### Sep 11 — Phase 4 closed, Phase 5 opened, and a truncation that reversed a conclusion `(→ D86–D93, study/17-AGENT.md §R9)` *(backfilled)*
+### Sep 11 — Phase 4 closed, Phase 5 opened, half-pages in the agent `(→ study/17-AGENT.md §R9; decisions D86–D93)` *(backfilled)*
 
-- Judge agreement with Viraj **7 of 10**; all three disagreements were `PARTIAL` (`D86`).
-- qwen can call tools, but in `message.content`, not the tool channel (`D87`).
-- **The agent was reading half of every page** (`[:600]`, `D93`). Fixed, it matched the one-shot pipeline
-  at 0.43, and I had written the opposite conclusion two hours earlier.
+- Viraj agreed with the local judge on **7 of 10** hard rows; the three disagreements were all the
+  middle grade `PARTIAL` (`D86`).
+- The local generator **can** call tools, but every call arrived as JSON in the chat text, never on
+  Ollama's native `tool_calls` channel (`D87`).
+- **Bug that reversed a conclusion (`D93`):** the agent truncated every retrieved page to the first
+  600 characters (~half a typical chunk). With full pages it matched the one-shot pipeline at
+  **39 of 91** end to end on the Mac — and the "agent is worse" numbers written hours earlier were
+  withdrawn as a comparison.
 
-### Sep 12 — Phase 5 closed on the lab; Phase 6: gate, router, prices, first demo `(→ D94–D103, study/18-PRODUCTION.md §R10)` *(backfilled)*
+### Sep 12 — Phase 5 closed on the lab; Phase 6 gate, router, prices, first demo `(→ study/18-PRODUCTION.md §R10; decisions D94–D103)` *(backfilled)*
 
-- "The agent matches the pipeline" was a Mac claim; the lab says 0.27–0.36 (`D94`). Policy: the Mac
-  screens, the lab rules (`D95`).
-- Source framing rejected (`D96`). **CI gate built**: removing the reranker is blocked by name, `g017`; the
-  reranker had never been pinned (`D97`).
-- Routing: cascade on refusal beats a score predictor (`D98`); escalations **$1.81 per 1000 queries** if
-  paid; end to end **0.42 → at most 0.53**; 13 of 15 checked escalated answers correct on 2.0.51 (`D99`–`D103`).
-- Hugging Face refused a free Gradio Space (**HTTP 402**); the demo runs locally with in-memory search (`D102`).
+- "The agent matches the one-shot pipeline" was a **Mac** claim; on the lab the agent lands lower
+  (**25 of 91** default / **33 of 91** with levers) (`D94`). Standing policy: the Mac screens
+  experiments; **quote the lab (or both) for anything published** (`D95`).
+- Rewriting the prompt into an agent-style conversation **without tools** did not fix over-refusals
+  in a shippable way (`D96`).
+- **CI quality gate (`D97`):** a PR that changes retrieval re-scores the 100 questions and fails if
+  any previously found answer page leaves the top 5. Demo: turn the reranker off → blocked by name
+  on *"joinedload collection query returns duplicate parents, do I need unique()"* (`g017`). Also
+  found: the reranker model snapshot had never been pinned.
+- **Router (`D98`–`D103`):** predicting hard questions from a relevance score failed; **escalate
+  only when the local model refuses** catches the fixable ones. Shadow cost of escalating every
+  refusal to the big hosted model: about **$1.81 per 1000 queries** if paid (**$0 spent**). Upper
+  bound end to end **38 of 91 → at most 48 of 91**; 13 of 15 checkable escalated claims correct on
+  real 2.0.51.
+- Hugging Face refused a free Gradio Space (**HTTP 402**); the demo path runs search **in memory**
+  (no Qdrant) and was gated identical to the measured index (`D102`).
 
-### Sep 13 — the hosted model measured, the judge corrected, the demo live `(→ PHASE-6.md Steps 4c–4g, D104–D107)`
+### Sep 13 — hosted model measured, judge given headings, demo live `(→ PHASE-6.md Steps 4c–4g; decisions D104–D107)`
 
-- **The new page, checked in a browser:** at 400 px one long code line made it 991 px wide (`1fr` vs
-  `minmax(0, 1fr)`). The first reading hid it because the real answer had no code block. Now scripted
-  (`tools/check_page.py`, the `webapp-testing` skill).
-- **nemotron on all 100:** 0.58 end to end vs qwen 0.42, 16↑ 1↓ (`D104`); same judge **level** with qwen;
-  **47 of 51** checkable answers correct on 2.0.51, and the judge's grade did not predict which (`D105`).
-- **The judge had never been shown page headings** the model saw, found through Viraj's `g044` review.
-  Rules first, noise control 2 of 20, then nemotron **77% → 91%** (11↑ 1↓), and `D104`'s FAIL restated (`D107`).
-- **Demo live on Modal** (`D106`), deployed by a parallel session in the same working tree. Lesson: two
-  sessions editing one tree cost a decision-id clash and a commit that swept in someone else's edits.
-- Money: Modal usage limit $30 = the monthly credits; storage 5.31 GiB inside the free 1 TiB. The dollar
-  figures in the router are **shadow costs**: nothing was spent.
+- **The new page, checked in a browser:** at 400 px one long code line made the page 991 px wide
+  (`1fr` vs `minmax(0, 1fr)`). The first reading hid it because the real answer had no code block.
+  Now scripted (`tools/check_page.py`).
+- **Hosted nemotron on all 100 golden questions (`D104`):** **53 of 91** vs local qwen's **38 of
+  91** (16 newly answered, 1 newly broken). Same independent judge: **level** with qwen on
+  grounding. **47 of 51** checkable answers correct when executed on 2.0.51 — and the judge's
+  SUPPORTED vs PARTIAL grade did **not** predict which (`D105`).
+- **Headings (`D107`):** Viraj's review of *"autoload=True on Table without autoload_with…"*
+  (`g044`) showed the human sheet hid a heading the model had been given. The faithfulness judge
+  had also been scoring **text only**. Noise control first, then re-judge with headings: nemotron
+  supported **53 of 69 → 63 of 69**; the earlier FAIL under D104 restated as PASS for the
+  with-headings figure.
+- **Demo live on Modal (`D106`):** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run —
+  deployed in parallel with another session in the same tree (decision-id clash / dirty commit
+  lesson). Modal usage limit $30 = the monthly credits; HF cache volume ~5 GiB inside the free
+  1 TiB. Router dollar figures remain **shadow costs**.
 
-### Sep 14 — this log caught up `(event only)`
+### Sep 14 — this log caught up; study files rewritten for readers `(event only)`
 
-- A month without entries, noticed because Viraj asked. Backfilled from the dated session notes; the
-  entries above are marked.
+- A month without entries, noticed because Viraj asked. Backfilled from the dated session notes.
+- Same day: Viraj said the backfill still threw ids (`g056`, `g065`, bare `D##`) without meaning.
+  Decoder table added; Aug 17–Sep 13 rewritten so every id sits next to what it names.
+- Later the same day: teaching files still opened on bare decimals (`0.02`, `0.42`) with no count.
+  **Counts-first + jargon glossaries** applied across [`14`](../study/14-MEASURE.md)–[`18`](../study/18-PRODUCTION.md)
+  and this decoder; R9.5 / R10.3 / R10.9 / R10.15b rewritten as *what we ran → what we counted →
+  then the short form*.
+
+### Sep 14 — the CI gate on a real runner, and the hole its own demo found `(→ PHASE-6.md Step 2, D97)`
+
+- **Linux CPU ranks like the Mac's GPU:** PR #29 PASSED, `moved 0`. Cold run 57 min (46 of them embedding).
+- **The demo PR removing the reranker PASSED** — because `rag.score` passed `rerank=True` itself. The gate
+  graded its own settings, not what users get. Fixed test-first; re-run **BLOCKED `g017`**, two minutes warm.
+- **A required check whose workflow is path-filtered never reports**, so the filter became a job that skips.
+- **Phase 6's finish line met:** a stranger gets a cited answer from the live link, and a quality-degrading
+  PR is rejected by name, with the check required on `main`.
+- Round 22 (Phase 4's judge given headings) queued and running on the lab.
+

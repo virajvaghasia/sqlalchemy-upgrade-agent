@@ -16,7 +16,7 @@ quality-degrading PR gets auto-blocked.**
 | step | what | state |
 |---|---|---|
 | **1** | source framing — does the prompt's shape move `D72`'s over-refusals? | **closed, rejected** (`D96`) |
-| **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **built, demo reproduces locally** (`D97`); first run on a real runner not yet taken |
+| **2** | **CI quality gate** — a PR that loses a golden answer fails a check | **done** (`D97`): Linux runner PASSED with `moved 0` (PR #29); removing the reranker **BLOCKED `g017`** on the runner (PR #30); required on `main`. Found: the scorer had graded its own settings, not the shipped defaults — fixed |
 | **3** | routing with shadow cost — cheap questions local, hard ones to a strong model, priced | **3a closed** (`D98`): cascade on refusal; **3b** (`D99`): 16/20 answered, 10 page-supported; **3c** (`D100`): full cascade **$1.81 / 1000 queries**, 0 new fabrications; **3d** (`D101`): 10/16 hold against verified pages → **0.42 → 0.53** upper bound |
 | **4** | deploy + package — a demo link and a README that opens with the product | **live on Modal** (`D106`): https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — HF Gradio refused (402); in-memory path still `D102` |
 | 5 | Langfuse — traces, tokens, latency, cost per query | last, on demand (standing decision) |
@@ -123,6 +123,31 @@ defaults are hybrid on, reranker on, which is what was passed before. PR #30 is 
 passed) when retrieval cannot have moved; a required check that never reports freezes a PR. **`quality gate`
 is now a required check on `main`** (with `tests`, `2.0 evidence`, `image builds`, `docs reproduce`), set by
 Claude at Viraj's request after a first attempt was refused by the permission layer.
+
+**The demo, re-run on the fixed scorer (PR #30, commit `b71bb6f`): BLOCKED on a GitHub runner.**
+
+```
+QUALITY GATE — retrieval, recall@5, paired by golden id
+
+  baseline   58/91 = 0.64
+  this run   57/91 = 0.63
+
+  fixed        0  -
+  broken       1  g017
+  moved        3  (top-5 ids changed, found/not-found did not)
+  unpaired     0  (new items, no baseline yet)
+  exact McNemar p = 1.000  (context only; the gate reads `broken`)
+
+BLOCKED — 1 golden answer(s) left the top 5: g017
+```
+
+**It matches the locally committed demo exactly** (0.63, `broken 1 g017`, `moved 3`), now on a Linux runner.
+With the vectors cached from the earlier run, embedding was skipped: **score 48 s, job 123 s**. A warm gate
+takes about two minutes; only a cold cache costs the hour.
+
+**Phase 6's finish line, both halves, met on 2026-09-14:** the demo link answers with citations (`D106`), and
+a pull request that removes the reranker is rejected by CI by name, with `quality gate` required on `main`.
+PR #30 stays open, unmerged, as the record.
 
 ---
 

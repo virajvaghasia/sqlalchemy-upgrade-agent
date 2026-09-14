@@ -3735,6 +3735,8 @@ right thing to do.**
 
 ### D97 — the CI gate grades retrieval, paired by id, and one lost golden answer fails the check
 
+**Closed on a real runner, 2026-09-14 (PRs #29, #30):** Linux x86 CPU reproduces the MPS baseline (`moved 0`). The demo first PASSED and exposed that `rag.score` always passed `rerank=True`, so the gate graded its own settings, not the shipped defaults; fixed test-first, the re-run reads **BLOCKED `g017`**, identical to the committed local demo. `quality gate` is required on `main`. Runner timings: cold 57–135 min, warm about 2 min.
+
 **Decided 2026-09-12.** Phase 6 Step 2. Code `rag/gate.py`, workflow `.github/workflows/gate.yml`,
 baseline `deliverables/gate-baseline.json`, demo `deliverables/gate-demo-no-rerank.json`, teaching
 `study/18-PRODUCTION.md` §R10.
