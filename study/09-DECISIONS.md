@@ -31,8 +31,8 @@ it. The shape is always the same:
 
 | You see | What it is | What it is **not** |
 |---|---|---|
-| **`D01` … `D107`** | One design decision: decided / instead of / because / asked as | A section number, a score, or a date |
-| **`§A` … `§H`** | Groupings of decisions in *this* register | RAG sittings (`§R1`…) or SQLAlchemy `§0` |
+| **`D01` … `D108`** | One design decision: decided / instead of / because / asked as | A section number, a score, or a date |
+| **`§A` … `§I`** | Groupings of decisions in *this* register: §A–§G by subject, §H the unjustified, §I everything since Phase 1 in date order | RAG sittings (`§R1`…) or SQLAlchemy `§0` |
 | **§H** | “Not yet justified” — chosen but reasoning never recorded | Prompt **H** (a wording in Phase 4) |
 | **🔒 Locked** | Reopening costs more than it saves | “Always correct forever” |
 | **⚠️ Not yet justified** | Do **not** invent a rationale in an interview | A green light to guess |
@@ -701,6 +701,16 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > a guess.
 > **Asked as** — *"Why that embedding model?"* — and the strong answer names the cheaper thing
 > you tested it against, not the leaderboard you read.
+
+## §I — Phase 1 onward, in the order decided (D33–D108)
+
+**From here the register stops grouping by subject and runs in date order**, one entry per decision
+as each phase made it: Phase 1's chunking and prompt (D33–D57), Phase 2's scoring and golden set
+(D58–D65), Phase 3's retrieval levers (D66–D70), Phase 4's judging (D71–D86), Phase 5's agent
+(D87–D95), Phase 6's gate, router and demo (D96–D108). **These entries are not "not yet justified".**
+They sat under §H's heading until 2026-09-14 only because each new entry was appended to the end of
+the file. Two IDs are out of sequence on purpose: D48–D49 sit in §F beside D27, the machine decision
+they measure, and D63 sits just after D61, next to D60 that it corrects.
 
 ### D33 — Chunk size 1800 characters, overlap by whole block — **settled 2026-08-14**
 
@@ -2153,24 +2163,6 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > don't need one. I check whether the API calls in the answer appear in the pages I retrieved.
 > The shipped prompt makes two ungrounded answers in 48; moving the citation rule makes zero in
 > 62 — and it turned an invented Alembic recipe into a cited quote of the FAQ."*
-
-## Using this in an interview
-
-**Three entries carry the project**, and they are the ones nobody else will have:
-
-1. **D03** — ground truth was *measured*, and one pattern both migration tools call safe fails
-   anyway.
-2. **D09** — the eval answer key was deliberately kept out of the corpus, at a cost to current
-   quality.
-3. **D04** — retrieval is bad on purpose, and there is a written file of failures to prove what
-   the fix bought.
-
-**One entry is the trap.** If asked about the stack — Qdrant, BGE-M3 — §H is the truthful
-answer. Saying *"chosen, not yet benchmarked, and here is what I would compare it against"*
-reads as engineering judgment. Reciting a feature comparison you never ran reads as a bluff,
-and the follow-up question finds out.
-
----
 
 ### D78 — pinning the judge is a convenience; "same judge, both arms, one sitting" is the requirement
 
@@ -4286,16 +4278,45 @@ is a trace: what was asked, which five pages were found, what the model wrote, h
 
 ---
 
+## Using this in an interview
+
+**Three entries carry the project**, and they are the ones nobody else will have:
+
+1. **D03** — ground truth was *measured*, and one pattern both migration tools call safe fails
+   anyway.
+2. **D09** — the eval answer key was deliberately kept out of the corpus, at a cost to current
+   quality.
+3. **D04** — retrieval is bad on purpose, and there is a written file of failures to prove what
+   the fix bought.
+
+**Three later entries carry the RAG half**, each because a measurement overturned something:
+
+4. **D83** — retrieval reproduced exactly on a second machine and generation did not, so a prompt
+   that was significant on one box was not shipped.
+5. **D93** — four characters of my own code (`[:600]`) made the agent look worse, and fixing them
+   reversed the conclusion.
+6. **D97** — a CI gate that fails a pull request for losing one golden answer, even when the
+   average stays inside the noise band.
+
+**The stack question used to be the trap, and is not any more.** This paragraph said that if asked
+about Qdrant or BGE-M3, *"chosen, not yet benchmarked"* was the truthful answer. Both were
+benchmarked since: **D32** (a model 25× smaller matched BGE-M3) and **D31** (pgvector beat Qdrant on
+every number, and Qdrant stays for switching cost, not merit). The rule behind the old paragraph
+still holds: say what was measured, and never recite a comparison you did not run.
+
+---
+
 ## Where the rest of the repo lives
 
 | | |
 |---|---|
 | [`../README.md`](../README.md) | the front door, with a **Start here** table |
-| [`../phases/PHASE-2.md`](../phases/PHASE-2.md) | the current phase and its open decisions (`P2-a`…`P2-d`) |
-| [`../phases/PHASE-1.md`](../phases/PHASE-1.md) | the phase before, complete — and the record of how each gate closed |
+| [`../phases/PHASE-6.md`](../phases/PHASE-6.md) | the current phase (D96–D108): the gate, the router, the demo |
+| [`../phases/ROADMAP.md`](../phases/ROADMAP.md) | all six phases; each `PHASE-N.md` is the record of how that phase's gate closed |
 | [`./README.md`](README.md) | this folder's index and the three § numbering families |
 | [`../logs/LEARNING-LOG.md`](../logs/LEARNING-LOG.md) | the dated timeline — *when* things were learned |
 | [`../CLAUDE.md`](../CLAUDE.md) | how the work gets done, and the rules above as working agreements |
 
-**This file has no `§` numbers** — like `03` and `08` it is a register rather than a chapter.
+**This file has no numbered `§` sections of the kind `01`–`18` use** (its `§A`–`§I` are groupings, not
+chapter numbers) — like `03` and `08` it is a register rather than a chapter.
 Cite entries by ID (`D19`), which is stable even when the file is reordered.
