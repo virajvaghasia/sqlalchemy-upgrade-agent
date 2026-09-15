@@ -66,6 +66,7 @@ in the English.
 | R3.3 | we tried three wordings on two questions. No "you may refuse" → invents APIs every time. Strict refuse → gave up once in three. The middle wording is what ships |
 | R3.4 | we proved it was the instruction, not search, by handing the chatbot *only* the right pages. It still refused |
 | R3.5 | "keep the first version simple" does not mean "ship a broken instruction" |
+| R3.6 | over 19 questions A and B were the same, and D replaced both; over 100, D still refuses 19 of the 58 questions where the right page was in the prompt |
 
 ---
 
@@ -161,17 +162,18 @@ Four jobs in that paragraph:
 | 1 | Use only these sources | otherwise the model answers from SQLAlchemy-in-its-weights, which blurs 1.4 and 2.0 (§R1.1) |
 | 2 | Cite `[2]` | a claim you can check against source 2 in seconds |
 | 3 | **You may refuse** — but only if no source is about the subject, and you must name what you looked for | §R1.4: some questions have **zero** chunks (`has_table`). A model has **no** built-in "I don't know" (§R1.1). If you want a refusal, you must ask for one |
-| 4 | If versions disagree, say so | the version label is in the prompt; Phase 1 still does not *filter* on it |
+| 4 | If versions disagree, say so | the version label is in the prompt; nothing that has shipped *filters* on it, Phase 3 included (§R1.5) |
 
 **Job 3 is this section**, and job 3 is the only one that has ever changed. It is **necessary**
 (without it the model invents APIs) and its wording can **over-fire** (refuse even when the docs
 are in the prompt).
 
-> **What the rest of this section describes is B, the wording that shipped until 2026-08-17.**
+> **What R3.3–R3.5 describe is B, the wording that shipped until 2026-08-17.**
 > Read it as the history, because the reasoning is the point and the replacement came out of it.
-> D's own measurements are at the end, in R3.6. The short version: A and B refused the **same 8**
-> of 19 questions, so `D43` chose between two identical options; D fixed one of those and, at
-> `DEFAULT_K = 5`, makes **zero** prompt errors.
+> D's own measurements are in R3.6. The short version: over all 19 probe questions, A and B
+> refused the **same 8**, so `D43` had chosen between two options that behave identically. D
+> refused those 8 **plus Q16**, a question the corpus cannot answer that B had answered anyway.
+> At `DEFAULT_K = 5` every one of D's 9 refusals was correct.
 
 The
 shipped sentence was found by trying three wordings, not by writing carefully once.
@@ -196,7 +198,7 @@ same retrieved chunks. That is a controlled test, not three anecdotes.
 | | the model is told | default behaviour |
 |---|---|---|
 | **A** | *If the sources do not contain the answer, say exactly: "The sources do not answer this."* | refusing is the **easy exit**. "Contain the answer" is a high bar — a page that *explains* `engine.execute` without looking like a FAQ still looks like a miss |
-| **B** (ships) | *Prefer answering from what the sources do say, even indirectly. Only if they are genuinely silent, then refuse.* | answering is the default; refuse is last resort. Same canned sentence as A, harder to reach |
+| **B** (shipped until 2026-08-17) | *Prefer answering from what the sources do say, even indirectly. Only if they are genuinely silent, then refuse.* | answering is the default; refuse is last resort. Same canned sentence as A, harder to reach |
 | **C** | *(that sentence deleted)* | always write an answer. When the sources are empty, the text comes from **weights**, not from `[1]`–`[5]` |
 
 In the tables below, **CAPS + x** = that column's **failure**. Lowercase + ok = that column's
@@ -209,7 +211,7 @@ question is bad. Same English words, opposite columns.
 # summary of: 09-DECISIONS.md D43 — the original table
 prompt                          answerable      unanswerable
 A  canned refusal as the exit   REFUSED  x      refused  ok
-B  refusal as last resort       answered ok     refused  ok     <- shipped
+B  refusal as last resort       answered ok     refused  ok     <- shipped at the time
 C  no refusal clause            answered ok     ANSWERED x
 ```
 
@@ -227,7 +229,7 @@ sitting rather than an evening.
 #   The "answerable" column is the cell D43 recorded as REFUSED.
 prompt                          answerable        unanswerable
 A  canned refusal as the exit   refused  1 / 13   refused  13 / 13
-B  refusal as last resort       answered 13 / 13  refused  13 / 13    <- shipped
+B  refusal as last resort       answered 13 / 13  refused  13 / 13    <- shipped at the time
 C  no refusal clause            answered 13 / 13  ANSWERED 13 / 13  x
 ```
 
@@ -255,11 +257,15 @@ in that order. **Retrieval is deterministic** — every difference between runs 
 B is the only variant that has **never** been wrong in these runs. That sentence only became
 sayable by re-running a decision that was already "done."
 
-What changed is **confidence in half the justification**, not the choice. Keep B.
+What changed on 2026-08-16 was **confidence in half the justification**, not the choice: keep B.
+**The next day the choice changed too**, for a reason these two questions could never show. Run
+over all 19 probe questions, B turned out to behave exactly like A, and a fourth wording, D, beat
+both. R3.6 has that.
 
-> **`n=1` per cell, and this is what that costs.** Two questions × three prompts. It names a
-> **mechanism**. It cannot name a **rate**. Anyone quoting either table as "A fails 100% of
-> the time" is overreading. Step 5 is where the shipped wording meets ~20 questions.
+> **`D43`'s table is `n=1` per cell, and this is what that costs.** Two questions × three prompts.
+> It names a **mechanism**. It cannot name a **rate**. Anyone quoting it as "A fails 100% of the
+> time" is overreading. The 13-run table narrows that for these two questions only. Step 5 is
+> where the wording met 19 questions (R3.6), and Phase 4 is where it met 100.
 
 ### R3.4 How we knew it was the instruction, not search
 
@@ -300,10 +306,17 @@ Someone can ask: then why rewrite the standing rules? Isn't that cheating?
 **D04 says do not add extra search machinery yet. It does not say ship instructions that do
 not work.**
 
-If we had kept wording A as the default, the file of failures (`deliverables/FAILURES.md`)
-would mostly say *"the chatbot refused."* That file exists to show where *search* breaks, so
-the next phase has a before-number. One instruction bug copied onto every row is not forty
-findings. It is one bug forty times. That is **D44**.
+The argument, as `D44` made it on 2026-08-15: the file of failures (`deliverables/FAILURES.md`)
+exists to show where *search* breaks, so the next phase has a before-number. A broken instruction
+sitting in front of search puts its own failure on every row, and then no row tells you anything
+about search. **That principle stands.**
+
+**The example it was made with did not survive measurement.** `D44` said that with wording A,
+*every* Step 5 question would have failed. Two days later A ran over all 19 questions (`D52`) and
+refused **8** — the same 8 as B, question by question. So keeping A would have produced the same
+file B did. The instruction that really would have poisoned every row is **C**, which refuses
+nothing and so answers the questions the corpus cannot answer, with no sign that it is guessing.
+**Deleting the refusal sentence is the bug `D44` protects against; A versus B was never it.**
 
 Say in an interview:
 
@@ -311,8 +324,87 @@ Say in an interview:
 
 A **limit we chose** is one we can name before we run: we do not search by exact words yet;
 method signatures are not in the `.rst` files. A **bug** is one we found by testing: no
-"you may refuse" sentence → invents APIs every time; the strict sentence refused a question
-it could answer once. The standing rules were a bug wearing a limit's clothes.
+"you may refuse" sentence → invents APIs every time (C, 13 of 13); B answered Q16, a question
+the corpus cannot answer, where D refuses it (R3.6). The standing rules were a bug wearing a
+limit's clothes.
+
+### R3.6 D replaced B — and what 100 questions later said about D
+
+**Two questions could not tell A from B. Nineteen could.** On 2026-08-17 the lab PC ran every
+wording over all 19 probe questions from Step 5 (`D52`, `D53`), at `DEFAULT_K = 5`:
+
+```
+# summary of: 09-DECISIONS.md D53 — Round 9, lab PC, 19 probe questions, k=5
+prompt    refused  answered   of 19
+A               8        11
+B               8        11    <- shipped at the time
+C               0        19
+D               9        10    <- answer partially, refuse only on subject
+```
+
+Read it as sentences:
+
+- **A and B refused the same 8, question by question.** The one difference `D43` had seen did not
+  exist over 19 questions. `D43` had picked between two options that behave identically.
+- **C refused nothing**, so it answered the three questions whose answers are in no chunk at all.
+  That is the fabrication from R3.3, now on 19 questions instead of one.
+- **D refused the same 8 plus Q16.** Q16 is a question the corpus cannot answer, and B had answered
+  it confidently. D's sentence says *name the specific thing you looked for and did not find*.
+  Having to name the missing thing is what stopped the model inventing one.
+
+**Were D's other 8 refusals mistakes?** Four of them (Q4, Q6, Q15, Q17) have nothing in the
+corpus, so refusing is right. The other four (Q3 `table_names`, Q5 `keys()`, Q18, Q19) *do* have
+answers in the corpus, at ranks **23, 12, 8 and 6**. All four are outside the top 5, so the answer
+was **not in the prompt**. Refusing a question whose pages you were not given is honest, not an
+over-refusal. So at k = 5, **D made no prompt errors on these 19** (`D54`).
+
+**And k stayed 5 because 10 was measured and was worse** (`D54`): at k = 10, Q18 and Q19 had their
+answer pages in the prompt and every wording refused anyway, and Q5 got five more near-miss pages
+and the model talked itself into a fabricated answer. **More pages did not produce more answers.
+They produced two over-refusals and one invention.**
+
+Five repeat runs on the same day came back identical in every cell (`D54`, Round 11), so this
+table is not luck at `n=1`. (Across days on the Mac, two items later flipped; `D54`'s scope notes
+and `D84` say why that is the Mac's generator.)
+
+#### Then 100 questions, and "no prompt errors" stopped being true
+
+"No errors on 19 probe questions" is a claim about 19 questions. Phase 2 built a 100-question
+golden set and Phase 4 ran D over it. The answers are saved, so the counts are derived here from
+the files, not typed:
+
+```
+# runnable: uv run python -c "
+# import json
+# from rag import compare_prompts as cp
+# for machine, f in (('Mac', 'prompt-sweep-phase4.json'), ('lab', 'prompt-sweep-round16.Linux-x86_64.json')):
+#     c = cp.cells(json.load(open('deliverables/' + f))['D'])
+#     print(f\"{machine}: page in prompt {c['ceiling']}/{c['n_ans']}   answered with it {c['end_to_end']}   \"
+#           f\"refused with it {c['over_with']}   fabricated {c['fabricated']}/{c['n_una']}\")"
+Mac: page in prompt 58/91   answered with it 39   refused with it 19   fabricated 2/9
+lab: page in prompt 58/91   answered with it 38   refused with it 20   fabricated 2/9
+```
+
+- **`page in prompt 58/91`** — of the 91 questions the corpus can answer, search put an answer page
+  in the five for 58. Same on both machines, because search is the same computation (`D83`).
+- **`refused with it 19` / `20`** — the page was in front of the model and D still said *"The
+  sources do not answer this."* That is the over-refusal this file was about, back at scale: **about
+  one in three of the questions where search did its job** (19 of 58). Two probe questions (Q18,
+  Q19 at k=10) had become 19 golden ones at k=5.
+- **`answered with it 39` / `38`** — the number the system actually delivers: 39 of 91 = **0.43**
+  on the Mac, 38 of 91 = **0.42** on the lab.
+- **`fabricated 2/9`** — of the 9 questions marked unanswerable, D answered 2 (`g056`, `g065`)
+  instead of refusing.
+
+**D still ships.** A candidate called H, which moves the citation instruction next to `ANSWER:`,
+answered more on the Mac and did not reproduce on the lab (6 fixed, 2 broken), so it was held
+(`D83`, `D84`). That story, and how answers get graded rather than counted, is
+[`14-MEASURE.md`](14-MEASURE.md) §R6.2 and [`16-JUDGE.md`](16-JUDGE.md) §R8.
+
+**What this is not.** The 19-question result was not wrong. It was true of 19 questions at k = 5.
+The golden set asked harder, more varied questions, and the same wording over-refused on a third
+of the ones search got right. A prompt that is correct on your test questions is correct on your
+test questions.
 
 ---
 
@@ -325,14 +417,22 @@ it could answer once. The standing rules were a bug wearing a limit's clothes.
 | **user prompt** | this question's five pages + the question itself |
 | **refusal** | it prints exactly `The sources do not answer this.` instead of explaining |
 | **refusal clause** | the sentence that *allows* that. Delete it (prompt C) and it invents APIs |
-| **over-firing** | that sentence fires when it should not — A refused `engine.execute` even though those pages were in the message (1 of 13 runs) |
+| **over-firing** | that sentence fires when it should not — A refused `engine.execute` even though those pages were in the message (1 of 13 runs). On the 100 golden questions, D does it on 19 of the 58 where the page was in the prompt (R3.6) |
+| **prompt D** | the wording that ships since 2026-08-17 (`D54`): answer what the sources support, refuse only when no source is about the subject, and name what you looked for |
 | **n=1** | one try per table cell. Enough to see a mechanism. Not enough to say "A always fails" |
 | **unattributable failure** | you cannot tell *why* a later test failed, because a broken instruction sat in front of search |
 
 ## Before Sitting 4
 
 Two commands. First: look at the **system paragraph** above the sources, not only the model's
-answer. Second: the A/B/C experiment from R3.3 (a few minutes; it may not match D43's table).
+answer. Second: the R3.3 experiment on its two questions, now with all four wordings A, B, C and
+D (eight generations; it may not match D43's table).
+
+> **The second command crashed until 2026-09-14.** Its default path used a variable `k` that was
+> never defined, so it died with `NameError` before generating anything, from `eeedbc4`
+> (2026-08-17) onward. Every other mode of the script passed `k` in, and no test ran the default
+> path. Fixed, with two tests in `tests/test_compare_prompts.py` that run it with the model
+> stubbed out.
 
 ```bash
 uv run python -m rag.ask "should I pass future=True to create_engine?" --show-prompt
@@ -370,28 +470,32 @@ question is a claim; when the evidence moves, the question moves.
 
 **Q1 — why "necessary" is the stronger claim, and how to say it**
 
-C failed every time we ran it. A failed once in three. Same number of tries; not the same
+C failed every time we ran it. A failed once in thirteen. Same number of tries; not the same
 strength.
 
-| prompt | what we saw |
+| prompt | what we saw, 13 runs of the two R3.3 questions |
 |---|---|
-| **C** (no "you may refuse") | invented a `Session.execute(...)` signature **3/3** |
-| **A** (refuse if sources "do not contain the answer") | refused `engine.execute` **1/3** — D43 yes, two later runs no |
-| **B** (prefer answering; refuse only if silent) | **6/6** cells correct |
+| **C** (no "you may refuse") | invented a `Session.execute(...)` signature **13/13**, the same invention each time |
+| **A** (refuse if sources "do not contain the answer") | refused `engine.execute` **1/13** — `D43`'s original run, never again |
+| **B** (prefer answering; refuse only if silent) | **26/26** cells correct |
+
+*(An earlier version of this answer said 3/3, 1/3 and 6/6. Those were the counts after the two
+Mac re-runs; the ten lab runs on 2026-08-17 had not been added.)*
 
 *Why that is not nitpicking:* "C is why the clause stays" is a **mechanism you can replay**.
-"A always over-fires" was written like a mechanism, but 1-in-3 might be luck. Three runs
-cannot tell those apart for A.
+"A always over-fires" was written like a mechanism, but 1 in 13 might be luck. Thirteen runs
+still cannot tell those apart for A.
 
 *Say in an interview:*
 
-> "If I delete the refuse sentence, the model fabricates an API — that repeated three times,
+> "If I delete the refuse sentence, the model fabricates an API — that repeated thirteen times,
 > so the sentence stays. The stricter wording refused a question it could answer once; I
-> could not make that happen again. I still ship the softer wording (B) because it was never
-> wrong in any cell. I am not claiming A fails 100% of the time."
+> could not make that happen again. Over 19 questions the strict and soft wordings behaved
+> identically, so I ship a third wording, D, that also refuses the one unanswerable question
+> the soft one answered. I am not claiming A fails 100% of the time."
 
 *Not:* "I tried three prompts and picked the nicest." *Also not:* "the experiment failed, so
-none of this counts." B is still **6/6**. Weak A evidence does not make C a good idea.
+none of this counts." Weak A evidence does not make C a good idea.
 
 **Q2 — how you know it was the prompt, not search**
 
@@ -415,12 +519,17 @@ Nothing is left upstream of `SYSTEM`. That is the proof. Reading the paragraph a
 D04 says do not add hybrid search or reranking yet. It does not say leave a **broken**
 `SYSTEM` in place.
 
-If we had kept A as the default, almost every Step 5 row in `FAILURES.md` would have been
-"refused." That file is supposed to show **retrieval** failures so Phase 3 has a before
-number. One prompt bug copied onto every row is not forty findings.
+`FAILURES.md` is supposed to show **retrieval** failures so Phase 3 has a before number. An
+instruction bug in front of search puts its own failure on the rows, and those rows stop saying
+anything about search.
+
+*Do not use the old example.* This answer used to say that with A, almost every Step 5 row would
+have been "refused". Measured over all 19 (`D52`), A refused 8, the same 8 as B. The instruction
+that would have spoiled the file is C: no refusal sentence, so it answers the questions the
+corpus cannot answer.
 
 *Deliberate limit:* we can name it before we run (no BM25; no API HTML).  
-*Bug:* we found it by testing (C fabricates; A over-refused once).
+*Bug:* we found it by testing (C fabricates 13 of 13; B answered unanswerable Q16, D refuses it).
 
 ---
 

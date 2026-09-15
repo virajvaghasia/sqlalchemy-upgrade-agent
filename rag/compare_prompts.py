@@ -584,6 +584,9 @@ def main() -> None:
         sweep_all(variants, k=kk, repeat=rp)
         return
 
+    # The two-question D43 run. `k` was undefined here from eeedbc4 until
+    # 2026-09-14, so this path crashed on its first retrieve.
+    k = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K
     grid: dict[tuple[str, str], bool] = {}
 
     for kind, question in QUESTIONS:

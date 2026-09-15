@@ -1001,6 +1001,12 @@ they measure, and D63 sits just after D61, next to D60 that it corrects.
 > that is supposed to justify Phase 3 would have recorded one bug forty times.
 > **Asked as** — *"You said the system is bad on purpose. How do you tell that from actually
 > broken?"*
+>
+> ⚠️ **EXAMPLE CORRECTED 2026-09-15 — the decision stands, the cost sentence does not.** `D52`
+> ran A over all 19 Step 5 questions two days later: A refused **8**, the same 8 as B. So A would
+> not have failed every question, and there were 19 questions, not forty. The instruction that
+> would have put one bug on every row is **C** (no refusal clause), which answered all three
+> questions the corpus has nothing for. `11-GENERATION.md` §R3.5 teaches it that way now.
 
 ### D45 — Split "retrieval failed" from "the corpus never had it" — mechanically
 
