@@ -600,10 +600,13 @@ def opens_backward_shape(c: dict) -> bool:
 # looks wrong on its own — which is the whole problem. Broken prose is visible,
 # broken code is not (§R5.3).
 #
-# "Positive evidence of code on either side" is what makes the claim `at least`:
-# an indented line alone is a terrible proxy in glossary.rst, where every
+# An indented line alone is a terrible proxy in glossary.rst, where every
 # definition body is indented under its term. Requiring a Python/SQL token as
-# well is what took the loose count of 123 down to the defensible 11.
+# well cuts the loose count down -- but NOT to the hand count's 11. Run over the
+# whole corpus on 2026-09-15 this rule (a token on BOTH sides) flags 5 of 3077
+# boundaries; a token on EITHER side flags 37; nothing here reproduces 11.
+# Read one by one, 3 of the 5 are real severances (c00233, c01869, c01094) and 2
+# are cuts between complete statements (c02626, c02823). §R5.3 has the table.
 _CODE_TOKEN = re.compile(
     r"(=|\(|\)|\bimport\b|\bdef\b|\bclass\b|\breturn\b|\bSELECT\b|>>>|\.\.\.)")
 
@@ -666,8 +669,8 @@ def audit(chunks: list[dict]) -> dict:
     introduce a listing, so the chunk would have announced code and then
     dropped it. That count is reported because **zero is a real result** —
     the packer never stops on that knife-edge. Splitting *inside* a listing
-    is a third defect, measured in study/13-VERIFICATION.md §R5.3 (at least
-    11 of 3077 boundaries), not here.
+    is a third defect, measured in study/13-VERIFICATION.md §R5.3 (5 of 3077
+    boundaries flagged by severed_listing, 3 real on reading), not here.
     """
     nxt, prv = neighbours(chunks)
 

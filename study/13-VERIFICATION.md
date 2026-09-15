@@ -225,6 +225,42 @@ no as a shipped fix — Round 7 left refusals at 8 at every k, and at k=10 the p
 prompt and the model still refused (`D51`/`D54`). Name both halves so it does not sound like you
 forgot the generation side.
 
+#### What happened when Phase 3 built the fixes — and the follow-up you will get today
+
+The *Say this* above is the answer as it stood when Phase 1 closed. **Three of its sentences are
+predictions**, and Phase 3 has since tested them. Same five questions, Phase 1's retriever against
+today's shipped one (keyword search merged in, exact twins collapsed, a reranker for seat 5;
+`D66`–`D68`), measured 2026-09-14:
+
+| symbol | Phase 1 rank | what the answer above predicted | today | did the prediction hold? |
+|---|---|---|---|---|
+| `backref` | 6 | "one integer" (k = 6) | **2** | the page got in, but **without** changing k — Phase 3's changes moved it |
+| `cascade_backrefs` | 8 | "a reranker on a wider list fixes it" | **7** | **no** — still outside the five |
+| `keys()` | 12 | "a reranker on a wider list fixes it" | **16** | **no** — worse |
+| `table_names` | 23 | "the only one keyword search helps" | **not in top 25** | **no** — worse. Every page that answers it says `get_table_names`, and keyword search treats that as a different word from `table_names` |
+| `has_table` | none | "nothing retrieval can do" | none | **yes** |
+
+The command and the reasons are in [`10-RETRIEVAL.md`](10-RETRIEVAL.md) §R2.6. Which of Phase 3's
+steps moved `backref` was not isolated.
+
+**This does not weaken the answer to Q1. It is the strongest thing you can add to it.** The
+question was *why build the naive version first*, and the reason was *so a fix can be credited to
+the failure it fixed*. That is exactly what happened: because Phase 1's ranks were written down,
+you can say which predicted fixes worked on which questions, and that two went backwards while the
+golden-set average went up (recall@5 0.49 → 0.64, 7 fixed and 0 broken against the saved
+baseline). Without the naive run, "hybrid search improved recall" would be the whole story.
+
+**What not to do with this:** do not keep saying "a reranker fixes 8 and 12" or "keyword search
+fixes `table_names`." Those are the sentences an interviewer can check against your own repo.
+
+**The follow-up an interviewer now asks: "So did hybrid search fix them?"** Say it plainly:
+
+> On the golden set, yes on average — recall@5 went from 0.49 to 0.64 with seven questions fixed and
+> none broken. On the five questions from this table, one: `backref` moved from 6 to 2. Two got
+> worse. `table_names` was the one I expected keyword search to fix, and it cannot, because every
+> page that answers it says `get_table_names` and keyword search matches whole words. I only know
+> that because the Phase 1 ranks were written down before anything changed.
+
 ---
 
 ### R5.2 Q2 — "What is in your corpus and what did you leave out?"
@@ -418,7 +454,7 @@ PROSE-SHAPED (Shapes A / B)         CODE-BLOCK-SHAPED (::)          SEVERED LIST
 |---|---|---|
 | **Prose-shaped** | Chunk ends *“…is as follows:”* or opens *“While the above example…”* | ~10.7% of chunks; ~6.3% lose content (`rag/chunk.py --audit`) |
 | **Code-block-shaped** | Chunk ends on `::` — announced a listing and dropped it | **0** chunks. Real positive result |
-| **Severed listing** | Cut falls **inside** the body of a listing | **at least 11** of 3077 boundaries — **this question** |
+| **Severed listing** | Cut falls **inside** the body of a listing | **3 confirmed** of 3077 boundaries, 5 flagged (was quoted as 11; see the evidence below) — **this question** |
 
 Zero chunks ending `::` means: we never split *at the line that introduces* a listing. It does
 **not** mean “we never split code.” This question is about splits *inside the body*.
@@ -475,31 +511,68 @@ chunks 3284 | with a code block 2461 = 74.9%
 
 #### The evidence — and a correction made while measuring it
 
-The question is posed hypothetically in `PHASE-1.md`. It is not hypothetical. Measured
-2026-08-18:
+The question is posed hypothetically in `PHASE-1.md`. It is not hypothetical. First measured
+by hand on 2026-08-18; since 2026-08-22 the rule is code in `rag/chunk.py` (`severed_listing`,
+`D70`), and this block uses that code:
 
 ```
-# summary of: chunk boundaries falling inside an indented literal block, computed
-#   over corpus/chunks.jsonl by comparing each chunk's last non-blank line with the
-#   next chunk's first non-blank line in the same source file, and checking whether
-#   the boundary is covered by overlap (char_start < previous char_end).
-chunk boundaries, total                                     3077
-  inside an indented literal block                           123
-    repaired by whole-block overlap                           27
-    SEVERED — no overlap, no chunk holds the block entire      96
-      of which glossary.rst                                   72   ← NOT code
-  severed with positive evidence of code on either side        11
+# runnable: uv run python -c "
+# import json
+# from rag import chunk
+# cs = [json.loads(l) for l in open('corpus/chunks.jsonl')]
+# nxt, _ = chunk.neighbours(cs); by = {c['id']: c for c in cs}
+# ind = lambda l: l.startswith(('    ', '\t')); code = lambda l: bool(chunk._CODE_TOKEN.search(l))
+# rows = []
+# for a, b in nxt.items():
+#     last, first = chunk._non_blank(by[a]['text'])[-1], chunk._non_blank(b['text'])[0]
+#     if ind(last) and ind(first):
+#         rows.append((a, b['char_start'] < by[a]['char_end'], by[a]['source_path'].endswith('glossary.rst'), code(last), code(first)))
+# cut = [r for r in rows if not r[1]]
+# print('chunk boundaries, total                                 ', len(nxt))
+# print('  indented on both sides of the cut                      ', len(rows))
+# print('    repaired by whole-block overlap                      ', len(rows) - len(cut))
+# print('    SEVERED - no overlap                                  ', len(cut))
+# print('      of which glossary.rst (NOT code)                    ', sum(r[2] for r in cut))
+# print('      code-looking on EITHER side                         ', sum(r[3] or r[4] for r in cut))
+# print('      code-looking on BOTH sides = chunk.severed_listing   ', sum(chunk.severed_listing(by[a], nxt[a]) for a in nxt))
+# print('      c00233 among them:', chunk.severed_listing(by['c00233'], nxt['c00233']))"
+chunk boundaries, total                                  3077
+  indented on both sides of the cut                       123
+    repaired by whole-block overlap                       27
+    SEVERED - no overlap                                   96
+      of which glossary.rst (NOT code)                     72
+      code-looking on EITHER side                          37
+      code-looking on BOTH sides = chunk.severed_listing    5
+      c00233 among them: True
 ```
 
 **The first number produced was 96, and it was wrong.** The rule *"indented on both sides of the
 boundary"* is a good proxy for a literal block in most files and a terrible one in `glossary.rst`,
 where every definition body is indented under its term — so three quarters of the 96 were the
-glossary's ordinary shape, not split code. Requiring positive evidence of code on one side (a
-doctest prompt, an `import`, a `class`/`def`, an assignment) gives **11**.
+glossary's ordinary shape, not split code.
 
-Honest claim: **"at least 11 of 3077 boundaries sever a code block, and the looser count is
-inflated by glossary formatting."** A regex is not an RST parser. The gap between 11 and 96 is
-where that shows.
+**And the number that replaced it, 11, was wrong too.** The hand count required positive evidence
+of code (a doctest prompt, an `import`, a `class`/`def`, an assignment) on one side and got **11**.
+When the rule became code, "code-looking" became a regex that also counts brackets and `=`, and it
+was applied to **both** sides. Nobody ran it over the whole corpus until 2026-09-15: it says **5**.
+With the same regex on either side it says **37**. No rule in the repo reproduces 11, so 11 is
+withdrawn.
+
+**Then the 5 were read, because a detector's count is not a finding.** Printing the last lines
+of each chunk and the first lines of the next:
+
+| flagged | page | what the cut does | real severance? |
+|---|---|---|---|
+| `c00233` → `c00234` | `core/operators.rst`, 1.4.52 | `class User` ends with `relationship("Address", …)`; `class Address` is only in the next chunk | **yes** — the worked example below |
+| `c01869` → `c01870` | `core/operators.rst`, 2.0.51 | the same page at 2.0, cut in the same place | **yes** — the twin of the one above |
+| `c01094` → `c01095` | `orm/queryguide.rst`, 1.4.52 | `class User` has `relationship("Address", …)` and `relationship("Order")`; `Address` starts the next chunk | **yes** |
+| `c02626` → `c02627` | `orm/large_collections.rst`, 2.0.51 | the model class ends complete; the next chunk starts a separate `create_engine` setup | no — cut between two complete statements |
+| `c02823` → `c02824` | `orm/queryguide/dml.rst`, 2.0.51 | ends on a finished `delete` example; next chunk is a `session.rollback()` teardown | no — already read and cleared in `D70` |
+
+Honest claim: **"the committed detector flags 5 of 3077 boundaries; read one by one, 3 are code
+examples cut in half, from 2 distinct pages, and `c00233` is the one to open."** The looser counts
+(37, 96) are inflated by brackets in prose and by glossary indentation. A regex is not an RST
+parser, and 5 flagged against 3 real is where that shows.
 
 #### The worked example — which half has what
 
@@ -570,8 +643,9 @@ Different sizes. Different outcomes.
 > never happens and there is no error. Separating a listing from the heading that dates it also
 > drops an unlabelled snippet into an index that holds 1.4 and 2.0 on purpose.
 >
-> I measured it instead of assuming. **At least 11 of my 3077 chunk boundaries cut inside a code
-> listing** with no overlap to repair it. One concrete case: `core/operators.rst`, chunks
+> I measured it instead of assuming. **My detector flags 5 of 3077 chunk boundaries as cutting
+> inside a code listing; I read all 5, and 3 really cut an example in half**, with no overlap to
+> repair it. One concrete case: `core/operators.rst`, chunks
 > `c00233` and `c00234`, characters **1528 then 1529** — adjacent, zero overlap. The first half
 > ends with `relationship("Address", back_populates="user")`. The class `Address` only exists in
 > the second half. Both halves look complete. Retrieve the first alone and you get a mapping that
@@ -591,9 +665,9 @@ Different sizes. Different outcomes.
 - *"It loses context."* — So does every chunk boundary. Vague. Name the silent half-example and
   the paste risk.
 - *"We never split code because zero chunks end on `::`."* — Zero `::` means we never split at
-  the *introduction*. The 11 are splits *inside the body*. Mixing those three cuts (prose /
+  the *introduction*. The 3 are splits *inside the body*. Mixing those three cuts (prose /
   `::` / severed listing) is the most common wrong shape of a right-sounding answer.
-- Stopping at *"I measured 11."* without a named example. The number alone is forgettable;
+- Stopping at *"I measured 3."* without a named example. The number alone is forgettable;
   `c00233` ending on `relationship("Address", …)` with `Address` only in `c00234` is not.
 - *"So I will fix it with overlap."* — Overlap already exists (`D33`/`D34`, whole-block). It
   repaired `c03012`/`c03013` and **failed** on `c00138` (exact boundary at 7880). Same rule,
@@ -603,12 +677,12 @@ Different sizes. Different outcomes.
 
 **"So detect it and fix the chunker."**
 
-Detecting it is harder than it sounds, and this file's own **96-versus-11** correction is the
-demonstration: a regex over "indented on both sides" mistook 72 glossary entries for split code,
-because glossary bodies are indented under their terms by nature. Doing it properly needs an RST
-parser — a real piece of work, not a guard clause — and that is a defensible reason for it to be
-open rather than done. Honest claim: *at least* 11, and the looser count is inflated by glossary
-formatting.
+Detecting it is harder than it sounds, and this file's own corrections are the demonstration:
+a regex over "indented on both sides" mistook 72 glossary entries for split code (96), a hand
+count said 11, and the committed detector says 5 with 37 under a looser reading of the same regex.
+Three reasonable rules, three numbers — and reading the 5 left 3. Doing it properly needs an RST parser — a real piece of
+work, not a guard clause — and that is a defensible reason for it to be open rather than done.
+Honest claim: 3 read and confirmed, with `c00233` as the one you can open.
 
 Second follow-up: **"Does overlap fix it?"** Sometimes. Show `c03012` (repaired — next chunk
 starts inside it at 28953) next to `c00138` (unrecovered — previous ends exactly at 7880). Same
@@ -684,8 +758,14 @@ Count the characters if it helps: `Query.get` vs `Session.get` — most letters 
 often the **most precise** part of a developer’s question — is the part meaning search is
 structurally worst at reading.
 
-**Keyword search** (`grep`-like / BM25) looks at the letters. That is the missing channel.
-Phase 3’s hybrid search = meaning search **plus** letter search. Not “a bigger meaning model.”
+**Keyword search** (BM25) looks at the **words**. That is the missing channel. Phase 3’s hybrid
+search = meaning search **plus** word search. Not “a bigger meaning model.”
+
+**Words, not letters — and the difference bit this project.** `grep` matches letters anywhere:
+`grep table_names` finds `get_table_names`. BM25 first cuts the page into whole words, so
+`get_table_names` is one word and `table_names` is another. The six pages that answer the
+`table_names` question all say `get_table_names`, so to BM25 the developer's word is on **zero**
+pages (measured 2026-09-14, `10-RETRIEVAL.md` §R2.6).
 
 #### What this example is — and what it is not
 
@@ -714,7 +794,7 @@ not “does the string `table_names` appear.” A rare exact identifier is often
 the question and the worst clue for dense retrieval.
 
 ```
-   MEANING MAP (dense / Phase 1)              LETTER MATCH (grep / BM25 — not in Phase 1)
+   MEANING MAP (dense / Phase 1)              WORD MATCH (BM25 — added in Phase 3)
 
         Query.get()  ●                          Query.get()     ← string match finds this
                       ● Session.get()           Session.get()   ← different string
@@ -744,13 +824,18 @@ ones**, not the `Query.get` teaching pair:
 | `has_table` | **0** | absent from all 3284 | Ceiling (`D45`) — not a dense-search miss at all |
 
 `backref` alone kills the rarity story. Whatever went wrong at rank 6, scarcity was not it.
-Rarity is an **IDF** idea — it is what makes BM25 (letter search) work. A dense retriever holds
+Rarity is an **IDF** idea — it is what makes BM25 (word search) work. A dense retriever holds
 no term-frequency statistics; there is nothing for rarity to act on.
 
 `table_names` is a different shape again: its returned top-5 scored `+0.001` and `+0.000` over
 noise (random pairs average ~0.540 — §R2.5). Search did not rank the answer low. It found
-nothing and filled five slots with near-random text. Reranking that list cannot help; keyword
-search can.
+nothing and filled five slots with near-random text. Reranking that list cannot help.
+
+*This section used to end "keyword search can."* **Phase 3 shipped keyword search and it could
+not**: `table_names` went from rank 23 to outside the top 25, because the answer pages say
+`get_table_names`, a different word to BM25. Keyword search helps when the developer types the
+same word the page uses — `autoload_with` on golden question `g044` goes from meaning rank 12 to
+keyword rank 1.
 
 And `has_table` is not a ranking miss: **0 chunks**. Same-looking wrong answer from outside;
 different owner.
@@ -781,9 +866,10 @@ different owner.
   rank 6 is the counterexample you should have ready before the interviewer asks.
 - *"It needs a better embedding model."* — Capacity is not the gap; the lexical channel is
   missing. A model 25× smaller matched on R@5 (`D32`).
-- *"Hybrid search will fix all of these."* — Only the ones where the string is in the corpus and
-  dense search failed to prefer it. It does not create `has_table` out of zero chunks, and it is
-  not what `backref` at rank 6 primarily needs (that one is one integer of depth).
+- *"Hybrid search will fix all of these."* — Only the ones where the developer's **word** is on the
+  answer page and dense search failed to prefer it. It does not create `has_table` out of zero
+  chunks. And it did not fix `table_names`, whose pages say `get_table_names` — measured after
+  Phase 3 shipped, not argued (R5.1's "What happened" table).
 - Stopping at the slogan *"meaning not strings"* without separating **teaching pair**
   (`Query.get` / `Session.get`, ranked 1) from **measured miss** (`backref` at 6).
 
@@ -795,6 +881,12 @@ There is no answer, because it does not appear. Have `backref` / 80 chunks / ran
 For the correct answer, the next jab is usually **"So a bigger model would fix it?"** No. The
 channel is missing, not undersized. BM25 (or any lexical match) is the missing half; model size
 is not.
+
+A jab that exists now that Phase 3 has shipped: **"So BM25 fixed your `table_names` miss?"** No —
+and saying why is the best answer in this section. BM25 matches whole words; the pages say
+`get_table_names`; the developer typed `table_names`. A lexical channel only helps when the
+question and the page share the word. Name `g044` (`autoload_with`, rank 12 → 1) as the case where
+it did.
 
 Third jab: **"Then why didn't hybrid search land in Phase 1?"** Point back to Q1 — so the
 failures that justify it are measured, not assumed. This question is the mechanism; Q1 is why
@@ -937,8 +1029,10 @@ from a third direction.
   verdicts refute it in both directions (Q1 cites and is wrong; Q2 does not cite and is right).
 - *"Because the prompt tells it to only use the sources."* — `11-GENERATION.md` §R3 measured
   wordings of that instruction. Without a refuse sentence the model fabricates. Even the shipped
-  wording has questions (Q18, Q19) that refuse with the answer sitting in the prompt. The
-  instruction is a real lever and it is not a guarantee.
+  wording refuses with the answer sitting in the prompt: Q18 and Q19 at k = 10, and on the 100
+  golden questions **19 of the 58** where the answer page was in the five (`D72`). And it still
+  answered 2 of the 9 unanswerable golden questions (`g056`, `g065`). The instruction is a real
+  lever and it is not a guarantee.
 - *"Because we check grounding automatically."* — There is no automatic grounding check in
   Phase 1. `uncited` is absence of a marker. Full stop.
 - *"Because retrieval returned the right chunks."* — Retrieval puts pages in the prompt. It does
@@ -959,6 +1053,24 @@ You make checking cheap (offsets + printed sources), you refuse when the corpus 
 (prompt D), and you hand-verify a probe set so the failure modes are named. Phase 2's golden set
 extends that under `D06` — humans verify; the scorer drops anything that is not.
 
+#### What exists now that did not exist when Phase 1 closed
+
+The answer above is true **of Phase 1**: "no automatic grounding check" and "`uncited` is the only
+signal." Phase 4 and Phase 6 built checks that walk part of that human-only link. If you are asked
+about the system as it is today, say these too, and say what each still cannot see:
+
+| check | what it does | what it measured | what it cannot see |
+|---|---|---|---|
+| citation integrity (`D71`, `D73`) | counts `[n]` markers that point at no source, code blocks with no citation, and answers citing nothing | of 48 answered golden questions, **31 cite nothing** | whether a cited page supports the sentence |
+| ungrounded calls (`D77`) | lists `module.function` calls in an answer's code that appear in **none** of its five pages | shipped prompt: **2** such answers in 48 | anything invented in prose, not code (`g056`) |
+| prose judge (`D80`, `D82`, `D83`) | a second, different local model reads each answer against its pages: SUPPORTED / PARTIAL / UNSUPPORTED | shipped prompt **77–85%** supported across the two machines | its own mistakes — checked by a human on 10: agreed **7 of 10** (`D86`) |
+| run it on 2.0.51 (`D103`, `D105`) | turns an answer's central claim into code and executes it on the pinned library | a hosted model's answers: **47 of 51** checkable ones correct | answers with nothing to execute |
+
+**What still has not changed:** a citation is still generated text, and "the judge said
+SUPPORTED" is not "correct." `D100` has the named case — `g016`'s answer was SUPPORTED against its
+page and wrong when run on 2.0.51. The Q1/Q2 point above still stands; the table is how the
+project now finds such cases without a person reading all 100.
+
 ---
 
 ### R5.6 The five on one page
@@ -970,7 +1082,7 @@ weak answer. The full *Say this* / *Do not say* / *Follow-up* live in the sectio
 |---|---|---|
 | **Q1** | Dense-only on purpose — rank table split one planned fix into four; one was `DEFAULT_K=5` vs `backref` at 6 | “it’s just dense / I kept it simple” |
 | **Q2** | 270 files from two tags; `BREAKAGES.md` out = answer key; API ref absent = ceiling (`has_table` in 0) | “all the `.rst` files” / “API too big” |
-| **Q3** | Broken prose is visible, broken code is not; ≥11/3077 severed listings — `c00233`/`c00234` at 1528\|1529 | “we never split code” (zero `::` ≠ zero body splits) |
+| **Q3** | Broken prose is visible, broken code is not; 5 flagged / 3 real severed listings of 3077 — `c00233`/`c00234` at 1528\|1529 | “we never split code” (zero `::` ≠ zero body splits) |
 | **Q4** | Meaning ≠ strings; teaching pair `Query.get`/`Session.get` ranked **1** (`D39`); measured miss = `backref`@6 | “we got Query not Session” / “symbol is rare” |
 | **Q5** | From the answer alone you cannot; offsets + human 19; Q1 cites&wrong, Q2 uncited&right | “because it has citations” |
 
@@ -1006,7 +1118,14 @@ rather than improvising at the time.
 *Follow-up:* **"Why not just build the good version?"** It would have hidden which component was
 doing the work — and the rank table proves the hiding would have been real. **"So just raise k
 to 6?"** Fixes that one retrieval miss; Round 7 left refusals at 8 at every k, and at k=10 the
-page was in the prompt and the model still refused.
+page was in the prompt and the model still refused. **"So did hybrid search fix them?"** On
+average yes (golden recall@5 0.49 → 0.64, 7 fixed, 0 broken); on these five, only `backref`
+(6 → 2), and `table_names` got worse because its pages say `get_table_names`. R5.1's "What
+happened" section has the table.
+
+> **The spoken block above is Phase 1's answer, kept as sat.** Its sentences "a reranker on a wider
+> list fixes those" and "the only one keyword search helps" were predictions that did not hold
+> (R5.1). If you say it today, replace them with the measured outcome in that follow-up.
 
 *Do not say:* “It’s just dense retrieval” (what it *is*, not *why*); “I wanted to keep it
 simple”; listing Phase 3 features without the rank numbers.
@@ -1052,8 +1171,9 @@ the failure the product exists to catch (`D10`).
 > is the same failure shape as the `cascade_backrefs` breakage I documented, where the INSERT
 > never happens and there is no error.
 >
-> I measured it instead of assuming. **At least 11 of my 3077 chunk boundaries cut inside a code
-> listing** with no overlap to repair it. One concrete case: `core/operators.rst`, chunks
+> I measured it instead of assuming. **My detector flags 5 of 3077 chunk boundaries as cutting
+> inside a code listing; I read all 5, and 3 really cut an example in half**, with no overlap to
+> repair it. One concrete case: `core/operators.rst`, chunks
 > `c00233` and `c00234`, characters 1528 then 1529 — adjacent, zero overlap. The first half
 > ends with `relationship("Address", back_populates="user")`. The class `Address` only exists
 > in the second half. Both halves look complete.
@@ -1074,7 +1194,9 @@ zero `::`; “overlap will fix it” as a free pass.
 > Because **an embedding matches meaning, not strings.** You already know both APIs:
 > `session.query(Issue).get(1)` and `session.get(Issue, 1)` — same job. Meaning search hears the
 > shared job, so those names sit almost on top of each other on the map. It does not `grep`
-> letters. BM25 adds that channel — not a bigger model.
+> letters. BM25 adds a word channel — not a bigger model — and it only helps when the question
+> and the page use the same word: it did not rescue `table_names`, whose pages say
+> `get_table_names`.
 >
 > **Do not say we got Query instead of Session.** Search returns pages. On this corpus *what
 > replaces `Query.get()`?* ranked **#1** (`D39`) — teaching picture only. The **measured miss**
@@ -1105,7 +1227,10 @@ fixes all of these” (including the ceiling and the k=5 miss).
 
 *Follow-up:* **"And if it cites a chunk that does not say that?"** Already conceded; offsets are
 the check; Q1 is the case. **"So how do you stop inventing?"** You do not, fully, from the
-answer alone — cheap checks, refuse when the corpus cannot, hand-verify the probe set.
+answer alone — cheap checks, refuse when the corpus cannot, hand-verify the probe set. **"Is it
+still all manual?"** Not since Phase 4: citation integrity, ungrounded-call detection, a second
+model as judge (checked by a human on 10: 7 agreed), and execution on 2.0.51. None of them makes
+a citation proof; `g016` was judged SUPPORTED and was wrong when run (R5.5's last table).
 
 *Do not say:* “because it has citations”; “because the prompt says so”; “we check grounding
 automatically”; “retrieval returned the right chunks.”

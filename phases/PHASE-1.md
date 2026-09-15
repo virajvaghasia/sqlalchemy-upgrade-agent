@@ -421,7 +421,8 @@ than it earned:
 
   Shape A/B is a sentence that only makes sense with the neighbouring paragraph. Ending on
   `::` would be announcing a listing and dropping it — **0 chunks**. Cutting *inside* a
-  listing is a third defect: **at least 11 of 3077 boundaries**, measured separately in
+  listing is a third defect: **5 of 3077 boundaries flagged, 3 real on reading** (quoted as "at least 11"
+  until 2026-09-15), measured separately in
   [`../study/13-VERIFICATION.md`](../study/13-VERIFICATION.md) §R5.3. Zero `::` does **not**
   mean “we never split code.” It means “we never split at the line that introduces it.”
 

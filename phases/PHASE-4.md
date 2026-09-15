@@ -597,7 +597,7 @@ both machines (`16-JUDGE.md` §R8.10).
 - **The 17 absents.** They are `D70`'s recorded ceiling, not Phase 4's backlog. An answer cannot
   be faithful to a page that never reached the prompt.
 - **Re-chunking as a recall lever** (`D70`). But a **severed listing pasted into a prompt** is a
-  citation-quality defect and does belong here — §R5.3's "at least 11 of 3077" is about what the
+  citation-quality defect and does belong here — §R5.3's severed listings (3 real of 3077, quoted earlier as "at least 11") are about what the
   model is handed, which is exactly this phase's subject.
 - **`recall@5 = 0.64` as a headline for the system.** Quote **0.43** for what a user gets
   (`D72`), until this phase moves it.

@@ -1810,7 +1810,7 @@ they measure, and D63 sits just after D61, next to D60 that it corrects.
 > **What this does NOT claim.** Not that the chunker is good — `D56` stands, 6.3% of the corpus
 > still loses content, and `c00138`'s payload is still gone. Not that boundary work is worthless
 > for Phase 4: a severed listing pasted into a prompt is a *citation-quality* defect, and §R5.3's
-> "at least 11 of 3077" is about what the model is handed, not about what search can find. It
+> severed listings (quoted then as "at least 11 of 3077"; 3 real, see below) are about what the model is handed, not about what search can find. It
 > claims one thing — **re-chunking is not the lever that reaches the 17**.
 >
 > **What it cost to find out: nothing, and that is the point.** `D69` spent a full re-embed to
@@ -1825,6 +1825,13 @@ they measure, and D63 sits just after D61, next to D60 that it corrects.
 > asserting the scorer holds no private copy. §R5.3's shape C had a hand-computed figure and a
 > `# summary of` block; it is code with three tests, including the indented-glossary control
 > that separates 11 from 123.
+>
+> ⚠️ **COUNT CORRECTED 2026-09-15 — the conclusion stands.** Nobody had run `severed_listing` over
+> the whole corpus. It flags **5** of 3077 boundaries, not 11 (a code token on *both* sides; on
+> *either* side it is 37, and no committed rule gives 11). Read one by one, **3** are real
+> severances from 2 distinct pages and 2 are cuts between complete statements — one of them this
+> entry's own `c02823`. `13-VERIFICATION.md` §R5.3 carries the runnable count and the table. The
+> survey above, 1 flagged and 0 real among the 17 absents, is unchanged.
 > **Asked as** — *"Your chunker breaks 10% of chunks. Why didn't you fix that?"* → *"Because I
 > checked which items it was costing me. Zero of the thirty chunks behind my seventeen misses
 > are broken, and the items I retrieve fine have broken chunks at the same rate. It's a real
