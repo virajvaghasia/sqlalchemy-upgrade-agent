@@ -21,7 +21,7 @@ Same rule as later sittings: **fraction first, short decimal only after**.
 | **`31/48` → ~65%** | Of answered items under D, how many cite **nothing** | §R8.2 / `D73` |
 | **`47/91` → `0.52`** under H | Prompt H on the Mac — **held** after lab **6↑ 2↓** | §R8.3 / `D74`, `D83` |
 | **uncited `65% → 10%`** | Citation effect of H (designed effect; reproduced) | §R8.3 |
-| **faithfulness D ~77–85% / H 92%** | Judge grades SUPPORTED; paired not significant | §R8.6–§R8.7 |
+| **faithfulness D ~77–85% / H 92%** | Judge grades SUPPORTED; paired not significant. Given page headings (lab, Round 22): D **81%**, H **93%**, headings do not matter | §R8.6–§R8.7, §R8.9 |
 
 **Say `39 of 91` (or lab `38 of 91`).** Say `0.64` only with the word **retrieval** in the same breath.
 `R8.1` is a section label, not a score. `g050` is one golden question.
@@ -86,7 +86,7 @@ track; most of the time they mean E, and E is the last human work, not the first
 | **B. Citations** | Can you open a `[n]` and check the claim? | §R8.2 | `rag.judge --citations` | No | Measured — **31 of 48** D answers cite nothing (`D73`) |
 | **C. Groundedness (code)** | Do API names in **code** appear on the desk pages? | §R8.5 | `ungrounded_calls()` in `rag/judge.py` | No | Measured — D 2 ungrounded / H 0 (`D77`) |
 | **D. Open cell** | Golden page **missed** the desk — is the answer still right on real 2.0.51? | §R8.5a | `deliverables/OPEN-CELL-REVIEW.md` | No (you read it) | **Done** — 35/35 marked |
-| **E. Prose faithfulness** | Does this **sentence** match the passages? | §R8.6–§R8.7 | `rag.faithful --sweep --local`, `JUDGE-AGREEMENT.md` | Yes — local `gemma4:e4b` | Measured (`D82`); human agreement **7/10 = 70%** (`D86`) |
+| **E. Prose faithfulness** | Does this **sentence** match the passages? | §R8.6–§R8.7 | `rag.faithful --sweep --local`, `JUDGE-AGREEMENT.md` | Yes — local `gemma4:e4b` | Measured (`D82`); human agreement **7/10 = 70%** (`D86`); re-judged with page headings on the lab, unchanged in conclusion (Round 22, §R8.9) |
 
 **Plus Track F — ship H or keep D** (not a metric). **Recommendation as of 2026-09-05: do NOT
 ship on this evidence** (`D83`). The Mac measured **9↑ 0↓, p = 0.0039**; the lab 3060 re-ran it
@@ -216,7 +216,8 @@ Not a report card — a product decision. Prompt **H** moves the citation rule i
 turn** next to `ANSWER:` (same words as D; different place).
 
 **On the Mac:** end to end **0.52**, uncited **10%**, **9↑ 0↓**, p = 0.0039.
-**On the lab 3060, same code and same golden set:** end to end **0.46**, uncited **5%**,
+**On the lab 3060, same code and same golden set:** end to end **0.46**, uncited **8%**
+(Round 16, every answered row counts, `D85`; Round 14 printed 5% on the old answerable-only rule),
 **6↑ 2↓**, p = **0.289**. **Two regressions, so the pre-written rule says hold** (`D83`).
 Production `ask.SYSTEM` is still **D**, and now for a measured reason rather than a pending
 decision. Full argument: §R8.3a, and §R8.9 for what reproduced and what did not.
@@ -539,7 +540,7 @@ place where the model is about to write.
 | **D** | current shipped prompt | baseline: end to end **0.43**, uncited **65%** | keep only as control |
 | **E** | shouts “citations are mandatory” in SYSTEM | same result as D; louder was not better | **No** |
 | **F** | tells the model search results are relevant | only screened on 20; not the clean full-run winner | not first |
-| **H** | repeats D’s citation rule immediately before `ANSWER:` | Mac **0.52**, uncited **10%**, **9↑ 0↓** · lab **0.46**, uncited **5%**, **6↑ 2↓** | **Hold** — citations reproduce, the end-to-end gain does not (`D83`) |
+| **H** | repeats D’s citation rule immediately before `ANSWER:` | Mac **0.52**, uncited **10%**, **9↑ 0↓** · lab **0.46**, uncited **8%**, **6↑ 2↓** | **Hold** — citations reproduce, the end-to-end gain does not (`D83`) |
 | **I** | H plus F’s extra relevance instruction | **0.51**, uncited **16%**; worse than H everywhere | **No** |
 
 **Why H beats I.** I sounds like it gives the model more help: “these pages are relevant,
@@ -579,7 +580,7 @@ answers, keep D temporarily. Either is defensible; silently changing D is not.
 > 65% → 10%, nine paired fixes and no regressions, p = 0.0039. **I then re-ran it on a second
 > machine and it did not reproduce**: 6 fixed, 2 regressions, p = 0.29. My pass/fail rule was
 > written before either run and says a single regression is a hold, so H is not shipped. What did
-> reproduce is the citation effect — 67→10% and 41→5%, same direction, both boxes. So I would
+> reproduce is the citation effect — 65→10% and 43→8%, same direction, both boxes. So I would
 > take the citation win and I would not claim the end-to-end one.”
 
 **Do not say this:**
@@ -1383,6 +1384,45 @@ H is identical on both machines; **D moved 8 points.** Neither paired result is 
 the `D82` conclusion is unchanged — *H answers more and the extras hold up* — but it now rests on
 two machines rather than one.
 
+#### And the judge had never seen the headings (Round 22, lab, 2026-09-14)
+
+The model answering sees each page as three lines of context — version and file, the heading
+path, then the text. **The judge was only ever given the text.** So a sentence that leans on a
+heading ("this was removed in 2.0", where the heading names what "this" is) could be graded
+`UNSUPPORTED` for missing information the model actually had. Phase 6 found this with a different
+judge and it mattered there: 77% → 91% (`D107`). Round 22 asked the same of this file's judge,
+with the rule written before the run: *headings matter only if a paired test says so*.
+
+Re-derived from the committed lab rows, no model needed:
+
+```
+# runnable: uv run python -m rag.faithful --headings-report --text deliverables/faithfulness-phase4.Linux-x86_64.json --head deliverables/faithfulness-phase4-headings.Linux-x86_64.json
+PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — gemma4:e4b on Linux-x86_64
+  text-only rows  faithfulness-phase4.Linux-x86_64.json  (Linux-x86_64)
+  headings rows   faithfulness-phase4-headings.Linux-x86_64.json
+  D  SUPPORTED text-only 36/47  with headings 38/47   up 3  down 1  p = 0.6250
+     up    g014 g019 g120
+     down  g098
+  H  SUPPORTED text-only 56/61  with headings 57/61   up 2  down 1  p = 1.0000
+     up    g031 g062
+     down  g036
+  D vs H with headings, paired over 45: H-only SUPPORTED 6  D-only 0  p = 0.0312
+  rule -> headings do NOT matter
+```
+
+- **`36/47 → 38/47`** — D goes from 77% to **81%** supported when the judge sees headings; 3
+  verdicts went up, 1 went down. **`p = 0.6250`** is the chance of a split at least that lopsided
+  if headings changed nothing: far too likely to call it an effect.
+- **`56/61 → 57/61`** — H goes from 92% to **93%**; 2 up, 1 down, `p = 1.0`.
+- **So for this judge, headings do not matter**, and every Phase 4 faithfulness figure above
+  stands. Different from Phase 6's hosted judge, where they did (`D107`). Same question, two
+  judges, two answers — which is why the rule named the judge.
+- **The last line is new and worth knowing:** on the 45 items both prompts answered, with
+  headings, H is supported where D is not on **6** and the reverse on **0**, `p = 0.031`. That
+  is the first time **D against H** separates on a paired faithfulness test (text-only it was
+  5↑ 1↓, `p = 0.22`, `D82`) — **one run, one machine**, and a question the round was not designed
+  to ask. Say it with those words, or not at all.
+
 #### What it changed about how a row is stored
 
 `D78` made every judged row carry its judge. **That turned out to be half a provenance.** When the
@@ -1411,7 +1451,8 @@ Tracks **A–D** are measured (open-cell sheet marked). What remains:
 |---|---|---|
 | ~~**Ship H or keep D**~~ | **F** | **Decided 2026-09-05 by measurement, not by preference: HOLD.** The lab found 2 regressions (`g030`, `g032`) where the Mac found none, p = 0.289 against 0.0039, and the pre-written rule says one regression is a hold (`D83`). Production `ask.SYSTEM` stays **D**. Reopen only with a third run — and if you do, decide the threshold before you look. |
 | ~~**The judge's agreement**~~ | **E** | **Closed (`D86`): 7 of 10 = 70%.** Three DISAGREE — `g080` (judge too harsh → PARTIAL), both `g056` arms (judge too soft → PARTIAL). The controls caught the known wave-through. |
-| ~~**Lab Rounds 13–16**~~ | — | **All closed.** 13.2, 14.1 and 15 on 2026-09-05; **16 on 2026-09-10**, which tested the compute-path explanation for the machine gap and **disproved it** — same eight ids at a proven 100% GPU (`D84`). Nothing is open on the lab. |
+| ~~**Lab Rounds 13–16**~~ | — | **All closed.** 13.2, 14.1 and 15 on 2026-09-05; **16 on 2026-09-10**, which tested the compute-path explanation for the machine gap and **disproved it** — same eight ids at a proven 100% GPU (`D84`). |
+| ~~**Round 22 — the judge given headings**~~ | **E** | **Closed 2026-09-14:** headings do not matter for `gemma4:e4b` (D 36→38/47, H 56→57/61); `D82`/`D83` stand. Nothing about Phase 4 is open on the lab. |
 | **A citation-only variant** | **F** | Not built, and now the clearest thing to do next. H bundles two effects: the **citation** one has reproduced **three times** (D uncited 65% Mac / 43% lab → H 10% / 8%; Round 14 agreed in direction on the old denominator), the **refusal** one only on the Mac. A variant carrying **just** the user-turn citation line — measured on **both** machines from the start, not the Mac alone — would tell you whether the win survives without the regression. |
 
 **Suggested order for your next sitting:**
@@ -1420,7 +1461,6 @@ Tracks **A–D** are measured (open-cell sheet marked). What remains:
 2. Re-run `uv run python -m rag.judge --report` and confirm section 5 shows **7 of 10 = 70%**.
 3. If you want Phase 4 to keep going: the citation-only variant above, measured on both
    machines from the start.
-4. Or commit the dirty working tree when you are ready.
 
 Start map for the five tracks: top of this file, **Where to start**.
 
@@ -1461,7 +1501,9 @@ Start map for the five tracks: top of this file, **Where to start**.
   `SUPPORTED` (`D82`). **I over-read that as "our judge has a coarser scale" and the lab struck
   it** — same judge, 2 PARTIAL in 47 on one machine and 5 in 47 on the other (`D83`).
 - Phase 4 is **five tracks + ship H** — not one “judge” chapter. Open cell done, **ship call
-  decided (hold)**; the agreement sheet is the only thing left.
+  decided (hold)**, agreement sheet read (**7 of 10**, `D86`). Nothing in Phase 4 is open.
+- The judge never saw page headings; given them (lab, Round 22) it moved D 77% → 81% and H
+  92% → 93%, not significant, so the figures stand. A different judge in Phase 6 did move (`D107`).
 
 ## Do not say
 
@@ -1474,7 +1516,7 @@ Start map for the five tracks: top of this file, **Where to start**.
 - “LLM-as-judge grades my answers” **without saying which judge and when** — same judge, both
   arms, one sitting, model stamped on every row, or it is not a comparison (`D78`, `D80`).
 - “The judge agrees with humans 85–92%” — that is somebody else's judge on somebody else's task.
-  Ours is unmeasured until the sheet of ten is read.
+  Ours was measured on a risk-weighted ten: **7 of 10** (`D86`).
 - “The open cell proves retrieval worked.” Correct without the golden page is still a miss.
 
 ---
@@ -1484,7 +1526,7 @@ Start map for the five tracks: top of this file, **Where to start**.
 | | |
 |---|---|
 | [`../phases/PHASE-4.md`](../phases/PHASE-4.md) | plan + measured tables |
-| [`09-DECISIONS.md`](09-DECISIONS.md) | `D71`–`D84` |
+| [`09-DECISIONS.md`](09-DECISIONS.md) | `D71`–`D86` (and `D107` for the Phase 6 headings result) |
 | [`15-IMPROVE.md`](15-IMPROVE.md) | §R7 — search / desk pages |
 | [`14-MEASURE.md`](14-MEASURE.md) | §R6 — generation gap first seen |
 | `rag/judge.py` | citations + grounding (no model, no key) |
@@ -1493,4 +1535,4 @@ Start map for the five tracks: top of this file, **Where to start**.
 | `rag/judge.py --report` | the gate: everything in one command |
 | [`../deliverables/OPEN-CELL-REVIEW.md`](../deliverables/OPEN-CELL-REVIEW.md) | Track D — human open-cell sheet |
 | [`../deliverables/JUDGE-AGREEMENT.md`](../deliverables/JUDGE-AGREEMENT.md) | Track E — human agreement sheet |
-| [`../logs/HANDOFF.md`](../logs/HANDOFF.md) | Round 13 |
+| [`../logs/HANDOFF.md`](../logs/HANDOFF.md) | Rounds 13–16 and 22 |
