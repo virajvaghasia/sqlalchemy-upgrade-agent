@@ -696,7 +696,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**534 tests**, **92/92** `# runnable`, **108** decisions, **§H empty**.
+**534 tests**, **95/95** `# runnable`, **108** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -743,7 +743,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 
 ```
 uv run pytest                            # 534 passed with Qdrant up; 529 + 5 skipped without
-uv run python -m tools.check_runnable    # 92/92 RUN blocks reproduce
+uv run python -m tools.check_runnable    # 95/95 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097

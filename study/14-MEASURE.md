@@ -15,8 +15,8 @@ interview rehearsal with a scorecard. The split rule's condition is met (`D64`).
 
 > **This is not Sitting 6 of Phase 1.** Phase 1 ended at §R5. Read this after
 > [`../phases/PHASE-2.md`](../phases/PHASE-2.md) has a finished `golden.json`, or after you have
-> run `uv run python -m rag.score` yourself. Every number below was measured 2026-08-20 against
-> the hand-verified set.
+> run `uv run python -m rag.score` yourself. The numbers below were measured 2026-08-20 and
+> 2026-08-21 against the hand-verified set, except where a section says "today".
 
 ---
 
@@ -322,6 +322,8 @@ was wrong.
 
 **So: `0.41` is the number that describes the shipped system** for a developer pasting an error
 message. `0.51` is the honest average, and it needs the split said out loud beside it.
+*(Shipped as of Phase 2. After Phase 3 the same split reads differently — see "The same split,
+today" at the end of R6.1.)*
 
 #### Three levers this run names for Phase 3
 
@@ -329,7 +331,9 @@ Not "improve retrieval." Three separate things, with the number that sizes each:
 
 - **9 of 47 answerable items are not in the top 20 at all.** Not ranked low — **absent**. A
   reranker reorders a list it is handed; it can do nothing for these. Only recall-side work
-  (keyword search, chunking) can reach them. This is the ceiling on reranking.
+  (keyword search, chunking) can reach them. This is the ceiling on reranking. *(What happened:
+  keyword search took absents on the 100-item set from 22 to 17, `D67`; re-chunking was checked
+  and rejected, because the absents' answer chunks are no more broken than the found ones, `D70`.)*
 - **20 top-5 slots across the 50 items are lost to duplicates** — a cross-version twin taking a
   second seat that a different page could have used (`D58`). That is the “free win” above:
   dedupe at retrieval, no new model.
@@ -392,6 +396,42 @@ PAIRED against baseline  (recall@5)
 Zero items flipped in either direction against the saved 50-item run. The retriever is unchanged
 and deterministic; the average dropped because **harder questions were added**, not because
 anything got worse. That is the difference between a score falling and a ruler getting honest.
+
+#### The same split, today — after Phase 3
+
+The CI quality gate (`D97`) saves today's retriever's rank for every golden question, so the
+provenance split can be recomputed from a committed file with no model and no Qdrant:
+
+```
+# runnable: uv run python -c "
+# import json
+# from collections import defaultdict
+# rows = json.load(open('deliverables/gate-baseline.json'))['rows']
+# g = defaultdict(lambda: [0, 0, 0])
+# for r in rows:
+#     if r['answerable']:
+#         x = g[r['provenance']]; x[0] += 1; x[1] += r['rank'] is not None and r['rank'] <= 5; x[2] += r['rank'] is None
+# for k, (n, h, a) in sorted(g.items(), key=lambda kv: -kv[1][1] / kv[1][0]):
+#     print(f'{k:16} answer page in top 5: {h:2d} of {n:2d} = {h / n:.2f}   not in top 20: {a}')
+# n, h, a = (sum(v[i] for v in g.values()) for i in range(3))
+# print(f'{\"all\":16} answer page in top 5: {h:2d} of {n:2d} = {h / n:.2f}   not in top 20: {a}')"
+migration_guide  answer page in top 5: 14 of 15 = 0.93   not in top 20: 0
+github           answer page in top 5: 17 of 23 = 0.74   not in top 20: 2
+breakages        answer page in top 5: 17 of 32 = 0.53   not in top 20: 7
+stackoverflow    answer page in top 5: 10 of 21 = 0.48   not in top 20: 8
+all              answer page in top 5: 58 of 91 = 0.64   not in top 20: 17
+```
+
+| provenance | Phase 2 (08-21) | today | |
+|---|---|---|---|
+| `migration_guide` | 0.73 | **0.93** | the docs-worded questions gained most |
+| `github` | 0.57 | **0.74** | |
+| `breakages` | 0.41 | **0.53** | |
+| `stackoverflow` | 0.38 | **0.48** | still lowest, and still 8 of its 21 never in the top 20 |
+
+**The order did not change.** Phase 3 lifted every group, and the real stuck-developer questions
+are still the worst. **Quote 0.48 (10 of 21) for someone arriving from a search engine today**,
+and 0.64 only as the average with the split beside it.
 
 **And one correction, because it is the exact error this file exists to catch.** `ROADMAP.md` and
 `CLAUDE.md` quoted **`0.51 ±0.131`** for weeks. The scorer prints **±0.137**, and recomputing
@@ -595,7 +635,9 @@ changed since `b6320c4` — the commit that introduced `--refusals` and produced
 index did not move either: the paired recall comparison is `0 fixed, 0 broken`. Same prompt, same
 sources, same greedy decoding.
 
-**What was not ruled out:** the model server. Greedy decoding is reproducible *within* a process,
+**What was not ruled out:** the model server. *(Later measured: `D84`. The lab PC ran the same sweep
+twice, five days apart, and every refusal cell came back identical. The drift is the Mac's
+generator, not the system.)* Greedy decoding is reproducible *within* a process,
 and today's two runs agree with each other — it is across days and across processes that two of
 seven moved. **So `D54`'s claim needs its scope stated: five runs in one sitting were unanimous,
 which is a weaker statement than "deterministic."** It matters because a Phase 4 fix will be
@@ -686,19 +728,26 @@ This is the rare claim that needs no ranking, no embedding and no model. Either 
 the 3284 chunks or it is not:
 
 ```
-# summary of: counted over corpus/chunks.jsonl with rag/probe.py's whole-symbol
-#   matcher. ENV in check_runnable — chunks.jsonl is generated and gitignored (D11).
-has_table        0 of 3284 chunks
-with_labels      0 of 3284 chunks
-orm.relation     0 of 3284 chunks
-
+# runnable: uv run python -c "
+# import json
+# from rag import probe
+# r = [json.loads(l) for l in open('corpus/chunks.jsonl')]
+# for s in ('has_table', 'with_labels', 'orm.relation', '', 'from_self', 'backref'):
+#     print(f'{s:15} {sum(probe._contains(x[\"text\"], s) for x in r):3d} of {len(r)} chunks' if s else '  control, to prove the counter works:')"
+has_table         0 of 3284 chunks
+with_labels       0 of 3284 chunks
+orm.relation      0 of 3284 chunks
   control, to prove the counter works:
-from_self        4 of 3284
-backref         80 of 3284
+from_self         4 of 3284 chunks
+backref          80 of 3284 chunks
 ```
 
-**Zero is a different kind of fact from "ranked low".** `backref` sits at rank 6 — that is a
-retrieval failure, and `DEFAULT_K = 5` is the lever (§R4.3). `has_table` is at no rank at all,
+*(This block was a pasted summary until 2026-09-15; the counts reproduced exactly when it was made
+runnable.)*
+
+**Zero is a different kind of fact from "ranked low".** `backref` sat at rank 6 — that is a
+retrieval failure, and `DEFAULT_K = 5` looked like the lever (§R4.3). Phase 3 moved it to rank 2
+without touching `k`. `has_table` is at no rank at all,
 because there is no chunk to rank. **Phase 3 can move the first and cannot touch the second.**
 That distinction is `D45`, and it is the reason the count is computed rather than eyeballed.
 
@@ -739,12 +788,26 @@ narrative simply moved on. Nothing documents the thing the stuck developer typed
 Grep naively for `relation` and the corpus looks full of it:
 
 ```
-relation, naive substring                     794 chunks   "answerable!"
-relation, not followed by 'ship'                6 chunks
-orm.relation / relation(                        0 chunks   the truth
+# runnable: uv run python -c "
+# import json, re
+# from rag import probe
+# r = [json.loads(l) for l in open('corpus/chunks.jsonl')]
+# word = [x['id'] for x in r if re.search(r'\brelation\b', x['text'])]
+# print('relation, naive substring                   ', sum('relation' in x['text'] for x in r), 'chunks')
+# print('relation, probe._contains (right edge only)  ', sum(probe._contains(x['text'], 'relation') for x in r), 'chunks')
+# print('relation, whole word                          ', len(word), 'chunks', word)
+# print('orm.relation or relation(                     ', sum(bool(re.search(r'orm\.relation\b|\brelation\(', x['text'])) for x in r), 'chunks')"
+relation, naive substring                    794 chunks
+relation, probe._contains (right edge only)   21 chunks
+relation, whole word                           6 chunks ['c00074', 'c00220', 'c00566', 'c01704', 'c01856', 'c02140']
+orm.relation or relation(                      0 chunks
 ```
 
-**794 of those hits are the word `relationship`.** The remaining six are the English word — *"in
+*(Until 2026-09-15 the middle rows read "relation, not followed by 'ship' — 6". That label was
+wrong: not followed by `ship` gives 108, because `relations` and `relational` count. The 6 is
+the **whole word**.)*
+
+**Nearly all of the 794 are the word `relationship`.** The whole-word six are the English word — *"in
 relation to your particular usage"*, *"the concept of a relation in relational algebra"* — and
 they come in three cross-version pairs (`c00074`/`c01704`, `c00220`/`c01856`, `c00566`/`c02140`),
 which is the duplicate structure `D58` describes.
@@ -759,6 +822,12 @@ character must not be followed by another one.
 **So "is it in the corpus?" is not a `grep` for a substring.** It is a grep for a *whole symbol*,
 and the difference between those two is 794 and 0.
 
+**And the fix only guards one edge.** `_contains()` stops `relation` matching inside
+`relationship`, but nothing stops it matching inside `correlation` — the 15 chunks between 6 and
+21 are all `correlation`. The same missing left edge makes `table_names` match inside every
+`get_table_names` (`10-RETRIEVAL.md` §R2.6). Neither changes a verdict here — `orm.relation` is
+still 0 — but "whole-symbol matcher" is one edge short of its name.
+
 #### Why keep questions the system cannot answer
 
 Because they are the only items that measure whether it **says so**.
@@ -768,7 +837,9 @@ not exist, so the zero is arithmetic, not evidence. It tells you nothing about t
 only thing these three can test is generation: does it decline, or does it invent a plausible API
 signature? That is `D62`, and it is why refusal accuracy is printed apart from recall.
 
-**The measured result: 3 of 3 refused, 0 fabricated.** Asked about `has_table`, the system says
+**The measured result on the first 50: 3 of 3 refused, 0 fabricated.** On the finished 100 it
+is 7 of 9 refused and **2 fabricated** (`g056`, `g065`, R6.2) — the three API-reference ceilings
+still refused; two of the six topic ceilings did not. Asked about `has_table`, the system says
 the sources do not answer it and names what it looked for — rather than confidently emitting
 `engine.has_table()`'s replacement from memory, which is the failure a RAG system is supposed to
 prevent and the one `D43` measured the prompt into preventing.
