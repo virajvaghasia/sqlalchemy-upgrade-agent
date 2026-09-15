@@ -36,15 +36,15 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-15, Mac)
+## Where things stand — read this first (updated 2026-09-15, lab)
 
-**→ ROUND 22 CLOSED on the lab.** Branch `phase-6/production`, tip this commit. Phase 4 judge
-given headings (`gemma4:e4b`): **headings do NOT matter** (Step 4h rule). Artifact:
-`deliverables/faithfulness-phase4-headings.Linux-x86_64.json`.
+**→ ROUND 23 CLOSED on the lab.** Branch `phase-6/production`. `rag.compare_prompts` runs end to
+end twice; SUMMARY identical both runs. **D over-refused the answerable question** (both runs) —
+disagrees with §R3's expected table. Artifact is the pasted replies (no JSON).
 
 | round | state |
 |---|---|
-| **23** | **OPEN (2026-09-15)** — run `rag.compare_prompts` end to end twice; it crashed from `eeedbc4` until `49b2f93`, and the Mac ran out of memory trying. ~10 min. See Round 23 below |
+| **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
 | **22** | **CLOSED** — D 36→38/47 (3↑1↓ p=0.625), H 56→57/61 (2↑1↓ p=1.0) → **headings do NOT matter** |
 | **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
@@ -54,7 +54,23 @@ given headings (`gemma4:e4b`): **headings do NOT matter** (Step 4h rule). Artifa
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-### LAB RESULT — Round 22 (Mac: read this — raw report)
+### LAB RESULT — Round 23 (Mac: read this)
+
+Both runs exit 0, qwen @ **100% GPU**, SUMMARY **byte-identical**. Primary check (finishes) **PASS**.
+
+```
+prompt   answerable     unanswerable
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+D        refused  X     refused  ok
+```
+
+Against the pre-written table: A/B/C match; **D on answerable is an over-refusal** (expected
+answered). Same cell both runs → not a one-off. Fused top-5 scores (Phase 3 retrieve): answerable
+`[0.048, 0.046, 0.046, 0.04, 0.039]`; unanswerable `[0.038, 0.037, 0.036, 0.034, 0.033]`.
+
+### LAB RESULT — Round 22 (kept)
 
 Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), judge `gemma4:e4b` @ 100% GPU / 8192 ctx.
 Died once at 41/64 (no traceback); resumed. Text-only lab rows untouched.
@@ -627,7 +643,7 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
 
 ---
 
-# Round 23 — does `rag.compare_prompts` run end to end, and does §R3's table still hold? (OPEN, written 2026-09-15)
+# Round 23 — does `rag.compare_prompts` run end to end, and does §R3's table still hold? (CLOSED, lab 2026-09-15)
 
 **Why this exists.** The command `study/11-GENERATION.md` tells a reader to run —
 `uv run python -m rag.compare_prompts`, no flags — crashed with `NameError: name 'k' is not defined`
@@ -708,13 +724,53 @@ filled in and push (you may commit, 2026-09-11 policy).
 ### REPLY 23.0
 
 ```
-(paste here)
+a0cbbfc docs(claude): session notes for the study 10–16 accuracy pass
+tests/test_compare_prompts.py: 30 passed
+qwen2.5-coder:7b present
+qdrant: all shards are ready
+qwen2.5-coder:7b 100% GPU
 ```
 
 ### REPLY 23.1
 
 ```
-(paste here)
+run 1 exit 0
+run 2 exit 0
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
+
+== run 1
+SUMMARY — 'refused' is correct for UNANSWERABLE, a failure for ANSWERABLE
+==============================================================================
+prompt   answerable     unanswerable
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+D        refused  X     refused  ok
+  top-5 scores: [0.048, 0.046, 0.046, 0.04, 0.039]
+  top-5 scores: [0.038, 0.037, 0.036, 0.034, 0.033]
+== run 2
+SUMMARY — 'refused' is correct for UNANSWERABLE, a failure for ANSWERABLE
+==============================================================================
+prompt   answerable     unanswerable
+A        answered  ok   refused  ok
+B        answered  ok   refused  ok
+C        answered  ok   answered  X
+D        refused  X     refused  ok
+  top-5 scores: [0.048, 0.046, 0.046, 0.04, 0.039]
+  top-5 scores: [0.038, 0.037, 0.036, 0.034, 0.033]
+SUMMARY identical
+```
+
+### REPLY 23.2 — D over-refused answerable (both runs)
+
+```
+ANSWERABLE: why can't I call engine.execute() any more?
+--- prompt D  answer partially, refuse only on subject (SHIPPED) ---
+The sources do not answer this.
+
+(A/B/C all answered that question with engine.execute removal / connect().execute;
+ only D refused. Same in run 2.)
 ```
 
 ---
