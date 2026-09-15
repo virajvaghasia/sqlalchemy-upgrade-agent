@@ -22,7 +22,24 @@ model size — leftover VRAM still has to hold Phase 1 embed + reranker.
 **Every command in this file carries a why + an example.** If you only see a
 bare command, the file is incomplete — that is a bug, not a style choice.
 
-Clone branch: **`phase-0/repo-structure`** (not default `main`).
+Clone branch: **the current phase branch** (not default `main`). On 2026-09-14 that is
+`phase-6/production`; `CLAUDE.md`'s START HERE names it when it changes.
+
+## Where this runbook stands — checked 2026-09-14
+
+**Most of this file is a dated diary of one sitting, 2026-08-13.** Read it as a record of what was
+done and why, not as today's instructions. What changed since, measured rather than remembered:
+
+| the file says | today | how checked |
+|---|---|---|
+| work on `phase-0/repo-structure` | **that branch no longer exists on GitHub**; the lab works on the current phase branch | `git ls-remote --heads origin` lists `main`, `phase-0/ci-gate-deliberate-fail`, `phase-2/measure`, `phase-5/agent`, `phase-6/production` and two Phase 6 gate-demo branches, and no `phase-0/repo-structure` |
+| `logs/HANDOFF.md` lives on branch `lab/handoff` | **deleted 2026-08-17**; the file travels on the working branch with the code | same listing: no `lab/handoff` |
+| the lab only pastes output | **since 2026-09-11 the lab edits and commits** like the Mac; the one rule is push before leaving, pull on arriving | top of `logs/HANDOFF.md` |
+| reach the box by AnyDesk | RustDesk as well, which makes the box reachable without Viraj present (`D95`) | `D95` |
+| Docker, Day 7, Day 10 "not done yet" | **all passed the same day, 2026-08-13**, recorded further down this file | the "Later — Day 7" and "Later — Day 10" sections |
+| Day 3 tunnel open | **still open**: blocked on the Tailscale share (§L.2), unchanged | "Still open", bottom of this file |
+
+Where a section below gives a command that no longer works, it now says so beside the command.
 
 ---
 
@@ -194,7 +211,7 @@ Disk    915G, ~698G free
 
 `nvidia-smi` talks to the NVIDIA driver on the **host**. A Docker container
 does not automatically see that GPU. Day 7 is the extra install that connects
-them. Not done yet.
+them. Not done yet at this point in the sitting; **done later the same day** (see "Later — Day 7").
 
 ### 8. Python without breaking the system
 
@@ -221,6 +238,8 @@ uv run python -m experiments.sqlalchemy_1_4_vs_2_0.check
 untouched. Never `sudo pip install`.
 
 ### 9. Why Docker is waiting on you
+
+(At this point in the sitting. Docker Engine was installed later the same day: §11, Step H.)
 
 ```
 # summary of: sudo -n -v; command -v docker
@@ -527,9 +546,10 @@ cd ~/Projects
 git clone https://github.com/virajvaghasia/sqlalchemy-upgrade-agent.git
 cd sqlalchemy-upgrade-agent
 
-# Switch files to the working branch (not main). Example: `git status` then
-# says "On branch phase-0/repo-structure".
-git checkout phase-0/repo-structure
+# Switch files to the working branch (not main). On 2026-08-13 that was
+# phase-0/repo-structure, which no longer exists on GitHub. Use the current one,
+# e.g. phase-6/production on 2026-09-14. `git status` then says "On branch ...".
+git checkout phase-6/production
 
 # Download any commits on that branch you don't have yet.
 git pull
@@ -539,7 +559,7 @@ git status
 git log -1 --oneline
 ```
 
-Wanted: `On branch phase-0/repo-structure`. If the clone happened before this
+Wanted: `On branch <the current phase branch>`. If the clone happened before this
 commit was pushed, `git pull` is what picks up `study/08-LAB.md`.
 
 Do **not** run `ssh-keygen` yet. Do **not** paste the Mac geochem `.pub` here.
@@ -607,7 +627,8 @@ their Claude desktop app. `~/.claude` stays exactly as they left it.
 Claude **Code CLI** stays off this box. Cursor Agent on your login is fine.
 
 `uv` + pytest: **done this sitting.** Docker Engine: **installed this sitting.**
-Compose up + GPU toolkit + Ollama: still later. Claude Code CLI: still off limits.
+Compose up + GPU toolkit + Ollama: still later *at this point in the sitting* (all three done the same
+day, sections below). Claude Code CLI: still off limits.
 
 ### 5. How work continues after a Mac push
 
@@ -621,8 +642,8 @@ PC (your user, this clone):
 
 ```
 cd ~/Projects/sqlalchemy-upgrade-agent
-git checkout phase-0/repo-structure
-git pull
+git checkout phase-6/production     # the current phase branch; phase-0/repo-structure is gone
+git pull --ff-only
 ```
 
 Then keep going in **your** Cursor on the PC. One branch, two machines: whoever
@@ -1089,6 +1110,9 @@ load duration:        132.2ms
 leftover: 7115 MiB / 12288   (~58% free)
 ```
 
+The leftover line is arithmetic on the one above it: `12288 − 5173 = 7115 MiB`, and
+`7115 ÷ 12288 = 58%` of the card still free.
+
 **62 tok/s on GPU, ~7.1 GB VRAM left.** Enough headroom for Phase 1 BGE-M3 (+ later
 reranker). Do not jump to 14B. `--verbose` prints the rates; without it you only
 see the text.
@@ -1124,12 +1148,22 @@ Claude runs on the Mac and **cannot reach this PC** — no inbound route exists 
 a tunnel do, and AnyDesk is a GUI it cannot type into. Commands aimed at the PC were bouncing
 back into the chat unrun.
 
-So the exchange is a file: [`../logs/HANDOFF.md`](../logs/HANDOFF.md) on branch `lab/handoff`.
-Claude writes ASK blocks, you paste raw output into REPLY blocks, one round per commit.
+So the exchange is a file: [`../logs/HANDOFF.md`](../logs/HANDOFF.md). Claude writes ASK blocks, you
+paste raw output into REPLY blocks, one round per commit.
+
+**It used to live on its own branch, `lab/handoff`, and the command here was
+`git checkout lab/handoff`. That branch was deleted on 2026-08-17**: it predated the whole `rag/`
+package, so a lab that checked it out got instructions without the code they referred to. The file
+now travels on the working branch, so one pull brings both:
 
 ```bash
-git fetch origin && git checkout lab/handoff && git pull --rebase
+git fetch origin && git checkout phase-6/production && git pull --ff-only   # the current phase branch
 ```
+
+**And since 2026-09-11 the lab does more than paste.** It edits and commits on that branch like the
+Mac does. The one rule, from the top of `HANDOFF.md`: **push before you leave a machine, pull when you
+arrive**, because a clone left behind has twice cost this project work (a lab clone many commits
+behind, and Round 15's rows written over the Mac's, `D83`).
 
 ## Still open
 
@@ -1195,7 +1229,7 @@ git fetch origin && git checkout lab/handoff && git pull --rebase
 
 1. §0 snapshot → write down their global git email.
 2. §1 inventory → paste it here.
-3. §2 clone + checkout `phase-0/repo-structure` + `git pull`. No `--global`.
+3. §2 clone + checkout the current phase branch (`phase-6/production` on 2026-09-14) + `git pull`. No `--global`.
 4. §2b local git identity on **this repo only**.
 5. §3 Cursor: sign in as you. Leave it. Open the folder.
 6. §4 Do not touch Claude.
