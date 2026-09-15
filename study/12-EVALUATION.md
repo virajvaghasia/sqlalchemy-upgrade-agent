@@ -182,6 +182,20 @@ integer that fixes the *retrieval miss*. It is not the integer that ships.
 **That is the shape of a real evaluation finding**: it did not say the system is 74% good, it said
 the plan was aimed at the wrong thing for at least one of five failures.
 
+**And the right-hand column was itself a prediction.** Phase 3 then shipped keyword search and a
+reranker, and nobody changed `DEFAULT_K`. The same five questions, re-measured 2026-09-14:
+
+| failure | Phase 1 rank | predicted fix | today's rank | what happened |
+|---|---|---|---|---|
+| `backref` | 6 | raise k to 6 | **2** | fixed, though k was never raised |
+| `cascade_backrefs` | 8 | rerank a wider list | **7** | not fixed; the question never says `cascade_backrefs` |
+| `keys()` | 12 | reranker | **16** | worse |
+| `table_names` | 23 | keyword search | **not in top 25** | worse; the pages say `get_table_names`, a different word to keyword search |
+| `has_table` | none | nothing | none | as predicted |
+
+The command and the reasons are in `10-RETRIEVAL.md` §R2.6. **A rank tells you how far off a
+miss is. It does not tell you which fix will move it** — that took a second measurement.
+
 #### Side note — rank tells *how far*; a live run tells *which component*
 
 > Round 7 went further — see `09-DECISIONS.md` D51. Sweeping `k` over the probe set moved
@@ -244,6 +258,10 @@ else fail?**
 | **7** `future=True` | answered confidently, **wrong** | **no** — it got a real 2.0 page | generation / version-skew reading (§R1.7) |
 | **16** absent Q | answered when it should have refused | **no** — corpus has no full answer | generation (should have declined) |
 
+*(Phase 3 later changed the search these ranks came from. Measured 2026-09-14 on the same
+questions: `backref` moved to rank 2 and into the five, `cascade_backrefs` to 7, `keys()` fell to
+16, and `table_names` left the top 25. The table is Phase 1's; `10-RETRIEVAL.md` §R2.6 has today's.)*
+
 **Read that table twice.** Four of the six `WRONG` *start* as dense (meaning-search) misses —
 the right page never reached the five slots, or the five slots were junk. Two of the six are
 **not** dense problems at all: the pages arrived (or were not needed) and the **paragraph** was
@@ -281,8 +299,8 @@ not dense retrieval (Round 7 / Q18–Q19 at higher `k` — Phase 4 territory).
 
 Is that a dense-retrieval issue? **Yes** — meaning search put the hit one place too low.
 Would raising `k` to 6 fix the *retrieval* miss? **Yes.** Does that guarantee a good paragraph?
-**No** — Round 7 put the page in at k=10 and the model sometimes still refused. That second
-half is report card B.
+**No** — Round 7 put the page in at k=10 and the model still refused, and Round 11 repeated it
+five times with the same result (`D54`). That second half is report card B.
 
 #### What R4.4 is trying to teach
 
@@ -301,7 +319,7 @@ non-answers still *began* as meaning-search misses — R4.3 is how you see that.
 ### R4.5 Why the golden set is hand-verified — and what that costs
 
 A **golden set** is a list of questions where someone already knows the right answer — like an
-exam key. Phase 2 will score retrieval against ~50 of those.
+exam key. Phase 2 built one: 50 questions first, then 100 (`D65`), all hand-verified.
 
 `D06`: a **human** fills that key. Never auto-generate it. Short reason: if the same family of
 model writes the answers *and* grades them, you measure “does it agree with itself,” not “is it
@@ -316,11 +334,33 @@ once, then defend the rule.
 Two things make the cost survivable:
 
 - **The answers were already known.** Questions come from `BREAKAGES.md` — 23 breakages measured
-  against real 2.0.51 in Phase 0. **14 of the 19 probe items have a fix marked `fix OK`.** Most
-  verdicts are “compare to the key,” not “remember SQLAlchemy from scratch.”
+  against real 2.0.51 in Phase 0. **14 of the 19 probe items have a `BREAKAGES.md` entry as their
+  key, and 12 of those carry a fix marked `fix OK`** by `verify_2_0.py`. The other two, Q18 and
+  Q19, both point at #23 (`cascade_backrefs`), whose fix was written by hand. Q7, Q12, Q15, Q16
+  and Q17 have no key. Most verdicts are “compare to the key,” not “remember SQLAlchemy from
+  scratch.” *(This said "14 have `fix OK`" until 2026-09-15; the count after this list is where
+  14 and 12 come from.)*
 - **The key is not in the corpus** (`D09`, §R1.6). Leave `BREAKAGES.md` in the search shelf and
   the system retrieves the answer key, then gets marked against it. That is grading your own
   homework. Keeping it out cost some Phase 1 answer quality and is what makes the score honest.
+
+Where 14 and 12 come from, counted off the review sheet:
+
+```
+# runnable: uv run python -m tools.review_sheet --full > /dev/null && uv run python -c "
+# import re
+# t = open('deliverables/VERDICTS-FULL.md').read()
+# items = re.split(r'\n## (\d+)\. ', t)[1:]
+# pairs = [(items[i], items[i + 1]) for i in range(0, len(items), 2)]
+# print('items', len(pairs))
+# print('with a BREAKAGES key', sum('**VERIFIED ANSWER**' in b for _, b in pairs))
+# print('with fix OK', sum('\`fix OK\`' in b for _, b in pairs))
+# print('no key', [n for n, b in pairs if '**VERIFIED ANSWER**' not in b])"
+items 19
+with a BREAKAGES key 14
+with fix OK 12
+no key ['7', '12', '15', '16', '17']
+```
 
 **And it can be executed rather than read.** For any answer that proposes code: type what it
 says *literally*, run it on the pin, compare to the verified fix.
@@ -353,6 +393,18 @@ Any Phase 2 score computed across that swap would move without retrieval having 
 **pinned** — model *and revision* (`D41`), normalisation (`D36`), chunk settings, `k`, and the
 store. The repo already pinned the first four. The fifth was invisible until measured.
 
+**It happened twice more, which is the best evidence the rule is not pedantry:**
+
+- **A model nobody pinned.** Phase 3 added a reranker, and a comment said it was pinned. It was
+  not, until the CI gate was being built on 2026-09-12 (`D97`). A new upload of that model could
+  have moved the score with no change in this repo.
+- **The store was swapped on purpose, and measured.** The hosted demo searches vectors in memory
+  instead of in Qdrant (`D102`). Before shipping it, the swap was scored on all 100 golden
+  questions by the CI gate: `broken 0, moved 0`, meaning **every question's top 5 came back as
+  the same chunk ids**, and 96 of the 100 top-20 lists were identical. So the swap is safe for
+  what the model sees. The 4 lists that differ, all below rank 5, are the same kind of
+  disagreement as the 4 of 19 above, just further down.
+
 ### Phase 2's measured score lives next door
 
 Sitting 4 stops here. The golden-set baseline (`recall@5 = 0.51`, the provenance split, the
@@ -384,12 +436,15 @@ file (R4.1–R4.6). What the finished ruler actually scored is there.
 
 ## Before Sitting 5
 
-**Read, do not run — these all need the corpus and one needs a GPU:**
+**Two quick commands** — both finish in under a second, need no GPU, no Ollama and no Qdrant:
 
 ```bash
-uv run python -m tools.review_sheet --full   # every answer, source and verdict
-uv run python -m tools.apply_verdicts --check
+uv run python -m tools.review_sheet --full   # writes deliverables/VERDICTS-FULL.md (gitignored): every answer, source, key and verdict
+uv run python -m tools.apply_verdicts --check  # prints "in sync: 19 verdicts" if FAILURES.md matches verdicts.json
 ```
+
+*(This used to say "read, do not run — one needs a GPU". Neither does; `review_sheet` reads the
+committed `FAILURES.md`, `verdicts.json` and `BREAKAGES.md`.)*
 
 **Answer these three (plain language):**
 
