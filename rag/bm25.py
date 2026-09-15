@@ -2,10 +2,14 @@
 BM25 keyword search over `corpus/chunks.jsonl` (Phase 3, lever 2).
 
 Dense retrieval maps *meaning*. It fails when the developer types a rare API
-symbol whose nearest pages talk about the same *idea* under different words
-(`table_names` → pages about reflection that never say the removed name near
-the top). BM25 maps *letters*: the same rarity that hurts dense is exactly what
-IDF rewards.
+symbol whose nearest pages talk about the same *idea* under different words.
+BM25 maps *whole words*: the same rarity that hurts dense is exactly what IDF
+rewards — `autoload_with` on g044 goes from dense rank 12 to BM25 rank 1.
+
+It does not rescue `engine.table_names()`, the example this docstring used to
+give. The answer pages say `get_table_names`, a different token, so zero chunks
+hold the word the developer typed (measured 2026-09-14; study/10-RETRIEVAL.md
+R2.6). BM25 needs the question and the page to share the word.
 
 No third-party BM25 package — Okapi BM25 is ~40 lines, and pinning another
 library for one formula would be theatre. The index builds once from
