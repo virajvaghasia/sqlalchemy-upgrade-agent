@@ -69,10 +69,11 @@ It does **not** find new books. It only stops wasting seats on duplicates.
 **2. Hybrid BM25 (`D67`) — two ways to pick books, then merge**
 
 - **Dense (vectors):** “pages that *mean* something like this question.”
-- **BM25 (keywords):** “pages that *contain these words*” (`table_names`, `RemovedIn20Warning`, …).
+- **BM25 (keywords):** “pages that *contain these words*” (`autoload_with`, `LegacyAPIWarning`, …).
 
 A stuck developer often types the **error string**. Dense can miss that; BM25 catches the
-literal words. Hybrid runs **both**, then merges the two ranked lists (RRF). Dense gets a
+literal words — **as long as the page uses the same word**. BM25 compares whole words, so
+`table_names` does not match a page that says `get_table_names` (measured below, R7.2). Hybrid runs **both**, then merges the two ranked lists (RRF). Dense gets a
 stronger vote so keyword search cannot shove good semantic hits off the desk.
 
 ```
@@ -236,6 +237,11 @@ same book on a five-book desk.
 still return a 1.4-only page when that is the right hit. We only collapse when **both**
 versions of the *same* paragraph show up together.
 
+**"The same" means byte-identical, heading included.** Two versions that differ by a few words
+are not twins to this lever. *"how do I use joinedload?"* still gets `c00971` (1.4) and
+`c02897` (2.0) side by side in today's five, because the two passages are close but not equal
+(`10-RETRIEVAL.md`, Before Sitting 3). **"31 → 0" counts exact twins only.**
+
 **Code.** Logic lives in `rag/dedup.py`. It runs automatically. Turn it off with
 `dedupe=False` if you want to re-measure the old “double seats” behaviour.
 
@@ -250,8 +256,17 @@ versions of the *same* paragraph show up together.
 | **Dense** (vectors in Qdrant) | “pages that *mean* something like this” | exact API / error strings |
 | **BM25** (keyword index on `chunks.jsonl`) | “pages that *contain these words*” | paraphrase / soft wording |
 
-A stuck developer types `engine.table_names()` or a warning string. Dense may miss; BM25 often
+A stuck developer types a warning string or an old parameter name. Dense may miss; BM25 often
 hits. Hybrid runs **both**, merges the ranked lists, then you take the top pages for the desk.
+
+**Named example, both ways.** `g044` asks *"autoload=True on Table without autoload_with what is
+the 2.0 way"*. Phase 1's meaning search put the answer page at rank **12**; BM25 alone puts it at
+rank **1**, because `autoload_with` is a rare word and the page contains it. Now `g003`: *"cant
+list tables anymore, engine.table_names() attribute error"*. **Not in the top 20 either way.** The
+pages that answer it all say `get_table_names`, and BM25 cuts text into whole words — to it,
+`table_names` and `get_table_names` are two different words, and zero chunks contain the first.
+`10-RETRIEVAL.md` §R2.6 has both commands. **This file used `table_names` as BM25's showcase until
+2026-09-15; it is the case BM25 cannot reach.**
 
 **How the merge works — and what RRF is.**
 
@@ -329,7 +344,9 @@ Named gain on the 100: Stack Overflow **0.38 → 0.48**. Fixed baseline ids (the
 `g024`, `g038`, `g044`, `g046`, `g047`, `g050`.
 
 **What it is not.** A fix for pages that **do not exist** in the corpus (e.g. `has_table` —
-zero chunks). Re-measure without it anytime: `--dense-only`.
+zero chunks). And not a fix for a question whose words the page does not use (`g003`,
+`table_names`, above). Re-measure without it anytime: `--dense-only --no-rerank` — both flags,
+as the box near the top of this file says.
 
 **Code.** `rag/bm25.py`, `rag/hybrid.py`. Default on.
 
@@ -370,6 +387,12 @@ promotion**, and say the full sort was rejected.
 
 **Code.** `rag/rerank.py` (`BAAI/bge-reranker-base`). `--no-rerank` = hybrid only.
 
+**Pinned late.** The reranker's file carried a "pinned" comment from the day it shipped, but no
+revision was set until the CI gate was built on 2026-09-12 (`D97`): until then, a new upload of
+that model could have changed seat 5 with no change in this repo. It is now
+`MODEL_REVISION = "2cfc18c9…"`, and re-scoring with the pin gave the same **0.64, 7↑ 0↓**, same
+seven ids.
+
 ---
 
 ### R7.4 Sphinx strip (`D69`) — clean the markup? Tried. Made it worse. Reverted.
@@ -393,7 +416,7 @@ the repo with tests so the next sitting does not “cleverly” re-try a known b
 
 **What about “fix chunking”?** The remaining **17** absents are mostly not mid-cut chunks
 (`D56`). Named example: `g042` (*I assigned comment.issue = issue and Comment never
-INSERTed*) shares **0 of 8** content words with its cascade answer page — wrong vocabulary,
+INSERTed*) shares **0 of 7** content words with its cascade answer page — wrong vocabulary,
 not a severed listing. Re-cutting boundaries might still help citations someday; it is not
 why those 17 are missing from search.
 
@@ -471,33 +494,35 @@ Nothing after this section is “another lever like R7.1–R7.5.” Different jo
 So: better search helped, but the user still often gets a refusal or a made-up answer even when
 the page is already on the desk. **That is generation**, not retrieval.
 
-**What happens next, in order (plain list):**
+**What happened next** (this list was a plan when written; it is all done now, 2026-09-15):
 
-1. **Lab Round 13** — pull `phase-2/measure`, confirm search still ~0.64, run
-   `rag.score --refusals` on the **3060** (same sitting). That stamps a Phase 4 “before”
-   picture. Mac can do it too; lab is faster. See [`../logs/HANDOFF.md`](../logs/HANDOFF.md).
+1. **Lab Round 13 — closed.** The 3060 reproduced retrieval exactly: recall@5 **0.64**, the same
+   **17** absents, the same ceiling of **58 of 91** (`D83`). Generation did not reproduce across
+   machines; retrieval did, to the item.
 
-2. **Phase 4 — judge / fix the *answer***, not the search.** Teaching file:
-   [`16-JUDGE.md`](16-JUDGE.md) §R8. Plan: [`../phases/PHASE-4.md`](../phases/PHASE-4.md).
-   Concrete headaches already named in §R6.2:
-   - model **refuses** even though the right page is in the prompt
-   - model **invents** APIs (`g056`, `g065`)
-   - citations missing or fake
+2. **Phase 4 — the *answer*, not the search — complete.** [`16-JUDGE.md`](16-JUDGE.md) §R8,
+   [`../phases/PHASE-4.md`](../phases/PHASE-4.md). The three headaches named in §R6.2, measured:
+   - refuses with the right page in the prompt: **19 of 58** (Mac) / **20** (lab) (`D72`)
+   - invents: **2 of 9** unanswerable (`g056`, `g065`)
+   - citations: **31 of 48** answered items cite nothing (`D73`)
 
-3. **Phases 5–6 later** (agent, deploy) — ignore until Phase 4 has numbers. ROADMAP only.
+3. **Phases 5 and 6 — done.** The agent (`17-AGENT.md`) and production: a CI gate that re-scores
+   retrieval on every PR, a hosted demo (`18-PRODUCTION.md`).
 
 **What you do *not* do after R7.5**
 
 - Another Sphinx strip or “fix chunking” pass to chase the 17
-- Quote **0.64** as “the system is 64% good” — that is **retrieval only**; end-to-end is lower
-- Wait on Tailscale for Phase 4 — AnyDesk + the lab clone is enough for Round 13
+- Quote **0.64** as “the system is 64% good” — that is **retrieval only**; end-to-end is **0.43**
+  (Mac) / **0.42** (lab)
+- Assume hybrid fixed the named symbol misses from Phase 1 — of `backref`, `cascade_backrefs`,
+  `keys()` and `table_names`, only `backref` got into the five (`13-VERIFICATION.md` R5.1)
 
 **Mac vs lab (same as before):**
 
 | work | where |
 |---|---|
 | Everything in R7.1–R7.5 | Mac was enough |
-| Full `--refusals` / prompt experiments | lab PC preferred (GPU) |
+| Full `--refusals` / prompt experiments | lab PC preferred (GPU), and it is the machine that reproduces (`D84`) |
 
 ---
 
