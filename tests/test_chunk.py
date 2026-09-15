@@ -386,7 +386,7 @@ def test_an_overlapped_listing_is_not_severed():
 
 
 def test_indented_prose_is_not_a_severed_listing():
-    """The control, and the reason §R5.3's honest claim is 'at least 11' rather
+    """The control, and the reason §R5.3's honest count is 3 real of 5 flagged rather
     than 123. Every glossary.rst definition body is indented under its term, so
     'indented on both sides' alone would flag the whole file. A Python or SQL
     token has to be there too."""
