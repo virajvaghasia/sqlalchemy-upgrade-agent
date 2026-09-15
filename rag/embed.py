@@ -77,6 +77,11 @@ MODEL_REVISION: str | None = "5617a9f61b028005a4858fdac845db406aefb181"
 # distance expects that. Recorded in the stats because a run that normalized and
 # a run that did not produce indexes that cannot be mixed — silently, since the
 # search still returns results.
+#
+# With BGE-M3 at MODEL_REVISION this flag changes nothing: the model's own
+# pipeline is Transformer -> Pooling -> Normalize, so vectors come out length 1
+# with the flag False too (measured 2026-09-14; study/10-RETRIEVAL.md R2.3). It
+# is kept as a second guarantee for a model whose pipeline has no Normalize step.
 NORMALIZE = True
 
 # BGE-M3 accepts 8192 tokens. Our chunks do not need it: TARGET is 1800

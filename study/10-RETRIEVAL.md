@@ -367,9 +367,16 @@ attached, so later sections can say "corpus" without repeating the story.
 - **Generation** — the model reads the five and writes a sentence. Ours: `qwen2.5-coder:7b`
   through Ollama. Step 4, built — `rag/ask.py`. Covered in §R3.
 
-**Status:** all five steps are **BUILT**. Phase 1 is not **COMPLETE**. Three gates still need a
-human: eyeball ten chunks, mark 19 answer verdicts, five questions cold. A script finishing is
-not a gate. [`../phases/PHASE-1.md`](../phases/PHASE-1.md) lists them.
+**Status (checked 2026-09-14):** Phase 1 is **complete** and merged (PR #28). When this list was
+written all five steps were *built* and none of the three human gates had closed. They closed
+like this: the ten-chunk eyeball passed with 2 of 10 failing, and that exception is written down
+(`D56`); the 19 answer verdicts were marked `10 / 3 / 6` (correct / partial / wrong) on
+2026-08-17; the five cold questions closed per `D57`. A script finishing is still not a gate.
+[`../phases/PHASE-1.md`](../phases/PHASE-1.md) records how each one closed.
+
+**What this file describes is Phase 1's retriever**: meaning-search only, top 5, nothing else.
+Phase 3 changed what `retrieve()` does by default (§R1.5 and §R2.6 say how, with the measured
+result). Every output below is Phase 1's unless it says otherwise.
 
 #### Why build time and query time are split
 
@@ -611,7 +618,7 @@ There is no relevance test in this pipeline. No classifier, no cutoff, no "good 
 The entire selection policy is this:
 
 ```
-from rag/index.py — retrieve()
+from rag/index.py — retrieve(), as Phase 1 merged it (git show 19024c2:rag/index.py)
 
 return client().query_points(
     collection_name=collection_name(stats),
@@ -621,6 +628,12 @@ return client().query_points(
     with_payload=True,
 ).points
 ```
+
+> **Today that call is one of four steps.** Phase 3 wrapped it: meaning-search fetches 50, keyword
+> search (BM25) fetches 50, the two lists are merged by rank (`D67`), exact 1.4/2.0 twins are
+> collapsed to one copy (`D66`), and a second model may promote one page into seat 5 (`D68`).
+> **None of the four is a relevance test either.** Each one reorders or removes candidates; there
+> is still no step that asks "is this page useful?" and no cutoff below which a page is refused.
 
 Qdrant returns the five stored vectors whose **direction** is closest to the question's
 (cosine similarity). That is everything. **"Relevant" is a word you apply afterwards**, looking
@@ -688,8 +701,10 @@ finds the 1.4 tutorial — a genuinely excellent, highly relevant, well-written 
 **Confident. Correctly sourced. Wrong.**
 
 Nothing in the pipeline noticed, because nothing in the pipeline knows which release that page
-describes. This is the failure that the whole of Phase 3 exists to fix, and
-[`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 5 is where we go looking for it deliberately.
+describes. When this was written, Phase 3 was expected to fix it.
+[`../phases/PHASE-1.md`](../phases/PHASE-1.md) Step 5 is where we went looking for it
+deliberately, and R1.7 is what that run found. The "Now vs later" table below says what Phase 3
+actually did about it, which is less than this paragraph expected.
 
 #### And now it can be measured, not just asserted
 
@@ -790,9 +805,29 @@ This is the sentence to take away, and it is stronger than anything the prose ab
 
 | | |
 |---|---|
-| **Now (Phase 1)** | Search **is** meaning-search. Both twins can sit in the top 5. We **do not** filter on version. That is deliberate (D10): the failure has to show up so Phase 3 has a before number. |
-| **Later (Phase 3)** | We still do **not** “wait for embeddings to notice `future=True`.” A better meaning model sees the same near-identical paragraph. The split uses the **version label** already on each chunk (`1.4.52` / `2.0.51`) as a **filter or route** — metadata, not smarter vectors. Hybrid search is for a *different* hole (exact symbols like `table_names`). |
-| **Still not a full fix** | A **2.0 file** can still say *“in 1.4, pass `future=True`.”* Filtering to 2.0 keeps that page. R1.7 measured that. |
+| **Phase 1** | Search **is** meaning-search. Both twins can sit in the top 5. We **do not** filter on version. That is deliberate (D10): the failure has to show up so Phase 3 has a before number. |
+| **Planned for Phase 3, when this was written** | Use the **version label** already on each chunk (`1.4.52` / `2.0.51`) as a **filter or route** — metadata, not smarter vectors. |
+| **What Phase 3 actually shipped** | **No version filter and no route.** It shipped *twin collapse* (`D66`): when two chunks have the **same heading and byte-identical text**, keep one and prefer the 2.0.51 copy. That catches exact duplicates only. The engine-tutorial pair above differs by four edits, so both copies still compete. The `--version 2.0.51` flag on `rag.ask` exists, and it is off unless you pass it. |
+| **Measured, 2026-09-14** | *"should I pass future=True to create_engine?"* returns **the same five chunks, in the same order**, under Phase 1's retriever and under today's. Three of the five are 1.4 pages. Phase 3 did not touch this question. |
+| **Still not a full fix, even with a filter** | A **2.0 file** can still say *“in 1.4, pass `future=True`.”* Filtering to 2.0 keeps that page. R1.7 measured that. |
+
+The measurement in that table, as a command. Needs Qdrant up and loads BGE-M3 (about a minute):
+
+```
+# runnable: PYTHONPATH=. uv run python -c "
+# import rag.index as index
+# q = 'should I pass future=True to create_engine?'
+# for label, kw in (('phase 1', dict(dedupe=False, hybrid=False, rerank=False)), ('today  ', {})):
+#     hits = index.retrieve(q, limit=5, **kw)
+#     print(label, ' '.join(h.payload['chunk_id'] + '/' + h.payload['sqlalchemy_version'][:3] for h in hits))
+# " 2>/dev/null
+phase 1 c01555/2.0 c01845/2.0 c01277/1.4 c00209/1.4 c01139/1.4
+today   c01555/2.0 c01845/2.0 c01277/1.4 c00209/1.4 c01139/1.4
+```
+
+`[2]` and `[4]` are `core/future.rst` at 2.0 and at 1.4. Both survived twin collapse, which tells
+you their text is not byte-identical — close enough to rank together, different enough that
+`D66` keeps both.
 
 **And this tells you what the fix has to be.** A better *meaning* search cannot separate two
 passages that mean the same thing — that is not a flaw in the search, it is the search working.
@@ -887,9 +922,15 @@ Skew is two shapes:
 into the top-5. The answer cited only `[1]`. That is **generation** ignoring what it was given.
 Visible only because sources are printed (R1.2).
 
-**`UNVERIFIED` on #7 is not an oversight.** All 19 `FAILURES.md` rows stay unmarked until a
-human writes CORRECT / WRONG / PARTIAL. A script grading its own answers reports whatever
-number you wanted.
+**#7's verdict is `WRONG`, and a human signed it.** When this section was first written, all 19
+`FAILURES.md` rows said `UNVERIFIED`, on purpose: a script grading its own answers reports
+whatever number you wanted. On 2026-08-17 the verdicts were drafted against `BREAKAGES.md`, run
+on real 2.0.51, and accepted by Viraj. They live in `deliverables/verdicts.json`:
+
+```
+# runnable: uv run python -c "import json; print(json.load(open('deliverables/verdicts.json'))['7'])"
+['WRONG', "Says yes, pass `future=True`, which is wrong for 2.0 where the flag does nothing. Its single source is a 2.0 page whose sentence opens 'In 1.4' — the case §R1.7 dissects."]
+```
 
 **One line.** R1.5 said the *1.4 tutorial* would poison the answer. The poison was a *2.0
 migration page that still describes 1.4.*
@@ -981,9 +1022,15 @@ Search indexes the empty instruction.
 grep -c has_table corpus/chunks.jsonl  →  0
 ```
 
-*Different problem:* `table_names` is in **6** chunks and still was not retrieved. That is a
-*ranking* miss — Phase 3 hybrid search is the fix. `has_table` at 0 is the *ceiling* — only
-Step 1 (change the corpus) can touch it. Same-looking wrong answer; different owner. **D45.**
+*Different problem:* the replacement for `table_names`, `inspect(engine).get_table_names()`, is
+on **6** chunks and was not retrieved. The page exists, so that is a *ranking* miss.
+`has_table` at 0 is the *ceiling* — only Step 1 (change the corpus) can touch it. Same-looking
+wrong answer; different owner. **D45.**
+
+*What Phase 3 did about the ranking miss:* nothing. Keyword search was the planned fix and it
+cannot see the page, for a reason §R2.6 shows: the question says `table_names`, the page says
+`get_table_names`, and keyword search compares whole words. A ranking miss is *fixable in
+principle*. It is not automatically fixed by the tool you expected.
 
 **Q3 — why `BREAKAGES.md` is out**
 
@@ -1101,7 +1148,7 @@ Not a metaphor — the file on disk:
 # runnable: uv run python -c "
 #   import numpy as np; V = np.load('corpus/embeddings.npy')
 #   print(f'shape {V.shape}  dtype {V.dtype}  bytes {V.nbytes}')
-#   print('first 6 numbers of the first vector:', np.round(V[0][:6], 4).tolist())
+#   print('first 6 numbers of the first vector:', [round(float(x), 4) for x in V[0][:6]])
 #   print('norm of every vector: min %.6f max %.6f' % (
 #       np.linalg.norm(V, axis=1).min(), np.linalg.norm(V, axis=1).max()))"
 shape (3284, 1024)  dtype float32  bytes 13451264
@@ -1246,7 +1293,7 @@ Read together: *"decimal numbers, four bytes each."* Which makes the file size a
 rather than a mystery:
 
 ```
-# runnable: python3 -c "print(3284*1024*4, 'bytes')"
+# runnable: uv run python -c "print(3284*1024*4, 'bytes')"
 13451264 bytes
 ```
 
@@ -1258,10 +1305,16 @@ about `0.0000001` apart.
 
 **Why that is far more than enough here.** The only thing this system does with these numbers is
 add up 1024 products and compare the totals — and it only needs the **ordering** to come out
-right (§R2.5). The gaps that decide an ordering are large: the top hit for *"why can't I call
-engine.execute any more?"* scored 0.633 against a 0.540 baseline, a gap of **0.09**. float32
-resolves about 0.0000001. **That is a million times finer than the difference being judged.**
-Precision is not the binding constraint, and it is worth knowing which constraint is.
+right (§R2.5).
+
+**Which gap decides an ordering?** An earlier draft said *0.09*: the top hit for *"why can't I
+call engine.execute any more?"* scored 0.633 against a 0.540 random-pair baseline. **That is the
+wrong gap.** 0.09 is how far the winner sits above noise. What decides whether page 4 or page 5
+gets the last seat is the gap between **neighbours**, and neighbours are much closer. The
+Phase 1 `joinedload` result at the end of this file has hits at 0.715 and 0.714, **0.001** apart. Across
+300 chunks used as queries, the smallest neighbour gap in each top 6 has a median of **0.00025**
+(block below). float32 resolves about 0.0000001, so it is still **about 2500 times finer than a
+typical deciding gap**. The conclusion survives. The number given for it did not.
 
 Now the neighbours:
 
@@ -1276,13 +1329,44 @@ add accuracy — there is no eighth digit to store, so you are padding real numb
 Double the file for nothing. **A bigger number type is not a more accurate one; it is only a
 bigger container.**
 
-**`float16` is the interesting one, because it is genuinely tempting.** It halves the file and
-~3 decimal digits still clears a 0.09 gap comfortably. So why not?
+**`float16` is the interesting one, because it is genuinely tempting.** It halves the file.
+~3 decimal digits per stored number sounds too coarse for gaps of 0.00025. So measure it rather
+than guess: store every vector as float16, then compare each query's top 5 against the float32
+answer.
 
-**Because at 13 MB there is nothing to buy.** Saving 6.7 MB solves no problem — the file loads
-instantly, fits in memory ten times over, and copies in a second. You would take on a real risk
-(precision that is fine *now*, and might not be after Phase 3 adds reranking, where scores get
-compared much more finely) in exchange for a saving nobody can feel.
+```
+# runnable: uv run python -c "
+# import numpy as np
+# V = np.load('corpus/embeddings.npy'); H = V.astype(np.float16).astype(np.float32)
+# qs = np.random.default_rng(7).choice(len(V), 300, replace=False)
+# sets = order = 0; gaps = []
+# for q in qs:
+#     a = np.argsort(-(V @ V[q]), kind='stable')[1:6]; b = np.argsort(-(H @ H[q]), kind='stable')[1:6]
+#     sets += set(a) != set(b); order += list(a) != list(b)
+#     top = np.sort(V @ V[q])[::-1][1:7]; gaps.append(abs(np.diff(top)).min())
+# print('queries', len(qs), '| top-5 set changed', sets, '| top-5 order changed', order)
+# print('smallest neighbour gap in each top 6: median %.5f' % np.median(gaps))
+# print('largest change to one stored number: %.1e' % np.abs(H - V).max())"
+queries 300 | top-5 set changed 0 | top-5 order changed 1
+smallest neighbour gap in each top 6: median 0.00025
+largest change to one stored number: 1.2e-04
+```
+
+Each query is a chunk from the corpus, and `[1:6]` skips rank 0, which is the chunk matching
+itself. **float16 changed which five pages came back on 0 of 300 queries and swapped the order of
+two of them once.** Each stored number moved by at most 0.00012. The block does not show *why*
+a thousand such moves leave the order alone; it shows that, on this corpus, they did.
+
+**So why not float16? Because at 13 MB there is nothing to buy.** Saving 6.7 MB solves no problem —
+the file loads instantly, fits in memory ten times over, and copies in a second. float16 did
+reorder one result in 300. That is a small cost, and it buys a saving nobody can feel.
+
+> **A risk this section used to name, and which did not happen.** It said float16 might stop being
+> safe *"after Phase 3 adds reranking, where scores get compared much more finely."* Phase 3's
+> reranker (`D68`) is a separate model that reads the question and a page's **text** and scores
+> the pair. It never opens `embeddings.npy`. And the merge of meaning-search with keyword search
+> (`D67`) uses each page's **rank** in each list, not its score. So nothing Phase 3 added compares
+> these numbers more finely than Phase 1 did.
 
 **That answer is scale-dependent, and saying so is the point.** At 10 million chunks the same
 array would be 40 GB in float32 and 20 GB in float16, and then it is a genuine decision with
@@ -1290,10 +1374,58 @@ real money attached. **Here it is not a decision at all** — which is why the h
 float32 is *"the model emits it and nothing forces us off it"*, not a performance argument we
 never made.
 
-Note the last line: **every vector has length exactly 1.0.** That is not a coincidence, it is
-`normalize_embeddings=True` in `rag/embed.py` (D36). Every position has been pushed out onto the
-surface of a sphere, all the same distance from the origin — so only the *direction* carries
-meaning, never the magnitude. The next section is why that matters.
+Note the last line: **every vector has length exactly 1.0.** That is not a coincidence. Every
+position has been pushed out onto the surface of a sphere, all the same distance from the origin —
+so only the *direction* carries meaning, never the magnitude. The next section is why that
+matters.
+
+**This file used to credit the wrong thing for that.** It said `normalize_embeddings=True` in
+`rag/embed.py` did it. That flag is set, and it is **not what makes the vectors length 1**. BGE-M3
+is not one step; it is a pipeline of three, and the third step already normalises:
+
+```
+# runnable: PYTHONPATH=. uv run python -c "
+# import json, numpy as np
+# import rag.embed as embed
+# from sentence_transformers import SentenceTransformer
+# m = SentenceTransformer(embed.MODEL_ID, revision=embed.MODEL_REVISION, device=embed.pick_device(None))
+# m.max_seq_length = embed.MAX_SEQ_LENGTH
+# print('pipeline:', ' -> '.join(type(step).__name__ for step in m))
+# chunks = [json.loads(l) for l in open('corpus/chunks.jsonl')]
+# idx = sorted(np.random.default_rng(0).choice(len(chunks), 60, replace=False).tolist())
+# texts = [embed.embedding_input(chunks[i]) for i in idx]
+# off = m.encode(texts, normalize_embeddings=False, convert_to_numpy=True, batch_size=8)
+# n = np.linalg.norm(off, axis=1)
+# print('flag False, all three steps: length min %.6f max %.6f' % (n.min(), n.max()))
+# print('same as embeddings.npy rows:', np.allclose(off, np.load('corpus/embeddings.npy')[idx], atol=1e-6))
+# raw = SentenceTransformer(modules=[m[0], m[1]], device=m.device).encode(texts, convert_to_numpy=True, batch_size=8)
+# rn = np.linalg.norm(raw, axis=1); lens = np.array([chunks[i]['n_chars'] for i in idx])
+# rank = lambda a: np.argsort(np.argsort(a))
+# print('first two steps only:        length min %.2f max %.2f' % (rn.min(), rn.max()))
+# print('rank correlation of that length with chunk size: %.2f' % np.corrcoef(rank(rn), rank(lens))[0, 1])
+# " 2>/dev/null
+pipeline: Transformer -> Pooling -> Normalize
+flag False, all three steps: length min 1.000000 max 1.000000
+same as embeddings.npy rows: True
+first two steps only:        length min 25.11 max 26.82
+rank correlation of that length with chunk size: -0.14
+```
+
+Read it line by line, on 60 chunks picked at random:
+
+- **`Transformer -> Pooling -> Normalize`.** The model reads the text, pools it down to 1024
+  numbers, then divides by the length. That last step ships inside the model's own config.
+- **Flag off, length still 1.000000, and identical to what is on disk.** Turning our flag off
+  changes nothing. It divides by a length that is already 1.
+- **Remove the `Normalize` step and the lengths are 25.11 to 26.82.** That is what the model
+  produces before dividing. A spread of about 7%.
+- **That length does not track how long the chunk is.** A rank correlation of **-0.14** is close
+  to none; 1.0 would mean longer chunks always get longer vectors.
+
+**So the flag is a second guarantee, not the first.** It earns its place if someone swaps in a
+model whose pipeline has no `Normalize` step. With BGE-M3 at the pinned revision, it does
+nothing. `D36` calls a normalisation mismatch fatal; with this model it cannot happen, because
+the model will not produce an un-normalised vector unless you take it apart as that block does.
 
 #### Why min and max are the same number
 
@@ -1321,7 +1453,9 @@ un-normalised   min 29.3964  max 34.4316  spread 5.0352
 after dividing  min 1.000000  max 1.000000
 ```
 
-A spread of **5.0352** collapsing to nothing. That is what the flag did to our file.
+A spread of **5.0352** collapsing to nothing. Those are random numbers, not our model's output.
+The block shows the arithmetic of normalising. The block above shows where it actually happens for
+our file: inside BGE-M3, on real lengths of 25.11 to 26.82.
 
 > **Why this block uses no NumPy, when every other vector block here does.** The others read
 > `corpus/embeddings.npy`, which cannot exist without the embedding model, so they are marked
@@ -1371,8 +1505,14 @@ unrelated x3 (c02771)  1.1461    0.3820
 ```
 
 **Under raw dot product the unrelated chunk wins — 1.1461 against 0.9691.** It did not become
-more relevant. It became bigger. A retrieval system built on raw dot products returns long
-documents.
+more relevant. It became bigger. With raw dot products, whatever has the longest vector wins
+fights it should lose.
+
+**The "three times longer" is made up, and says so.** With BGE-M3 it could not happen: the
+block before this one measured the model's real lengths at 25.11 to 26.82 before its own
+`Normalize` step, and found they do not grow with chunk size. The ×3 is there to make the
+mechanism visible. Other embedding models do produce lengths that vary a lot, and there this is
+the real failure.
 
 **Step two — cosine already fixes that, by dividing the length back out:**
 
@@ -1425,21 +1565,29 @@ to check and no error to bound.
 
 So you get cosine's immunity to length at the dot product's price: one multiply-and-add across
 1024 numbers, no division anywhere. That is what earns `rag/index.py` the right to write
-`vectors @ query` — and it is only true because of the flag. Turn normalisation off and that same
-line silently starts returning long documents.
+`vectors @ query` (in `memory_points`, the path that searches without Qdrant) — and it is only
+true because every vector is length 1. Swap in a model with no `Normalize` step, drop the flag,
+and that same line silently starts ranking by length as well as direction.
 
 **Said plainly: normalising does not make the search smarter. It makes the cheap operation and
 the correct operation the same operation.** The division is paid once, at build time, instead of
 3284 times per question forever — which is §R1.3's build-time/query-time trade applied one level
 further down.
 
-**And what it costs is in the same two lines.** Before normalising, the lengths ranged from
-`29.5299` to `35.0566`; afterwards `min` and `max` are both `1.000000`. **That spread was
-information — roughly how much text a chunk held — and it has been overwritten, not
+**And what it costs.** Before the `Normalize` step, the lengths ranged from **25.11 to 26.82** on
+60 real chunks; afterwards `min` and `max` are both `1.000000`. **That spread is overwritten, not
 de-weighted.** Nothing downstream can recover it: not Qdrant, not Phase 3's reranker, not the
-Phase 5 agent. Recovering it means re-embedding all 3284. Mostly that is exactly what you want,
-since the demonstration above shows length winning fights it should lose — but it is a trade, and
-the cost half is the half worth being able to state.
+Phase 5 agent. Recovering it means re-embedding all 3284.
+
+**This file used to say what the spread meant: "roughly how much text a chunk held."** It quoted
+`29.5299` to `35.0566` as our lengths. Both were wrong. Those two numbers are the random stand-in
+block's output from when it was written with NumPy (`np.random.default_rng(0)` reproduces them
+exactly). The block was rewritten with the standard library, its output changed to 29.3964 /
+34.4316, and the two copies quoted here were never updated. They were never BGE-M3's numbers. And measured on the real model, length has a rank
+correlation of **-0.14** with chunk size, which is close to no relationship. So the cost is real,
+and it is small: a 7% spread that does not stand for anything this file can name was thrown away.
+**Say "we lose the magnitude" in an interview. Do not say what the magnitude meant. Nobody here
+has measured that.**
 
 ### R2.4 "Close" means the angle between them
 
@@ -1530,7 +1678,10 @@ Consequences worth carrying:
   your own baseline. Copied from a tutorial written against a different model, it will either
   return everything or nothing.
 - **Only the ordering is trustworthy**, which is why retrieval takes top-k rather than
-  everything above a cutoff (§R1.3). Rank is robust; the absolute number is not.
+  everything above a cutoff (§R1.3). Rank is robust; the absolute number is not. Phase 3 took this
+  literally: when it merged meaning-search with keyword search (`D67`), it merged the two **rank**
+  lists and threw both sets of scores away, because a cosine of 0.7 and a BM25 score of 14 are
+  not on any shared scale.
 
 ### R2.6 What this cannot do — and Step 5 measured it
 
@@ -1541,7 +1692,7 @@ Meaning-search has a blind spot that is the mirror of its strength.
 asked about one and got the other, the answer is simply wrong. **An exact symbol name is not a
 fuzzy concept.** The model has no way to know that.
 
-Not theory. Step 5 ran it:
+Not theory. Step 5 ran it (Phase 1's retriever, August 2026):
 
 ```
 symbol            in corpus   retrieved   so the failure is
@@ -1560,8 +1711,12 @@ out **not** to fail (D39: ranked 1 of 3284). The claim (meaning search is weak o
 symbols) was right; that illustration was wrong. **Do not read it as “we got Query instead of
 Session.”** Search returns pages; that question’s right page came first. The measured symbol
 misses are `table_names`, `keys()`, `cascade_backrefs`, `backref` (see §R4 / `FAILURES.md`).
-Keyword search would nail `table_names` precisely because it is a literal string, and that is
-Phase 3.
+
+This file used to end that paragraph with: *"Keyword search would nail `table_names` precisely
+because it is a literal string, and that is Phase 3."* **Phase 3 built keyword search, and it did
+not find `table_names`.** The rest of R2.6 shows why, because the reason is more useful than the
+prediction was. Read the "in corpus" column above with suspicion first: it counts the **letters**
+`table_names`, and it will turn out those letters never appear on their own.
 
 #### Why the embedding is structurally unable to see a symbol
 
@@ -1585,8 +1740,10 @@ vector, and the arithmetic says so:
   66 of 4792 characters = 1.38% of the text
 ```
 
-**`table_names` is 1.38% of the text it lives in.** It appears once per chunk; the other 98.6% is
-prose about reflection, errors and asyncio. One vector has to describe all of it, so the vector
+**`table_names` is 1.38% of the text it lives in.** It appears once per chunk, and every time it
+is the tail of a longer name: `insp.get_table_names()`, `inspect(sync_conn).get_table_names()`,
+`inspector.get_table_names()`. The old `engine.table_names()` itself is on no page. The other
+98.6% is prose about reflection, errors and asyncio. One vector has to describe all of it, so the vector
 describes *"a passage about database introspection"* — which is correct, and useless when the
 literal string **is** the question. Nothing is malfunctioning. A summary of a paragraph is not a
 record of which identifiers the paragraph contained.
@@ -1611,9 +1768,65 @@ select                 819 chunks  (24.94% of corpus)
 **To a dense embedder rarity is invisible** — one token among a few hundred is averaged away.
 **To keyword search rarity is the strongest signal available**: that is exactly what BM25's IDF
 term computes, and a word appearing in 6 of 3284 documents is enormously discriminative where one
-in 819 is nearly worthless. *The very property that erases `table_names` from the vector is the
-property that makes BM25 lock onto it.* The two methods fail in opposite directions, which is
-what makes combining them worth doing rather than merely more work.
+in 819 is nearly worthless. The two methods fail in opposite directions, which is what makes
+combining them worth doing rather than merely more work.
+
+**But that block counts letters, and BM25 does not count letters. It counts words.** Before it
+compares anything, `rag/bm25.py` cuts every page into words: it splits on anything that is not a
+letter, digit or underscore, and lowercases. `engine.table_names()` becomes `engine` and
+`table_names`. `inspector.get_table_names()` becomes `inspector` and `get_table_names`. Those are
+two different words. Count words instead of letters, with the tokenizer the search really uses:
+
+```
+# runnable: uv run python -c "
+# import json
+# from rag import bm25
+# r = [json.loads(l) for l in open('corpus/chunks.jsonl')]
+# words = [set(bm25.tokenize(bm25._doc_text(x))) for x in r]
+# print('question words:', bm25.tokenize('engine.table_names() is gone — what replaces it?'))
+# for t in ('table_names', 'get_table_names', 'autoload_with', 'keys'):
+#     print(f'{t:16s} {sum(1 for w in words if t in w):4d} chunks contain this word')"
+question words: ['engine', 'table_names', 'gone', 'replaces']
+table_names         0 chunks contain this word
+get_table_names     6 chunks contain this word
+autoload_with      37 chunks contain this word
+keys              134 chunks contain this word
+```
+
+**To keyword search, `table_names` is in zero chunks.** The question's rarest word matches
+nothing, so it contributes nothing, and the page is ranked on `engine`, `gone` and `replaces`,
+which are everywhere. That is not a bug in BM25. Splitting `get_table_names` into `get`, `table`
+and `names` was measured and made results worse (the comment on `tokenize()` says so), because
+those parts are common words that drown every rare name.
+
+**So the question's word and the page's word must be the same word.** Here, the developer typed
+the name that was *removed*, and the page only names its *replacement*. Neither search method can
+bridge that: meaning-search blurs the name into "introspection", and keyword search sees a
+different word.
+
+**When the words do match, keyword search does exactly what this section promised.** Two golden
+questions where Phase 1's meaning-search missed the top 5 and keyword search alone puts the answer
+page first. Phase 1's ranks come from the saved baseline file; BM25 runs live:
+
+```
+# runnable: uv run python -c "
+# import json
+# from rag import bm25
+# base = {x['id']: x for x in json.load(open('deliverables/baseline-phase1.json'))['rows']}
+# golden = {x['id']: x for x in json.load(open('deliverables/golden.json'))['items']}
+# for g in ('g044', 'g024', 'g003'):
+#     hits = bm25.get_index().search(golden[g]['question'], limit=100)
+#     kw = next((n for n, h in enumerate(hits, 1) if h.chunk_id in golden[g]['answer_chunks']), None)
+#     print(f\"{g}  phase-1 meaning rank {str(base[g]['rank']):>4}   keyword rank {str(kw):>4}   {golden[g]['question']}\")"
+g044  phase-1 meaning rank   12   keyword rank    1   autoload=True on Table without autoload_with what is the 2.0 way
+g024  phase-1 meaning rank   11   keyword rank    1   query(User).get(1) warns LegacyAPIWarning, where did get move to
+g003  phase-1 meaning rank None   keyword rank None   cant list tables anymore, engine.table_names() attribute error
+```
+
+`None` means not in the top 20 (Phase 1's saved depth) or not in the top 100 (the keyword search
+here). `autoload_with` and `LegacyAPIWarning` are words the developer typed **and** words the page
+contains. `g003` is the golden set's own `table_names` question, and it misses both ways, for the
+reason above.
 
 **One detail the "6 chunks" figure hides.** Read the version column: the six are **three pages,
 each present twice** — `core/reflection.rst`, `errors.rst` and `orm/extensions/asyncio.rst`, at
@@ -1622,14 +1835,65 @@ passages**, and each has a twin competing for the same top-k slot. §R1.5's vers
 `D38`'s duplicated index are not separate topics from this one; they are the same corpus seen
 from a different angle.
 
-**So: does Phase 3 fix it?** For three of the four, yes — and for the fourth, never:
+**So: does Phase 3 fix it?** This file used to answer *"for three of the four, yes — and for the
+fourth, never."* The second half was right. The first half was a prediction, and Phase 3 has since
+shipped, so here is the measurement instead. Same five probe questions, same measure as §R4.3 (the
+rank of the first page that contains the symbol), under Phase 1's retriever and under today's:
 
-| symbol | in corpus | can Phase 3 fix it? |
-|---|---|---|
-| `table_names` | 6 chunks (3 pages × 2 versions) | **yes** — the text is there, the ranking is wrong |
-| `keys()` | 7 chunks | **yes** |
-| `cascade_backrefs` | 12 chunks | **yes** |
-| `has_table` | **0 chunks** | **no, and no later phase can** |
+```
+# runnable: PYTHONPATH=. uv run python -c "
+# import rag.index as index
+# from rag import probe
+# ask = {q[2]: q[0] for q in probe.QUESTIONS}
+# def rank(hits, sym):
+#     return next((str(n) for n, h in enumerate(hits, 1) if probe._contains(h.payload['text'], sym)), 'none')
+# print(f\"{'symbol':18} {'phase 1':>7} {'today':>6}\")
+# for sym in ('backref', 'cascade_backrefs', 'keys()', 'table_names', 'has_table'):
+#     p1 = index.retrieve(ask[sym], limit=25, dedupe=False, hybrid=False, rerank=False)
+#     now = index.retrieve(ask[sym], limit=25)
+#     print(f'{sym:18} {rank(p1, sym):>7} {rank(now, sym):>6}')
+# " 2>/dev/null
+symbol             phase 1  today
+backref                  6      2
+cascade_backrefs         8      7
+keys()                  12     16
+table_names             23   none
+has_table             none   none
+```
+
+Needs Qdrant up, loads BGE-M3 and the reranker, about a minute. `none` means not in the top 25.
+The Phase 1 column reproduces §R4.3's table exactly, which is the check that this is the same
+measurement.
+
+| symbol | predicted: can Phase 3 fix it? | measured | why |
+|---|---|---|---|
+| `backref` | (not in the old table) | **fixed** — 6 → 2, now inside the five | not diagnosed here; which of the four Phase 3 steps moved it was not isolated |
+| `cascade_backrefs` | yes | **not fixed** — 8 → 7, still outside the five | the question never says `cascade_backrefs`. It describes the symptom (*"does the comment get saved?"*), so keyword search has no word to match. `D63`'s lesson: phrasing decides retrieval |
+| `keys()` | yes | **worse** — 12 → 16 | the word is `keys`, and 134 chunks contain it, so keyword search's first page containing `keys()` is 58th, outside the 50 it hands over. Pages that *both* lists liked get added together and climb past it |
+| `table_names` | yes | **worse** — 23 → out of the top 25 | the page says `get_table_names`; the question says `table_names`. Different words (block above), so keyword search never lists it, and the same climbing happens |
+| `has_table` | no, and no later phase can | **still none** | zero chunks. Nothing to rank |
+
+**Only one of the three "yes" predictions came true, and two went backwards.** That does not make
+Phase 3 a mistake: on the 100-question golden set it moved recall@5 from 0.49 to 0.64, and
+against Phase 1's saved 50-question baseline it fixed **7 and broke 0** (`D66`–`D68`). These five probe questions are not
+part of that set. It means a lever that helps on average can still hurt a named question, and a
+prediction about *which* questions a lever will fix is worth exactly as much as its measurement.
+
+The golden set says the same about its own two questions for these symbols:
+
+```
+# runnable: uv run python -c "
+# import json
+# rows = {x['id']: x for x in json.load(open('deliverables/gate-baseline.json'))['rows']}
+# for g, sym in (('g003', 'table_names'), ('g016', 'keys()')):
+#     print(g, sym, 'rank today:', rows[g]['rank'])"
+g003 table_names rank today: None
+g016 keys() rank today: 12
+```
+
+`gate-baseline.json` is the CI quality gate's saved run of today's retriever over all 100 golden
+questions (`D97`), 20 deep. `g003` is not in the top 20; `g016` is at 12. Neither reaches the
+five pages the model sees.
 
 `has_table` is not a ranking problem. Hybrid search, reranking, a larger model and the Phase 5
 agent all reorder what exists; none can return text that was never indexed. The only fix is
@@ -1637,6 +1901,27 @@ changing the corpus, which is a Step 1 decision. **This is `D45`, and it is wort
 state cold, because the two failures look identical from outside — both simply return a wrong
 answer.** Only counting chunks separates them, which is why `D45` requires the split be computed
 mechanically rather than judged by eye.
+
+**The ceiling is retrieval's, not the whole system's, and Phase 5 found the way around it.** Phase
+5 gave the model a tool that does not search the corpus at all. `check_api` (`D88`) installs the
+pinned SQLAlchemy 2.0.51 in a throwaway interpreter and asks it directly whether a name exists:
+
+```
+# runnable: PYTHONPATH=. uv run python -c "
+# import rag.tools as tools
+# for s in ('sqlalchemy.engine.Engine.has_table', 'sqlalchemy.engine.reflection.Inspector.has_table'):
+#     r = tools.check_api(s)
+#     print(s, '->', r['exists'], r.get('signature', ''))
+# " 2>/dev/null
+sqlalchemy.engine.Engine.has_table -> False 
+sqlalchemy.engine.reflection.Inspector.has_table -> True has_table(self, table_name: 'str', schema: 'Optional[str]' = None, **kw: 'Any') -> 'bool'
+```
+
+That is both halves of the answer the docs cannot give: `Engine.has_table` is gone, and
+`Inspector.has_table` exists with that signature. **What it is not:** a documentation page. No
+search trick found text that was never indexed; a different source was added. This block shows
+the tool can answer. It does not show the agent *does* on `g001`, the golden set's `has_table`
+question, which is still marked unanswerable because the corpus cannot answer it.
 
 ---
 
@@ -1648,11 +1933,11 @@ mechanically rather than judged by eye.
 |---|---|
 | **vector / embedding** | a position: 1024 numbers produced from one chunk |
 | **dimension** | one column in that list. None of them has a name you can read |
-| **normalised / unit vector** | length exactly 1, so only *direction* carries meaning |
+| **normalised / unit vector** | length exactly 1, so only *direction* carries meaning. BGE-M3's own last step does it |
 | **cosine similarity** | the angle between two directions; for unit vectors, just a dot product |
 | **baseline similarity** | what two *unrelated* chunks score. Ours is **0.540**, not 0 |
 | **dense retrieval** | search by these positions — Phase 1 |
-| **sparse retrieval / BM25** | search by literal words. Nails exact symbols — Phase 3 |
+| **sparse retrieval / BM25** | search by whole words, rewarding rare ones — Phase 3 (`D67`). Finds `autoload_with` at rank 1; cannot find `table_names`, because the page's word is `get_table_names` |
 
 ## Before Sitting 3
 
@@ -1663,16 +1948,20 @@ uv run python -m rag.ask "how do I use joinedload?" --retrieval-only
 uv run python -m rag.compare_embedders
 ```
 
-The first needs Qdrant up (`docker compose ps` should show it `healthy`) and returns in a
-second or two. The second takes **upwards of ten minutes** — it loads BGE-M3 *and* MiniLM and
+The first needs Qdrant up (`docker compose ps` should show it `healthy`). It took **21 seconds**
+on this Mac on 2026-09-14, almost all of it loading BGE-M3 and the reranker; the search itself is
+milliseconds. The second takes **upwards of ten minutes** — it loads BGE-M3 *and* MiniLM and
 re-embeds with both — and prints nothing until it is finished (Python buffers when it is not
 writing to a terminal). Run it in your own shell. Its conclusion is `D32` and is already
 recorded.
 
 ### What the first command returns — three things in one result
 
+**When this section was written, the command ran Phase 1's retriever** (meaning-search only) and
+printed this:
+
 ```
-# summary of: uv run python -m rag.ask "how do I use joinedload?" --retrieval-only
+# summary of: uv run python -m rag.ask "how do I use joinedload?" --retrieval-only, before Phase 3
 #   (score, version, file and heading are verbatim; the text preview under each
 #    hit is trimmed to its first line so the five fit side by side)
 [1] 0.715  1.4.52  orm/loading_relationships.rst    Zen of Joined Eager Loading
@@ -1683,13 +1972,42 @@ recorded.
 ```
 
 - **The whole top-5 spans 0.015** (0.715 → 0.700). When a question lands near a cluster, which
-  chunk takes a slot is decided in the fourth decimal — noise. And 0.715 is not "72%
-  confident": against a random-pair baseline of **0.540**, it is **0.175 above noise**.
-- **`[2]` and `[4]` are the same passage at two releases**, **0.008 apart**. Two of five slots
-  saying the same thing twice. `D38`: the duplicated index costing 20% of the budget on an
-  ordinary question.
+  chunk takes a slot is decided in the third decimal — `[1]` and `[2]` are 0.001 apart. And 0.715
+  is not "72% confident": against a random-pair baseline of **0.540**, it is **0.175 above
+  noise**.
+- **`[2]` and `[4]` are nearly the same passage at two releases**, **0.008 apart**. Two of five
+  slots saying almost the same thing twice. `D38`: the duplicated index costing 20% of the budget
+  on an ordinary question.
 - **Four of five hits are 1.4** on a question that named no version. A 2.0 user gets a prompt
   that is 80% old-release text. Nothing noticed. That is R1.5 arriving without being provoked.
+
+**Run the same command today and you get this** (2026-09-14, after Phase 3):
+
+```
+# summary of: uv run python -m rag.ask "how do I use joinedload?" --retrieval-only
+#   (score, version and file are verbatim; the heading and text-preview lines under
+#    each hit are dropped so the five fit)
+[1] 0.049  SQLAlchemy 1.4.52  doc/build/orm/loading_relationships.rst
+[2] 0.044  SQLAlchemy 1.4.52  doc/build/orm/loading_relationships.rst
+[3] 0.044  SQLAlchemy 1.4.52  doc/build/orm/tutorial.rst
+[4] 0.043  SQLAlchemy 1.4.52  doc/build/orm/loading_relationships.rst
+[5] 0.042  SQLAlchemy 2.0.51  doc/build/orm/queryguide/relationships.rst
+```
+
+**Same five pages.** Chunk ids `c00970 c00971 c01346 c00967 c02897` both times; only the last two
+swapped places. What changed is the rest:
+
+- **The score is a different number now.** It is not cosine any more. Phase 3 merges two ranked
+  lists (`D67`): a page earns `1 ÷ (25 + its rank in meaning-search)` plus `1 ÷ (90 + its rank in
+  keyword search)`. A page ranked first in both would score `1/26 + 1/91 = 0.0495`, so `0.049` at
+  `[1]` is close to the best possible. **Do not compare 0.049 with 0.715.** They are on different
+  scales, and neither is a percentage.
+- **Twin collapse (`D66`) did not remove the near-twin.** `[2]` (`c00971`, 1.4) and `[5]`
+  (`c02897`, 2.0) score 0.944 on Python's `difflib.SequenceMatcher` ratio (1.0 = identical text),
+so they are close but not the same. `D66`
+  collapses only byte-identical pairs, so both still take a slot. **"0 duplicate seats" in
+  Phase 3's results means 0 *exact* duplicates.**
+- **Still four of five are 1.4.** No version filter shipped (§R1.5's table).
 
 ### What the second command returns — read the columns as sentences
 
@@ -1753,16 +2071,25 @@ those different problems?
 both lengths are 1, the denominator is 1, dividing by 1 changes nothing, so cosine **is** the
 dot product. `vectors @ query` in `rag/index.py` is exactly right, not approximately right.
 
-*Not a speed argument.* Skipping the division saves **0.92 ms** against **~40 ms** to embed the
-question — about 2% of query time. Answer "speed" and *"how much faster?"* retracts it.
+*Not a speed argument.* On this Mac (measured 2026-09-14, median of 200) the plain dot product
+over all 3284 rows takes **0.085 ms** and full cosine takes **1.3 ms**, so skipping the division
+saves about **1.2 ms**. Embedding the question takes a median **40.2 ms**. That is about 3% of
+query time. Answer "speed" and *"how much faster?"* retracts it. (An earlier draft said 0.92 ms;
+no command in the repo reproduces it.)
 
-**Throws away:** magnitude. Overwritten, not de-weighted. Before normalising, lengths ran
-`29.5299` to `35.0566`; after, min and max are both `1.000000`. That spread was "how much text
-is in this chunk." Nothing downstream can recover it. Re-embedding all 3284 is the only undo.
+*Who does it:* BGE-M3 itself. Its last pipeline step is `Normalize`. Our
+`normalize_embeddings=True` is a second guarantee that, with this model, changes nothing.
 
-*Why we do it anyway:* scale an unrelated chunk's vector by 3 and raw dot product ranks it
+**Throws away:** magnitude. Overwritten, not de-weighted. Before the `Normalize` step, lengths ran
+**25.11 to 26.82** on 60 real chunks; after, min and max are both `1.000000`. Nothing downstream
+can recover it. Re-embedding all 3284 is the only undo. **Do not claim that spread meant "how
+much text is in this chunk."** Measured, its rank correlation with chunk size is **-0.14**. An
+earlier draft of this answer claimed it, from random numbers.
+
+*Why we want it anyway:* scale an unrelated chunk's vector by 3 and raw dot product ranks it
 **1.1461** against the correct twin's **0.9691** — it wins for being long. Cosine scores it
-**0.3820** and puts it last.
+**0.3820** and puts it last. The ×3 is invented; with a model whose lengths do vary, it is the real
+failure.
 
 **Q2 — is a top hit of 0.61 good?**
 
@@ -1771,8 +2098,12 @@ is in this chunk." Nothing downstream can recover it. Re-embedding all 3284 is t
 Ours: 2000 random pairs average **0.540**, floor around **0.329**. So 0.61 is **0.070 above
 noise**. Not "61% confident." The usable range is roughly 0.33 → 1.0, not 0 → 1.
 
-Also ask the gap to the next hit. The `joinedload` query is 0.715, 0.714, 0.712, 0.706, 0.700 —
-strong against random, **0.001** from its neighbour. Those are different questions.
+Also ask the gap to the next hit. The `joinedload` query under Phase 1's retriever is 0.715,
+0.714, 0.712, 0.706, 0.700 — strong against random, **0.001** from its neighbour. Those are
+different questions.
+
+And ask *which* score it is. Today's retriever prints a fused rank score (best possible 0.0495),
+not a cosine. A 0.61 from one and a 0.049 from the other say nothing about each other.
 
 *Consequence:* only the **ordering** is trustworthy. That is why we take top-k, not "everything
 above 0.7." A threshold copied from another model's tutorial will return everything or nothing.
@@ -1781,19 +2112,26 @@ above 0.7." A threshold copied from another model's tutorial will return everyth
 
 **Different owners.**
 
-| | in corpus | failure | who fixes it |
-|---|---|---|---|
-| `table_names` | 6 chunks | ranking too low | Phase 3 keyword search |
-| `has_table` | **0** chunks | ceiling — nothing to rank | only Step 1 (change the corpus) |
+| | in corpus | failure | who was expected to fix it | what happened |
+|---|---|---|---|---|
+| `table_names` | 6 chunks, all saying `get_table_names` | ranking too low (rank 23) | Phase 3 keyword search | **not fixed; now out of the top 25** |
+| `has_table` | **0** chunks | ceiling — nothing to rank | only Step 1 (change the corpus) | still 0; Phase 5's `check_api` can confirm both halves of the answer without the docs |
 
 *Not a "better embedder" problem.* BGE-M3 (568M) and MiniLM (23M) both score **R@5 = 0.733**.
 A 25× larger model does not find `table_names` either.
 
 *Why dense search cannot see it:* `table_names` is **66 of 4792 characters — 1.38%** of the
 text it lives in. One vector describes the whole chunk → *"a passage about introspection"*.
-Correct, and useless when the literal string *is* the question. The rarity that erases it from
-the vector (6 chunks, 0.18%) is the same rarity that makes BM25 lock onto it. Opposite
-failures — that is the argument for combining them.
+Correct, and useless when the literal string *is* the question.
+
+*Why keyword search did not rescue it:* keyword search compares whole words. The question's word
+is `table_names`; the pages' word is `get_table_names`. **Zero chunks hold the word the developer
+typed.** The rarity argument for BM25 is real — `autoload_with` goes from meaning rank 12 to
+keyword rank 1 on `g044` — but it needs the question and the page to use the same word.
+
+*So the two still have different owners, and one of them still has none.* `has_table` can only be
+moved by changing what the system reads (the corpus, or a tool like `check_api`). `table_names`
+is a ranking problem that no shipped lever has fixed yet.
 
 From outside, both look the same: a wrong answer. Only counting chunks separates them. That is
 **D45**, and why `compare_embedders` drops the zero-chunk question instead of scoring it as a

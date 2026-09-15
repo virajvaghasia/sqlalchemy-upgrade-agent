@@ -97,7 +97,8 @@ Fixed against the saved baseline: `g024`, `g038`, `g044`, `g046`, `g047`, `g050`
 
 **What it is not.** Hybrid does not fix `has_table` (zero chunks — corpus ceiling). It does not
 make `table_names` a free win either: BM25 alone still ranks the answer past 20 on that
-phrasing; the gain is on other symbol-shaped misses (`joinedload` string path, `Row` vs entity,
+phrasing, because the answer pages say `get_table_names` and BM25 tokenizes identifiers whole, so
+the query's `table_names` matches zero chunks (`study/10-RETRIEVAL.md` §R2.6, measured 2026-09-14); the gain is on other symbol-shaped misses (`joinedload` string path, `Row` vs entity,
 autobegin, …). Re-measure with **`--dense-only --no-rerank`** — both flags. `--dense-only` alone
 leaves the seat-5 CE on and scores **0.53**, which is not this row and is not a system that has
 ever shipped. This doc said `--dense-only` until 2026-08-22.
