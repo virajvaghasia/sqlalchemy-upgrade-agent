@@ -36,7 +36,7 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-14, lab)
+## Where things stand — read this first (updated 2026-09-15, Mac)
 
 **→ ROUND 22 CLOSED on the lab.** Branch `phase-6/production`, tip this commit. Phase 4 judge
 given headings (`gemma4:e4b`): **headings do NOT matter** (Step 4h rule). Artifact:
@@ -44,6 +44,7 @@ given headings (`gemma4:e4b`): **headings do NOT matter** (Step 4h rule). Artifa
 
 | round | state |
 |---|---|
+| **23** | **OPEN (2026-09-15)** — run `rag.compare_prompts` end to end twice; it crashed from `eeedbc4` until `49b2f93`, and the Mac ran out of memory trying. ~10 min. See Round 23 below |
 | **22** | **CLOSED** — D 36→38/47 (3↑1↓ p=0.625), H 56→57/61 (2↑1↓ p=1.0) → **headings do NOT matter** |
 | **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
 | **20** | **CLOSED** — default **0.27**, forced+nudge **0.36**; below lab pipeline **0.42**; over-refused default **0** |
@@ -622,6 +623,98 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
   over-refused 12  fabricated 6  failed 0
   no tool 4  one 89  two+ 7
   stopped {'answered': 97, 'budget': 0, 'repeated_call': 3}
+```
+
+---
+
+# Round 23 — does `rag.compare_prompts` run end to end, and does §R3's table still hold? (OPEN, written 2026-09-15)
+
+**Why this exists.** The command `study/11-GENERATION.md` tells a reader to run —
+`uv run python -m rag.compare_prompts`, no flags — crashed with `NameError: name 'k' is not defined`
+from `eeedbc4` (2026-08-17) until `49b2f93` fixed it. Two tests now run that path with the model
+stubbed out. **Nobody has run it for real since the fix.** The Mac tried and macOS killed it for
+memory (0.2 GB free). This box has the room.
+
+**What it does:** two questions (one answerable, one the corpus cannot answer) × four wordings
+A B C D = **8 generations**, then a SUMMARY table. At 62 tok/s, a few minutes. Run it **twice**.
+
+**Branch: `phase-6/production`.** Needs Ollama with `qwen2.5-coder:7b` and Qdrant up. No hosted calls.
+
+## How to read it — written before the data
+
+What §R3 records for these two questions (`D43` + 12 re-runs, 13 in all):
+
+| prompt | answerable | unanswerable |
+|---|---|---|
+| A | answered (refused only 1 of 13) | refused |
+| B | answered | refused |
+| C | answered | **ANSWERED — fabricates, 13 of 13** |
+| D | not in the 13-run table; expected answered | expected refused (`D53`: D refuses what B refuses, plus Q16) |
+
+- **Primary check: both runs finish and print SUMMARY.** Anything else is secondary. A traceback
+  means the fix is incomplete — paste it and stop.
+- **Expected SUMMARY, both runs:** A/B/D `answered ok` + `refused ok`; C `answered ok` + `ANSWERED X`.
+- **If C refuses the unanswerable question** → §R3's "13 of 13" no longer holds under today's
+  retriever. Record it; do not re-run until it agrees.
+- **If D or B refuses the answerable question** → an over-refusal on the file's own named example.
+  Record which run.
+- **If the two runs differ in any cell** → that is `D84`'s claim (the lab is stable) tested on a
+  new job. Record the cell.
+- **Retrieval is not the one §R3 was measured with.** Phase 3 changed `retrieve()` (hybrid, twin
+  collapse, rerank), so the five pages may differ from 2026-08-15, and the printed `top-5 scores`
+  are fused rank scores (~0.04), not cosines (~0.64). A different cell could be the pages rather
+  than the prompt; say which pages came back if a cell flips.
+
+**Prediction (Claude, Mac):** both runs finish; all eight cells match the expected SUMMARY; the two
+runs are identical.
+
+## ASK 23.0 — sync
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-6/production && git pull --ff-only
+git log --oneline -1
+uv run pytest tests/test_compare_prompts.py -q -p no:warnings 2>&1 | tail -1
+ollama list | grep qwen2.5-coder:7b
+docker compose up -d qdrant && sleep 5 && curl -s http://127.0.0.1:6333/readyz
+```
+
+**Paste all of it.** Stop if `test_compare_prompts.py` does not say `30 passed`.
+
+## ASK 23.1 — the run, twice (~10 minutes total)
+
+```bash
+for n in 1 2; do
+  uv run python -m rag.compare_prompts > /tmp/round23-run$n.log 2>&1
+  echo "run $n exit $?"
+done
+ollama ps
+for n in 1 2; do echo "== run $n"; grep -A6 '^SUMMARY' /tmp/round23-run$n.log; grep 'top-5 scores' /tmp/round23-run$n.log; done
+diff <(grep -A6 '^SUMMARY' /tmp/round23-run1.log) <(grep -A6 '^SUMMARY' /tmp/round23-run2.log) && echo "SUMMARY identical"
+```
+
+**Paste the whole output, raw.** `ollama ps` should say `100% GPU` (Round 16). If a run exits
+non-zero, also paste `tail -30 /tmp/round23-run$n.log`.
+
+## ASK 23.2 — only if a cell disagrees with the table above
+
+```bash
+grep -B2 -A25 -- '--- prompt C' /tmp/round23-run1.log   # swap C for the letter that disagreed
+```
+
+No artifact to commit — the pasted output is the record. Commit this file with the replies
+filled in and push (you may commit, 2026-09-11 policy).
+
+### REPLY 23.0
+
+```
+(paste here)
+```
+
+### REPLY 23.1
+
+```
+(paste here)
 ```
 
 ---
