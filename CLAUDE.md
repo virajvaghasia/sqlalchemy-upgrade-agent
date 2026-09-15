@@ -2213,3 +2213,20 @@ Append a dated entry each session; keep each entry to a few bullets.
 - **A parallel session edited the same tree** (Modal deploy, `D106`, `rag/index.py`). This session's commit was
   built blob by blob from HEAD + its own edits (`git update-index --cacheinfo`), leaving the other work unstaged.
   The mutation script once crashed before restoring `rag/escalate.py`; caught by grep, restored, now try/finally.
+
+### 2026-09-14 / 09-15 — accuracy pass on study 10–16: four claims measured wrong, one command crashing
+
+- **BM25 never saw `table_names`.** All six "table_names" chunks say `get_table_names`; BM25 tokenizes whole
+  identifiers, so the query word is in 0 chunks. Phase 1 → today on the probe questions: `backref` 6→2,
+  `cascade_backrefs` 8→7, `keys()` 12→16, `table_names` 23→out of top 25. Three Phase 1 predictions (reranker fixes
+  8 and 12, keyword search fixes `table_names`) did not hold; 10/12/13/15 now say so. `g044` is BM25's real example.
+- **BGE-M3 normalises itself.** Pipeline ends in `Normalize`; `normalize_embeddings=False` still gives length 1 and
+  matches `embeddings.npy`. The "29.53–35.06 lengths = how much text" claim came from a NumPy random stand-in
+  (`default_rng(0)` reproduces it); real pre-normalise lengths 25.11–26.82, rank corr with size −0.14.
+- **`rag.compare_prompts` (no flags) crashed with `NameError: k` from `eeedbc4` (08-17)** — the command §R3 tells a
+  reader to run. Fixed test-first (2 tests). Live A–D run killed by macOS for memory → **Round 23 OPEN on the lab**.
+- **Severed code listings are 3, not "at least 11".** `chunk.severed_listing` was never run corpus-wide: flags 5,
+  3 real on reading (`c00233`, its 2.0 twin `c01869`, `c01094`). D70 and D44 carry dated correction notes.
+- Smaller: 12 of 19 probe items have `fix OK` (not 14); `relation` "not followed by ship = 6" is whole word (the
+  rule gives 108); `probe._contains` guards only the right edge (`correlation`); lab H uncited 8% under `D85`.
+- **Blocks:** 84 → 95 RUN; `14-MEASURE.md` had none. 534 tests. 17/18 were done in the 09-14 session.
