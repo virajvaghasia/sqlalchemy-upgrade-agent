@@ -1,11 +1,11 @@
 """
-Pin the three D43 prompt variants.
+Pin the D43 prompt variants (A-D) and the Phase 4 candidates (E-I).
 
 These tests never call Ollama. They check the only thing that can silently
-rot: that the three system prompts still differ in exactly one sentence, and
-that B is still the string `rag.ask` actually ships. If someone edits
-`ask.SYSTEM` and forgets this file, B stops being the shipped prompt and the
-comparison quietly measures something else.
+rot: that the refusal variants still differ in exactly one sentence, and that
+D is still the string `rag.ask` actually ships (B was, until D54 on
+2026-08-17). If someone edits `ask.SYSTEM` and forgets this file, D stops
+being the shipped prompt and the comparison quietly measures something else.
 """
 
 from rag import ask, compare_prompts as cp
@@ -13,14 +13,14 @@ from rag import ask, compare_prompts as cp
 
 def test_the_shipped_variant_is_ask_system_not_a_copy():
     """
-    B must BE ask.SYSTEM — the object identity check — AND ask.SYSTEM must still
-    carry the last-resort wording D43 settled on.
+    D must BE ask.SYSTEM — the object identity check — AND ask.SYSTEM must still
+    carry D's wording (D54), not A's or B's.
 
-    The identity half alone is worthless: `system_prompt("B")` returns
+    The identity half alone is worthless: `system_prompt("D")` returns
     `ask.SYSTEM`, so comparing the two is a string compared to itself and
     cannot fail. Mutation-checking caught exactly that (D25). The second half
     is what actually pins production, so editing the shipped clause without
-    revisiting D43 breaks a test.
+    revisiting D54 breaks a test.
     """
     assert cp.system_prompt("D") is ask.SYSTEM, "the sentinel moved to D when D shipped (D54)"
     assert "even partially" in ask.SYSTEM
@@ -372,3 +372,28 @@ def test_both_arms_are_scored_against_the_same_denominator():
     got = cp.cells(rows)
     assert got["n_ans"] == 2, "the failed item is still an answerable item"
     assert got["end_to_end"] == 1
+
+
+def test_the_default_two_question_run_starts_and_retrieves_at_default_k(monkeypatch, capsys):
+    """`uv run python -m rag.compare_prompts` with no flags is what 11-GENERATION.md
+    tells a reader to run. From eeedbc4 (2026-08-17) to 2026-09-14 it died on its
+    first line with NameError: `k` was never defined in main(). Every other path
+    passes k explicitly, so nothing else exercised it."""
+    seen = []
+    monkeypatch.setattr(cp.sys, "argv", ["compare_prompts"])
+    monkeypatch.setattr(cp.index, "retrieve", lambda q, limit: seen.append(limit) or [])
+    monkeypatch.setattr(cp.ask, "build_prompt", lambda q, hits: "prompt")
+    monkeypatch.setattr(cp, "generate", lambda system, prompt: "The sources do not answer this.")
+    cp.main()
+    assert seen == [ask.DEFAULT_K] * len(cp.QUESTIONS)
+    assert "SUMMARY" in capsys.readouterr().out
+
+
+def test_the_default_run_honours_dash_dash_k(monkeypatch, capsys):
+    seen = []
+    monkeypatch.setattr(cp.sys, "argv", ["compare_prompts", "--k", "10"])
+    monkeypatch.setattr(cp.index, "retrieve", lambda q, limit: seen.append(limit) or [])
+    monkeypatch.setattr(cp.ask, "build_prompt", lambda q, hits: "prompt")
+    monkeypatch.setattr(cp, "generate", lambda system, prompt: "answer")
+    cp.main()
+    assert seen == [10] * len(cp.QUESTIONS)
