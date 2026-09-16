@@ -379,6 +379,19 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
+**PROJECT COMPLETE — ALL SIX PHASES CLOSED (2026-09-16).** Phase 6's gate is met on both halves with
+evidence: the demo answers a stranger with citations (Modal, `D106`) and a quality-degrading PR is blocked
+on a real runner (PR #30, `g017`, `D97`). Close-out: `phases/PHASE-6.md` last section; `ROADMAP.md`'s Phase 6
+bar carries the ✅ block; `README.md` status says complete. **534 tests, 95/95 `# runnable`, 108 decisions,
+§H empty, golden 100.**
+**What is open and deliberately not closed over:** (1) **the refusal clause** — Rounds 23/24 (2026-09-15/16,
+both machines agreeing 8 of 8 cells) show the shipped prompt refusing with the answer page in the prompt, and
+on `g050`/`g044` *every* wording that has a refusal sentence refuses; only the variant without one answers,
+and that one also answers the unanswerable questions (`D43`). Both effects measured, neither resolved —
+`11-GENERATION.md` §R3.6. (2) prompt **H** on hold (`D83`/`D84`). (3) the Day 3 Tailscale tunnel, blocked on
+Shaili, needed by nothing. (4) Phase 7 (security) not started — the ROADMAP marks it optional.
+**Viraj's, not Claude's:** `.env.example` review, and whether this branch lands on `main`.
+
 **PHASE 6 FINISH LINE MET (2026-09-14).** CI gate on GitHub runners: PR #29 PASSED (`moved 0`, Linux CPU
 == Mac MPS); the reranker-removal demo PR #30 first PASSED because `rag.score` passed `rerank=True` itself —
 fixed (the scorer now grades the shipped defaults), re-run **BLOCKED `g017`**, identical to the local demo.
@@ -776,8 +789,8 @@ docs. That has happened four times and never the other way round.
 | **2** | **complete** — 100 golden, signature closed, audit 100 PASS | `deliverables/golden.json`, `GOLDEN-FULLBAR-AUDIT.md` |
 | **3** | **complete (retrieval).** `D66`–`D68` shipped; `D69` strip and `D70` boundaries both rejected with numbers. Gate closed: every metrics row has a figure and a decision id | [`phases/PHASE-3.md`](phases/PHASE-3.md), `recall@5 0.64` |
 | **4** | **complete 2026-09-11.** Steps 1–3 closed and 5's instrument built. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** cite nothing; prose faithfulness built and running on a **local** judge (`D80`); the gate has its one command, `rag.judge --report` (`D81`). faithfulness measured (`D82`) and reproduced on the lab (`D83`) — H **92% on both machines**, D drifted **85% → 77%**; paired not significant either way. **Ship decision made: HOLD H.** Judge agreement filled (`D86`): **7 of 10 = 70%** — three DISAGREE (`g080` too harsh → PARTIAL; both `g056` arms too soft → PARTIAL). Open: optional citation-only prompt variant; commit the dirty tree | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
-| **5** | **current, opened 2026-09-11.** The agent + MCP server. **Step 0 is a gate that can end the phase**: `qwen2.5-coder:7b` has never been asked to emit a tool call here, and an agent is 3+ generations where `0.43` was measured on one | [`phases/PHASE-5.md`](phases/PHASE-5.md) |
-| 6 | planned in `phases/ROADMAP.md` | — |
+| **5** | **complete 2026-09-11** (`D94`). The agent + MCP server. **Step 0 is a gate that can end the phase**: `qwen2.5-coder:7b` has never been asked to emit a tool call here, and an agent is 3+ generations where `0.43` was measured on one | [`phases/PHASE-5.md`](phases/PHASE-5.md) |
+| **6** | **complete 2026-09-16.** Gate met both halves: demo live and cited (`D106`), reranker-removal PR blocked on a runner naming `g017` (`D97`). Cascade routing priced at **$1.81/1000** (`D100`), predictive routing rejected (`D98`), Langfuse live (`D108`), source framing rejected (`D96`) | [`phases/PHASE-6.md`](phases/PHASE-6.md) close-out |
 
 ### The baseline, and the number NOT to quote
 

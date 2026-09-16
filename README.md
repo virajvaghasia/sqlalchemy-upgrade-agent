@@ -58,8 +58,10 @@ decision that holds the command and the reasoning.
 supported, `D105`); that the hosted model's numbers describe the local one; or anything measured on one
 machine only (`D95`).
 
-**Status (2026-09-14):** Phase 6 of 6, production. The demo is live; the CI gate's first run on a GitHub
-runner is next. Plan: [`phases/PHASE-6.md`](phases/PHASE-6.md). Pinned to SQLAlchemy **1.4.52**; every
+**Status (2026-09-16): all six phases complete.** The demo is live, and the CI gate has run on real GitHub
+runners — PR #29 passed, and PR #30, which removes the reranker, was **blocked** naming question `g017`.
+What is still open is written down rather than closed over: the refusal clause (below), prompt `H` on hold
+(`D83`), and the optional Phase 7. Close-out: [`phases/PHASE-6.md`](phases/PHASE-6.md), last section. Pinned to SQLAlchemy **1.4.52**; every
 2.0 claim verified against **2.0.51**. The six-phase arc: [`phases/ROADMAP.md`](phases/ROADMAP.md).
 
 ---
@@ -167,7 +169,7 @@ to "§18" is unambiguous in either file.
 | [`phases/PHASE-2.md`](phases/PHASE-2.md) | **Phase 2 (complete)** — golden set of **100**, audited, scored, signature closed; baseline artifact still the 50 (`D65`) |
 | [`phases/PHASE-3.md`](phases/PHASE-3.md) | **Phase 3 (complete)** — `D66`–`D68` shipped, `recall@5` **0.51 → 0.64** (7↑ 0↓, p = 0.016); `D69` Sphinx strip and `D70` boundary re-chunking both rejected with numbers |
 | [`phases/PHASE-4.md`](phases/PHASE-4.md) | **complete 2026-09-11** — judge the answers. End to end **0.43** against a **0.64** retrieval ceiling (`D72`); **65% of answers cite nothing** (`D73`); prompt `H` **held** on cross-machine evidence (`D83`, `D84`); judge agreement **7/10** (`D86`) |
-| [`phases/PHASE-6.md`](phases/PHASE-6.md) | **the current phase** — production. Step 1 source framing **rejected** (`D96`); Step 2 the **CI quality gate** (`D97`); **demo live on Modal** (`D106`): https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run |
+| [`phases/PHASE-6.md`](phases/PHASE-6.md) | **complete 2026-09-16** — production. Step 1 source framing **rejected** (`D96`); Step 2 the **CI quality gate** (`D97`); **demo live on Modal** (`D106`): https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run |
 | [`phases/PHASE-5.md`](phases/PHASE-5.md) | **complete 2026-09-12** — the agent. Closed on measurement (`D94`): its levels are machine-dependent, its effects reproduce |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
 | [`phases/PHASE-0.md`](phases/PHASE-0.md) | **the phase before** — complete except its Day 3 tunnel, and its deliverables |
@@ -194,7 +196,7 @@ to "§18" is unambiguous in either file.
 | [`study/16-JUDGE.md`](study/16-JUDGE.md) | **§R8 — Phase 4.** End to end **0.42–0.43** vs retrieval's **0.64** ceiling; 65% of answers cite nothing; position beats emphasis; the result that was wrong first time; the hosted judge capped at **20 calls a day per model** against a ~110-call run, so the judge went local (`D80`); and **§R8.9 — the second machine**, where retrieval reproduced *exactly* and generation reproduced nowhere, turning a p = 0.0039 prompt win into **6↑ 2↓, p = 0.289** and a hold (`D83`) — then the obvious explanation for the gap was tested and **disproved**, leaving a sharper finding about *which model on which box* reproduces — and the judge, asked to re-read its own verdicts seven days on, changed **3 of 110** while leaving the paired cells identical (`D84`) |
 | [`study/17-AGENT.md`](study/17-AGENT.md) | **§R9 — Phase 5.** What an agent actually is here (a function plus a paragraph, and the model only ever writes text); `check_api` as the `g065` post-mortem turned into a guardrail; **`0.02` and why that is not the finding**; fabricated citations to passages never fetched; **tool calls disagreeing across two machines on half the items**; and single-tool lookup rather than multi-step agency |
 | [`study/18-PRODUCTION.md`](study/18-PRODUCTION.md) | **§R10 — Phase 6, the complete sitting.** The CI gate (blocks the reranker's removal by naming `g017`); the router (a cascade on refusal, **$1.81 per 1000 queries**, and why a judge's *supported* is not *correct*); the demo (search without Qdrant, proven identical; why no public link yet); which model does what; 12 cold questions with full answers |
-| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 103 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
+| [`study/09-DECISIONS.md`](study/09-DECISIONS.md) | **the decision register** — 108 entries, each with what was rejected and why. §H holds the choices that are *not yet justified* — the honest edge of the project. **Empty again as of 2026-08-21 evening** (signature closed by spot-check of ten, then verified; the CLOSED write-up stays in the file) |
 | [`logs/LEARNING-LOG.md`](logs/LEARNING-LOG.md) | what was learned, dated |
 | [`CLAUDE.md`](CLAUDE.md) | how the AI assistant is expected to work on this repo |
 

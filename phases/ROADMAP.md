@@ -554,6 +554,34 @@ claim until the lab agrees.
 **Done when:** a stranger can click your demo link and get a cited answer, and a
 quality-degrading PR gets auto-blocked.
 
+> ### ✅ Phase 6 closed 2026-09-16 — both halves of that bar, with evidence
+>
+> | the bar | what happened | id |
+> |---|---|---|
+> | stranger clicks, gets a **cited** answer | live on Modal: https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — cold ask answered `Session.get` in 116 s with five source cards | `D106` |
+> | quality-degrading PR **auto-blocked** | PR #30 removed the reranker on a GitHub runner; the `quality gate` job failed naming `g017`. PR #29 passed with `moved 0`. Required on `main` | `D97` |
+>
+> **The bullets above, as measured:**
+>
+> - **Routing** — the sentence this phase was aiming at is real, and it is not the one planned. A
+>   **cascade** (escalate only what the local model refuses) catches 20 of 20 fixable items at
+>   **$1.81 per 1000 queries**, priced from a committed snapshot (`D100`). **Predictive** routing —
+>   choosing the strong model up front from the retrieval score — **failed its pre-written bar**,
+>   catching 3 of 20, fewer than random: a low score marks a missing page, not a hard question
+>   (`D98`). And the escalated answers are *page-supported*, which is not *correct* — `g016` was
+>   SUPPORTED and wrong when executed on 2.0.51 (`D100`, `D101`, `D103`).
+> - **Observability** — Langfuse Cloud, one trace per demo question with `retrieve` and `generate`
+>   inside; off unless the keys are present (`D108`). It records use; it grades nothing.
+> - **CI gating** — built before the demo PR existed, and it caught a bug in itself first: the
+>   scorer had been passing `rerank=True` explicitly, so the reranker-removal PR *passed*. Fixed to
+>   grade the shipped defaults, then it blocked (`D97`).
+> - **Deploy + package** — Hugging Face refused (402: Gradio Spaces need PRO), so Modal; the page
+>   was designed by hand and checked in Chrome against four rules written first, one of which
+>   failed and was fixed (`D102`, `D106`).
+>
+> **What Phase 6 rejected:** source framing (`D96`) and predictive routing (`D98`).
+> **Close-out, including what is still open:** [`PHASE-6.md`](PHASE-6.md), last section.
+
 ---
 
 ### Optional Phase 7 — Security (~1–2 weeks)

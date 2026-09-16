@@ -1499,3 +1499,47 @@ sources; Langfuse's API then returned a `demo.answer` trace with 3 observations 
 **What it is not:** an evaluation. The golden set, the judge and the CI gate grade quality; Langfuse records
 what visitors actually do.
 
+
+---
+
+## Phase 6 closed — the gate, item by item (2026-09-16)
+
+The ROADMAP's bar for this phase is two sentences: *"a stranger can click your demo link and get a
+cited answer, and a quality-degrading PR gets auto-blocked."* Both are met, and each half has a
+command or a PR number behind it rather than a claim.
+
+| the gate | evidence | id |
+|---|---|---|
+| a stranger clicks the link and gets a **cited** answer | https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — live on Modal; a cold ask answered `Session.get` in 116 s with 5 source cards; the README quotes a real answer with its `[1]` | `D106` |
+| a quality-degrading PR is **auto-blocked** | PR #30 removed the reranker on a real GitHub runner and the `quality gate` job failed, naming `g017`; PR #29 (no retrieval change) passed with `moved 0`. The check is required on `main` | `D97` |
+
+**The phase's other three bullets, with what each actually produced:**
+
+| bullet | what shipped | what it cost or could not do |
+|---|---|---|
+| **Routing** | a **cascade**: escalate only when the local model refuses. Catches 20 of the 20 fixable items, priced at **$1.81 per 1000 queries** from a committed snapshot of list prices | **predictive** routing was measured and **failed its pre-written bar** — it caught 3 of the 20 fixable, fewer than random, because a low score marks a *missing page*, not a hard question (`D98`). And a judge's `SUPPORTED` is not `correct`: `g016` was supported by its page and wrong on 2.0.51 (`D100`) |
+| **Observability** | Langfuse Cloud traces every demo question: one trace, with `retrieve` and `generate` inside. Off unless the keys are present | it records what visitors do. It does **not** grade anything (`D108`) |
+| **Deploy + package** | the Modal app, a hand-built page checked in Chrome, and a README that opens with the product, a diagram and the measured table | Hugging Face refused the Space (402, PRO required); the page's own numbers are the hosted model's, and say so (`D104`, `D107`) |
+
+**What Phase 6 rejected, which is the half worth saying out loud:** source framing (`D96` — the
+agent's conversation shape does not fix over-refusal; it makes the model *more willing*, including
+on pages that do not answer), and predictive routing (`D98`).
+
+**Where the numbers stand at close:** 534 tests, 95 of 95 `# runnable` blocks reproducing, 108
+decisions with §H empty, a 100-question hand-verified golden set. Retrieval `recall@5 = 0.64`
+(58 of 91); end to end **0.43** on the Mac, **0.42** on the lab; the hosted model reaches **0.58**
+under the same pages and prompt (`D104`).
+
+### What is still open, and none of it is Phase 6's gate
+
+- **The refusal clause is the remaining defect, and it is a trade, not a bug.** Rounds 23 and 24
+  (2026-09-15/16) put it on the table plainly: with the answer page in the prompt, the shipped
+  wording refuses, and on `g050` and `g044` **so does every wording that has a refusal sentence at
+  all**. Only the variant with the sentence deleted answers — and that variant also answers the
+  questions the corpus cannot answer, 13 of 13 (`D43`). Both effects are measured; nothing resolves
+  them. `11-GENERATION.md` §R3.6.
+- **Prompt H stays held** (`D83`, `D84`): the citation effect reproduced on both machines, the
+  end-to-end gain did not.
+- **The Day 3 Tailscale tunnel** — blocked on Shaili sharing the node since August, and nothing
+  needs it; AnyDesk has carried every lab round.
+- **Not started: Phase 7 (security / prompt injection)**, which the ROADMAP marks optional.
