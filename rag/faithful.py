@@ -543,8 +543,15 @@ def nvidia_post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
     request = urllib.request.Request(
         NVIDIA_URL, data=payload,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        data = json.loads(response.read())
+    from rag import usage as usage_mod
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        usage_mod.record(model, None, "faithful.nvidia_post", status=exc.code)
+        raise
+    usage_mod.record(model, data.get("usage"), "faithful.nvidia_post")
     return {"candidates": [{"content": {"parts": [
         {"text": data["choices"][0]["message"].get("content") or ""}]}}]}
 

@@ -97,12 +97,22 @@ def parse(data: dict) -> dict:
 def nvidia_chat(path: str, body: dict, key: str, timeout: int = 180) -> dict:
     """Raw OpenAI-compatible call; `path` is ignored so `faithful.retrying`
     can wrap it with the same (path, body, key, timeout) signature."""
+    import urllib.error
     import urllib.request
+
+    from rag import usage as usage_mod
+
     request = urllib.request.Request(
         faithful.NVIDIA_URL, data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read())
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        usage_mod.record(body.get("model", "?"), None, "escalate.nvidia_chat", status=exc.code)
+        raise
+    usage_mod.record(body.get("model", "?"), data.get("usage"), "escalate.nvidia_chat")
+    return data
 
 
 def empty(row: dict) -> bool:

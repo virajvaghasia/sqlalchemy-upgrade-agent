@@ -36,3 +36,17 @@ def empty_schema(engine):
     """Tables created, no rows. For testing what an un-seeded database does."""
     models.Base.metadata.create_all(engine)
     return engine
+
+
+@pytest.fixture(autouse=True)
+def _ledger_in_tmp(tmp_path, monkeypatch):
+    """Keep the token ledger out of the repo's own file during tests.
+
+    Same rule as `db_path` above: a suite that writes into the artifact it
+    measures makes that artifact depend on whether tests were run. Caught on
+    2026-09-16, when a faked NVIDIA reply in test_faithful landed a real row in
+    `logs/nvidia-usage.jsonl`.
+    """
+    from rag import usage
+
+    monkeypatch.setattr(usage, "LEDGER", tmp_path / "nvidia-usage.jsonl")

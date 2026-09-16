@@ -78,15 +78,30 @@ def test_overlong_and_empty_questions_are_refused_before_any_work():
 def test_the_hosted_page_quotes_its_own_models_numbers_and_names_whose_the_042_is():
     """D95/D104: a number quoted next to a model that did not produce it is the
     error this project exists to avoid. The hosted notice gives nemotron's own
-    measured numbers and still says the 0.42 belongs to qwen2.5-coder:7b."""
+    measured numbers and still says the 0.42 belongs to qwen2.5-coder:7b. Since
+    2026-09-16 the page model has no numbers of its own, and the notice says so."""
     page = demo.render({"answer": "a [1]", "sources": [], "error": None})
     assert demo.MODEL in page and "qwen2.5-coder:7b" in page and "0.42" in page
-    assert "measured once" in page
+    assert "has not been measured" in page, "the page model has no measured figure of its own"
+
+
+def test_the_hosted_notice_never_claims_the_page_model_was_measured():
+    """2026-09-16: the page's model changed and no figure describes it. A notice
+    that attached 0.58 to whatever model is serving would be the measurement rule
+    broken in the one place a stranger reads."""
+    notice = demo.NOT_THE_MEASURED_MODEL
+    assert demo.MODEL in notice
+    assert "has not been measured" in notice
+    assert demo.MODEL != "openai/gpt-oss-20b", "the judge must not also be the generator (D80)"
+    # every figure in the notice is attributed to the model that produced it
+    for figure, owner in (("0.42", "qwen2.5-coder:7b"), ("0.58", demo.PREVIOUS_MODEL)):
+        assert figure in notice and owner in notice
 
 
 def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
-    """The measurement rule: 0.58 and 77% in the notice must be what Step 4d's
-    rows compute, not literals typed once (D104)."""
+    """The measurement rule: 0.58 and 91% in the notice must be what Step 4d/4g's
+    rows compute, not literals typed once (D104, D107) — they are now quoted as
+    the PREVIOUS model's numbers, and they still have to be derived."""
     import json
     import pytest
     from rag import escalate, route, score
@@ -110,7 +125,7 @@ def test_the_local_backend_needs_no_key_and_names_the_measured_model():
                       retrieve=lambda q: [hit()], post=lambda m, k: reply("an answer [1]"))
     assert out["error"] is None and out["answer"] == "an answer [1]"
     page = demo.render(out, "ollama")
-    assert "the generator the project measured" in page and "a different model" not in page
+    assert "the generator the project measured" in page and "has not been measured" not in page
 
 
 def test_ollama_down_is_a_page_error_not_a_dead_server():
@@ -138,7 +153,7 @@ def test_source_cards_escape_markup_from_the_docs():
 
 def test_the_answer_panel_keeps_the_generator_notice():
     """The split page must not drop the sentence D102 requires."""
-    assert "a different model" in demo.render_answer({"answer": "a", "refused": False, "error": None})
+    assert "has not been measured" in demo.render_answer({"answer": "a", "refused": False, "error": None})
     assert "the generator the project measured" in demo.render_answer(
         {"answer": "a", "refused": False, "error": None}, "ollama")
 
@@ -184,7 +199,7 @@ def test_payload_carries_linked_answer_marked_sources_and_the_notice():
     assert p["status"] == "answered" and p["answer_md"] == "Use `Session.get` [[2]](#src-2)."
     assert [s["cited"] for s in p["sources"]] == [False, True] and p["sources"][0]["text"] == "Row"
     assert "the generator the project measured" in p["notice"] and p["seconds"] == 12.3
-    assert "a different model" in demo.payload(result, "nvidia", 1)["notice"]
+    assert "has not been measured" in demo.payload(result, "nvidia", 1)["notice"]
 
 
 # --- tracing (Langfuse), 2026-09-14 ----------------------------------------------
