@@ -70,6 +70,39 @@ Against the pre-written table: A/B/C match; **D on answerable is an over-refusal
 answered). Same cell both runs → not a one-off. Fused top-5 scores (Phase 3 retrieve): answerable
 `[0.048, 0.046, 0.046, 0.04, 0.039]`; unanswerable `[0.038, 0.037, 0.036, 0.034, 0.033]`.
 
+### MAC READ of Round 23 (2026-09-15) — the refusal is the prompt, and the page was there
+
+**Both pre-written checks are decided.** Primary: both runs finish, so `49b2f93`'s fix holds outside
+the stubbed tests. Secondary: A, B and C match §R3's table — C still fabricates on the unanswerable
+question, which is the 14th time that cell has come back the same way.
+
+**D is the finding, and my prediction was wrong.** Round 23's table said *"D: not in the 13-run
+table; expected answered."* D refused, both runs.
+
+**It is an over-refusal, not an honest decline.** Retrieved on the Mac, same query, today:
+
+```
+[1] 0.048 2.0.51 c02028 errors.rst            Legacy Exceptions > "not bound to any Engine"
+[2] 0.046 1.4.52 c00456 errors.rst            the 1.4 twin of [1]
+[3] 0.046 2.0.51 c01569 changelog/migration_20.rst   "Connectionless" execution removed — names engine.execute
+[4] 0.040 1.4.52 c00034 core/connections.rst  Connectionless Execution, Implicit Execution
+[5] 0.039 2.0.51 c01573 changelog/migration_20.rst   Connection.execute
+```
+
+`[3]` is the migration section for exactly this removal, and `[5]` is one of golden question
+`g050`'s verified answer chunks. **The answer was on the desk.**
+
+**And the same five pages were in front of A, B and C, which answered.** So retrieval is excluded
+by the run itself — no second experiment needed. That is R3.4's argument (*give it only the right
+pages; if it still refuses, the prompt is the suspect*) arriving at the **shipped** prompt.
+
+**Scope, stated narrowly.** One question, one machine, two runs. It does not move `D54` (19 probe
+questions at k=5, where D made no prompt errors) and it does not restate `D72`'s 19/58 — it is the
+same defect class on the example `11-GENERATION.md` is built around, and the first time D has been
+measured on this question at all.
+
+**Nothing is queued for the lab from this.** Whether to reopen the prompt is Viraj's call.
+
 ### LAB RESULT — Round 22 (kept)
 
 Measured on the **lab PC** (`kj-XPS-8950`, RTX 3060), judge `gemma4:e4b` @ 100% GPU / 8192 ctx.

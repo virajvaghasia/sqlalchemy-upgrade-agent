@@ -406,6 +406,41 @@ The golden set asked harder, more varied questions, and the same wording over-re
 of the ones search got right. A prompt that is correct on your test questions is correct on your
 test questions.
 
+#### And on this file's own example, D refuses (lab, 2026-09-15)
+
+The question at the top of this file — *"why can't I call `engine.execute` any more?"* — is the one
+Phase 1's prompt A refused, and B fixed. **Prompt D had never been run on it.** The 13-run table
+is A, B and C; `D52`–`D54` used the 19 probe questions, and this is not one of them. Round 23 ran
+all four wordings on it, twice, on the lab PC:
+
+```
+# summary of: logs/HANDOFF.md REPLY 23.1 — lab PC, two runs, SUMMARY byte-identical
+prompt   answerable                       unanswerable
+A        answered  ok                     refused  ok
+B        answered  ok                     refused  ok
+C        answered  ok                     answered  X   ← fabricates, as always
+D        refused   X   ← the shipped one  refused  ok
+```
+
+**The answer was in the prompt.** The five pages retrieved for that question today include
+`c01569`, the migration guide's section on connectionless execution being removed — which names
+`engine.execute` — and `c01573`, one of golden question `g050`'s verified answer chunks.
+
+**And A, B and C were given those same five pages and answered.** That is R3.4's test without
+having to run it: retrieval is held still, the wording is the only thing that changes, and the
+wording that ships is the one that declines.
+
+| | prompt A, 2026-08-15 | prompt D, 2026-09-15 |
+|---|---|---|
+| this question | refused (1 of 13 runs) | **refused, 2 of 2 runs** |
+| what was wrong | the strict refuse sentence | not diagnosed — D's sentence is the *permissive* one |
+
+**Do not over-read it.** One question, one machine, two runs. `D54` stands: on the 19 probe
+questions at k = 5, D made no prompt errors. `D72`'s 19-of-58 still stands as the rate. What this
+adds is that the defect reaches **the example this file teaches from**, under the prompt that
+ships — and that the prediction written into Round 23 before the run ("expected answered") was
+wrong, which is why it was written down first.
+
 ---
 
 ## Vocabulary from this sitting
