@@ -592,6 +592,19 @@ this is a *real* threat, not a hypothetical. You build a red-team test suite and
 
 Worth doing if Anthropic is a serious target.
 
+> ### OPENED 2026-09-16 — branch `phase-7/security`. Plan: [`PHASE-7.md`](PHASE-7.md)
+>
+> **The premise above does not describe this repo, and the plan says so first.** Nothing untrusted
+> is ingested: the corpus is 270 files from two pinned SQLAlchemy git tags with a **SHA-256 per
+> file** (`D07`, `D11`), and Phase 2's Stack Overflow / GitHub material is *questions*, never
+> indexed. The channel that is real today is **the question box on the public demo** (`D106`). And
+> "leak the system prompt" takes something already public in this repo.
+>
+> **Step 0 is a gate that can end the phase**, the same shape as Phase 5's: 5 injection families ×
+> 2 channels × 3 attempts = 30 generations through the **shipped** `ask.build_prompt`, scored by a
+> **canary string** rather than a judge, with the bar and a prediction written before the run.
+> **0 of 30 closes the phase as a null result and ships no defense.**
+
 ---
 
 ## 7. Timeline summary
