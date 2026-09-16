@@ -44,6 +44,7 @@ disagrees with §R3's expected table. Artifact is the pasted replies (no JSON).
 
 | round | state |
 |---|---|
+| **24** | **OPEN (2026-09-16)** — does D refuse `g050`/`g044` too, or was Round 23 one question? Mac screen first; lab rules. See Round 24 below |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
 | **22** | **CLOSED** — D 36→38/47 (3↑1↓ p=0.625), H 56→57/61 (2↑1↓ p=1.0) → **headings do NOT matter** |
 | **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
@@ -672,6 +673,118 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
   over-refused 12  fabricated 6  failed 0
   no tool 4  one 89  two+ 7
   stopped {'answered': 97, 'budget': 0, 'repeated_call': 3}
+```
+
+---
+
+# Round 24 — is Round 23's refusal one question or a shape? (OPEN, written 2026-09-16)
+
+**Why this exists.** Round 23 found the **shipped** prompt D refusing *"why can't I call
+`engine.execute()` any more?"* on both runs, with the answer page in the prompt — while A, B and C
+answered from the same five pages. That is one question. `D72` recorded **19 of 58** golden items
+refused with the page present, but never isolated which prompt wordings do it.
+
+**The two items to try, and why these two.** `g050` and `g044` are the questions Phase 3's hybrid
+search *fixed* into the top 5 (`D67`), and `16-JUDGE.md` already names both as refused with the
+page in hand — retrieval's win, generation's loss. If D refuses these too while A/B/C answer, the
+Round 23 result is a **shape**, not one stubborn question.
+
+```
+g050  engine.execute select gone AttributeError use connection instead   answer: c01567, c01573
+g044  autoload=True on Table without autoload_with what is the 2.0 way   answer: c01567, c01568
+```
+
+**Branch: `phase-6/production`.** Needs Ollama with `qwen2.5-coder:7b` and Qdrant. 16 generations,
+a few minutes. Split into two steps on purpose: step 1 loads BGE-M3 + the reranker and writes the
+prompts to disk, step 2 loads only Ollama. The Mac cannot hold both at once (0.1 GB free,
+2026-09-16); the lab can, and should still run them as two steps so both machines run the same thing.
+
+## How to read it — written before the data
+
+| outcome | what it means |
+|---|---|
+| **D refuses both, A/B/C answer** | a shape: the shipped wording declines answerable questions whose page is present, and older wordings do not. Round 23 was not a one-off |
+| **D refuses one** | say which. One item is an anecdote; report it as one |
+| **D answers both** | Round 23's refusal is specific to that question. `D72`'s 19 stay unexplained by wording |
+| **A/B/C refuse too** | not the wording at all — look at the pages, and at what changed in retrieval since August |
+| **the two runs disagree on any cell** | the lab does not drift (`D84`); on the Mac that is expected and the Mac's result is a screen either way |
+
+**First, the pages must actually be there.** Step 1 prints whether a verified answer chunk is in
+the five. **If it is not, the round is void for that item** — a refusal with no page is honest, and
+nothing about wording can be read from it. Do not run step 2 for an item whose page is absent;
+paste step 1 and stop.
+
+**Prediction (Claude, Mac, before running):** pages present for both; D refuses both; A, B and C
+answer both. Recorded so it can be wrong.
+
+**Not measured here:** whether an answer is *correct*. This round only asks answered vs refused.
+
+## ASK 24.0 — sync
+
+```bash
+cd ~/Documents/Workspace/SqlUpgradeAgent
+git fetch origin && git checkout phase-6/production && git pull --ff-only
+git log --oneline -1
+ollama list | grep qwen2.5-coder:7b
+docker compose up -d qdrant && sleep 5 && curl -s http://127.0.0.1:6333/readyz
+```
+
+## ASK 24.1 — step 1: retrieve the five pages, save the prompts (no generation)
+
+```bash
+uv run python -c "
+import json, pathlib
+from rag import ask, index
+golden = {i['id']: i for i in json.load(open('deliverables/golden.json'))['items']}
+for gid in ('g050', 'g044'):
+    it = golden[gid]
+    hits = index.retrieve(it['question'], limit=ask.DEFAULT_K)
+    ids = [h.payload['chunk_id'] for h in hits]
+    present = [c for c in it['answer_chunks'] if c in ids]
+    print(gid, 'pages:', ids)
+    print('   verified answer chunk in the five:', present or 'NO — round is void for this item')
+    pathlib.Path(f'/tmp/round24-{gid}.txt').write_text(ask.build_prompt(it['question'], hits))
+"
+```
+
+**Paste it.** Stop here for any item whose line says `NO`.
+
+## ASK 24.2 — step 2: the four wordings on those saved pages, twice
+
+```bash
+for n in 1 2; do
+  echo "== run $n"
+  uv run python -c "
+import pathlib
+from rag import ask, compare_prompts as cp
+for gid in ('g050', 'g044'):
+    prompt = pathlib.Path(f'/tmp/round24-{gid}.txt').read_text()
+    for v in ('A', 'B', 'C', 'D'):
+        out = cp.generate(cp.system_prompt(v), prompt)
+        print(f'{gid}  {v}  {\"REFUSED\" if ask.refused(out) else \"answered\"}  {out.strip()[:90]!r}')
+"
+done
+ollama ps
+```
+
+**Paste both runs raw.** `D` is the shipped wording; `B` was shipped until 2026-08-17.
+
+### REPLY 24.0
+
+```
+(paste here)
+```
+
+### REPLY 24.1
+
+```
+(paste here)
+```
+
+### REPLY 24.2
+
+```
+(paste here)
 ```
 
 ---
