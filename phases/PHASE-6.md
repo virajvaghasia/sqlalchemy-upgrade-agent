@@ -1569,6 +1569,25 @@ POST https://integrate.api.nvidia.com/v1/chat/completions   model = nvidia/nemot
 GET  /v1/models  -> 82 models, and nvidia/nemotron-3-ultra-550b-a55b IS still listed
 ```
 
+**It is not the key and it is not credits — it is per-model entitlement.** Four probes, one call
+each, same key, same minute:
+
+```
+openai/gpt-oss-20b                              OK      <- Phase 6's judge
+nvidia/nemotron-3-nano-omni-30b-a3b-reasoning   OK
+deepseek-ai/deepseek-v4-flash-0731              OK
+nvidia/nemotron-3-ultra-550b-a55b               404     <- the demo's model
+nvidia/llama-3.1-nemotron-70b-instruct          404     <- 404'd in September too (rag/escalate.py says so)
+nvidia/llama-3.1-nemotron-ultra-253b-v1         404
+mistralai/mixtral-8x22b-v0.1                    404
+deepseek-ai/deepseek-coder-6.7b-instruct        404
+```
+
+**The key answers; some models are simply not available to this account.** `llama-3.1-nemotron-70b`
+was already in that state on 2026-09-12 — `rag/escalate.py`'s comment records it — so the pattern is
+not new; what is new is that the demo's own model joined it. Nothing was spent, nothing expired
+visibly, and NVIDIA's 404 does not explain why.
+
 **So the catalog advertises a model the account cannot call.** That is `D80`'s sentence arriving on
 a different provider: *a pinned id is a promise about a name, not a service* — there, a pinned
 Gemini id answered 503 all morning while three siblings answered; here, a listed NVIDIA model 404s
@@ -1588,7 +1607,7 @@ that stands; what changed is a third party's entitlement, not this repo.
 
 | option | cost | what it costs in honesty |
 |---|---|---|
-| repoint the demo at a model the key can call (`openai/gpt-oss-20b` answers today; it is also Phase 6's judge) | one constant, one redeploy | the page's measured numbers (`D104`: 0.58 end to end, 91% supported) describe nemotron, not the new model. The notice would have to say so, or be re-measured |
+| repoint the demo at a model the key can call — measured today: `openai/gpt-oss-20b`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, `deepseek-ai/deepseek-v4-flash-0731` | one constant, one redeploy | the page's measured numbers (`D104`: 0.58 end to end, 91% supported) describe **nemotron**, not the new model. The notice has to say so, or the 100 questions get re-run. **And `gpt-oss-20b` is Phase 6's judge** — using it as the page's generator makes the judge and the generator the same model, which is the thing `D80` picked a different family to avoid |
 | run the demo on Ollama | free, but needs a machine that is up | the lab is the only box with the GPU, and it is not Viraj's to host on |
 | leave it down and say so | nothing | the README's "Try it" link leads to an error page until someone changes it |
 
