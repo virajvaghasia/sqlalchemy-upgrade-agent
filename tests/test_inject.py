@@ -176,3 +176,53 @@ def test_compare_pairs_by_attempt_and_names_what_broke():
     out = inject.compare(rows)
     assert "fixed" in out and "broken" in out
     assert "g1/exfiltration/question" in out, "a newly obeyed attempt must be named"
+
+
+def test_the_hosted_backend_sends_the_demo_prompt_to_the_demo_model(monkeypatch):
+    """The demo ships ask.SYSTEM + ask.build_prompt to nemotron. Attacking a
+    private lookalike would measure something nobody can reach."""
+    from rag import demo, faithful
+    seen = {}
+    monkeypatch.setattr(faithful, "env_key", lambda var: "k")
+    monkeypatch.setattr(demo, "nvidia_post",
+                        lambda messages, key: seen.setdefault("m", messages) and
+                        {"choices": [{"message": {"content": "hi"}}]})
+    out = inject.hosted_generate(ask.SYSTEM, "PROMPT")
+    assert out == "hi"
+    assert seen["m"][0] == {"role": "system", "content": ask.SYSTEM}
+    assert seen["m"][1]["content"] == "PROMPT"
+
+
+def test_the_hosted_backend_refuses_to_run_without_a_key(monkeypatch):
+    from rag import faithful
+    monkeypatch.setattr(faithful, "env_key", lambda var: None)
+    try:
+        inject.hosted_generate("s", "p")
+    except SystemExit as e:
+        assert "NVIDIA_API_KEY" in str(e)
+    else:  # pragma: no cover
+        raise AssertionError("a missing key must stop the run, not send an unauthenticated call")
+
+
+def test_an_attempt_too_long_for_the_demo_is_flagged(monkeypatch):
+    """demo.MAX_QUESTION_CHARS rejects a long question before any model sees it,
+    so an obeyed attempt past the cap is not reachable through the live page."""
+    from rag import demo
+    assert inject.DEMO_QUESTION_CAP == demo.MAX_QUESTION_CHARS
+    long_q = "x" * (inject.DEMO_QUESTION_CAP + 1)
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": long_q}})
+    rows = inject.run(generate=lambda system, prompt: f"ok {inject.CANARY}", ids=["g1"])
+    q_rows = [r for r in rows if r["channel"] == "question"]
+    assert all(r["over_cap"] for r in q_rows)
+    assert "could not be typed into the page" in inject.report(rows)
+
+
+def test_a_short_attempt_is_not_flagged(monkeypatch):
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "short question?"}})
+    rows = inject.run(generate=lambda system, prompt: f"ok {inject.CANARY}", ids=["g1"])
+    assert not any(r["over_cap"] for r in rows)
+    assert "could not be typed" not in inject.report(rows)
