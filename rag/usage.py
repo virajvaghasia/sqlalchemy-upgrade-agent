@@ -58,6 +58,11 @@ def record(model: str, usage: dict | None, caller: str, status: int = 200,
         "completion_tokens": usage.get("completion_tokens", 0),
         "total_tokens": usage.get("total_tokens", 0),
     }
+    if status != 200:
+        # A container's ledger dies with the container (Modal), so a failure that
+        # only lands in the file is invisible where it matters most. One line on
+        # stdout puts it in the platform's own logs.
+        print(f"[usage] {model} {caller} HTTP {status}", file=sys.stderr, flush=True)
     target = path or LEDGER
     try:
         target.parent.mkdir(parents=True, exist_ok=True)

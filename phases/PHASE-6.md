@@ -1614,3 +1614,51 @@ that stands; what changed is a third party's entitlement, not this repo.
 **Do not quote the demo as live without checking it first.** One command:
 `curl -s --max-time 60 <url>/api/config` is a health check that costs nothing; the `/api/ask` above
 costs one question against the page's own hourly limiter.
+
+
+## RESOLVED the same day — the demo answers again, on a different model
+
+**Live, 2026-09-16, two questions through the public endpoint:**
+
+```
+status: answered | gen: deepseek-ai/deepseek-v4-flash-0731 | 80.9 s | sources 5 | cited [1, 3]
+status: answered | gen: deepseek-ai/deepseek-v4-flash-0731 | 90.8 s | sources 5 | cited [1, 2, 3, 4]
+```
+
+**What was changed:** `demo.MODEL` → `deepseek-ai/deepseek-v4-flash-0731`, chosen by probing both
+reachable candidates on two real saved prompts. deepseek cited `[1][2][3][4][5]` on `g050` where
+`nemotron-3-nano-omni` cited `[1][3]`; citation coverage is the property this project has measured
+most (`D73`). **Not `openai/gpt-oss-20b`** — that is Phase 6's judge, and a page that writes with its
+own grader is what `D80` chose a different family to avoid.
+
+**And the notice was rewritten, because the numbers did not move with the model.** It now names the
+serving model, says plainly that **it has not been measured** on this question set, and attributes
+each figure to the model that produced it (0.42 qwen, 0.58/91% the previous model). A test fails if
+a figure ever floats free of its owner.
+
+### The debugging, including the wrong turn — worth keeping
+
+| step | what it showed |
+|---|---|
+| repoint + deploy, then ask | still `HTTPError`. **Same code, same model, worked locally** |
+| suspect the Modal secret, replace it from `.env`, `app stop`, redeploy | still failing |
+| fingerprint the container's key (sha256 prefix, never the key) and call deepseek **from inside Modal** | `{'len': 70, 'sha12': 'cefe1fc167d0', 'deepseek': 'OK'}` — **identical key, model works there.** The secret was never the problem |
+| make the page name the status instead of the class | `HTTP 404` — the container was still sending the **old model id** |
+| rebuild + `app stop` + deploy once more | answered |
+
+**The cause was a stale warm container, not credentials.** `/api/config` reported the new model
+while `/api/ask` was still served by an older container — the same trap `D106` recorded (*"warm
+containers needed `modal app stop -y` to pick up the mount"*), and it fooled me anyway because the
+config endpoint answered from the new one.
+
+**Two things now make this diagnosable instead of a guessing game:**
+
+1. **The page names the HTTP status.** *"did not respond (HTTP 404)"* separates *rate limited* (429,
+   try later) from *this account cannot call this model* (404). Pinned by a test.
+2. **Failures are logged to the platform, not just to a file.** `rag/usage.py` prints
+   `[usage] <model> <caller> HTTP <status>` to stderr on any non-200, because a container's ledger
+   dies with the container while Modal keeps its logs.
+
+**The check that costs nothing, for next time:** `curl -s <url>/api/config` says which model is
+serving; one `/api/ask` says whether it can answer. Config alone is not proof — that is exactly what
+misled this session.

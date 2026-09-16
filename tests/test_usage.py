@@ -108,3 +108,15 @@ def test_the_demo_records_a_refused_call(monkeypatch, tmp_path):
         pass
     rows = usage.load(led)
     assert rows and rows[0]["status"] == 404, "the 404 that took the demo down must be on record"
+
+
+def test_a_failure_is_announced_on_stderr_for_platform_logs(tmp_path, capsys):
+    """In a Modal container the ledger file dies with the container; the platform
+    log is the only durable place. A silent failure there is undiagnosable."""
+    usage.record("m/x", None, "demo.nvidia_post", status=404, path=tmp_path / "u.jsonl")
+    assert "[usage] m/x demo.nvidia_post HTTP 404" in capsys.readouterr().err
+
+
+def test_a_success_is_not_announced(tmp_path, capsys):
+    usage.record("m/x", {"total_tokens": 1}, "demo.nvidia_post", path=tmp_path / "u.jsonl")
+    assert capsys.readouterr().err == ""

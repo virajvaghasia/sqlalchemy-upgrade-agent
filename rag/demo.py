@@ -216,7 +216,13 @@ def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root
         return {"error": "The local answer model (Ollama) is not running. The search still "
                          "ran, and its sources are listed with this message.", "sources": sources}
     except (urllib.error.URLError, TimeoutError) as exc:
-        return {"error": f"The answer model did not respond ({type(exc).__name__}). "
+        # Name the HTTP status when there is one. "HTTPError" alone cannot tell
+        # 429 (rate limited, try later) from 404 (this account cannot call this
+        # model) -- and on 2026-09-16 that difference cost an afternoon, because
+        # the page said only "HTTPError" while the model had lost entitlement.
+        code = getattr(exc, "code", None)
+        detail = f"HTTP {code}" if code else type(exc).__name__
+        return {"error": f"The answer model did not respond ({detail}). "
                          "The search still ran, and its sources are listed.", "sources": sources}
     text = (data["choices"][0]["message"].get("content") or "").strip()
     if root:

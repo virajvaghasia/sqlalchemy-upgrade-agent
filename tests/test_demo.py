@@ -251,3 +251,19 @@ def test_no_langfuse_keys_means_no_tracing(monkeypatch):
     monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     assert demo.langfuse_client() is None
+
+
+def test_a_failed_generation_names_the_http_status(monkeypatch):
+    """"HTTPError" alone cannot tell 429 (rate limited) from 404 (this account
+    cannot call this model). On 2026-09-16 that ambiguity cost an afternoon."""
+    import urllib.error
+    from rag import demo
+
+    def boom(*a, **k):
+        raise urllib.error.HTTPError("u", 429, "Too Many Requests", {}, None)
+
+    monkeypatch.setattr(demo.urllib.request, "urlopen", boom)
+    out = demo.answer("q?", key="k", session="s", limiter=demo.RateLimiter(per_hour=9, gap=0),
+                      retrieve=lambda q: [])
+    assert "HTTP 429" in out["error"]
+    assert "sources are listed" in out["error"]
