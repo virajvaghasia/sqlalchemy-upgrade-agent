@@ -1543,3 +1543,55 @@ under the same pages and prompt (`D104`).
 - **The Day 3 Tailscale tunnel** — blocked on Shaili sharing the node since August, and nothing
   needs it; AnyDesk has carried every lab round.
 - **Not started: Phase 7 (security / prompt injection)**, which the ROADMAP marks optional.
+
+
+---
+
+## ⚠️ The live demo stopped answering (found 2026-09-16, while setting up Phase 7 Step 2)
+
+**Symptom, from the public page itself:**
+
+```
+POST /api/ask  {"question": "query(User).get(1) warns LegacyAPIWarning, where did get move to"}
+
+{"status": "error",
+ "status_label": "Not answered",
+ "error": "The answer model did not respond (HTTPError). The search still ran, and its sources are listed.",
+ "sources": [ ... five real pages, correctly retrieved ... ]}
+```
+
+**Cause, measured directly against NVIDIA rather than guessed:**
+
+```
+POST https://integrate.api.nvidia.com/v1/chat/completions   model = nvidia/nemotron-3-ultra-550b-a55b
+-> HTTP 404  {"detail": "Function id '948fe171-...' version 'null': Specified function in account '...' not found"}
+
+GET  /v1/models  -> 82 models, and nvidia/nemotron-3-ultra-550b-a55b IS still listed
+```
+
+**So the catalog advertises a model the account cannot call.** That is `D80`'s sentence arriving on
+a different provider: *a pinned id is a promise about a name, not a service* — there, a pinned
+Gemini id answered 503 all morning while three siblings answered; here, a listed NVIDIA model 404s
+on the key that used it for 190 calls on 2026-09-13 (`D104`). Most likely the free credits are spent
+or the entitlement changed; the API does not say which, and neither does this note.
+
+**What still works, and it is the part that was designed for this:** search ran, the five sources
+rendered, the page stayed up, and the error names the model rather than showing a stack trace. That
+is Step 4c's error-state rule passing on a real outage instead of the stand-in it was tested with
+(the stand-in was `ask.OLLAMA_URL` pointed at a closed port, disclosed at the time).
+
+**What it costs:** the ROADMAP's Phase 6 gate — *"a stranger can click your demo link and get a
+cited answer"* — **is not satisfiable today**. The gate was met on 2026-09-13 and the evidence for
+that stands; what changed is a third party's entitlement, not this repo.
+
+**The options, none of them started, because which one is right is Viraj's call:**
+
+| option | cost | what it costs in honesty |
+|---|---|---|
+| repoint the demo at a model the key can call (`openai/gpt-oss-20b` answers today; it is also Phase 6's judge) | one constant, one redeploy | the page's measured numbers (`D104`: 0.58 end to end, 91% supported) describe nemotron, not the new model. The notice would have to say so, or be re-measured |
+| run the demo on Ollama | free, but needs a machine that is up | the lab is the only box with the GPU, and it is not Viraj's to host on |
+| leave it down and say so | nothing | the README's "Try it" link leads to an error page until someone changes it |
+
+**Do not quote the demo as live without checking it first.** One command:
+`curl -s --max-time 60 <url>/api/config` is a health check that costs nothing; the `/api/ask` above
+costs one question against the page's own hourly limiter.
