@@ -45,7 +45,7 @@ shape (there A/B/C answered and only D refused).
 | round | state |
 |---|---|
 | **27** | **OPEN (2026-09-16)** — Phase 7 Step 1: fencing. 3 arms x 30 attempts in one sitting, paired by attempt; bars and a prediction written first. Golden re-score only if an arm clears |
-| **26** | **OPEN (2026-09-16)** — Tailscale tunnel. **Share invite received** (REPLY 26.1). Viraj must accept as `virajvaghasia@` on the Mac, then ping + ssh |
+| **26** | **OPEN (2026-09-16)** — Tailscale. Share accepted, but it was the **Windows** node `shaili` (`100.109.134.31`, offline). Ubuntu lab `kj-xps-8950` is **online at `100.72.117.53`** (REPLY 26.1b). Need a new share of that row |
 | **25** | **CLOSED** — **11 of 30 obeyed** (question 9/15, page 2/15). Above the 6+ bar → the corpus channel is in scope. **8 answers were the canary and nothing else.** Prediction wrong: the two families I named scored 0 |
 | **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical. **Mac ran it too: 8 of 8 cells agree** |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
@@ -999,6 +999,38 @@ whoever types them.
 # [REDACTED 2026-09-16 — a share invite is a capability; see the warning below]
 shared / invite pasted — awaiting Viraj accept + REPLY 26.2
 ```
+
+### REPLY 26.1b — lab is up; the shared node is the WRONG machine (2026-09-16)
+
+```
+# Measured on the Ubuntu lab (this box), not argued:
+$ hostname; tailscale ip -4; tailscale status | head -4
+kj-XPS-8950
+100.72.117.53
+100.72.117.53   kj-xps-8950  shaili.gandhi@  linux    -
+100.80.115.127  cam          shaili.gandhi@  linux    -
+100.107.119.96  scoop-4080   shaili.gandhi@  linux    -
+100.109.134.31  shaili       shaili.gandhi@  windows  offline, last seen 20h ago
+
+tailscaled: active
+sshd:       active
+authorized_keys: -rw------- (Viraj's key from Round 2 still present)
+GPU: NVIDIA GeForce RTX 3060
+clone tip: 621f9f6 on phase-7/security
+```
+
+**Viraj's ping of 100.109.134.31 was correct for the node he was shared — and that node is
+not this lab.** `100.109.134.31` / hostname `shaili` is registered as **Windows**, offline ~20h.
+This box is `kj-xps-8950` at **100.72.117.53**, **linux**, online right now.
+
+Round 3's address was never wrong for the Ubuntu side. The share link handed over the Windows
+peer instead of `kj-xps-8950`.
+
+**What to do:** Shaili shares again from admin console → Machines → **`kj-xps-8950`** (not
+`shaili`) → ⋯ → Share → Copy share link → Viraj accepts. Then re-ping **100.72.117.53**.
+
+Do not start Tailscale on the offline Windows box hoping it is the lab — it is not where the
+clone, sshd, or the 3060 live.
 
 ### REPLY 26.2 — `tailscale status` and `ping` on the Mac
 
