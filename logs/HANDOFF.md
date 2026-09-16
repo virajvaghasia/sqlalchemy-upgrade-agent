@@ -44,7 +44,7 @@ shape (there A/B/C answered and only D refused).
 
 | round | state |
 |---|---|
-| **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical |
+| **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical. **Mac ran it too: 8 of 8 cells agree** |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
 | **22** | **CLOSED** — D 36→38/47 (3↑1↓ p=0.625), H 56→57/61 (2↑1↓ p=1.0) → **headings do NOT matter** |
 | **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
@@ -55,7 +55,21 @@ shape (there A/B/C answered and only D refused).
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-### LAB RESULT — Round 24 (Mac: read this)
+### MAC + LAB AGREE — Round 24 (read this first, written on the Mac 2026-09-16)
+
+**Both machines ran it and every cell matches**: the same five pages for each item (retrieval
+reproduces exactly, `D83` again), and the same 8 answer/refuse decisions, each on two runs.
+
+**That is worth noticing.** `D83` says generation reproduces nowhere and `D89` found tool-call
+decisions disagreeing across machines on half the items. **Here the answer-or-refuse decision
+agrees 8 of 8 across two machines.** The wording still does not: on `g050` the lab's D wrote
+*"…the specific thing looked for and did not find was how to…"* where the Mac's D wrote the bare
+sentence. **Decision stable, prose not** — `D84`'s shape, now across boxes rather than across days.
+
+**What both machines found:** A, B and D refuse both items; only C answers. The Mac section further
+down adds the grounding check on C's answers; `11-GENERATION.md` §R3.6 is the write-up.
+
+### LAB RESULT — Round 24 (raw)
 
 Pages present (round valid): `g050` → `c01567`,`c01573` in five; `g044` → `c01568` in five.
 qwen @ **100% GPU**. Both runs **identical**.
@@ -693,7 +707,7 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
 
 ---
 
-# Round 24 — is Round 23's refusal one question or a shape? (CLOSED, lab 2026-09-16)
+# Round 24 — is Round 23's refusal one question or a shape? (CLOSED, lab + Mac 2026-09-16)
 
 **Why this exists.** Round 23 found the **shipped** prompt D refusing *"why can't I call
 `engine.execute()` any more?"* on both runs, with the answer page in the prompt — while A, B and C
@@ -785,7 +799,7 @@ ollama ps
 
 **Paste both runs raw.** `D` is the shipped wording; `B` was shipped until 2026-08-17.
 
-### MAC SCREEN — Round 24 (2026-09-16, Darwin-arm64). Lab still decides (`D95`)
+### MAC RUN — Round 24 (2026-09-16, Darwin-arm64). The lab agreed on every cell
 
 **Step 1 — both items are live.** A verified answer chunk is in the five for both, so neither is void:
 
@@ -831,8 +845,8 @@ on the pages the model was handed. Both cite nothing, which is `D73` again.
 > before it).
 
 **What this does not say.** Not that the clause should go — that trade is exactly `D43`. Not a rate:
-two items. Not the lab's answer: the Mac is a screen (`D95`), and the Mac's generator is the one
-that drifts (`D84`) — though both runs here agreed.
+two items. **Written as a screen awaiting the lab; the lab then ran it and matched every cell**, so
+it is no longer only the Mac's word.
 
 ### REPLY 24.0
 

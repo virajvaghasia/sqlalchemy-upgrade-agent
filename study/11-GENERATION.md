@@ -481,8 +481,15 @@ prompt lab, and again in Round 23. **Both of these are real, and they point in o
 directions:** the clause prevents invention and causes these refusals. Phase 4 named that tension;
 nothing has resolved it.
 
-**Status:** a Mac screen, two items, two runs that agreed (`D95`). Round 24 is open on the lab, and
-the lab is the box whose generator does not drift (`D84`).
+**Status: measured on both machines, and they agree cell for cell.** The lab ran the same two
+steps the same day: identical five pages per item, identical 8 decisions, two runs each. So this
+is not a Mac screen any more (`D95` satisfied). Two items, not a rate.
+
+**One difference between the boxes, and it is the familiar one.** On `g050` the lab's D refused
+with *"…the specific thing looked for and did not find was how to…"*; the Mac's D refused with the
+bare sentence. **Same decision, different prose** — `D84` found exactly that across days on one
+machine, and here it shows across two machines. It also means the refusal is the *instructed* one:
+D's clause asks the model to name what it looked for, and on the lab it did.
 
 ---
 
