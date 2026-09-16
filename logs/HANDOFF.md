@@ -907,6 +907,25 @@ $ ls ~/.ssh/id_ed25519_sqlalchemy_lab
 **So the one missing piece is a share.** Shaili's node, Shaili's account, her click. Nothing on
 either machine needs to change.
 
+## ⚠️ A share invite is a credential. Do not commit one. (2026-09-16)
+
+**What happened:** the invite URL was pasted into REPLY 26.1 and pushed. **This repository is
+public** (`gh repo view` → `"visibility": "PUBLIC"`), so for as long as that link was live, anyone
+who read it could accept the share and reach `kj-xps-8950` over the tailnet — a machine with `sshd`
+listening.
+
+**The link is redacted in the file now, and that is not the fix.** It is still in the git history,
+and the history is public. **The fix is on Tailscale's side:**
+
+1. Shaili: admin console → **Machines** → `kj-xps-8950` → **⋯** → **Share** → **revoke / delete the
+   existing share link**.
+2. Re-share, and send the new link **in a chat message, not through this repo**.
+3. If anyone unexpected appears under that machine's shared users, remove them.
+
+**The rule from here:** invite links, API keys and tokens travel out-of-band. `.env` is gitignored
+for exactly this reason (`Round 15`'s note about the Gemini key on a shared box). A handoff file
+that lives in a public repo can carry *what to do*, never *the thing that grants access*.
+
 ## Step 1 — Shaili (2 minutes, her admin console)
 
 Send her this. It is the Round 3 message, unchanged because it still describes exactly what is
@@ -977,7 +996,7 @@ whoever types them.
 # 2026-09-16 lab PC
 # Share invite link received (accept as virajvaghasia@ — Mac browser preferred).
 # Do NOT open as Shaili. Do NOT run tailscale login / up / switch on this PC.
-# https://login.tailscale.com/admin/invite/jdZowkzoCbDv8dvExGKZ11
+# [REDACTED 2026-09-16 — a share invite is a capability; see the warning below]
 shared / invite pasted — awaiting Viraj accept + REPLY 26.2
 ```
 
