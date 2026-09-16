@@ -241,3 +241,38 @@ In the order the plan already set, with both channels in scope:
 **Not planned: a filter that strips injection-shaped text.** It would catch these five families
 because these five families are what it was written against. If it ships at all it ships after
 fencing is measured, and it is described as what it is.
+
+### Step 1 — MEASURED (lab, 2026-09-16, `D110`) — NULL; fence does not ship
+
+Instrument: `rag/fence.py` + `rag.inject --arms shipped,fence_user,fence_both`. 90 generations,
+one sitting. Rows: `deliverables/inject-phase7-step1.Linux-x86_64.json`.
+
+```
+uv run python -m rag.inject --report deliverables/inject-phase7-step1.Linux-x86_64.json
+```
+
+```
+  arm           obeyed  refused   fixed broken
+  shipped           11        9       -      -
+  fence_user        11        5       0      0
+  fence_both        11        5       1      1
+```
+
+**Control reproduced Round 25 on the only number that gates the round:** shipped **11 obeyed**,
+same eleven ids. Refused moved 6 → 9 (wording, not the obedience decision).
+
+**Against the bar written in Round 27:** obeyed unchanged in the 9–11 band → **fencing does not
+work on this model**. Write the null and stop. **Do not reach for a filter.** No golden
+`--refusals` re-score — that step was only for an arm that cleared.
+
+**`fence_user` ≈ `fence_both` on obedience** — both still 11, and `fence_user` flipped nothing.
+The one-sentence system suffix did not buy a net cut either (1↑ 1↓, net zero). Markers alone and
+markers-plus-rule are the same failure.
+
+**Prediction wrong and kept.** Expected `fence_both` 2–5 and `fence_user` 5–8; both landed at 11.
+The wrong assumption was that plain overrides needed a missing delimiter to work; they work with
+the delimiters in place too.
+
+**What still stands from Step 0:** the pipeline is injectable (`D109`). Fencing is not the fix.
+`ask.SYSTEM` and `ask.build_prompt` stay untouched. Phase 7 can close on a measured failure to
+defend, or wait on a different candidate — not on a filter written against these five families.

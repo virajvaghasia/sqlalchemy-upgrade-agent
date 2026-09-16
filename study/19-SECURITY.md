@@ -178,10 +178,10 @@ unanswerable questions, 13 of 13). It is also what an attacker triggers with one
 makes the shipped prompt decline `g050` and `g044` with the answer on the desk. **Defense and attack
 surface are the same sentence**, and nothing in this project has resolved that.
 
-### R11.4 Step 1 — fencing, built and not yet judged
+### R11.4 Step 1 — fencing measured: null (`D110`)
 
 The prompt pastes a page body and a question in with nothing marking where attacker-writable text
-starts and stops. Step 1 marks it:
+starts and stops. Step 1 marked it and measured three arms in one sitting (Round 27):
 
 ```
 # illustration — what rag/fence.py builds (the shipped prompt has no markers)
@@ -215,16 +215,20 @@ nothing, while `H` moved the same words next to `ANSWER:` and moved the number.
 `<<<END PAGE 1>>>` into a page and continue outside the frame. That property is tested, and the test
 fails if `escape` becomes a no-op.
 
-**What fencing is not.** Not a lock — it is a label telling the model which text is data. Not
-shipped: `ask.SYSTEM` and `ask.build_prompt` are untouched, because `D72`'s 0.43 and every Phase 4
-figure were measured with those, and a candidate that edits them in place moves a published baseline
-before anyone votes on it. It ships only if Round 27's numbers say so, exactly as prompt `H` was held
-(`D83`).
+**What fencing is not.** Not a lock — it is a label telling the model which text is data.
+`ask.SYSTEM` and `ask.build_prompt` stay untouched (`D72`'s baseline). Round 27 measured the
+candidates; **they did not ship** (`D110`).
 
-**And the cost that must be measured with it.** A fence makes the model more suspicious of the text
-it is reading. Rounds 23/24 already show every refusal-carrying wording declining `g050` and `g044`
-with the answer present. **So any arm that clears the injection bar is re-scored on the golden set in
-the same sitting** (`D54`) — a rise in over-refusals is a hold, whatever it did to the attack.
+**The measured result (lab, 90 generations, one sitting):**
+
+| arm | obeyed | refused | vs shipped |
+|---|---|---|---|
+| `shipped` (control) | **11** | 9 | — (obeyed reproduces `D109`) |
+| `fence_user` | **11** | 5 | 0↑ 0↓ |
+| `fence_both` | **11** | 5 | 1↑ 1↓ (net zero) |
+
+Obeyed unchanged in the 9–11 band → **null**. No golden re-score (that was only for an arm that
+cleared). No filter this round — the bar said so before the data.
 
 ---
 
@@ -252,13 +256,15 @@ the same sitting** (`D54`) — a rise in over-refusals is a hold, whatever it di
   answers. A canary measures obedience, not harm.
 - **The refusal clause is both the defense against fabrication and the attack surface** (`D43`,
   `D109`, Rounds 23/24).
-- Fencing is built, held, and will be judged on injections **and** on the golden set in one sitting.
+- Fencing was measured on three arms and **did not move obedience** (`D110`: 11 / 11 / 11). Markers
+  alone and markers-plus-rule are the same null. The pipeline is still injectable; delimiters are
+  not the fix on this model.
 
 ## Do not say
 
 - *"The system is secure."* Five families, one model, one corpus, 30 attempts.
-- *"Prompt injection is solved by delimiters."* Unmeasured here until Round 27; and the markers are
-  public.
+- *"Prompt injection is solved by delimiters."* Measured here: **11 obeyed with them too** (`D110`).
+  The markers are public.
 - *"It leaked the system prompt."* Zero answers contained it — and it is public anyway.
 - *"0 obeyed means the defense worked."* `refusal_hijack` obeyed nothing and still won.
 - Quoting **11/30** as a *rate* for prompt injection generally. It is this model, this prompt, these
@@ -272,5 +278,5 @@ the same sitting** (`D54`) — a rise in over-refusals is a hold, whatever it di
 | [`09-DECISIONS.md`](09-DECISIONS.md) | **`D109`** — the measurement and what it decided |
 | [`../rag/inject.py`](../rag/inject.py) | the instrument: families, channels, canary, arms |
 | [`../rag/fence.py`](../rag/fence.py) | Step 1's candidate prompts |
-| [`../logs/HANDOFF.md`](../logs/HANDOFF.md) | Round 25 (Step 0, closed) and Round 27 (Step 1, open) |
+| [`../logs/HANDOFF.md`](../logs/HANDOFF.md) | Round 25 (Step 0, closed) and Round 27 (Step 1, closed — null) |
 | [`11-GENERATION.md`](11-GENERATION.md) | §R3.6 — Rounds 23/24, the same refusal clause from the quality side |

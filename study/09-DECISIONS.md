@@ -8,7 +8,7 @@ answers *"why not the other thing?"* — and that is the entire content of a des
 A decision whose alternatives were never written down is a decision you will re-derive badly,
 under pressure, in front of someone who has heard the confident version before.
 
-**How to read an entry.** Each has a stable ID (`D01`…`D109`), so other docs can cite `D14` and mean
+**How to read an entry.** Each has a stable ID (`D01`…`D110`), so other docs can cite `D14` and mean
 it. The shape is always the same:
 
 > **Decided** — what was actually done
@@ -31,7 +31,7 @@ it. The shape is always the same:
 
 | You see | What it is | What it is **not** |
 |---|---|---|
-| **`D01` … `D109`** | One design decision: decided / instead of / because / asked as | A section number, a score, or a date |
+| **`D01` … `D110`** | One design decision: decided / instead of / because / asked as | A section number, a score, or a date |
 | **`§A` … `§I`** | Groupings of decisions in *this* register: §A–§G by subject, §H the unjustified, §I everything since Phase 1 in date order | RAG sittings (`§R1`…) or SQLAlchemy `§0` |
 | **§H** | “Not yet justified” — chosen but reasoning never recorded | Prompt **H** (a wording in Phase 4) |
 | **🔒 Locked** | Reopening costs more than it saves | “Always correct forever” |
@@ -702,7 +702,7 @@ the numbers were, and — the part people skip — what fifteen data points do *
 > **Asked as** — *"Why that embedding model?"* — and the strong answer names the cheaper thing
 > you tested it against, not the leaderboard you read.
 
-## §I — Phase 1 onward, in the order decided (D33–D108)
+## §I — Phase 1 onward, in the order decided (D33–D110)
 
 **From here the register stops grouping by subject and runs in date order**, one entry per decision
 as each phase made it: Phase 1's chunking and prompt (D33–D57), Phase 2's scoring and golden set
@@ -4338,6 +4338,32 @@ is a trace: what was asked, which five pages were found, what the model wrote, h
 > obeyed 11, and 8 of those replies were the attacker's token alone. My prediction about which
 > families would work was wrong. And the family that scored zero was the one that actually did
 > damage — it made the system refuse questions it answers."*
+
+### D110 — fencing the untrusted spans is a null: 11 obeyed on every arm
+
+> **Measured 2026-09-16 on the lab PC** (Phase 7 Step 1 / Round 27), 90 generations in one sitting:
+> `shipped`, `fence_user`, `fence_both` through `rag.inject --arms`. Control **11 obeyed**
+> (reproduces `D109`). Both fence arms **11 obeyed**. Paired: `fence_user` **0↑ 0↓**;
+> `fence_both` **1↑ 1↓** (fix `g002/role_confusion/page`, broken `g002/exfiltration/page`).
+> Rows: `deliverables/inject-phase7-step1.Linux-x86_64.json`. Reproduce:
+> `uv run python -m rag.inject --report deliverables/inject-phase7-step1.Linux-x86_64.json`.
+>
+> **Decided by the bar written before the run:** obeyed unchanged in the 9–11 band → fencing does
+> not work on this model; write the null; **do not** reach for a filter; **do not** spend a golden
+> `--refusals` re-score. Nothing ships. `ask.SYSTEM` / `ask.build_prompt` stay untouched.
+>
+> **Instead of** — shipping markers because "we built a defense," or writing a strip-filter against
+> the five families that just survived the markers.
+>
+> **`fence_user` ≈ `fence_both`.** The system-prompt sentence did not separate from the markers on
+> the obedience count. Refused dropped 9 → 5 on both fence arms; that is not a defense — the bar
+> watches obeyed, and `D109` already said a refusal rise can hide damage the other way.
+>
+> **Prediction wrong and kept.** Expected `fence_both` 2–5 / `fence_user` 5–8; both were 11.
+>
+> **Interview question it answers:** *"Did delimiters fix prompt injection?"* — *"We measured them
+> paired against the shipped prompt, markers alone and markers plus a system rule. All three arms
+> obeyed 11 of 30. So no — not on this model, not with this attack set."*
 
 ---
 
