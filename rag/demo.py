@@ -39,7 +39,19 @@ import urllib.request
 
 from rag import ask
 
-MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+# The page's generator. NOT the judge: `openai/gpt-oss-20b` grades Phase 6's
+# answers, and a page that writes with its own grader is the self-scoring shape
+# `D80` chose a different family to avoid.
+#
+# Repointed 2026-09-16. The previous model, nvidia/nemotron-3-ultra-550b-a55b,
+# began returning HTTP 404 "Specified function ... not found for account" on this
+# key -- while still being listed by GET /v1/models. Measured that day: three
+# models answered on the same key in the same minute and five 404'd, so it is
+# per-model entitlement, not credits and not an outage (PHASE-6.md, last section).
+# `D80`'s sentence, on a second provider: a pinned id is a promise about a name,
+# not a service.
+MODEL = "deepseek-ai/deepseek-v4-flash-0731"
+PREVIOUS_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 KEY_VAR = "NVIDIA_API_KEY"
 
@@ -56,10 +68,13 @@ MEASURED_MODEL_NOTICE = (
 # on the pages exactly as the model saw them (D107). A test re-derives both from
 # deliverables/nemotron-all-phase6.json, so they cannot drift from the rows.
 NOT_THE_MEASURED_MODEL = (
-    "Answers here are written by `nvidia/nemotron-3-ultra-550b-a55b`, measured once on the project's "
-    "100-question set with the same retrieval and prompt (2026-09-13): 0.58 end to end, and 91% of its "
-    "answers judged fully supported by the pages it was given (supported is not the same as correct). "
-    "The 0.42 quoted elsewhere is for `qwen2.5-coder:7b`, a different model."
+    f"Answers here are written by `{MODEL}`, and **that model has not been measured on this "
+    f"project's question set** — it was put in place on 2026-09-16 when the previous page model, "
+    f"`{PREVIOUS_MODEL}`, stopped being callable on this API key. The measured figures elsewhere "
+    f"belong to other models: `qwen2.5-coder:7b` scores 0.42 end to end and is the system of record, "
+    f"and `{PREVIOUS_MODEL}` scored 0.58 end to end with 91% of its answers judged fully supported "
+    f"by the pages it was given (2026-09-13; supported is not the same as correct). Retrieval and "
+    f"the prompt are unchanged, so the five sources below are the same ones every measurement used."
 )
 
 
@@ -111,13 +126,27 @@ class RateLimiter:
 
 
 def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
+    """One hosted call, with its token usage written to the ledger.
+
+    Successes AND failures are recorded (`rag/usage.py`): NVIDIA sends no
+    rate-limit headers, so a 429 in that file is the only place "the limit was
+    reached" is ever visible, and a 404 is how an entitlement disappears.
+    """
+    from rag import usage as usage_mod
+
     body = {"model": MODEL, "temperature": ask.TEMPERATURE, "max_tokens": 8192,
             "messages": messages}
     request = urllib.request.Request(
         NVIDIA_URL, data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read())
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            data = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        usage_mod.record(MODEL, None, "demo.nvidia_post", status=exc.code)
+        raise
+    usage_mod.record(MODEL, data.get("usage"), "demo.nvidia_post")
+    return data
 
 
 def ollama_post(messages: list[dict], key: str | None) -> dict:
