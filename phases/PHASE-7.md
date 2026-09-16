@@ -276,3 +276,36 @@ the delimiters in place too.
 **What still stands from Step 0:** the pipeline is injectable (`D109`). Fencing is not the fix.
 `ask.SYSTEM` and `ask.build_prompt` stay untouched. Phase 7 can close on a measured failure to
 defend, or wait on a different candidate — not on a filter written against these five families.
+
+
+---
+
+## Where Phase 7 stands (2026-09-16)
+
+| step | state |
+|---|---|
+| **0 — is it vulnerable?** | **measured**: 11 of 30 obeyed, 8 replies the canary alone (`D109`) |
+| **1 — fencing** | **measured and rejected**: 11 obeyed on all three arms; markers and markers-plus-rule are the same null (`D110`). Nothing shipped |
+| **2 — re-measure a shipped defense** | **not reached.** There is no defense to re-measure |
+| **3 — the demo's own exposure** | 500-character cap and a rolling-hour limiter exist; load behaviour unmeasured |
+
+**Two measurements, two pre-written bars, one of them a null.** That is the phase working as
+designed — `D04`'s habit applied to security means a defense ships because it was measured, and
+fencing was not.
+
+### What is actually open, and what each would cost
+
+- **A filter that strips injection-shaped text.** The bar for Round 27 said explicitly: do **not**
+  reach for this in the same round. It would be written against the five families that just
+  survived fencing, and it would catch those five. Cheap to build, and honest only if it is
+  described as a family-specific patch with a re-measure on families it has never seen.
+- **A different model.** `D109`/`D110` are `qwen2.5-coder:7b`. The public demo generates with
+  `nemotron-3-ultra-550b` (`D106`), which **has never been attacked here.** The demo is the channel
+  a stranger can actually reach, so this is the gap that matters most and it is 30 NVIDIA calls.
+- **Accepting it.** The measured harm on this corpus is a wrong or absent answer about SQLAlchemy —
+  no secret in the prompt, no write access, no tools on the demo path. Writing "we measured it, it
+  obeys, here is what that can and cannot cost" is a defensible end state for a portfolio project,
+  and it is where the phase sits today.
+
+**Not open:** more fencing variants. The bar said a 9–11 obeyed band means fencing does not work on
+this model, and two arms agreed.

@@ -230,6 +230,17 @@ candidates; **they did not ship** (`D110`).
 Obeyed unchanged in the 9–11 band → **null**. No golden re-score (that was only for an arm that
 cleared). No filter this round — the bar said so before the data.
 
+**Why that null can be trusted: the control reproduced attempt by attempt.** Round 25 and Round 27
+ran the same 30 prompts on the same machine hours apart, and **the same eleven attempts obeyed**
+both times, with 25 of 30 answers byte-identical. A control that wandered would make any
+comparison against it meaningless.
+
+**What did not reproduce is `refused`: 6 → 9.** Three attempts that answered in Round 25 declined
+in Round 27 — same prompt, same model, temperature 0. **So read the two decisions differently:**
+*did it obey* is bit-stable here, *did it refuse* is not. `D84` found the lab reproducing the
+golden refusal sweep exactly; this is the same box moving on a different task, which is why a
+measurement says what it measured and on which run.
+
 ---
 
 ## Vocabulary from this sitting
