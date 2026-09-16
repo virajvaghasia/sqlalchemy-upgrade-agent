@@ -36,15 +36,15 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-15, lab)
+## Where things stand — read this first (updated 2026-09-16, lab)
 
-**→ ROUND 23 CLOSED on the lab.** Branch `phase-6/production`. `rag.compare_prompts` runs end to
-end twice; SUMMARY identical both runs. **D over-refused the answerable question** (both runs) —
-disagrees with §R3's expected table. Artifact is the pasted replies (no JSON).
+**→ ROUND 24 CLOSED on the lab.** Branch `phase-6/production`. `g050`/`g044` with verified pages
+in the five; four wordings × two runs. **A/B/D refused both; only C answered** — not Round 23's
+shape (there A/B/C answered and only D refused).
 
 | round | state |
 |---|---|
-| **24** | **OPEN (2026-09-16)** — does D refuse `g050`/`g044` too, or was Round 23 one question? Mac screen first; lab rules. See Round 24 below |
+| **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
 | **22** | **CLOSED** — D 36→38/47 (3↑1↓ p=0.625), H 56→57/61 (2↑1↓ p=1.0) → **headings do NOT matter** |
 | **21** | **CLOSED** — B **5↑ 2↓** (not Mac's 6↑ 1↓); shared core 4↑ 1↓ + 4 page-absent guesses; **not shipped (`D96`)** |
@@ -55,7 +55,23 @@ disagrees with §R3's expected table. Artifact is the pasted replies (no JSON).
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
 | 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
 
-### LAB RESULT — Round 23 (Mac: read this)
+### LAB RESULT — Round 24 (Mac: read this)
+
+Pages present (round valid): `g050` → `c01567`,`c01573` in five; `g044` → `c01568` in five.
+qwen @ **100% GPU**. Both runs **identical**.
+
+```
+         A        B        C         D
+g050     REFUSED  REFUSED  answered  REFUSED
+g044     REFUSED  REFUSED  answered  REFUSED
+```
+
+Against the pre-written table: **not** “D refuses, A/B/C answer” (Round 23’s hoped-for shape).
+**A and B refuse too**; only **C** (no refusal clause) answers. Prediction (D refuses, A/B/C answer)
+was **wrong** on A and B. D refusing both is consistent with Round 23; the older wordings with a
+refusal clause refuse these two as well.
+
+### LAB RESULT — Round 23 (kept)
 
 Both runs exit 0, qwen @ **100% GPU**, SUMMARY **byte-identical**. Primary check (finishes) **PASS**.
 
@@ -677,7 +693,7 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
 
 ---
 
-# Round 24 — is Round 23's refusal one question or a shape? (OPEN, written 2026-09-16)
+# Round 24 — is Round 23's refusal one question or a shape? (CLOSED, lab 2026-09-16)
 
 **Why this exists.** Round 23 found the **shipped** prompt D refusing *"why can't I call
 `engine.execute()` any more?"* on both runs, with the answer page in the prompt — while A, B and C
@@ -772,19 +788,44 @@ ollama ps
 ### REPLY 24.0
 
 ```
-(paste here)
+ffe761c docs(handoff): Round 24 queued — is Round 23's refusal one question or a shape?
+qwen2.5-coder:7b present
+qdrant: all shards are ready
+qwen2.5-coder:7b 100% GPU
 ```
 
 ### REPLY 24.1
 
 ```
-(paste here)
+g050 pages: ['c00456', 'c01567', 'c02028', 'c01569', 'c01573']
+   verified answer chunk in the five: ['c01567', 'c01573']
+g044 pages: ['c01562', 'c01568', 'c01563', 'c00952', 'c01552']
+   verified answer chunk in the five: ['c01568']
 ```
 
 ### REPLY 24.2
 
 ```
-(paste here)
+== run 1
+g050  A  REFUSED  'The sources do not answer this.'
+g050  B  REFUSED  'The sources do not answer this.'
+g050  C  answered  'In SQLAlchemy 2.0, the `engine.execute` method for executing statements directly is no lon'
+g050  D  REFUSED  'The sources do not answer this. The specific thing looked for and did not find was how to '
+g044  A  REFUSED  'The sources do not answer this.'
+g044  B  REFUSED  'The sources do not answer this.'
+g044  C  answered  'In SQLAlchemy 1.4, using `autoload=True` on a `Table` without specifying `autoload_with` w'
+g044  D  REFUSED  'The sources do not answer this.'
+== run 2
+g050  A  REFUSED  'The sources do not answer this.'
+g050  B  REFUSED  'The sources do not answer this.'
+g050  C  answered  'In SQLAlchemy 2.0, the `engine.execute` method for executing statements directly is no lon'
+g050  D  REFUSED  'The sources do not answer this. The specific thing looked for and did not find was how to '
+g044  A  REFUSED  'The sources do not answer this.'
+g044  B  REFUSED  'The sources do not answer this.'
+g044  C  answered  'In SQLAlchemy 1.4, using `autoload=True` on a `Table` object without specifying `autoload_'
+g044  D  REFUSED  'The sources do not answer this.'
+NAME                ID              SIZE      PROCESSOR    CONTEXT    UNTIL
+qwen2.5-coder:7b    dae161e27b0e    4.7 GB    100% GPU     4096       4 minutes from now
 ```
 
 ---
