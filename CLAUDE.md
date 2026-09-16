@@ -31,7 +31,8 @@ Meta, Google, Apple, Anthropic, and startups).
   `14-MEASURE.md` §R6 (Phase 2 golden-set scorecard), `15-IMPROVE.md` §R7 (Phase 3 retrieval
   levers — what shipped and what was rejected), `16-JUDGE.md` §R8 (Phase 4 — grading the
   answer rather than the search), `17-AGENT.md` §R9 (Phase 5 — the agent, the tools, and the
-  single-tool ceiling), `18-PRODUCTION.md` §R10 (Phase 6 — the CI quality gate). One `R` run across all of them — it stands
+  single-tool ceiling), `18-PRODUCTION.md` §R10 (Phase 6 — the CI quality gate),
+  `19-SECURITY.md` §R11 (Phase 7 — prompt injection, measured before any defense). One `R` run across all of them — it stands
   for RAG, not Retrieval (`D47`). Phase 1 ends at §R5; §R6 is Phase 2's measured result
   (`D64`); §R7 is Phase 3's.
 - **`rag/golden.py`** — the bench for building the golden set by hand: `--status`, `--add`,
@@ -709,7 +710,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**561 tests**, **95/95** `# runnable`, **109** decisions, **§H empty**.
+**561 tests**, **96/96** `# runnable`, **109** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -756,7 +757,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 
 ```
 uv run pytest                            # 561 passed with Qdrant up; 556 + 5 skipped without
-uv run python -m tools.check_runnable    # 95/95 RUN blocks reproduce
+uv run python -m tools.check_runnable    # 96/96 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
