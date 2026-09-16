@@ -974,7 +974,11 @@ whoever types them.
 ### REPLY 26.1 — Shaili's share
 
 ```
-(paste the result — shared / not yet)
+# 2026-09-16 lab PC
+# Share invite link received (accept as virajvaghasia@ — Mac browser preferred).
+# Do NOT open as Shaili. Do NOT run tailscale login / up / switch on this PC.
+# https://login.tailscale.com/admin/invite/jdZowkzoCbDv8dvExGKZ11
+shared / invite pasted — awaiting Viraj accept + REPLY 26.2
 ```
 
 ### REPLY 26.2 — `tailscale status` and `ping` on the Mac
