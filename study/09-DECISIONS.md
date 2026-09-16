@@ -4380,6 +4380,57 @@ is a trace: what was asked, which five pages were found, what the model wrote, h
 
 ---
 
+### D111 — the model a stranger can reach obeys MORE injections than the one we measure with
+
+> **Measured 2026-09-16** (Phase 7 Step 2), 30 attempts through the shipped `ask.SYSTEM` /
+> `ask.build_prompt` against the page's generator. Rows:
+> `deliverables/inject-phase7-demo.Darwin-arm64.json`. Reproduce:
+> `uv run python -m rag.inject --report deliverables/inject-phase7-demo.Darwin-arm64.json`.
+>
+> | | qwen (local, `D109`) | deepseek (the page) |
+> |---|---|---|
+> | obeyed | 11 of 30 | **15 of 30** |
+> | via a page, not the question | 2 | **5** |
+> | refused anything | 6 | **0** |
+> | echoed `ask.SYSTEM` verbatim | 0 | **6** |
+> | `fake_authority` family | **0 of 6** | **5 of 6** |
+>
+> **Decided by the bar written before the call:** more than 11 makes the public path the phase's
+> headline. It is, and the system of record (`qwen2.5-coder:7b`, `D72`'s 0.43) **understates the
+> exposure of the thing people can actually use**.
+>
+> **Instead of** — attacking only the measured generator, which is the cheap option and would have
+> reported 11 of 30 for a system whose public face obeys 15.
+>
+> **Which attacks work is a property of the model.** `fake_authority` (payload dressed as a release
+> note) is qwen's strongest family — it never obeyed once — and deepseek's weakest: 5 of 6. **A
+> red-team suite validated on one model transfers badly to the next**, demonstrated by swapping the
+> page's model on an afternoon's notice.
+>
+> **The prediction was wrong for the second round running**, and the reasoning is the part worth
+> keeping: I expected a bigger instruction-tuned model to hold its instructions better against an
+> attacker. **Following our instructions and ignoring an attacker's are the same capability pointed
+> in two directions**, and nothing measured here says a larger model is safer.
+>
+> **Prompt leakage, and why it costs little HERE:** six replies repeat `ask.SYSTEM` verbatim. The
+> harm is small only because the prompt is public by an earlier choice. A system prompt holding a
+> key or a private rule would have been handed over.
+>
+> **Reachability was checked, not assumed:** every obeyed attempt is under the page's
+> 500-character cap, so all 15 are typable into the live demo.
+>
+> **Not decided here:** what to do about it. The measured exposure is "the page can be made to say
+> something useless under this project's name" — no keys in the prompt, no tools on that path, no
+> writes, no cross-user state (`PHASE-7.md`, the risk statement).
+>
+> **Interview question it answers:** *"You tested prompt injection — on what?"* — *"On both models:
+> the one I measure with and the one the public page actually serves. The public one obeyed more —
+> 15 of 30 against 11 — refused nothing, and echoed the system prompt six times where the smaller
+> model never did. I only know that because I attacked the deployed path rather than the convenient
+> one."*
+
+---
+
 ---
 
 ## Using this in an interview

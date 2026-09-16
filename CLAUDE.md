@@ -57,7 +57,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 578 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 581 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -379,6 +379,21 @@ role force quoting in every statement. It matches the Compose service it belongs
 ## START HERE — the resume point
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
+
+**PHASE 7 (optional, security) IS OPEN AND HAS THREE RESULTS.** `D109`: the shipped pipeline obeys
+**11 of 30** injections (8 replies the attacker's token alone); the family that scored **0** made the
+model refuse three questions it answers — a canary measures obedience, not harm. `D110`: fencing the
+untrusted spans is a **null** — 11 obeyed on all three arms, nothing shipped. `D111`: **the model the
+public page serves obeys 15 of 30**, refuses nothing, and echoes `ask.SYSTEM` six times — the
+measured generator understates the exposure of the thing people can use. Every prediction I wrote was
+wrong; all three are kept on the page. Sitting: `study/19-SECURITY.md` §R11.
+**The demo went down and is back:** its NVIDIA model began returning 404 "not found for account"
+(entitlement, not credits — three models answered on the same key in the same minute), so the page is
+repointed to `deepseek-ai/deepseek-v4-flash-0731` and its notice now says plainly that model has
+**not** been measured. The false trail is written up in `PHASE-6.md`: the secret was never the
+problem, a stale warm container was, and `/api/config` reporting the new model while `/api/ask`
+served the old one is what made it convincing. **Token ledger:** `uv run python -m rag.usage --report`
+— NVIDIA sends no rate-limit headers, so a 429 there is the only way a limit is ever seen.
 
 **PROJECT COMPLETE — ALL SIX PHASES CLOSED (2026-09-16).** Phase 6's gate is met on both halves with
 evidence: the demo answers a stranger with citations (Modal, `D106`) and a quality-degrading PR is blocked
@@ -710,7 +725,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**578 tests**, **96/96** `# runnable`, **109** decisions, **§H empty**.
+**581 tests**, **97/97** `# runnable`, **109** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -756,8 +771,8 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 578 passed with Qdrant up; 573 + 5 skipped without
-uv run python -m tools.check_runnable    # 96/96 RUN blocks reproduce
+uv run pytest                            # 581 passed with Qdrant up; 576 + 5 skipped without
+uv run python -m tools.check_runnable    # 97/97 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
 uv run python -m rag.score               # needs Qdrant; recall@5 ≈ 0.64 ±0.097
