@@ -45,7 +45,7 @@ shape (there A/B/C answered and only D refused).
 | round | state |
 |---|---|
 | **27** | **OPEN (2026-09-16)** — Phase 7 Step 1: fencing. 3 arms x 30 attempts in one sitting, paired by attempt; bars and a prediction written first. Golden re-score only if an arm clears |
-| **26** | **DEFERRED (2026-09-16)** — Viraj: leave Tailscale for now. Share of wrong node (`shaili` Windows) diagnosed in 26.1b; Ubuntu lab stays reachable via AnyDesk. Reopen when someone shares `kj-xps-8950` |
+| **26** | **DEFERRED (2026-09-16)** — Viraj: leave Tailscale for now. The share works (the node is in the Mac's netmap), but it is the **wrong node**: `shaili`, Windows, and it answers neither ping nor port 22 — Tailscale reports it offline, last seen 20h (26.1b, and the Mac test below). The Ubuntu lab stays reachable via AnyDesk. Reopen when someone shares `kj-xps-8950` |
 | **25** | **CLOSED** — **11 of 30 obeyed** (question 9/15, page 2/15). Above the 6+ bar → the corpus channel is in scope. **8 answers were the canary and nothing else.** Prediction wrong: the two families I named scored 0 |
 | **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical. **Mac ran it too: 8 of 8 cells agree** |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
@@ -989,6 +989,30 @@ into a GUI, a human pastes output back. A tunnel makes the lab a **terminal** �
 run non-interactively, output comes back as text, and long runs stop needing a person to sit with
 them. **What it does not change:** who decides. Round 25's bars are still written before the data
 whoever types them.
+
+### MAC TEST of Round 26 (2026-09-16) — the share works; the node is not answering
+
+**Accepted, and the plumbing is fine.** After Viraj accepted, the shared node appears in the Mac's
+netmap, which is exactly what the share was for:
+
+```
+100.127.153.97  virajs-macbook-air        virajvaghasia@  macOS
+100.109.134.31  shaili.tail4ae2a5.ts.net  shaili.gandhi@  windows  offline, last seen 20h ago
+```
+
+**It does not answer.** `tailscale ping 100.109.134.31` → three timeouts, `no reply`; `nc -z … 22` →
+not reachable. **"offline, last seen 20h" is Tailscale's own coordination server reporting**, not a
+guess from this end: that client has not checked in since ~15:30 the previous day.
+
+**My first test was against the wrong address** — `100.72.117.53`, the lab IP recorded in Round 3 —
+and returned `no matching peer`, which means "not in this netmap" rather than "down". Retested
+against the shared node above. Recording the mistake because the first number looked like a result.
+
+**Two unresolved facts, left open rather than argued:** the shared node reports OS `windows`, while
+the clone, `sshd` and the GPU work are on the Ubuntu side; and Round 3's recorded status lists
+`kj-xps-8950 … linux` at `100.72.117.53` as a separate row. Viraj is confirming with Shaili which
+node is which. **Until then this is parked, and nothing else waits on it** — every lab round so far
+has run through AnyDesk.
 
 ### REPLY 26.1 — Shaili's share
 
