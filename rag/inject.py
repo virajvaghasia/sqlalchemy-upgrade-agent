@@ -51,6 +51,7 @@ import json
 import pathlib
 import platform
 import sys
+import urllib.error
 
 from rag import ask, compare_prompts as cp, fence, index
 
@@ -172,15 +173,37 @@ def hosted_generate(system: str, prompt: str) -> str:
     if not key:
         raise SystemExit(f"{demo.KEY_VAR} not found in the environment or .env")
     messages = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
-    data = demo.nvidia_post(messages, key)
-    return data["choices"][0]["message"]["content"]
+    # One retry at a longer ceiling. `D75`: a slow call and a dead server are two
+    # conditions, and collapsing them kills a run that was only being patient --
+    # this is the fourth module in this repo to learn it (compare_prompts,
+    # faithful, escalate, here). deepseek answers in 80-90 s on the live page, so
+    # the first ceiling is not generous.
+    for attempt, timeout in enumerate((180, 420), start=1):
+        try:
+            data = demo.nvidia_post(messages, key, timeout=timeout)
+            return data["choices"][0]["message"]["content"]
+        except (TimeoutError, urllib.error.URLError) as exc:
+            from rag import usage as usage_mod
+            usage_mod.record(demo.MODEL, None, "inject.hosted_generate", status=408)
+            if attempt == 2:
+                raise TimeoutError(f"the hosted model failed twice ({exc})") from exc
+            print("    (timed out; one retry at a longer ceiling)", flush=True)
+
+
+def demo_model() -> str:
+    """The page's model, read from `rag/demo.py` rather than repeated here --
+    it changed on 2026-09-16 and a copy would now be wrong."""
+    from rag import demo
+
+    return demo.MODEL
 
 
 BACKENDS = {"local": None, "demo": hosted_generate}
 
 
 def run(generate=None, ids: list[str] | None = None,
-        arms: list[str] | None = None) -> list[dict]:
+        arms: list[str] | None = None, save: pathlib.Path | None = None,
+        meta: dict | None = None) -> list[dict]:
     """Every case, for every arm. Retrieval runs ONCE per question.
 
     Retrieval is shared across arms on purpose: the attack is not a search
@@ -204,6 +227,12 @@ def run(generate=None, ids: list[str] | None = None,
                                  "answer": answer})
                     flag = "OBEYED" if rows[-1]["obeyed"] else "      "
                     print(f"  {arm:10} {gid}  {family:17} {channel:8} {flag}", flush=True)
+                    if save:
+                        # Checkpoint every attempt. `D75`: a run that dies at 29 of
+                        # 30 with nothing written has spent the tokens and bought
+                        # nothing, and the first attempt at this round did exactly
+                        # that after 10 calls.
+                        save.write_text(json.dumps({**(meta or {}), "rows": rows}, indent=1))
     return rows
 
 
@@ -294,21 +323,21 @@ def main() -> None:
     for arm in arms:
         if arm not in fence.ARMS:
             sys.exit(f"unknown arm {arm!r}; choose from {', '.join(fence.ARMS)}")
-    rows = run(arms=arms, generate=BACKENDS[backend])
+    save = pathlib.Path(argv[argv.index("--save") + 1]) if "--save" in argv else None
+    meta = {"machine": machine(), "backend": backend,
+            "model": ask.MODEL if backend == "local" else demo_model(),
+            "canary": CANARY}
+    rows = run(arms=arms, generate=BACKENDS[backend], save=save, meta=meta)
     print()
     for arm in arms:
         print(report(rows, arm=arm).replace("STEP 0", f"STEP 0 — arm {arm}"))
         print()
     if len(arms) > 1:
         print(compare(rows))
-    if "--save" in argv:
-        path = pathlib.Path(argv[argv.index("--save") + 1])
-        path.write_text(json.dumps(
-            {"machine": machine(), "backend": backend,
-             "model": ask.MODEL if backend == "local" else "nvidia/nemotron-3-ultra-550b-a55b",
-             "canary": CANARY,
-             "ids": sorted({r["id"] for r in rows}), "rows": rows}, indent=1))
-        print(f"\n  saved {len(rows)} rows to {path}")
+    if save:
+        save.write_text(json.dumps(
+            {**meta, "ids": sorted({r["id"] for r in rows}), "rows": rows}, indent=1))
+        print(f"\n  saved {len(rows)} rows to {save}")
 
 
 if __name__ == "__main__":

@@ -1554,6 +1554,22 @@ secret named `langfuse` (R10.17's rule: a key is a secret setting, never a file)
 page's footer adds: *"Questions and answers are logged (Langfuse) to measure this demo; do not paste
 secrets."* (`space/static/index.html`, shown only when `/api/config` reports `traced`).
 
+**How to actually look at it**, because a trace nobody opens is a checkbox:
+
+| you want | where |
+|---|---|
+| what people asked the live page | `cloud.langfuse.com`, US region, this project → **Traces**. One row per question; open it for the five retrieved ids, the answer, latency and tokens |
+| tokens the live page has spent | the same trace list — each `generate` observation carries `prompt_tokens` / `completion_tokens` |
+| tokens spent by runs on YOUR machine | `uv run python -m rag.usage --report` — the local ledger (`rag/usage.py`), which Langfuse never sees |
+| whether tracing is even on right now | `curl -s <demo-url>/api/config` → `"traced": true` |
+
+**Why both exist.** The page runs in an ephemeral Modal container: a file written there dies with the
+container, so the page's record has to be remote, and that is Langfuse. Everything run from a machine
+you own writes to the local ledger instead. Neither is a bill — NVIDIA Build is free — and neither is
+a quota meter, because NVIDIA publishes none: **measured 2026-09-16, its replies carry no rate-limit
+headers at all**, so a `429` recorded in one of these two places is the only way you will ever learn
+that a limit was reached.
+
 **Say this:** “Every question on the live demo is a trace: what was asked, which five pages came back,
 what the model wrote, tokens and time. It is for seeing real traffic, not for grading. Grading is the
 golden set and the gate.”

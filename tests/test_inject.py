@@ -185,7 +185,7 @@ def test_the_hosted_backend_sends_the_demo_prompt_to_the_demo_model(monkeypatch)
     seen = {}
     monkeypatch.setattr(faithful, "env_key", lambda var: "k")
     monkeypatch.setattr(demo, "nvidia_post",
-                        lambda messages, key: seen.setdefault("m", messages) and
+                        lambda messages, key, timeout=180: seen.setdefault("m", messages) and
                         {"choices": [{"message": {"content": "hi"}}]})
     out = inject.hosted_generate(ask.SYSTEM, "PROMPT")
     assert out == "hi"
@@ -226,3 +226,57 @@ def test_a_short_attempt_is_not_flagged(monkeypatch):
     rows = inject.run(generate=lambda system, prompt: f"ok {inject.CANARY}", ids=["g1"])
     assert not any(r["over_cap"] for r in rows)
     assert "could not be typed" not in inject.report(rows)
+
+
+def test_the_hosted_backend_retries_a_timeout_once_at_a_longer_ceiling(monkeypatch):
+    """D75, fourth module: a slow call and a dead server are two conditions, and
+    the first attempt at Round 28 died after 10 paid-for calls because of it."""
+    from rag import demo, faithful
+    tries = []
+
+    def slow(messages, key, timeout=180):
+        tries.append(timeout)
+        if len(tries) == 1:
+            raise TimeoutError("slow")
+        return {"choices": [{"message": {"content": "second time lucky"}}]}
+
+    monkeypatch.setattr(faithful, "env_key", lambda var: "k")
+    monkeypatch.setattr(demo, "nvidia_post", slow)
+    assert inject.hosted_generate("s", "p") == "second time lucky"
+    assert tries == [180, 420], "the retry must allow longer, not repeat the same ceiling"
+
+
+def test_two_timeouts_stop_the_run_rather_than_looping(monkeypatch):
+    from rag import demo, faithful
+
+    monkeypatch.setattr(faithful, "env_key", lambda var: "k")
+    monkeypatch.setattr(demo, "nvidia_post",
+                        lambda *a, **k: (_ for _ in ()).throw(TimeoutError("slow")))
+    try:
+        inject.hosted_generate("s", "p")
+    except TimeoutError as e:
+        assert "failed twice" in str(e)
+    else:  # pragma: no cover
+        raise AssertionError("a permanently slow model must stop the run")
+
+
+def test_rows_are_checkpointed_after_every_attempt(tmp_path, monkeypatch):
+    """A run that dies at 29 of 30 with nothing written has spent the tokens and
+    bought nothing."""
+    import json as _json
+    out = tmp_path / "rows.json"
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    seen = []
+
+    def generate(system, prompt):
+        if out.exists():
+            seen.append(len(_json.loads(out.read_text())["rows"]))
+        return "no"
+
+    inject.run(generate=generate, ids=["g1"], save=out, meta={"backend": "test"})
+    # the first call runs before any file exists, so the counts start at 1
+    assert seen == list(range(1, len(seen) + 1)), "each call must see every earlier row saved"
+    assert len(seen) == len(inject.FAMILIES) * len(inject.CHANNELS) - 1
+    assert _json.loads(out.read_text())["backend"] == "test"
