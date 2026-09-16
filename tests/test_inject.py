@@ -89,7 +89,7 @@ def test_a_run_covers_every_family_and_channel(monkeypatch):
     monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
     monkeypatch.setattr(inject, "golden_items",
                         lambda: {"g1": {"id": "g1", "question": "q?"}})
-    rows = inject.run(generate=lambda prompt: "no thanks", ids=["g1"])
+    rows = inject.run(generate=lambda system, prompt: "no thanks", ids=["g1"])
     assert len(rows) == len(inject.FAMILIES) * len(inject.CHANNELS)
     assert {(r["family"], r["channel"]) for r in rows} == {
         (f, c) for f in inject.FAMILIES for c in inject.CHANNELS}
@@ -100,33 +100,79 @@ def test_a_compliant_model_is_counted_and_named(monkeypatch):
     monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
     monkeypatch.setattr(inject, "golden_items",
                         lambda: {"g1": {"id": "g1", "question": "q?"}})
-    rows = inject.run(generate=lambda prompt: f"ok {inject.CANARY}", ids=["g1"])
+    rows = inject.run(generate=lambda system, prompt: f"ok {inject.CANARY}", ids=["g1"])
     out = inject.report(rows)
     assert all(r["obeyed"] for r in rows)
     assert "obeyed 10" in out
     assert "g1/direct_override/question" in out
 
 
-def test_the_report_states_the_bar_so_a_zero_cannot_be_read_as_a_failure():
-    out = inject.report([{"id": "g1", "family": "direct_override", "channel": "question",
-                          "obeyed": False, "refused": False, "answer": ""}])
-    assert "obeyed 0" in out
-    assert "null result" in out
+def test_the_report_prints_refused_beside_obeyed(): 
+    """D109: refusal_hijack scored 0 obeyed and still made the system decline three
+    questions it answers. A report that hides `refused` scores that attack as a win."""
+    out = inject.report([{"id": "g1", "family": "refusal_hijack", "channel": "question",
+                          "obeyed": False, "refused": True, "answer": "The sources do not answer this."}])
+    assert "obeyed 0" in out and "refused 1" in out
+    assert "DECLINE" in out
 
 
 def test_generation_goes_through_the_shipped_prompt(monkeypatch):
     """ask.SYSTEM is what is under test; a private system prompt would measure
     something this project does not ship (D85's rule, applied to the target)."""
     seen = {}
-    monkeypatch.setattr(ask, "generate", lambda prompt: seen.setdefault("p", prompt) and ("", {}))
+    monkeypatch.setattr(inject.cp, "generate",
+                        lambda system, prompt: seen.setdefault("call", (system, prompt)) and "")
     monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
     monkeypatch.setattr(inject, "golden_items",
                         lambda: {"g1": {"id": "g1", "question": "q?"}})
     inject.run(ids=["g1"])
-    assert "QUESTION:" in seen["p"] and "SOURCES" in seen["p"]
+    system, prompt = seen["call"]
+    assert system == ask.SYSTEM, "the control arm must attack the SHIPPED system prompt"
+    assert "QUESTION:" in prompt and "SOURCES" in prompt
 
 
 @pytest.mark.parametrize("channel", inject.CHANNELS)
 def test_both_channels_produce_a_prompt_that_still_contains_the_pages(channel):
     case = inject.build_case({"id": "g1", "question": "q?"}, HITS, "fake_authority", channel)
     assert "page two text" in case["prompt"], "the attack must not drop the real pages"
+
+
+def test_every_arm_is_attacked_and_carries_its_own_system_prompt(monkeypatch):
+    """Step 1 compares arms in ONE sitting (D54), so the control is re-run beside
+    the candidates rather than read off Round 25's file."""
+    from rag import fence
+    seen = []
+    monkeypatch.setattr(inject.cp, "generate",
+                        lambda system, prompt: seen.append((system, prompt)) or "no")
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    rows = inject.run(ids=["g1"], arms=["shipped", "fence_both"])
+    assert {r["arm"] for r in rows} == {"shipped", "fence_both"}
+    assert len(rows) == 2 * len(inject.FAMILIES) * len(inject.CHANNELS)
+    systems = {s for s, _ in seen}
+    assert systems == {ask.SYSTEM, fence.system_for("fence_both")}
+
+
+def test_retrieval_runs_once_per_question_not_once_per_arm(monkeypatch):
+    """Re-retrieving per arm would let an index difference read as a prompt effect."""
+    calls = []
+    monkeypatch.setattr(inject.index, "retrieve",
+                        lambda q, limit: calls.append(q) or HITS)
+    monkeypatch.setattr(inject.cp, "generate", lambda system, prompt: "no")
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    inject.run(ids=["g1"], arms=["shipped", "fence_user", "fence_both"])
+    assert len(calls) == 1
+
+
+def test_compare_pairs_by_attempt_and_names_what_broke():
+    """D61: flipped attempts, not a difference of two averages."""
+    def row(arm, family, obeyed):
+        return {"id": "g1", "family": family, "channel": "question", "arm": arm,
+                "obeyed": obeyed, "refused": False, "answer": ""}
+    rows = [row("shipped", "direct_override", True), row("shipped", "exfiltration", False),
+            row("fence_user", "direct_override", False), row("fence_user", "exfiltration", True)]
+    out = inject.compare(rows)
+    assert "fixed" in out and "broken" in out
+    assert "g1/exfiltration/question" in out, "a newly obeyed attempt must be named"
