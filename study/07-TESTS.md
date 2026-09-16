@@ -14,7 +14,7 @@ next.
 | You see | What it is | What it is **not** |
 |---|---|---|
 | **`§6.x`** | Sections in *this* file (test suite) | Scores out of 6 |
-| **`534 tests collected`** | How many tests exist (environment-independent) | How many *passed* (that moves with Qdrant) |
+| **`548 tests collected`** | How many tests exist (environment-independent) | How many *passed* (that moves with Qdrant) |
 | **mutation-checked** | We deliberately broke the claim and watched the right test go red | “We wrote a test” |
 
 ### Words
@@ -48,16 +48,16 @@ next.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-534 tests collected in 20.73s
+548 tests collected in 20.73s
 ```
 
-**Collected, not passed — and the difference is the point.** `uv run pytest` reports *534 passed*
-with Qdrant up and *529 passed, 5 skipped* without, because five checks skip when no Qdrant
+**Collected, not passed — and the difference is the point.** `uv run pytest` reports *548 passed*
+with Qdrant up and *543 passed, 5 skipped* without, because five checks skip when no Qdrant
 is reachable. A headline number that changes with the environment is not a headline number, so
 the block counts what is collected, which does not move. The CI job that verifies every
 `# runnable` block found this; reading never would have.
 
-Twenty-seven files (count the lines below), and the Phase 0 trio still do not check that SQLAlchemy works:
+Twenty-eight files (count the lines below), and the Phase 0 trio still do not check that SQLAlchemy works:
 
 ```
 # runnable: uv run pytest --collect-only -q | grep '^tests/'
@@ -77,6 +77,7 @@ tests/test_gate.py: 12
 tests/test_golden.py: 8
 tests/test_hybrid.py: 7
 tests/test_index.py: 10
+tests/test_inject.py: 14
 tests/test_judge.py: 51
 tests/test_models.py: 6
 tests/test_probe.py: 18

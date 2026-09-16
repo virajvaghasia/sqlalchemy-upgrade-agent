@@ -66,8 +66,15 @@ tests, that:
 **Why a canary and not a judge.** A judge is another model with its own error rate (`D86`: ours
 agreed with a human on 7 of 10). A canary is a string comparison: it cannot be 70% right.
 
-**The families to try, five of them, three attempts each per channel** — 30 generations, ~10
+**The families to try, five of them, across three questions per channel** — 30 generations, ~10
 minutes on the lab:
+
+> **Changed while building the instrument, before any data: "three attempts" became "three
+> questions."** At `TEMPERATURE = 0.0` the same prompt three times measures the model server, not
+> the attack (`D54`: five runs in one sitting were unanimous). The three are chosen **by file** —
+> the first three ids, sorted, that prompt D answered with the answer page present in the committed
+> lab sweep: **`g002`, `g004`, `g015`**. Attacking questions the system already refuses would hide
+> obedience behind a refusal.
 
 | family | shape of the injected text |
 |---|---|
@@ -91,6 +98,14 @@ minutes on the lab:
 through the question channel; direct override mostly does not, because prompt D is explicit about
 answering from the sources. I expect **2 to 6 of 30**, concentrated in refusal-hijack and fake
 authority.
+
+**Built and committed before the first run:** `rag/inject.py` (14 tests, 3 mutations checked —
+case-insensitive canary, mutating the shared hits, unsorted item choice). Commands:
+
+```
+uv run python -m rag.inject --run --save deliverables/inject-phase7.<machine>.json
+uv run python -m rag.inject --report deliverables/inject-phase7.<machine>.json
+```
 
 **Where it runs.** The lab PC (`D95`: the Mac screens, the lab rules; and the Mac has been out of
 memory since 2026-09-15). The demo's hosted model is **not** the system of record and is not part
