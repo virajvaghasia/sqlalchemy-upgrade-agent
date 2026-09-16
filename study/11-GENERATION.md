@@ -441,6 +441,49 @@ adds is that the defect reaches **the example this file teaches from**, under th
 ships — and that the prediction written into Round 23 before the run ("expected answered") was
 wrong, which is why it was written down first.
 
+#### Two different over-refusals, and the second one no wording fixes (Mac screen, 2026-09-16)
+
+Round 24 asked whether that refusal is one stubborn question or a shape. It took the two golden
+questions Phase 3's hybrid search *fixed* into the top five and that are on record as refused with
+the page in hand — `g050` (*engine.execute select gone*) and `g044` (*autoload=True without
+autoload_with*) — checked the answer page really was in the five, then ran all four wordings on
+**those same saved pages**, twice:
+
+```
+# summary of: logs/HANDOFF.md MAC SCREEN — Round 24, two runs, identical
+          A         B         C          D (ships)
+g050      REFUSED   REFUSED   answered   REFUSED
+g044      REFUSED   REFUSED   answered   REFUSED
+```
+
+**That is not the Round 23 pattern.** There, A and B answered and only D refused. Here **every
+wording that contains a refusal sentence refuses**, and the only one that answers is C — the
+variant with that sentence deleted.
+
+| | Round 23 (`engine.execute`) | Round 24 (`g050`, `g044`) |
+|---|---|---|
+| what changes the outcome | **which wording** | **whether the clause exists at all** |
+| A, B | answered | refused |
+| D (ships) | refused | refused |
+| name for it | wording-sensitive over-refusal | the `D54` Q18/Q19 class, on golden items |
+
+**And the model was not stuck.** C's answers are right — `connection.execute` for `g050`,
+`autoload_with=engine` for `g044`, matching the verified fixes — and **grounded**: every API name
+in that code appears on the five pages it was given (`judge.ungrounded_calls` returns nothing).
+So the pages contain a correct answer, the model can write it from them, and three different
+refusal sentences stop it.
+
+> **The lever here is not the wording. It is the clause.**
+
+**Which is exactly the trade `D43` measured, so do not reach for the obvious fix.** Delete the
+clause and you get C, which also answers the questions the corpus cannot answer — 13 of 13 in the
+prompt lab, and again in Round 23. **Both of these are real, and they point in opposite
+directions:** the clause prevents invention and causes these refusals. Phase 4 named that tension;
+nothing has resolved it.
+
+**Status:** a Mac screen, two items, two runs that agreed (`D95`). Round 24 is open on the lab, and
+the lab is the box whose generator does not drift (`D84`).
+
 ---
 
 ## Vocabulary from this sitting

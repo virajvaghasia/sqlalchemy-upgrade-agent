@@ -785,6 +785,55 @@ ollama ps
 
 **Paste both runs raw.** `D` is the shipped wording; `B` was shipped until 2026-08-17.
 
+### MAC SCREEN — Round 24 (2026-09-16, Darwin-arm64). Lab still decides (`D95`)
+
+**Step 1 — both items are live.** A verified answer chunk is in the five for both, so neither is void:
+
+```
+g050 pages: ['c00456', 'c01567', 'c02028', 'c01569', 'c01573']
+   verified answer chunk in the five: ['c01567', 'c01573']
+g044 pages: ['c01562', 'c01568', 'c01563', 'c00952', 'c01552']
+   verified answer chunk in the five: ['c01568']
+```
+
+**Step 2 — identical on both runs:**
+
+```
+g050  A  REFUSED    g050  B  REFUSED    g050  C  answered    g050  D  REFUSED
+g044  A  REFUSED    g044  B  REFUSED    g044  C  answered    g044  D  REFUSED
+```
+
+**Against the pre-written table this is the fourth row, not the first.** The prediction said *D
+refuses both, A/B/C answer both*. D refused both — and **A and B refused too**. Only **C**, the
+wording with no refusal sentence at all, answered.
+
+**So Round 23 and Round 24 are two different failure modes:**
+
+| | Round 23 — `engine.execute` probe question | Round 24 — `g050`, `g044` |
+|---|---|---|
+| A, B | **answered** | **refused** |
+| C | answered | answered |
+| D (ships) | **refused** | **refused** |
+| reading | wording-sensitive: D declines where older wordings do not | wording-**invariant**: every clause refuses; only deleting it answers |
+
+The second row is `D54`'s Q18/Q19 finding — *"three genuinely different wordings, answer
+demonstrably present, identical refusal"* — reproduced on two golden items instead of two probe
+questions.
+
+**And the refusals are not the model failing to find it in the pages.** C's answers are correct
+(`connection.execute` for `g050`; `autoload_with=engine` for `g044`, matching the golden fixes) and
+**grounded**: `judge.ungrounded_calls` returns `[]` for both, so every API name in that code appears
+on the pages the model was handed. Both cite nothing, which is `D73` again.
+
+> **The page is there, the model can use it, and the refusal clause is what stops it.** For these
+> two items the lever is not which wording — it is whether the clause exists at all. And `D43`
+> measured what deleting it costs: C answers the unanswerable questions too (Round 23, and 13 of 13
+> before it).
+
+**What this does not say.** Not that the clause should go — that trade is exactly `D43`. Not a rate:
+two items. Not the lab's answer: the Mac is a screen (`D95`), and the Mac's generator is the one
+that drifts (`D84`) — though both runs here agreed.
+
 ### REPLY 24.0
 
 ```
