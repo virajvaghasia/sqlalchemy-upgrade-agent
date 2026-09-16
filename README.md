@@ -154,7 +154,7 @@ rag/                   retrieval (Phase 1-3), judge.py / faithful.py (Phase 4), 
 tools/                 check_runnable.py — every `# runnable` block, verified; check_*.py — answers run on 2.0.51, the demo page in a browser
 space/                 the demo: web.py + static/ (shipped), modal_app.py (Modal host, D106), app.py (older Gradio), pins, build script (D102)
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 578 tests pinning what the docs claim
+tests/                 581 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
 ```
 
@@ -169,7 +169,7 @@ to "§18" is unambiguous in either file.
 | [`phases/PHASE-2.md`](phases/PHASE-2.md) | **Phase 2 (complete)** — golden set of **100**, audited, scored, signature closed; baseline artifact still the 50 (`D65`) |
 | [`phases/PHASE-3.md`](phases/PHASE-3.md) | **Phase 3 (complete)** — `D66`–`D68` shipped, `recall@5` **0.51 → 0.64** (7↑ 0↓, p = 0.016); `D69` Sphinx strip and `D70` boundary re-chunking both rejected with numbers |
 | [`phases/PHASE-4.md`](phases/PHASE-4.md) | **complete 2026-09-11** — judge the answers. End to end **0.43** against a **0.64** retrieval ceiling (`D72`); **65% of answers cite nothing** (`D73`); prompt `H` **held** on cross-machine evidence (`D83`, `D84`); judge agreement **7/10** (`D86`) |
-| [`phases/PHASE-7.md`](phases/PHASE-7.md) | **the current phase** — optional security. The roadmap's premise corrected (nothing untrusted is indexed; the live channel is the public demo's question box), then measured: **11 of 30** injections obeyed (`D109`). Fencing built, not shipped |
+| [`phases/PHASE-7.md`](phases/PHASE-7.md) | **the current phase** — optional security. The roadmap's premise corrected (nothing untrusted is indexed; the live channel is the public demo's question box), then measured: **11 of 30** injections obeyed by the measured model (`D109`), **15 of 30** by the model the live page serves (`D111`); fencing measured and rejected (`D110`) |
 | [`phases/PHASE-6.md`](phases/PHASE-6.md) | **complete 2026-09-16** — production. Step 1 source framing **rejected** (`D96`); Step 2 the **CI quality gate** (`D97`); **demo live on Modal** (`D106`): https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run |
 | [`phases/PHASE-5.md`](phases/PHASE-5.md) | **complete 2026-09-12** — the agent. Closed on measurement (`D94`): its levels are machine-dependent, its effects reproduce |
 | [`phases/PHASE-1.md`](phases/PHASE-1.md) | **complete 2026-08-18** — a deliberately dumb RAG, why it must be bad first, and how both human gates closed (`D56`, `D57`) |
@@ -233,10 +233,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-578 tests collected in 20.73s
+581 tests collected in 20.73s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 578 passed with it up and 573
+Five of them skip when Qdrant is not running, so a run reports 581 passed with it up and 576
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
