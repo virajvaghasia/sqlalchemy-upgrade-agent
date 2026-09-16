@@ -44,6 +44,7 @@ shape (there A/B/C answered and only D refused).
 
 | round | state |
 |---|---|
+| **26** | **OPEN (2026-09-16)** — the Tailscale tunnel. **One thing is missing and it is Shaili's click:** share `kj-xps-8950` to `virajvaghasia@`. Then a connection test from the Mac. Scope is connectivity only |
 | **25** | **OPEN (2026-09-16)** — Phase 7 Step 0: 30 prompt-injection attempts through the shipped prompt, scored by a canary. **Branch `phase-7/security`.** Bars and prediction written first; 0 of 30 closes Phase 7 as a null result. See Round 25 below |
 | **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical. **Mac ran it too: 8 of 8 cells agree** |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
@@ -54,7 +55,7 @@ shape (there A/B/C answered and only D refused).
 | **18** | **CLOSED** — E1 must-call shipped (`D90`); lab no-tool **19→7**, bad cites **9→0** |
 | **17** | **CLOSED** — Step 0 / `D87` holds; old-prompt agent **0.02** (retracted as comparison, `D93`) |
 | 1, 12, 13, 14, 15, 16 | **CLOSED** — replies pasted, results folded into `D83` and `D84` |
-| 2 / 3 (the Tailscale tunnel) | **OPEN but blocked on Shaili sharing the node.** Nothing currently needs it — AnyDesk is enough |
+| 2 / 3 (the Tailscale tunnel) | **superseded by Round 26** (2026-09-16), which carries the share request and the connection test |
 
 ### MAC + LAB AGREE — Round 24 (read this first, written on the Mac 2026-09-16)
 
@@ -704,6 +705,116 @@ saved 100 rows to agent-sweep-phase5-forced-nudged.Linux-x86_64.json
   over-refused 12  fabricated 6  failed 0
   no tool 4  one 89  two+ 7
   stopped {'answered': 97, 'budget': 0, 'repeated_call': 3}
+```
+
+---
+
+# Round 26 — the Tailscale tunnel: one share, then a connection test (OPEN, written 2026-09-16)
+
+**Scope, agreed 2026-09-16: get the connection working and test it. Nothing automated yet.** No
+decision here about whether Claude later drives the lab over it.
+
+## What is already true, checked on the Mac 2026-09-16
+
+```
+# Mac
+$ tailscale status
+100.127.153.97  virajs-macbook-air  virajvaghasia@  macOS  -
+$ ls ~/.ssh/id_ed25519_sqlalchemy_lab
+(exists, mode 600 — the key pair made for this in Round 2)
+```
+
+- The Mac is on Tailscale, signed in as **`virajvaghasia@`**, address **100.127.153.97**.
+- The lab is on **Shaili's** tailnet as `kj-xps-8950`, **100.72.117.53**, signed in as
+  `shaili.gandhi@` (Round 3).
+- `sshd` is running on the lab and the Mac's public key is already in its `authorized_keys`
+  (Round 2, verified `-rw-------`).
+- **`tailscale status` on the Mac lists only the Mac.** Two accounts, two tailnets — being signed
+  in on both machines does not connect them.
+
+**So the one missing piece is a share.** Shaili's node, Shaili's account, her click. Nothing on
+either machine needs to change.
+
+## Step 1 — Shaili (2 minutes, her admin console)
+
+Send her this. It is the Round 3 message, unchanged because it still describes exactly what is
+needed:
+
+> Hi Shaili — could you share the lab desktop with me on Tailscale? In the admin console
+> (https://login.tailscale.com/admin/machines) → **Machines** → the `kj-xps-8950` row → the **⋯**
+> menu → **Share** → **Copy share link**, and send me the link. Sharing only makes that one machine
+> reachable from my laptop; it does not add me to your tailnet, it changes nothing on the PC, and
+> you can unshare any time. I need it because the lab is the GPU box and I am often working from
+> the Mac.
+
+**Use the share link, not the email invite field** — the link carries the identity that signs in,
+and a GitHub sign-in gives a different one than an email would.
+
+## Step 2 — Viraj, on the Mac (after the link arrives)
+
+```bash
+# 1. open the link in a browser, sign in as virajvaghasia@, accept the share
+# 2. then, in a terminal:
+tailscale status
+tailscale ping -c 3 100.72.117.53
+```
+
+**Expected:** `tailscale status` now lists a **second** row, `kj-xps-8950 … shaili.gandhi@`, marked
+as a shared node, and `tailscale ping` reports a round trip (it says `direct` or `via DERP` — both
+count as reachable).
+
+**If the node does not appear:** the share was sent to a different identity. Ask for the link again
+and open it in a browser already signed in as `virajvaghasia@`.
+
+## Step 3 — the connection test, which is the point of this round
+
+```bash
+nc -z -G 6 100.72.117.53 22 && echo "port 22 reachable"
+ssh -o ConnectTimeout=8 -i ~/.ssh/id_ed25519_sqlalchemy_lab shaili@100.72.117.53 \
+    'hostname; uname -sr; nvidia-smi -L; cd ~/Documents/Workspace/SqlUpgradeAgent && git log --oneline -1'
+```
+
+**Success is all four lines coming back:** the hostname `kj-XPS-8950`, the kernel, the RTX 3060,
+and the clone's current commit. That single command proves the tunnel, the key, sshd and the clone
+in one go.
+
+**If `nc` passes and `ssh` fails**, it is the key, not the tunnel — on the lab:
+
+```bash
+ls -l ~/.ssh/authorized_keys          # must be -rw------- and owned by shaili
+sudo systemctl status ssh --no-pager | head -5
+```
+
+## The rule that does not change
+
+**Never run `tailscale up`, `tailscale login` or `tailscale switch` as Viraj on the lab PC.** One
+`tailscaled` holds one account: doing that replaces Shaili's login on her own machine. The share is
+the whole mechanism; the PC's Tailscale is not touched.
+
+## Why this is worth the two minutes even though AnyDesk works
+
+AnyDesk is a **screen**. Every round so far has been: Claude writes commands, a human types them
+into a GUI, a human pastes output back. A tunnel makes the lab a **terminal** — the same commands
+run non-interactively, output comes back as text, and long runs stop needing a person to sit with
+them. **What it does not change:** who decides. Round 25's bars are still written before the data
+whoever types them.
+
+### REPLY 26.1 — Shaili's share
+
+```
+(paste the result — shared / not yet)
+```
+
+### REPLY 26.2 — `tailscale status` and `ping` on the Mac
+
+```
+(paste here)
+```
+
+### REPLY 26.3 — the ssh test
+
+```
+(paste here)
 ```
 
 ---
