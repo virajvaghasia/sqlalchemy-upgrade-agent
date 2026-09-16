@@ -45,7 +45,7 @@ shape (there A/B/C answered and only D refused).
 | round | state |
 |---|---|
 | **27** | **OPEN (2026-09-16)** — Phase 7 Step 1: fencing. 3 arms x 30 attempts in one sitting, paired by attempt; bars and a prediction written first. Golden re-score only if an arm clears |
-| **26** | **OPEN (2026-09-16)** — Tailscale. Share accepted, but it was the **Windows** node `shaili` (`100.109.134.31`, offline). Ubuntu lab `kj-xps-8950` is **online at `100.72.117.53`** (REPLY 26.1b). Need a new share of that row |
+| **26** | **DEFERRED (2026-09-16)** — Viraj: leave Tailscale for now. Share of wrong node (`shaili` Windows) diagnosed in 26.1b; Ubuntu lab stays reachable via AnyDesk. Reopen when someone shares `kj-xps-8950` |
 | **25** | **CLOSED** — **11 of 30 obeyed** (question 9/15, page 2/15). Above the 6+ bar → the corpus channel is in scope. **8 answers were the canary and nothing else.** Prediction wrong: the two families I named scored 0 |
 | **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical. **Mac ran it too: 8 of 8 cells agree** |
 | **23** | **CLOSED** — both runs finish; SUMMARY identical; **D answerable = refused X** (over-refusal); C still fabricates |
