@@ -600,10 +600,23 @@ Worth doing if Anthropic is a serious target.
 > indexed. The channel that is real today is **the question box on the public demo** (`D106`). And
 > "leak the system prompt" takes something already public in this repo.
 >
-> **Step 0 is a gate that can end the phase**, the same shape as Phase 5's: 5 injection families ×
-> 2 channels × 3 attempts = 30 generations through the **shipped** `ask.build_prompt`, scored by a
-> **canary string** rather than a judge, with the bar and a prediction written before the run.
-> **0 of 30 closes the phase as a null result and ships no defense.**
+> **Step 0 was a gate that could have ended the phase**: 5 injection families × 2 channels × 3
+> questions = 30 generations through the **shipped** `ask.build_prompt`, scored by a **canary
+> string** rather than a judge, with the bar and a prediction written before the run. **0 of 30 would
+> have closed the phase as a null result.**
+>
+> **Three results so far, all with their bars written first, and every prediction wrong:**
+>
+> | | measured | id |
+> |---|---|---|
+> | the shipped pipeline obeys | **11 of 30** — 8 replies the attacker's token alone | `D109` |
+> | the family that obeyed **nothing** | made the model **refuse 3 questions it answers** — a canary measures obedience, not harm | `D109` |
+> | fencing the untrusted spans (2 arms) | **null**: 11 obeyed on every arm. Nothing shipped | `D110` |
+> | the model the **public page** serves | **15 of 30**, refuses nothing, echoes the system prompt 6 times | `D111` |
+>
+> **The headline is the last row:** the generator this project measures with understates the exposure
+> of the one people can actually use. Sitting: [`../study/19-SECURITY.md`](../study/19-SECURITY.md)
+> §R11.
 
 ---
 
