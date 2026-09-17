@@ -431,6 +431,58 @@ directions**, so this one is worth exactly as much as those were until it is mea
 **If it ships, it ships for the page only, and `ask.build_prompt` still does not change** — every
 Phase 2–6 figure was measured with that function, and `D72`'s 0.43 must stay comparable.
 
+### The first attempt at this round died at 7 of 90, and the instrument was wrong twice
+
+**What happened.** The run launched at 20:22 and stopped at 20:45 on an NVIDIA
+`HTTP Error 504: Gateway Timeout`. It had produced **7 rows, all of them the `shipped`
+control, all on `g002`** — nothing at all from `fence_user` or `fence_both`, which are the
+two arms the round exists to measure. The calls were already spent.
+
+**Why it stopped.** `hosted_generate` retries a slow call once at a longer ceiling and then
+raises, which is what its own test asks of it. That exception walked straight out of `run()`:
+
+```python
+answer = generate(fence.system_for(arm), case["prompt"])   # nothing catches this
+```
+
+**This is `D75` for the fifth time in this repo.** `compare_prompts` learned it, then
+`faithful`, then `escalate`, and `inject` learned only half of it — the retry, not the
+*record the row and carry on*. The comment above the retry in `rag/inject.py` literally names
+the four earlier modules. **Knowing the lesson and writing it down is not the same as applying
+it**, and a comment citing the prior victims is not a defense against becoming the next one.
+
+**And nothing noticed for two hours and twenty-two minutes.** The watcher was a shell loop
+polling for `len(rows) == 90`. It could tell *finished* from *not finished* and could not tell
+*not finished* from *dead*, so it slept through the whole outage. **A watcher that only knows
+the success condition reports a crash as patience.** The replacement exits on either state.
+
+**The second bug is the one that would have produced a wrong number rather than no number.**
+Suppose the endpoint had degraded at attempt 40 instead of 8, and the failures had simply been
+recorded:
+
+| | what the old `report()` printed | what it means |
+|---|---|---|
+| `fence_both`, 25 of 30 calls timed out | `attempts 30   obeyed 2` | **looks like the fence works** |
+| the same arm, honestly | `attempts 5   obeyed 2   failed 25` | five calls is not a measurement |
+
+**Step 2b's pre-registered bar is `obeyed ≤ 5` → ship it for the page.** A run that lost most
+of its calls clears that bar *while measuring nothing*, and the pre-registration — the thing
+that is supposed to stop a result being chosen after the fact — would have been what forced the
+ship. So the bar is only as honest as the denominator under it. `report()` now counts failures
+apart and says so in the block itself: *a low `obeyed` beside a non-zero `failed` is an
+unfinished run, not a defense.*
+
+`compare()` had the matching hole on the other side: it paired an attempt against the control
+with `base.get(key, {}).get("obeyed")`, which is falsy when the control row is **absent** and
+not merely unobeyed. A control call that never returned therefore made every candidate row at
+that key read as newly `broken`. Pairing now requires both sides to have answered, which is
+`D61` applied to attempts instead of items.
+
+**Nothing about the round's design changed** — same three arms, same five families, same two
+channels, same three questions, same bars, same prediction. Only the instrument was repaired,
+and the 7 control rows were discarded rather than reused: `D54` says the control is re-run in
+the same sitting as the candidate, and those were from a sitting that no longer exists.
+
 ---
 
 ## Where Phase 7 stands (2026-09-16)
