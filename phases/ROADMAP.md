@@ -605,7 +605,8 @@ Worth doing if Anthropic is a serious target.
 > string** rather than a judge, with the bar and a prediction written before the run. **0 of 30 would
 > have closed the phase as a null result.**
 >
-> **Three results so far, all with their bars written first, and every prediction wrong:**
+> **Four results so far, all with their bars written first. The first three predictions were
+> wrong in different directions; the fourth was right:**
 >
 > | | measured | id |
 > |---|---|---|
@@ -613,10 +614,15 @@ Worth doing if Anthropic is a serious target.
 > | the family that obeyed **nothing** | made the model **refuse 3 questions it answers** — a canary measures obedience, not harm | `D109` |
 > | fencing the untrusted spans (2 arms) | **null**: 11 obeyed on every arm. Nothing shipped | `D110` |
 > | the model the **public page** serves | **15 of 30**, refuses nothing, echoes the system prompt 6 times | `D111` |
+> | fencing, re-run against **that** model | **16 → 10 → 10** (`fence_user` 6 fixed 0 broken, p = 0.031). **So `D110` was a fact about qwen, not about fencing** | `D112` |
+> | the canary itself | **cannot tell a model EMITTING the token from one QUOTING it to refuse.** Three results are scored with it; none is corrected until a human reads the sheets | `D112` |
 >
-> **The headline is the last row:** the generator this project measures with understates the exposure
-> of the one people can actually use. Sitting: [`../study/19-SECURITY.md`](../study/19-SECURITY.md)
-> §R11.
+> **The headline is the pair at the bottom.** A defense measured on the model we can run said
+> *null*; the same defense on the model a stranger reaches moves six attempts and breaks none —
+> so a red-team **result** and a red-team **defense** both transfer poorly across models. And the
+> ruler under all four rows over-counts obedience by an unmeasured amount in one direction, which
+> is why Step 2b's ship decision is **blocked rather than null**. Sitting:
+> [`../study/19-SECURITY.md`](../study/19-SECURITY.md) §R11.
 
 ---
 

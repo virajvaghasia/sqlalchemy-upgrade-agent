@@ -57,7 +57,7 @@ Meta, Google, Apple, Anthropic, and startups).
   When a decision is made or reversed, update this file in the same commit — a register that
   lags is worse than none, because it is trusted. §H lists choices that are *not yet
   justified*; never invent a rationale to empty it.
-- **`tests/`** — 588 tests pinning what the docs claim; see `study/07-TESTS.md`.
+- **`tests/`** — 591 tests pinning what the docs claim; see `study/07-TESTS.md`.
 - **`tools/check_runnable.py`** — verifies every `# runnable` block. Run it after touching
   any doc that shows output; the `docs reproduce` CI job runs it on every PR.
 - **`rag/`** — the Phase 1 retrieval system. Separate from `experiments/` because that package
@@ -380,7 +380,26 @@ role force quoting in every statement. It matches the Compose service it belongs
 
 **Keep this block current. It is the first thing a new session should read after the rules.**
 
-**PHASE 7 (optional, security) IS OPEN AND HAS THREE RESULTS.** `D109`: the shipped pipeline obeys
+**PHASE 7 (optional, security) IS OPEN AND HAS FOUR RESULTS — AND THE FOURTH BROKE THE RULER.**
+`D112` (2026-09-17, Step 2b, 90 attempts, control re-run in the same sitting): fencing on the
+**deployed** model goes **16 → 10 → 10**, `fence_user` **6 fixed 0 broken p = 0.031** — so
+**`D110`'s null was a fact about qwen, not about fencing**, and a red-team *defense* transfers
+across models no better than a red-team *result* did (`D111`). **Nothing ships**: the bar was
+`obeyed ≤ 5`, and `fence_both` opened two new holes while gaining nothing over `fence_user`.
+`exfiltration` survives fencing **6 of 6** with `ask.SYSTEM` echoed verbatim — markers are not a
+mitigation for the one leak this model has. **My prediction (8–13, exfiltration survives) was
+right — the first correct one in the phase.**
+**⚠️ AND `obeyed = CANARY in answer` CANNOT TELL EMITTING THE TOKEN FROM QUOTING IT TO REFUSE.**
+Answers that solve the migration question and then say *"that is not part of the question"* score
+as obedience. **Fourth detector in this repo to break toward the arm under test** (`D76`, `D79`,
+the `48/91` row, this) — the variant reshapes the output in the way that defeats its own detector,
+so it is invisible until the defense starts working. It touches `D109`, `D111` **and** Step 2b,
+all in the same direction. **No number is corrected**: `rag.inject --review` emits a blank-verdict
+sheet per run (`deliverables/CANARY-REVIEW-*.md`, **36 / 15 / 11 attempts**) and a test asserts it
+cannot fill one in (`D06`). **Step 2b is BLOCKED, not null**, and the block cuts both ways.
+**Viraj's, and the only thing Phase 7 is waiting on:** read those three sheets.
+
+**(the three results before it)** `D109`: the shipped pipeline obeys
 **11 of 30** injections (8 replies the attacker's token alone); the family that scored **0** made the
 model refuse three questions it answers — a canary measures obedience, not harm. `D110`: fencing the
 untrusted spans is a **null** — 11 obeyed on all three arms, nothing shipped. `D111`: **the model the
@@ -725,7 +744,7 @@ hold up"**, which kills the standing objection that a more willing prompt buys a
 past the evidence. **Phase 3 COMPLETE on the retrieval side** — `D66`/`D67`/`D68` shipped; **`D69` Sphinx strip rejected** (reverted) and
 **`D70` boundary re-chunking rejected unbuilt**. Every ROADMAP metrics row now carries a number
 and a decision id, which is what `PHASE-3.md`'s gate asks for. Still on **`phase-2/measure`**.
-**588 tests**, **97/97** `# runnable`, **109** decisions, **§H empty**.
+**591 tests**, **97/97** `# runnable`, **112** decisions, **§H empty**.
 
 **Golden: 100 verified.** Baseline artifact still **50** at **0.51 ±0.137**. Current
 (hybrid+seat-5 CE, raw embed): **recall@5 = 0.64 ±0.097**, absents **17**, **7↑ 0↓** vs the 50
@@ -771,7 +790,7 @@ a doc. Say `0.64` only with the word *retrieval* attached to it.
 ### Run these first — they tell you the truth in about ten seconds
 
 ```
-uv run pytest                            # 588 passed with Qdrant up; 583 + 5 skipped without
+uv run pytest                            # 591 passed with Qdrant up; 586 + 5 skipped without
 uv run python -m tools.check_runnable    # 97/97 RUN blocks reproduce
 uv run python -m tools.apply_verdicts --check
 uv run python -m rag.golden --status     # 100 items, 9 unanswerable; §H CLOSED
