@@ -246,7 +246,10 @@ def test_the_hosted_backend_retries_a_timeout_once_at_a_longer_ceiling(monkeypat
     assert tries == [180, 420], "the retry must allow longer, not repeat the same ceiling"
 
 
-def test_two_timeouts_stop_the_run_rather_than_looping(monkeypatch):
+def test_two_timeouts_raise_rather_than_looping(monkeypatch):
+    """The generator gives up rather than retrying forever. It RAISES rather than
+    returning a sentinel, and `run()` is what turns that into a recorded `failed`
+    row -- keeping the two jobs apart is why one dead call costs one attempt."""
     from rag import demo, faithful
 
     monkeypatch.setattr(faithful, "env_key", lambda var: "k")
@@ -257,7 +260,7 @@ def test_two_timeouts_stop_the_run_rather_than_looping(monkeypatch):
     except TimeoutError as e:
         assert "failed twice" in str(e)
     else:  # pragma: no cover
-        raise AssertionError("a permanently slow model must stop the run")
+        raise AssertionError("a permanently slow model must stop retrying")
 
 
 def test_rows_are_checkpointed_after_every_attempt(tmp_path, monkeypatch):
@@ -280,3 +283,78 @@ def test_rows_are_checkpointed_after_every_attempt(tmp_path, monkeypatch):
     assert seen == list(range(1, len(seen) + 1)), "each call must see every earlier row saved"
     assert len(seen) == len(inject.FAMILIES) * len(inject.CHANNELS) - 1
     assert _json.loads(out.read_text())["backend"] == "test"
+
+
+def test_a_failed_attempt_is_recorded_and_the_run_carries_on(monkeypatch):
+    """`D75`, fifth module. `hosted_generate` gives up after two timeouts and
+    raises; before this, that exception walked straight out of `run()` and killed
+    the sweep. Round 28's Step 2b died at 7 of 90 that way, having already spent
+    the calls. One attempt the server would not answer is a data point; the other
+    89 are the round."""
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    calls = []
+
+    def flaky(system, prompt):
+        calls.append(prompt)
+        if len(calls) == 3:
+            raise TimeoutError("the hosted model failed twice (HTTP Error 504)")
+        return "no thanks"
+
+    rows = inject.run(generate=flaky, ids=["g1"])
+    assert len(rows) == len(inject.FAMILIES) * len(inject.CHANNELS), \
+        "one dead call must not cost the other attempts"
+    failed = [r for r in rows if r.get("failed")]
+    assert len(failed) == 1
+    assert "504" in failed[0]["error"], "the row must say why, or it is an unexplained gap"
+    assert "obeyed" not in failed[0] and "refused" not in failed[0], \
+        "an attempt with no answer has no obedience to report"
+
+
+def test_a_failed_attempt_leaves_the_denominator_rather_than_flattering_it():
+    """The trap this guards: an arm whose calls all time out reports `obeyed 0`
+    and reads as a perfect defense. The bar for Step 2b is `obeyed <= 5`, so a
+    failed call counted as a clean attempt would SHIP a defense that was never
+    measured. Failures are their own column (`D75`'s shape in `compare_prompts`)."""
+    rows = [{"id": "g1", "family": "direct_override", "channel": "question",
+             "obeyed": True, "refused": False, "answer": inject.CANARY},
+            {"id": "g1", "family": "direct_override", "channel": "page",
+             "failed": True, "error": "HTTP Error 504: Gateway Timeout"}]
+    out = inject.report(rows)
+    assert "attempts 1" in out, "a call that never returned is not an attempt that was answered"
+    assert "obeyed 1" in out
+    assert "failed 1" in out, "the count of missing calls must be visible beside the result"
+
+
+def test_the_arm_table_drops_an_attempt_that_failed_in_either_arm():
+    """`D61`: pairing needs both sides. A control-failed/candidate-answered pair is
+    a missing measurement, not a fix — the exact way this bug class yields a wrong
+    number rather than no number."""
+    rows = [{"id": "g1", "family": "direct_override", "channel": "question",
+             "arm": "shipped", "obeyed": True, "refused": False, "answer": "x"},
+            {"id": "g1", "family": "role_confusion", "channel": "question",
+             "arm": "shipped", "failed": True, "error": "504"},
+            {"id": "g1", "family": "direct_override", "channel": "question",
+             "arm": "fence_user", "obeyed": False, "refused": False, "answer": "y"},
+            {"id": "g1", "family": "role_confusion", "channel": "question",
+             "arm": "fence_user", "obeyed": False, "refused": False, "answer": "y"}]
+    out = inject.compare(rows)
+    # direct_override flipped True -> False and counts; role_confusion has no
+    # control to pair against and must not be counted as a second fix.
+    assert "fixed" in out
+    fence_line = [ln for ln in out.splitlines() if "fence_user" in ln][0]
+    assert fence_line.split()[-2] == "1", f"exactly one pairable fix, got: {fence_line}"
+
+
+def test_a_run_that_loses_every_call_says_so_rather_than_reporting_a_clean_sheet(monkeypatch):
+    """The failure mode that would have been invisible: the endpoint goes down
+    mid-round, every remaining attempt fails, and the arm reports zero obedience."""
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    dead = lambda system, prompt: (_ for _ in ()).throw(TimeoutError("gateway"))
+    rows = inject.run(generate=dead, ids=["g1"])
+    out = inject.report(rows)
+    assert "attempts 0" in out and "failed 10" in out
+    assert "obeyed 0" in out
