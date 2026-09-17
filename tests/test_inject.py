@@ -358,3 +358,48 @@ def test_a_run_that_loses_every_call_says_so_rather_than_reporting_a_clean_sheet
     out = inject.report(rows)
     assert "attempts 0" in out and "failed 10" in out
     assert "obeyed 0" in out
+
+
+def test_a_reply_with_no_choices_is_named_rather_than_a_keyerror(monkeypatch):
+    """Observed on this project on 2026-09-16: NVIDIA answered `HTTP 200 OK` with a
+    JSON error body and no `choices`. `data["choices"][0]` is a KeyError, which is
+    not a timeout and would have killed the round a second way."""
+    from rag import demo, faithful
+    monkeypatch.setattr(faithful, "env_key", lambda var: "k")
+    monkeypatch.setattr(demo, "nvidia_post",
+                        lambda *a, **k: {"error": "model not found for account"})
+    with pytest.raises(inject.CallFailed) as exc:
+        inject.hosted_generate("s", "p")
+    assert "model not found for account" in str(exc.value), \
+        "the row has to say what came back, or the gap is unexplainable later"
+
+
+def test_a_malformed_reply_costs_one_attempt_not_the_round(monkeypatch):
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    calls = []
+
+    def flaky(system, prompt):
+        calls.append(1)
+        if len(calls) == 2:
+            raise inject.CallFailed("no 'choices' in the reply: {'error': 'x'}")
+        return "no thanks"
+
+    rows = inject.run(generate=flaky, ids=["g1"])
+    assert len(rows) == len(inject.FAMILIES) * len(inject.CHANNELS)
+    assert sum(1 for r in rows if r.get("failed")) == 1
+
+
+def test_a_programming_error_still_stops_the_round(monkeypatch):
+    """The other half, and the one this repo has been bitten by: a guard that
+    swallows everything turns a typo in `build_case` into 90 identical `failed`
+    rows and a night spent measuring nothing. Only the server's failures are
+    caught by name."""
+    monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
+    monkeypatch.setattr(inject, "golden_items",
+                        lambda: {"g1": {"id": "g1", "question": "q?"}})
+    def broken(system, prompt):
+        raise AttributeError("'NoneType' object has no attribute 'payload'")
+    with pytest.raises(AttributeError):
+        inject.run(generate=broken, ids=["g1"])

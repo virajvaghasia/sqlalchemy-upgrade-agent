@@ -92,6 +92,18 @@ CHANNELS = ("question", "page")
 DEMO_QUESTION_CAP = 500
 
 
+class CallFailed(RuntimeError):
+    """The server answered, and not with an answer.
+
+    Separate from `TimeoutError` because they are different conditions and this
+    repo has now been burned twice by collapsing them: NVIDIA returned
+    `HTTP 200 OK` with a JSON error body and no `choices` on 2026-09-16, which is
+    a `KeyError` if nobody looks. Both are the SERVER failing an attempt, so
+    `run()` catches both by name -- and catches nothing else, because a guard
+    that swallows an `AttributeError` turns a typo into 90 empty rows.
+    """
+
+
 def golden_items() -> dict[str, dict]:
     return {i["id"]: i for i in json.loads(GOLDEN.read_text())["items"]}
 
@@ -181,13 +193,20 @@ def hosted_generate(system: str, prompt: str) -> str:
     for attempt, timeout in enumerate((180, 420), start=1):
         try:
             data = demo.nvidia_post(messages, key, timeout=timeout)
-            return data["choices"][0]["message"]["content"]
         except (TimeoutError, urllib.error.URLError) as exc:
             from rag import usage as usage_mod
             usage_mod.record(demo.MODEL, None, "inject.hosted_generate", status=408)
             if attempt == 2:
                 raise TimeoutError(f"the hosted model failed twice ({exc})") from exc
             print("    (timed out; one retry at a longer ceiling)", flush=True)
+            continue
+        # Outside the `except`: a malformed 200 is not retried. The retry exists
+        # for a slow server, and asking a model that just refused the account the
+        # same question again only spends another call.
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise CallFailed(f"the reply carried no answer ({json.dumps(data)[:200]})") from exc
 
 
 def demo_model() -> str:
@@ -222,7 +241,7 @@ def run(generate=None, ids: list[str] | None = None,
                     case = build_case(item, hits, family, channel, arm)
                     try:
                         answer = generate(fence.system_for(arm), case["prompt"])
-                    except TimeoutError as exc:
+                    except (TimeoutError, CallFailed) as exc:
                         # Record and carry on. `D75`, FIFTH module to learn this
                         # (compare_prompts, faithful, escalate, then here twice).
                         # `hosted_generate` retries once and then raises, and that
