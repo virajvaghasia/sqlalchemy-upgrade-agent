@@ -424,8 +424,14 @@ both machines agreeing 8 of 8 cells) show the shipped prompt refusing with the a
 on `g050`/`g044` *every* wording that has a refusal sentence refuses; only the variant without one answers,
 and that one also answers the unanswerable questions (`D43`). Both effects measured, neither resolved —
 `11-GENERATION.md` §R3.6. (2) prompt **H** on hold (`D83`/`D84`). (3) the Day 3 Tailscale tunnel, blocked on
-Shaili, needed by nothing. (4) Phase 7 (security) not started — the ROADMAP marks it optional.
-**Viraj's, not Claude's:** `.env.example` review, and whether this branch lands on `main`.
+Shaili, needed by nothing. (4) **Phase 7 (security) is OPEN with four results — this line said "not
+started" until 2026-09-18 and was three decisions out of date.** See the Phase 7 block at the top of
+this file and the phase table's row **7**.
+**Viraj's, not Claude's:** the three canary review sheets (`D06` — a human signs a reading),
+`.env.example` review, and whether this branch lands on `main`. **Note on `.env.example`:** Claude
+cannot read it — the sandbox denies `.env*` paths to both Bash and Read — so its 14 added lines were
+reviewed through `git diff` only (all commented-out placeholders, no values) and it is left
+uncommitted rather than committed unseen into a **public** repo.
 
 **PHASE 6 FINISH LINE MET (2026-09-14).** CI gate on GitHub runners: PR #29 PASSED (`moved 0`, Linux CPU
 == Mac MPS); the reranker-removal demo PR #30 first PASSED because `rag.score` passed `rerank=True` itself —
@@ -826,6 +832,7 @@ docs. That has happened four times and never the other way round.
 | **4** | **complete 2026-09-11.** Steps 1–3 closed and 5's instrument built. End to end **0.43** vs a **0.64** retrieval ceiling (`D72`); citations measured (`D73`) — **65%** cite nothing; prose faithfulness built and running on a **local** judge (`D80`); the gate has its one command, `rag.judge --report` (`D81`). faithfulness measured (`D82`) and reproduced on the lab (`D83`) — H **92% on both machines**, D drifted **85% → 77%**; paired not significant either way. **Ship decision made: HOLD H.** Judge agreement filled (`D86`): **7 of 10 = 70%** — three DISAGREE (`g080` too harsh → PARTIAL; both `g056` arms too soft → PARTIAL). Open: optional citation-only prompt variant; commit the dirty tree | [`phases/PHASE-4.md`](phases/PHASE-4.md) |
 | **5** | **complete 2026-09-11** (`D94`). The agent + MCP server. **Step 0 is a gate that can end the phase**: `qwen2.5-coder:7b` has never been asked to emit a tool call here, and an agent is 3+ generations where `0.43` was measured on one | [`phases/PHASE-5.md`](phases/PHASE-5.md) |
 | **6** | **complete 2026-09-16.** Gate met both halves: demo live and cited (`D106`), reranker-removal PR blocked on a runner naming `g017` (`D97`). Cascade routing priced at **$1.81/1000** (`D100`), predictive routing rejected (`D98`), Langfuse live (`D108`), source framing rejected (`D96`) | [`phases/PHASE-6.md`](phases/PHASE-6.md) close-out |
+| **7** | **open (optional), four results, nothing shipped.** The pipeline obeys **11 of 30** injections (`D109`); fencing is a **null on qwen** (`D110`) and a **real effect on the deployed model** — 16 → 10, 6 fixed 0 broken, p = 0.031 (`D112`) — so `D110` was a fact about a model, not a defense; and the model the public page serves obeys **15 of 30**, refusing nothing (`D111`). **BLOCKED, not null:** `obeyed = CANARY in answer` cannot tell a model emitting the attacker's token from one quoting it to refuse, so all three results are over-counted in one direction. **Waiting on a human to read three blank-verdict sheets** — `deliverables/CANARY-REVIEW-*.md`, 36 / 15 / 11 attempts (`D06`) | [`phases/PHASE-7.md`](phases/PHASE-7.md), [`study/19-SECURITY.md`](study/19-SECURITY.md) §R11 |
 
 ### The baseline, and the number NOT to quote
 
@@ -1087,21 +1094,31 @@ of thing that is worse discovered in Phase 3 than written down now:
 - **The lab PC Day 3 tunnel** — still blocked on Shaili sharing the Tailscale node.
 
 
-**Branching: one long-lived branch per phase.**
+**Branching: one long-lived branch per phase.** Derived from `git` on 2026-09-18, not recalled —
+this table said `phase-2/measure` was the working branch for three phases after it stopped being
+one, which is the single most misleading line a resume point can carry.
 
 | branch | holds | state |
 |---|---|---|
-| `main` | `eeedbc4` | deliberately stale; one merge per phase |
-| `phase-1/completion` | Phase 1, 10 commits from 2026-08-17/18 | complete, awaiting its merge |
-| **`phase-2/measure`** | Phase 2, branched off the above | **the working branch** |
+| `main` | `19024c2` — Phase 1, squash-merged as PR #28 | **deliberately stale.** One merge per phase, and phases 2–7 have not merged |
+| `phase-2/measure` | Phases 2, 3 **and 4**; 40 commits past `main` | complete |
+| `phase-5/agent` | Phase 5; 79 past `main` | complete |
+| `phase-6/production` | Phase 6; 152 past `main` | complete |
+| **`phase-7/security`** | Phase 7; **183 past `main`**, 31 past `phase-6/production` | **the working branch** |
+
+**The chain is linear**, each branch an ancestor of the next — checked with
+`git merge-base --is-ancestor`, not assumed. So the tip of `phase-7/security` contains every
+phase, and a commit that looks unpushed on an older branch (`72c7e51` on `phase-2/measure`) is
+already on the remote through the branches above it.
 
 Push and pull on the working branch directly — **no PR per change**. **Never commit to local
 `main`**, and **Viraj says when work lands** — do not propose merging or pushing. The lab PC
 checks out the working branch too, so any ASK block in `logs/HANDOFF.md` must name it.
 
-**Phase 2 branched off `phase-1/completion`, not off `main`**, because Phase 1 has not merged
-yet and Phase 2's plan cites its measurements. When Phase 1 merges, this branch rebases onto
-`main` and the two Phase 2 commits go with it.
+**Nothing was ever rebased onto `main`, and that is deliberate.** Each phase branched off the
+previous one rather than off `main` because each plan cites the last phase's measurements; the
+old note here promised a rebase "when Phase 1 merges" and it has not happened in six phases.
+Read the chain above as the real history.
 
 **Before touching any doc that shows output:** `uv run python -m tools.check_runnable`.
 **And know its limit:** it verifies `# runnable` blocks and has no opinion about the prose
@@ -2308,3 +2325,40 @@ Append a dated entry each session; keep each entry to a few bullets.
   three sheets as the one thing the phase waits on.
 - **Not committed, and nothing pushed.** Six commits from the `D112` sitting are still local on
   `phase-7/security`, and `.env.example` remains modified and unreviewed.
+
+### 2026-09-18 — "finish things up, without my help": four more present-tense headings over dead state
+
+- **The pattern, stated once because it recurred in five files:** a heading or table written in the
+  present tense outlives the state it describes, and **nothing catches it** — `check_runnable` has
+  no opinion about prose, and every one of these passed CI for weeks. Fixed by dating the claim and
+  quoting what it used to say, not by deleting it.
+- **`CLAUDE.md`'s branching table said `phase-2/measure` was "the working branch"** — three phases
+  after it stopped being one. Rewritten from `git`: `main` is `19024c2` (not `eeedbc4`), the chain
+  is **linear** (`main` → `phase-2/measure` → `phase-5/agent` → `phase-6/production` →
+  `phase-7/security`, each an ancestor of the next, checked with `git merge-base --is-ancestor`),
+  and the working branch is **183 commits past `main`**. Also settled a scare: `72c7e51` looks
+  unpushed on `phase-2/measure` and is already on the remote through the branches above it.
+- **The phase table had no Phase 7 row at all**, and the "what is open" list still said Phase 7 was
+  **"not started"** with three decisions already written. Both fixed.
+- **`ROADMAP.md` §10 was titled "Where you are right now"** and said CI was not started, the lab
+  machine was unreachable, and the GPU was blocked — all closed on 2026-08-13. Retitled as the
+  Phase 0 snapshot it is, with each row carrying what has since closed. Its `# runnable` blocks
+  were already declared `ENV`, so no number was ever asserted; the **heading** was the lie.
+- **`logs/HANDOFF.md` contradicted itself:** the index said Round 27 was CLOSED, the round's own
+  heading still said OPEN. And its "read this first" pointer named Round 24 and branch
+  `phase-6/production`. Both fixed, plus Round 27's row now carries `D112`'s narrowing.
+- **`logs/LEARNING-LOG.md` was two events behind** and its own pointer said the CI gate "has not
+  yet run on a GitHub runner" four days after it ran. Pointer rewritten; Sep 16 and Sep 17–18
+  entries added, the first marked backfilled.
+- **Deleted:** `.claude/settings.local.json.bak-20260915-141133`, on his say-so. Checked first —
+  `diff` reported additions only (`13a14,46`), so the live file is a strict superset; untracked, so
+  no history involved.
+- **`.env.example` is the one thing NOT finished, and it is a sandbox block rather than deference.**
+  Both Bash and Read are denied `.env*` paths. Its 14 added lines were reviewed through `git diff`
+  (all commented-out placeholders) and every variable in it was cross-checked against the code —
+  all read somewhere except `MODAL_TOKEN_ID`/`MODAL_TOKEN_SECRET`, which the `modal` CLI consumes
+  and which the file already documents as such. **Left uncommitted**: committing a file into a
+  **public** repo without being able to read it is the wrong trade, and the denial is the guard
+  working.
+- Gates after every pass: **586 passed / 5 skipped** (no Qdrant), **97/97** `# runnable`, 19
+  verdicts in sync, golden 100/100.

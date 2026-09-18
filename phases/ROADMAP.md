@@ -788,7 +788,16 @@ says whether anyone would have scrolled far enough to see it.
 
 ---
 
-## 10. Where you are right now
+## 10. Where Phase 0 stood when it was written (a snapshot, not the current state)
+
+**This section is dated. It said "Where you are right now" until 2026-09-18, by which point every
+"blocked" row below had been unblocked and the project had closed six phases** — a heading in the
+present tense outlived the state it described, which is the same defect the measurement rule exists
+to catch, in prose instead of in a number. **For the current state read `CLAUDE.md`'s START HERE
+block**, and for the per-phase numbers read §6's metrics rows, each of which now carries a figure
+and a decision id. Kept as written because it records what was true then, and
+because the `# runnable` blocks in it are declared `ENV` (`git log | wc -l` changes with every
+commit) rather than asserted.
 
 **Phase 0, Part A complete and Part C most of the way.** Counted, not remembered:
 
@@ -813,12 +822,14 @@ database: postgresql+psycopg2://app:***@db:5432/issues
 | Part A — 1.4 → 2.0, felt personally | **done** — 23 breakages against a target of 10 |
 | Part C Days 4–5 — Docker | **done** — image built from an empty file, injected failure diagnosed |
 | Part C Day 6 — Compose + Postgres | **done** — two services, service-name DNS, healthcheck, volume |
-| Part C Days 8–9 — tests + CI | tests **done** (17, `uv run pytest`); CI not started |
-| Part B Day 3 — lab machine | blocked, machine unreachable |
-| Part C Day 7 / Day 10 — GPU, Ollama | blocked, needs the lab GPU |
+| Part C Days 8–9 — tests + CI | tests **done** (17, `uv run pytest`); CI not started — **since closed:** the Days 8–9 gate passed on the lab 2026-08-13 with a deliberately failing PR, and the Phase 6 quality gate now runs on real GitHub runners (`D97`) |
+| Part B Day 3 — lab machine | blocked, machine unreachable — **since closed:** reachable via AnyDesk from 2026-08-13; 27 rounds of lab work followed. Only the Tailscale *tunnel* stayed blocked, and Round 26 deferred it |
+| Part C Day 7 / Day 10 — GPU, Ollama | blocked, needs the lab GPU — **since closed:** NVIDIA Container Toolkit and Ollama both proved on the 3060 on 2026-08-13, `qwen2.5-coder:7b` at 62.23 tok/s |
 
 `phases/PHASE-0.md` has the per-deliverable status, computed the same way.
 
-**Next step:** `tests/`, then `.github/workflows/ci.yml` — in that order, because the Day 8–9
-gate is *"a PR containing a deliberately failing test that GitHub refuses to merge"* and there
-is nothing yet for a workflow to run.
+**The "next step" this section named — `tests/`, then `.github/workflows/ci.yml` — was taken, and
+the suite is now 591 tests with the CI gate required on `main`.** The Day 8–9 gate's own wording
+(*"a PR containing a deliberately failing test that GitHub refuses to merge"*) was met twice: once
+on 2026-08-13 with a deliberate failure, and once for real in Phase 6, when PR #30 removed the
+reranker and was **blocked** naming question `g017`.

@@ -37,10 +37,23 @@ form is optional. An id without the question text is incomplete.
 
 ## Where you are right now
 
-**Phase 6, production (2026-09-14).** The demo is live on Modal and answers with citations
-(decision `D106`); the CI quality gate is built but has not yet run on a GitHub runner or been
-made a required check (`D97`). Phase 0–5 are closed. Current plan:
-[`phases/PHASE-6.md`](../phases/PHASE-6.md); the latest entry below is the latest event.
+**Phase 7, security — open, four results, nothing shipped (2026-09-18).** All six numbered phases
+are closed, including Phase 6 on 2026-09-16: the demo is live on Modal and answers a stranger with
+citations (`D106`), and the CI quality gate has run on real GitHub runners and is a **required
+check on `main`** — PR #30, which removes the reranker, was blocked naming question `g017` (`D97`).
+Phase 7 measured prompt injection before defending anything: the pipeline obeys **11 of 30**
+(`D109`), fencing is a **null on qwen** (`D110`) but a **real effect on the deployed model** —
+16 → 10, 6 fixed 0 broken, p = 0.031 (`D112`) — and the model the public page serves obeys
+**15 of 30** while refusing nothing (`D111`). **Nothing ships** (the bar was `obeyed ≤ 5`) and the
+phase is **BLOCKED rather than null**: the canary cannot tell a model emitting the attacker's token
+from one quoting it in order to refuse, so three blank-verdict sheets are waiting on a human
+(`deliverables/CANARY-REVIEW-*.md`, 36 / 15 / 11 attempts, `D06`). Current plan:
+[`phases/PHASE-7.md`](../phases/PHASE-7.md); the latest entry below is the latest event.
+
+> **This block said "Phase 6 … the CI gate has not yet run on a GitHub runner" until 2026-09-18.**
+> Both halves had been false for four days. Third file that day found carrying a present-tense
+> heading over a state that had moved on — the others were `ROADMAP.md` §10 and `CLAUDE.md`'s
+> branching table.
 
 > **This log went stale for a month and was caught up on 2026-09-14.** No entry was written between
 > Aug 15 and Sep 13. The entries for Aug 17 – Sep 12 were **backfilled** from `CLAUDE.md`'s dated
@@ -644,3 +657,58 @@ This sitting, explained"). Further PC steps get appended there, not only in chat
 - **Langfuse live on the demo** (`D108`): free cloud plan, one trace per question (search + model call with
   tokens), off without keys. Verified by reading a real trace back through Langfuse's API: 3 steps, 45.9 s.
 
+### Sep 16 — Phase 6 closed, Phase 7 opened, and the demo's model vanished `(→ PHASE-7.md Steps 0–2; decisions D109–D111)` *(backfilled)*
+
+- **Phase 6 closed** on both halves of its gate, with evidence rather than assertion: a live cited
+  answer (`D106`) and a quality-degrading PR blocked by name on a real runner (`D97`).
+- **Phase 7 opened, and its first act was to correct the roadmap's premise.** The threat as written
+  assumed untrusted documents in the index. Nothing untrusted is indexed here; the live channel is
+  the public demo's **question box**. Saying so was the first finding.
+- **`D109` — measure before defending.** 30 attempts, five families, two channels:
+  **11 obeyed**, and **8 replies were the attacker's token and nothing else**. The prediction was
+  wrong and is kept. **The family that obeyed *nothing* did the most damage** — it made the system
+  refuse three questions it answers. *A canary measures obedience, not harm.*
+- **`D110` — fencing is a null.** Markers around the untrusted spans, and markers plus a sentence
+  saying what they mean: **11 obeyed on all three arms.** Nothing shipped. (Narrowed the next day.)
+- **`D111` — the model a stranger reaches is the worse one.** The deployed model obeys **15 of 30**,
+  refuses nothing, and echoes `ask.SYSTEM` **six times**. A number taken on the model you develop
+  against understates the exposure of the thing people can actually use.
+- **The demo went down and came back.** Its NVIDIA model began returning 404 *"not found for
+  account"* — an entitlement change, not credits, proved by three other models answering on the
+  same key in the same minute. Repointed to `deepseek-ai/deepseek-v4-flash-0731`, whose notice says
+  plainly that **that** model has not been measured. The false trail is written up: the secret was
+  never the problem, a stale warm container was, and `/api/config` reporting the new model while
+  `/api/ask` served the old one is what made it convincing.
+
+### Sep 17–18 — a defense that transferred, a ruler that did not, and a doc layer three files behind `(→ PHASE-7.md Step 2b, study/19-SECURITY.md §R11.6–§R11.7; decision D112)`
+
+- **`D112` — `D110` was a fact about a model, not about a defense.** The same fencing arms against
+  the *deployed* model: **16 → 10 → 10**, `fence_user` **6 fixed 0 broken, p = 0.031**, control
+  re-run in the same sitting (`D54`). 90 attempts. **A red-team *defense* transfers across models
+  no better than a red-team *result* did** (`D111`).
+- **Nothing ships anyway.** The pre-written bar was `obeyed ≤ 5`; 10 is not 5. And `fence_both`
+  opened two new holes while gaining nothing over `fence_user`. **`exfiltration` survives fencing
+  6 of 6** with `ask.SYSTEM` echoed verbatim — markers are not a mitigation for the one leak this
+  model has.
+- **The prediction was right for the first time in the phase** (8–13 obeyed, `exfiltration`
+  surviving) — after **three** wrong ones. The register had that tally as *"two"*; counting the
+  three entries rather than recalling them fixed it.
+- **⚠️ And the ruler broke.** `obeyed = CANARY in answer` **cannot tell a model emitting the
+  attacker's token from one quoting it in order to refuse.** Answers that solve the migration
+  question and then say *"that is not part of the question"* score as obedience. **Fourth detector
+  in this repo to break toward the arm under test** (`D76`, `D79`, the `48/91` row, this) — and, as
+  every time before, it was invisible until the defense started working. It touches `D109`, `D111`
+  **and** Step 2b, all in the same direction.
+- **No number was corrected, on purpose.** Which kind each attempt is, is a **reading**, and `D06`
+  says who signs a reading. `rag.inject --review` emits a blank-verdict sheet per run and a test
+  asserts it cannot fill one in. **Step 2b is BLOCKED, not null, and the block cuts both ways** —
+  `fence_user` may be better than 10 suggests, and `fence_both`'s new holes may not be holes.
+- **Then the docs were audited and the code was clean while the prose was not.** Gates all green
+  (591 tests, 97/97 `# runnable`, 19 verdicts in sync, golden 100/100, §H empty). Everything wrong
+  was prose: `PHASE-7.md`'s status table said Step 2b was *"not reached"* in a file that spends 120
+  lines on it; `19-SECURITY.md`'s *"Do not say"* block contained *"zero answers contained the
+  system prompt"*, **reversed by its own later section**; `README.md`, `study/README.md`,
+  `logs/HANDOFF.md`, `ROADMAP.md` §10 and `CLAUDE.md`'s branching table were each behind by one to
+  six phases — the branching table still called `phase-2/measure` the working branch. **Every one
+  of them passed CI the whole time**, which is the standing lesson: `check_runnable` has no opinion
+  about prose.

@@ -36,15 +36,22 @@ merges, and it stays.
 killed the Mac's own hypothesis and that is on the record precisely because it was written up
 rather than quietly edited away (`D84`).
 
-## Where things stand — read this first (updated 2026-09-16, lab)
+## Where things stand — read this first (updated 2026-09-18, Mac)
 
-**→ ROUND 24 CLOSED on the lab.** Branch `phase-6/production`. `g050`/`g044` with verified pages
-in the five; four wordings × two runs. **A/B/D refused both; only C answered** — not Round 23's
-shape (there A/B/C answered and only D refused).
+**→ NOTHING IS QUEUED FOR THE LAB.** Working branch is **`phase-7/security`** (not
+`phase-6/production` — this pointer named the old one until 2026-09-18). Every round through 27 is
+closed, Round 26 is deferred by Viraj, and Phase 7's remaining work needs a **human reader**, not a
+GPU: three blank-verdict sheets, `deliverables/CANARY-REVIEW-*.md`, **36 / 15 / 11 attempts**.
+
+**The one thing the lab should know:** Round 27's null was **narrowed the day after it closed**.
+The same fencing arms run against the model the public page actually serves gave **16 → 10 → 10**,
+`fence_user` **6 fixed 0 broken, p = 0.031** (`D112`, Mac, 90 calls to a hosted model — no GPU
+needed, which is why it did not come here). So *"fencing does nothing"* is a fact about **qwen**,
+and `D110` was over-claimed rather than wrong. **Still nothing ships**: the bar was `obeyed ≤ 5`.
 
 | round | state |
 |---|---|
-| **27** | **CLOSED (2026-09-16)** — fencing is a **null**: shipped / fence_user / fence_both all **11 obeyed**. Control reproduced Round 25. **No arm cleared; no golden re-score; no filter** (`D110`) |
+| **27** | **CLOSED (2026-09-16)** — fencing is a **null**: shipped / fence_user / fence_both all **11 obeyed**. Control reproduced Round 25. **No arm cleared; no golden re-score; no filter** (`D110`). **Narrowed 2026-09-17 by `D112`:** the same arms against the *deployed* model gave **16 → 10 → 10**, so this null is a fact about **qwen**, not about fencing |
 | **26** | **DEFERRED (2026-09-16)** — Viraj: leave Tailscale for now. The share works (the node is in the Mac's netmap), but it is the **wrong node**: `shaili`, Windows, and it answers neither ping nor port 22 — Tailscale reports it offline, last seen 20h (26.1b, and the Mac test below). The Ubuntu lab stays reachable via AnyDesk. Reopen when someone shares `kj-xps-8950` |
 | **25** | **CLOSED** — **11 of 30 obeyed** (question 9/15, page 2/15). Above the 6+ bar → the corpus channel is in scope. **8 answers were the canary and nothing else.** Prediction wrong: the two families I named scored 0 |
 | **24** | **CLOSED** — pages present; A/B/D REFUSED both items both runs; **only C answered**; SUMMARY identical. **Mac ran it too: 8 of 8 cells agree** |
@@ -760,7 +767,7 @@ that family as a failure for the attacker; read the `refused` column and it is a
 **Nothing further is queued for the lab from this round** — Step 1's defenses are written on the
 Mac and only the re-measure needs the GPU.
 
-# Round 27 — Phase 7 Step 1: does fencing the untrusted spans stop it obeying? (OPEN, written 2026-09-16)
+# Round 27 — Phase 7 Step 1: does fencing the untrusted spans stop it obeying? (CLOSED, lab 2026-09-16)
 
 **Why.** `D109`: the shipped prompt obeyed **11 of 30** injections, 8 of those replies being the
 attacker's token alone. The prompt pastes a page body and a question in with nothing marking where
