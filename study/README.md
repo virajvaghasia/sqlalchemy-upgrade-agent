@@ -40,7 +40,7 @@ If a file dumps a bare `0.43` or an id with no question text, that is unfinished
 | [`16-JUDGE.md`](16-JUDGE.md) | Phase 4 — **58 of 91** vs **39 of 91** | §R8 |
 | [`17-AGENT.md`](17-AGENT.md) | Phase 5 — **2 of 91**, not bare `0.02` (read before 18) | §R9 |
 | [`18-PRODUCTION.md`](18-PRODUCTION.md) | Phase 6 — gate, cascade, Modal live | §R10 |
-| [`19-SECURITY.md`](19-SECURITY.md) | Phase 7 — prompt injection: **11 of 30** obeyed | §R11 |
+| [`19-SECURITY.md`](19-SECURITY.md) | Phase 7 — prompt injection: **11 of 30** obeyed, **15 of 30** on the deployed model, and a ruler that counts refusals as obedience | §R11 |
 
 
 ## By phase — which file belongs to what
@@ -132,7 +132,7 @@ Plan: [`../phases/PHASE-3.md`](../phases/PHASE-3.md). Decisions `D66`–`D70`.
 | [`16-JUDGE.md`](16-JUDGE.md) | §R8 | Phase 4 — grading the answer rather than the search |
 | [`17-AGENT.md`](17-AGENT.md) | §R9 | Phase 5 — the agent, the tools, the single-tool ceiling; §R9.7d is Phase 6 Step 1 (`D96`) |
 | [`18-PRODUCTION.md`](18-PRODUCTION.md) | §R10 | Phase 6 — the CI quality gate (`D97`) |
-| [`19-SECURITY.md`](19-SECURITY.md) | §R11 | Phase 7 — prompt injection measured before any defense (`D109`) |
+| [`19-SECURITY.md`](19-SECURITY.md) | §R11 | Phase 7 — prompt injection measured before any defense (`D109`), fencing null on one model and real on the other (`D110`, `D112`), and the canary's own defect (`D112`) |
 
 *(This section said "no study files yet" until 2026-09-12, three phases after the files existed.)*
 

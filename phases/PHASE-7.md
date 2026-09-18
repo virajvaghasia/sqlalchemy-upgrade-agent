@@ -586,33 +586,47 @@ directions — `fence_user` may be better than 10 suggests, and `fence_both`'s t
 not be holes.
 
 
-## Where Phase 7 stands (2026-09-16)
+## Where Phase 7 stands (2026-09-17)
 
 | step | state |
 |---|---|
 | **0 — is it vulnerable?** | **measured**: 11 of 30 obeyed, 8 replies the canary alone (`D109`) |
-| **1 — fencing** | **measured and rejected**: 11 obeyed on all three arms; markers and markers-plus-rule are the same null (`D110`). Nothing shipped |
+| **1 — fencing on the measured model** | **measured, null**: 11 obeyed on all three arms; markers and markers-plus-rule are the same nothing (`D110`). Nothing shipped — and `D112` narrows the claim to qwen |
 | **2 — the deployed model** | **measured**: the page's model obeys **15 of 30**, more than the local one's 11, refuses nothing, and echoes the system prompt 6 times (`D111`) |
-| **2b — re-measure a shipped defense** | **not reached.** There is no defense to re-measure |
+| **2b — the same fencing, against that model** | **measured, and it reversed `D110`'s reading**: 16 → 10 → 10, `fence_user` **6 fixed 0 broken, p = 0.031** (`D112`, 90 attempts). **Still nothing shipped** — the bar was `obeyed ≤ 5`, and `fence_both` opened two new holes for no gain. **Verdict BLOCKED, not null**: the canary cannot tell emitting the token from quoting it to refuse, and three blank-verdict sheets are waiting on a human |
 | **3 — the demo's own exposure** | 500-character cap and a rolling-hour limiter exist; load behaviour unmeasured |
 
-**Two measurements, two pre-written bars, one of them a null.** That is the phase working as
-designed — `D04`'s habit applied to security means a defense ships because it was measured, and
-fencing was not.
+**Three measurements, three pre-written bars, one of them a null that turned out to be a fact
+about a model.** That is the phase working as designed — `D04`'s habit applied to security means
+a defense ships because it was measured, and fencing was not.
 
 ### What is actually open, and what each would cost
 
+- **Reading the three sheets.** `deliverables/CANARY-REVIEW-*.md`, **36 / 15 / 11 attempts**, one
+  blank column: for each answer naming the canary, did the model **emit** the token or **quote** it
+  in order to refuse? It costs a sitting and it is the only thing that unblocks Step 2b's verdict —
+  and it touches `D109` and `D111` in the same direction. **A human signs a reading** (`D06`), so
+  this cannot be closed here. **It is the one thing Phase 7 is waiting on.**
 - **A filter that strips injection-shaped text.** The bar for Round 27 said explicitly: do **not**
   reach for this in the same round. It would be written against the five families that just
   survived fencing, and it would catch those five. Cheap to build, and honest only if it is
   described as a family-specific patch with a re-measure on families it has never seen.
-- **A different model.** `D109`/`D110` are `qwen2.5-coder:7b`. The public demo generates with
-  `nemotron-3-ultra-550b` (`D106`), which **has never been attacked here.** The demo is the channel
-  a stranger can actually reach, so this is the gap that matters most and it is 30 NVIDIA calls.
+- **Step 3 — the demo's own exposure under load.** The 500-character cap and the rolling-hour
+  limiter exist and are unmeasured. Nothing else in the phase depends on it.
 - **Accepting it.** The measured harm on this corpus is a wrong or absent answer about SQLAlchemy —
   no secret in the prompt, no write access, no tools on the demo path. Writing "we measured it, it
   obeys, here is what that can and cannot cost" is a defensible end state for a portfolio project,
   and it is where the phase sits today.
 
-**Not open:** more fencing variants. The bar said a 9–11 obeyed band means fencing does not work on
-this model, and two arms agreed.
+**Not open:**
+
+- **More fencing variants.** Two pre-written bars, both missed. Round 27's said *obeyed unchanged
+  in the 9–11 band → fencing does not work on this model*, and qwen came back **11 / 11 / 11**,
+  control included. Step 2b's said *obeyed ≤ 5 → ship*, and deepseek came back **10 and 10** against
+  a control of 16. On qwen neither arm moved anything; on deepseek `fence_user` is the better of
+  the two and **still leaves 10**.
+- **Attacking the deployed model.** Done twice — `D111` unfenced (15 of 30) and `D112` fenced
+  (90 attempts). This line used to read *"has never been attacked here … 30 NVIDIA calls"*; it was
+  true when written and was left standing through two rounds that closed it. Corrected 2026-09-17.
+- **Markers as a mitigation for prompt leakage.** `exfiltration` survives fencing **6 of 6** with
+  `ask.SYSTEM` echoed verbatim (`D112`). Whatever fencing is for, it is not this.

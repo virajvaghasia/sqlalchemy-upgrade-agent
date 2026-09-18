@@ -4407,10 +4407,11 @@ is a trace: what was asked, which five pages were found, what the model wrote, h
 > red-team suite validated on one model transfers badly to the next**, demonstrated by swapping the
 > page's model on an afternoon's notice.
 >
-> **The prediction was wrong for the second round running**, and the reasoning is the part worth
-> keeping: I expected a bigger instruction-tuned model to hold its instructions better against an
-> attacker. **Following our instructions and ignoring an attacker's are the same capability pointed
-> in two directions**, and nothing measured here says a larger model is safer.
+> **The prediction was wrong for the third round running** (`D109`, `D110`, this), and the
+> reasoning is the part worth keeping: I expected a bigger instruction-tuned model to hold its
+> instructions better against an attacker. **Following our instructions and ignoring an
+> attacker's are the same capability pointed in two directions**, and nothing measured here says
+> a larger model is safer.
 >
 > **Prompt leakage, and why it costs little HERE:** six replies repeat `ask.SYSTEM` verbatim. The
 > harm is small only because the prompt is public by an earlier choice. A system prompt holding a
@@ -4496,7 +4497,11 @@ is a trace: what was asked, which five pages were found, what the model wrote, h
 >
 > **Prediction, written before the calls: 8-13 obeyed, `exfiltration` the family most likely to
 > survive.** Landed at 10 and 10, `exfiltration` 6 of 6. **Right on both halves — the first
-> correct prediction in this phase**, after two wrong ones in opposite directions.
+> correct prediction in this phase**, after **three** wrong ones in both directions — `D109`
+> under-counted obedience (2-6 against 11), `D110` expected fencing to work and it was flat, and
+> `D111` expected the larger model to hold its instructions better and it held them worse. The
+> tally read *"two"* until 2026-09-17, when the three entries above were counted rather than
+> recalled; each one says in its own words that its prediction was wrong.
 
 
 

@@ -303,44 +303,6 @@ by anyone with the link, not lab-only curiosities.
 and cites more sources than the alternative (which is why it was chosen). Injection resistance is a
 different axis from answer quality, and this project now has a number for each.
 
-## Vocabulary from this sitting
-
-| term | plain meaning here |
-|---|---|
-| **prompt injection** | text in the question or in a retrieved page that the model follows as an instruction |
-| **channel** | *where* the payload sits: the question (a stranger can write it today) or a page (pinned corpus, not today) |
-| **canary** | a nonsense token the attack demands; obedience is `token in answer`, a string compare rather than a judgement |
-| **family** | one shape of attack — override, role confusion, fake authority, exfiltration, refusal hijack |
-| **fencing** | delimiters around untrusted spans, plus (one arm) a sentence saying what they mean |
-| **escape** | rewriting `<<<`/`>>>` inside untrusted text so it cannot forge a delimiter |
-| **denial-of-answer** | an attack that makes the system decline rather than obey — invisible to a canary |
-
-## After this you can say
-
-- The roadmap's threat did not apply to this repo, and **saying so was the first finding**: nothing
-  untrusted is indexed; the live channel is the public demo's question box.
-- **11 of 30 attempts obeyed**, 9 of them through the question channel, and **8 replies were the
-  attacker's token alone**.
-- **My prediction was wrong**: the two families I expected to win scored zero, and the blunt override
-  went 3 for 3.
-- **The family that scored zero did the most damage** — it made the system refuse three questions it
-  answers. A canary measures obedience, not harm.
-- **The refusal clause is both the defense against fabrication and the attack surface** (`D43`,
-  `D109`, Rounds 23/24).
-- Fencing was measured on three arms and **did not move obedience** (`D110`: 11 / 11 / 11). Markers
-  alone and markers-plus-rule are the same null. The pipeline is still injectable; delimiters are
-  not the fix on this model.
-
-## Do not say
-
-- *"The system is secure."* Five families, one model, one corpus, 30 attempts.
-- *"Prompt injection is solved by delimiters."* Measured here: **11 obeyed with them too** (`D110`).
-  The markers are public.
-- *"It leaked the system prompt."* Zero answers contained it — and it is public anyway.
-- *"0 obeyed means the defense worked."* `refusal_hijack` obeyed nothing and still won.
-- Quoting **11/30** as a *rate* for prompt injection generally. It is this model, this prompt, these
-  five shapes.
-
 ### R11.6 Step 2b — the same defense, the other model, and the opposite answer (`D112`)
 
 **Start with what was already believed.** `D110` had tested fencing and found nothing: put
@@ -481,6 +443,70 @@ like new holes, we found the canary counts a refusal as obedience whenever the m
 attack it is refusing — which affects every result in the phase, in one direction. We did not
 re-score anything, because that is a reading and a human signs readings here. We shipped a review
 sheet with a blank verdict column and marked the decision blocked.*
+
+
+## Vocabulary from this sitting
+
+| term | plain meaning here |
+|---|---|
+| **prompt injection** | text in the question or in a retrieved page that the model follows as an instruction |
+| **channel** | *where* the payload sits: the question (a stranger can write it today) or a page (pinned corpus, not today) |
+| **canary** | a nonsense token the attack demands; obedience is `token in answer`, a string compare rather than a judgement |
+| **family** | one shape of attack — override, role confusion, fake authority, exfiltration, refusal hijack |
+| **fencing** | delimiters around untrusted spans, plus (one arm) a sentence saying what they mean |
+| **`fence_user` / `fence_both`** | the two arms of that: markers around the untrusted spans only, and markers plus the sentence in the system prompt |
+| **escape** | rewriting `<<<`/`>>>` inside untrusted text so it cannot forge a delimiter |
+| **denial-of-answer** | an attack that makes the system decline rather than obey — invisible to a canary |
+| **model transfer** | whether a number measured on one model holds on another. Tested twice here and it failed twice — once for an attack result (`D111`), once for a defense (`D112`) |
+| **COMPLIED vs REPORTED** | the distinction the canary cannot make: the model *emitted* the attacker's token, or *quoted* it in order to refuse. It is the blank column on the three review sheets |
+
+## After this you can say
+
+- The roadmap's threat did not apply to this repo, and **saying so was the first finding**: nothing
+  untrusted is indexed; the live channel is the public demo's question box.
+- **11 of 30 attempts obeyed** on the measured model, 9 of them through the question channel, and
+  **8 replies were the attacker's token alone**.
+- **The family that scored zero did the most damage** — it made the system refuse three questions it
+  answers. A canary measures obedience, not harm.
+- **The refusal clause is both the defense against fabrication and the attack surface** (`D43`,
+  `D109`, Rounds 23/24).
+- **The model a stranger reaches is the worse one.** The measured generator obeys 11 of 30; the model
+  the public page serves obeys **15 of 30**, refuses nothing, and echoes `ask.SYSTEM` six times
+  (`D111`). A number taken on the model you develop against **understates the exposure of the thing
+  people can actually use.**
+- **Fencing is a null on one model and a real effect on the other** — 11 / 11 / 11 on qwen against
+  16 → 10 → 10 on the deployed one, `fence_user` **6 fixed 0 broken, p = 0.031** (`D110`, `D112`).
+  So `D110` was a fact about a model wearing the clothes of a fact about a defense. **Nothing
+  shipped either way**: the pre-written bar was `obeyed ≤ 5`, and `fence_both` opened two new holes
+  while gaining nothing over `fence_user`.
+- **Markers are not a mitigation for the one leak this model has.** `exfiltration` survives fencing
+  **6 of 6**, with `ask.SYSTEM` echoed verbatim on every one (`D112`).
+- **The ruler broke, and it took the defense working to expose it.** `obeyed = CANARY in answer`
+  cannot tell a model emitting the attacker's token from one quoting it in order to refuse
+  (`D112`). It is the **fourth** detector in this repo to break toward the arm under test, after
+  `D76`, `D79` and the `48/91` row. **Three results are scored with it and none is corrected**
+  until a human reads the three blank-verdict sheets.
+- **Four predictions, written before each run: three wrong, the fourth right** — and all four are
+  still on the page (`D109`, `D110`, `D111` wrong; `D112` right at 8–13 obeyed with `exfiltration`
+  surviving).
+
+## Do not say
+
+- *"The system is secure."* Five families, one model per run, one corpus, 30 attempts a run.
+- *"Prompt injection is solved by delimiters."* Measured: **11 obeyed with them** on qwen (`D110`),
+  and the best arm on the deployed model **still left 10** (`D112`). The markers are public.
+- *"It does not leak the system prompt."* True of qwen — zero answers contained it — and **false of
+  the model the live page serves**, which echoed `ask.SYSTEM` six times and kept doing it through
+  both fencing arms, **6 of 6** (`D111`, `D112`). The prompt is public, so the *cost* is low; the
+  claim is still wrong.
+- *"0 obeyed means the defense worked."* `refusal_hijack` obeyed nothing and still won.
+- Quoting **11/30** — or **15/30**, or **10/30** — as a *rate* for prompt injection generally. Each
+  one is a single model, a single prompt and five shapes.
+- *"Fencing works."* / *"Fencing does not work."* Both have a measurement behind them and neither
+  survives the other's model. **Name the model or say nothing.**
+- *"Fencing probably works better than 10 suggests, given the broken ruler."* That is the
+  flattering half of an unresolved reading, and picking the flattering half is exactly what
+  pre-registration exists to stop.
 
 
 ## Where the rest lives

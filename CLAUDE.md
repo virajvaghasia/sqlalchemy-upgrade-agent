@@ -2278,3 +2278,33 @@ Append a dated entry each session; keep each entry to a few bullets.
 - Smaller: 12 of 19 probe items have `fix OK` (not 14); `relation` "not followed by ship = 6" is whole word (the
   rule gives 108); `probe._contains` guards only the right edge (`correlation`); lab H uncited 8% under `D85`.
 - **Blocks:** 84 → 95 RUN; `14-MEASURE.md` had none. 534 tests. 17/18 were done in the 09-14 session.
+
+### 2026-09-17 — asked "are we done through and through?", and the answer was no on the doc layer
+
+- **Every gate re-run first, not read:** **586 passed, 5 skipped** (Docker down, so no Qdrant — the
+  documented figure), **97/97** `# runnable`, 19 verdicts in sync, golden **100 items / 100
+  human-verified / 9 unanswerable**, **§H empty**, **112** decisions. Code and measurements are
+  clean. **Everything found was prose**, which is the class this repo says is dangerous.
+- **`PHASE-7.md`'s own status table contradicted the write-up above it.** Step 2b read *"not
+  reached. There is no defense to re-measure"* in a file that spends ~120 lines on Step 2b's 90
+  attempts. Same file's *"What is actually open"* still offered *"a different model … has never been
+  attacked here … 30 NVIDIA calls"* — done twice, by `D111` and `D112`. Both corrected, and the
+  stale line is quoted in the correction rather than deleted.
+- **`19-SECURITY.md` was in the wrong order, and one close-out claim was reversed by its own later
+  section.** *Vocabulary / After this you can say / Do not say* sat **before** §R11.6 and §R11.7, so
+  the blocks meant to be read aloud predated the phase's last two results — and **"It leaked the
+  system prompt." Zero answers contained it** is false of the model the live page serves, which
+  echoed `ask.SYSTEM` six times (`D111`) and kept doing it through both fencing arms, 6 of 6
+  (`D112`). Moved to the end and rewritten; the reversed bullet now says which model each half is
+  true of.
+- **A typed count, caught by counting.** `D112` said *"the first correct prediction in this phase,
+  after **two** wrong ones"* and `D111` said *"wrong for the **second** round running"* — but
+  `D109`, `D110` and `D111` each say in their own words that their prediction was wrong, so it is
+  **three**. Both fixed, with the old figure recorded. The measurement rule reaches prose tallies,
+  not just script output.
+- **`README.md` and `study/README.md` stopped at `D110`/`D111`.** The front door said *"fencing
+  measured and rejected"* with no hint that `D112` reversed the reading, and the status line called
+  Phase 7 merely "optional" rather than open and blocked. Both indexes now carry `D112` and name the
+  three sheets as the one thing the phase waits on.
+- **Not committed, and nothing pushed.** Six commits from the `D112` sitting are still local on
+  `phase-7/security`, and `.env.example` remains modified and unreviewed.
