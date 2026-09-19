@@ -86,11 +86,38 @@ def fenced_prompt(question: str, hits) -> str:
     return f"SOURCES\n\n{sources}\n\n---\n\nQUESTION: {q}\n\nANSWER:"
 
 
+def prompt_h(question: str, hits) -> str:
+    """D's prompt with Phase 4 variant `H`'s citation reminder in the user turn.
+
+    NOT a fencing arm. `H` is the Phase 4 ship candidate (`D74`, `D83`): one
+    sentence about citing sources, appended to the USER turn just before the
+    ANSWER cue, with `ask.SYSTEM` left byte-identical. It is here because Phase 7
+    measured injection against `D`, and if `H` ships then `D109`'s 11-of-30 was
+    taken on a prompt that no longer runs.
+
+    There is a reason to think it could go either way, which is why it is measured
+    rather than assumed. `H`'s sentence lands in the turn the attacker also writes
+    in, so it is one more instruction competing with the injected one -- and `D74`
+    already found that `H` moved refusal behaviour it was never aimed at.
+
+    The import is lazy and the sentence is imported, not restated: `compare_prompts`
+    pulls in `index`, which `sys.exit()`s when Qdrant is unreachable, and a copied
+    sentence would let the security round and the quality round drift into
+    measuring two different `H`s.
+    """
+    from rag import compare_prompts
+
+    return compare_prompts.user_prompt("H", ask.build_prompt(question, hits))
+
+
 ARMS = {
     # name: (prompt builder, system prompt)
     "shipped":    (ask.build_prompt, ask.SYSTEM),
     "fence_user": (fenced_prompt, ask.SYSTEM),
     "fence_both": (fenced_prompt, ask.SYSTEM + SYSTEM_SUFFIX),
+    # Not a defense. A ship candidate from another phase, measured here because
+    # shipping it would invalidate the number this phase just produced.
+    "prompt_h":   (prompt_h, ask.SYSTEM),
 }
 
 

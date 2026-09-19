@@ -458,3 +458,50 @@ def test_the_review_sheet_counts_what_is_at_stake_without_deciding_it():
     sheet = inject.review_sheet(rows)
     assert "shipped" in sheet and "2" in sheet
     assert "corrected" not in sheet.lower() or "not filled in here" in sheet.lower()
+
+
+# --- the `prompt_h` arm: is the candidate prompt more or less injectable? ---------
+#
+# Phase 4's `H` is a ship candidate for its citation effect (uncited 65% -> 10% on
+# the Mac, 43% -> 8% on the lab -- the half that reproduced, `D74`/`D83`). Phase 7
+# measured injection on `D`, the prompt that ships today. If `H` ships, `D109`'s
+# number was taken on a prompt nobody runs any more -- and `H`'s whole change is a
+# sentence added to the USER turn, which is the turn the attacker writes in. That
+# is a reason to measure, not an assumption either way.
+
+def test_prompt_h_arm_is_D_plus_exactly_H_s_reminder():
+    """The arm must be D's prompt with H's sentence, and nothing else.
+
+    It imports `_REMINDER_H` rather than restating it, so the security round and
+    the quality round can never drift into measuring two different `H`s.
+    """
+    import types
+
+    from rag import ask, compare_prompts, fence
+
+    hits = [types.SimpleNamespace(score=0.9, payload={
+        "chunk_id": "c00001", "sqlalchemy_version": "2.0.51",
+        "source_path": "doc/build/core/f.rst", "heading_path": ["Heading"],
+        "text": "some page", "n_chars": 9, "has_code": False})]
+    d = fence.prompt_for("shipped", "why did from_self go away", hits)
+    h = fence.prompt_for("prompt_h", "why did from_self go away", hits)
+
+    assert h != d
+    assert compare_prompts._REMINDER_H in h
+    assert compare_prompts._REMINDER_H not in d
+    # H moves the rule into the user turn; it must still end on the ANSWER cue,
+    # or the reminder lands after it and reads as the start of the answer.
+    assert h.endswith("ANSWER:")
+    assert h == compare_prompts.user_prompt("H", d)
+
+
+def test_prompt_h_arm_leaves_the_system_prompt_byte_identical():
+    """`H` changes the user turn ONLY -- `PHASE4_VARIANTS["H"]` is `ask.SYSTEM`.
+
+    If this ever fails, the arm has started testing a system-prompt change and is
+    no longer the `H` that Phase 4 measured.
+    """
+    from rag import ask, fence
+
+    assert fence.system_for("prompt_h") == ask.SYSTEM
+    assert fence.system_for("prompt_h") == fence.system_for("shipped")
