@@ -58,7 +58,45 @@ decision that holds the command and the reasoning.
 supported, `D105`); that the hosted model's numbers describe the local one; or anything measured on one
 machine only (`D95`).
 
-**Status (2026-09-17): all six phases complete; the optional Phase 7 is open.** The demo is live, and the
+## What went wrong, and how it was caught
+
+**This is the part worth reading.** The numbers above are ordinary; the reason to trust them is that
+this project has a written record of the times they were wrong, and none of it was found by reading.
+
+| what was believed | what a measurement found | cost |
+|---|---|---|
+| The agent reasons worse than the one-shot pipeline | `agent._observation` truncated every page to **600 characters**. The median passage is **1,299**, and **2,755 of 3,284** exceed 600 — it was reading about half of what it was shown. Re-run whole: **0.25 → 0.43**, level with the pipeline | **every "the agent is worse" number retracted as a comparison** (`D93`) |
+| Prompt `H` is a clear win — 9 fixed, 0 broken, p = 0.0039 | On a second machine: **6 fixed, 2 broken, p = 0.289**, and the lab reproduced that **to the item** five days apart | `H` **held**, on a pass/fail rule written before the data (`D83`, `D84`) |
+| Fencing untrusted text does nothing (11 obeyed on all three arms) | True of `qwen`. On the model the public demo actually serves: **16 → 10 → 10**, and **15 → 8 → 6** once a human had read the rows | a null restated as **a fact about one model**, not about a defense (`D110` → `D112`) |
+| Our obedience detector is a simple string compare, so it cannot be subtly wrong | `CANARY in answer` **counts a refusal as obedience** whenever the model names the attack it is refusing. The arm rejected for "opening two holes" had opened none | **fourth** detector to break *toward the arm under test* (`D76`, `D79`, the `48/91` row, `D112`) |
+| Retrieval and generation both reproduce across machines | Retrieval reproduced **exactly** — same recall, same 17 misses, same ceiling. **Every generation number moved** | quote a range or name the machine (`D83`) |
+
+**The pattern in the fourth row is the one I would ask about.** Each of those detectors was invisible
+until the thing being measured *started working* — a prompt that finally cited its sources put `[2]`
+in front of a refusal and the refusal scored as an answer; a defense that finally made the model
+push back made it name the attacker's token, and naming it scored as obeying. **A detector written
+against the failing case is untested against the succeeding one.**
+
+**What was done about it, once, and then made routine:** pass/fail rules are written into the plan
+*before* the run and kept when they say no (`fence_both` is the best defense measured and **still did
+not ship** — it missed a pre-registered bar by one attempt). Instruments are committed before their
+first call. The answer key is hand-verified and a test stops the tooling stamping it (`D06`). When the
+canary broke, **nothing was re-scored by the people who found it** — a blank-verdict sheet shipped
+with a test that refuses to fill it in, and all **95** attempts were read by a human before a single
+number moved.
+
+**Predictions are written down before each run and kept whether or not they hold.** In the security
+phase: four written, **three wrong**, all four still on the page.
+
+## Reading this in ten minutes
+
+1. **`study/09-DECISIONS.md`** — 113 entries, each *what was decided, what was rejected, why*. Start
+   at `D93`, `D112`, `D83`.
+2. **`phases/ROADMAP.md`** — the metrics table: every row a before/after with a decision id.
+3. **`study/19-SECURITY.md` §R11** — the shortest complete arc: measure, defend, fail, find the ruler
+   is broken, refuse to fix it yourself.
+
+**Status (2026-09-19): all six phases complete; the optional Phase 7 is open.** The demo is live, and the
 CI gate has run on real GitHub runners — PR #29 passed, and PR #30, which removes the reranker, was
 **blocked** naming question `g017`. What is still open is written down rather than closed over: the refusal
 clause (below), prompt `H` on hold (`D83`), and **Phase 7, where the three review sheets came back signed
