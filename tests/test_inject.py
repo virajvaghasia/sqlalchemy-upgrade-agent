@@ -460,48 +460,52 @@ def test_the_review_sheet_counts_what_is_at_stake_without_deciding_it():
     assert "corrected" not in sheet.lower() or "not filled in here" in sheet.lower()
 
 
-# --- the `prompt_h` arm: is the candidate prompt more or less injectable? ---------
+# --- the `legacy_d` arm: every pre-D115 Phase 7 figure stays buildable --------
 #
-# Phase 4's `H` is a ship candidate for its citation effect (uncited 65% -> 10% on
-# the Mac, 43% -> 8% on the lab -- the half that reproduced, `D74`/`D83`). Phase 7
-# measured injection on `D`, the prompt that ships today. If `H` ships, `D109`'s
-# number was taken on a prompt nobody runs any more -- and `H`'s whole change is a
-# sentence added to the USER turn, which is the turn the attacker writes in. That
-# is a reason to measure, not an assumption either way.
+# Round 28 measured `H` as the `prompt_h` arm (`D114`: 7 obeyed against a 12
+# control). `D115` then SHIPPED `H`, which makes `ARMS["shipped"]` a different
+# prompt from the one `D109`, `D110`, `D112` and Round 28's control all used. A
+# control you can no longer build is a control you can no longer check, so the
+# old prompt keeps an arm of its own.
 
-def test_prompt_h_arm_is_D_plus_exactly_H_s_reminder():
-    """The arm must be D's prompt with H's sentence, and nothing else.
+def test_legacy_d_arm_is_the_prompt_every_earlier_phase_7_figure_used():
+    """`D109`'s 11 of 30 was measured without the citation sentence.
 
-    It imports `_REMINDER_H` rather than restating it, so the security round and
-    the quality round can never drift into measuring two different `H`s.
+    If this arm ever equals `shipped`, the pre-`D115` control has silently
+    become the post-`D115` prompt and every comparison against those figures is
+    against something that never ran.
     """
     import types
 
-    from rag import ask, compare_prompts, fence
+    from rag import ask, fence
 
     hits = [types.SimpleNamespace(score=0.9, payload={
         "chunk_id": "c00001", "sqlalchemy_version": "2.0.51",
         "source_path": "doc/build/core/f.rst", "heading_path": ["Heading"],
         "text": "some page", "n_chars": 9, "has_code": False})]
-    d = fence.prompt_for("shipped", "why did from_self go away", hits)
-    h = fence.prompt_for("prompt_h", "why did from_self go away", hits)
+    shipped = fence.prompt_for("shipped", "why did from_self go away", hits)
+    legacy = fence.prompt_for("legacy_d", "why did from_self go away", hits)
 
-    assert h != d
-    assert compare_prompts._REMINDER_H in h
-    assert compare_prompts._REMINDER_H not in d
-    # H moves the rule into the user turn; it must still end on the ANSWER cue,
-    # or the reminder lands after it and reads as the start of the answer.
-    assert h.endswith("ANSWER:")
-    assert h == compare_prompts.user_prompt("H", d)
+    assert ask.REMINDER in shipped
+    assert ask.REMINDER not in legacy
+    assert legacy != shipped
+    assert legacy.endswith("ANSWER:")
+    assert legacy == ask.build_prompt("why did from_self go away", hits, reminder="")
 
 
-def test_prompt_h_arm_leaves_the_system_prompt_byte_identical():
-    """`H` changes the user turn ONLY -- `PHASE4_VARIANTS["H"]` is `ask.SYSTEM`.
+def test_the_retired_prompt_h_arm_is_gone_because_it_is_now_shipped():
+    """Keeping it would compare the shipped prompt against itself and report a
+    null that means nothing. `D114` is the record of what it measured."""
+    from rag import fence
 
-    If this ever fails, the arm has started testing a system-prompt change and is
-    no longer the `H` that Phase 4 measured.
-    """
+    assert "prompt_h" not in fence.ARMS
+    assert "legacy_d" in fence.ARMS
+
+
+def test_both_arms_leave_the_system_prompt_byte_identical():
+    """`H` was a user-turn change and nothing else, which is why `D115` could
+    ship it without touching the clause `D43` fought over."""
     from rag import ask, fence
 
-    assert fence.system_for("prompt_h") == ask.SYSTEM
-    assert fence.system_for("prompt_h") == fence.system_for("shipped")
+    assert fence.system_for("legacy_d") == ask.SYSTEM
+    assert fence.system_for("shipped") == ask.SYSTEM

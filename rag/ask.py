@@ -175,7 +175,35 @@ def refused(answer: str) -> bool:
     return _LEADING_CITATIONS.sub("", answer.strip()).startswith(REFUSAL_OPENING)
 
 
-def build_prompt(question: str, hits) -> str:
+# `D115` — the one sentence that ships from Phase 4's variant `H`.
+#
+# It says nothing SYSTEM does not already say. SYSTEM has demanded citations
+# since `D43`; `D73` then measured **65% of answered questions citing nothing at
+# all**, and 26 of 28 answers containing code putting executable code on screen
+# with no source. `D74` found that moving the same words HERE — into the user
+# turn, immediately before the ANSWER cue — took uncited to 10% on the Mac and
+# 8% on the lab. **Position, not emphasis** (variant `E` shouted the rule in
+# SYSTEM and changed nothing).
+#
+# What shipped is the citation effect, which reproduced on both machines. What
+# did NOT ship is `H`'s other effect — fewer refusals, better end to end — which
+# reproduced on the Mac and not on the lab, and stays held under `D83`.
+REMINDER = (
+    "Before answering: cite the source number in brackets, like [2], after each "
+    "statement you take from a source, and put the source number on the line "
+    "before any code block."
+)
+
+
+def build_prompt(question: str, hits, reminder: str | None = None) -> str:
+    """The shipped prompt. `reminder=""` reproduces the pre-`D115` one.
+
+    That escape hatch is not politeness: every generation figure taken before
+    2026-09-20 — `D72`'s 0.43 end to end, `D73`'s citation rates, `D109`'s 11 of
+    30 injections — was measured without this sentence. `compare_prompts` needs
+    that exact text to stay buildable or its control arm silently becomes the
+    new prompt and the comparison measures nothing (`D61`: one ruler).
+    """
     blocks = []
     for n, hit in enumerate(hits, 1):
         p = hit.payload
@@ -185,7 +213,9 @@ def build_prompt(question: str, hits) -> str:
             f"     {heading}\n\n{p['text']}"
         )
     sources = "\n\n---\n\n".join(blocks)
-    return f"SOURCES\n\n{sources}\n\n---\n\nQUESTION: {question}\n\nANSWER:"
+    r = REMINDER if reminder is None else reminder
+    tail = f"{r}\n\n" if r else ""
+    return f"SOURCES\n\n{sources}\n\n---\n\nQUESTION: {question}\n\n{tail}ANSWER:"
 
 
 def generate(prompt: str) -> tuple[str, dict]:

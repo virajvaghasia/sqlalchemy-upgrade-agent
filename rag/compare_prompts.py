@@ -181,6 +181,11 @@ def user_prompt(variant: str, prompt: str) -> str:
 
     build_prompt ends with "\n\nANSWER:"; anything appended after that would
     land after the cue and read as the start of the answer.
+
+    Since `D115` the sentence SHIPS, so every arm in this module builds from
+    `build_prompt(..., reminder="")` — the pre-`D115` prompt — and `H` puts it
+    back here. Without that the control silently becomes the new prompt and the
+    whole comparison measures nothing (`D61`: one ruler, not two).
     """
     suffix = USER_SUFFIX.get(variant)
     if not suffix:
@@ -300,7 +305,7 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> N
     for r in range(repeat):
         for qi, (question, _cat, _sym) in enumerate(probe.QUESTIONS):
             hits = index.retrieve(question, limit=k)
-            prompt = ask.build_prompt(question, hits)
+            prompt = ask.build_prompt(question, hits, reminder="")
             for v in variants:
                 if refused(generate(system_prompt(v), prompt)):
                     counts[v][qi] += 1
@@ -371,7 +376,7 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
         hits = index.retrieve(it["question"], limit=k)
         prepared.append({
             "item": it,
-            "prompt": ask.build_prompt(it["question"], hits),
+            "prompt": ask.build_prompt(it["question"], hits, reminder=""),
             "n_sources": len(hits),
             # Same definition score.py --refusals uses, so the columns below are
             # comparable with D72's table rather than merely similar to it.
@@ -591,7 +596,7 @@ def main() -> None:
 
     for kind, question in QUESTIONS:
         hits = index.retrieve(question, limit=k)
-        prompt = ask.build_prompt(question, hits)
+        prompt = ask.build_prompt(question, hits, reminder="")
         print("=" * 78)
         print(f"{kind.strip()}: {question}")
         print(f"  top-5 scores: {[round(h.score, 3) for h in hits]}")

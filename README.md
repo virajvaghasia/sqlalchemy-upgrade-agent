@@ -46,7 +46,7 @@ decision that holds the command and the reasoning.
 | measure | result | decision |
 |---|---|---|
 | right page among the five shown (retrieval) | **64%** of 91 answerable, ±9.7 points; was 49% before Phase 3's changes | `D65`, `D68` |
-| right page shown **and** answered, local `qwen2.5-coder:7b` | **0.42** (lab GPU) / 0.43 (Mac) | `D72`, `D83` |
+| right page shown **and** answered, local `qwen2.5-coder:7b` | **0.42** (lab GPU) / 0.43 (Mac) — *measured on the pre-`D115` prompt* | `D72`, `D83` |
 | same, hosted `nemotron-3-ultra-550b` (the demo) | **0.58**; 16 questions gained, 1 lost vs qwen | `D104` |
 | answers fully supported by their pages (same judge) | nemotron **91%**, qwen **81%**: level, p = 0.45 | `D107` |
 | nemotron's answers, main claim **run** on SQLAlchemy 2.0.51 | **47 of 51** checkable correct (92%) | `D105` |
@@ -96,7 +96,11 @@ phase: four written, **three wrong**, all four still on the page.
 3. **`study/19-SECURITY.md` §R11** — the shortest complete arc: measure, defend, fail, find the ruler
    is broken, refuse to fix it yourself.
 
-**Status (2026-09-19): all six phases complete; the optional Phase 7 is open.** The demo is live, and the
+**Status (2026-09-20): all six phases complete; Phase 7 (optional, security) open.** **Prompt `H`
+shipped** (`D115`): two answers in three used to cite nothing at all, and the fix — one sentence moved
+into the user turn — takes that to **1 in 10**, reproduced on both machines. It ships for that effect
+only; the refusal gain it also showed did not reproduce and stays held (`D83`). Every generation
+figure below predates it and is labelled accordingly. The demo is live, and the
 CI gate has run on real GitHub runners — PR #29 passed, and PR #30, which removes the reranker, was
 **blocked** naming question `g017`. What is still open is written down rather than closed over: the refusal
 clause (below), prompt `H` on hold (`D83`), and **Phase 7, where the three review sheets came back signed
@@ -197,7 +201,7 @@ rag/                   retrieval (Phase 1-3), judge.py / faithful.py (Phase 4), 
 tools/                 check_runnable.py — every `# runnable` block, verified; check_*.py — answers run on 2.0.51, the demo page in a browser
 space/                 the demo: web.py + static/ (shipped), modal_app.py (Modal host, D106), app.py (older Gradio), pins, build script (D102)
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 593 tests pinning what the docs claim
+tests/                 600 tests pinning what the docs claim
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
 ```
 
@@ -276,10 +280,10 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-593 tests collected in 20.73s
+600 tests collected in 20.73s
 ```
 
-Five of them skip when Qdrant is not running, so a run reports 593 passed with it up and 588
+Five of them skip when Qdrant is not running, so a run reports 600 passed with it up and 595
 passed / 5 skipped without. The block counts what is *collected* because that does not depend on
 what happens to be running.
 

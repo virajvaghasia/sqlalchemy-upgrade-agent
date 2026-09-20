@@ -86,28 +86,21 @@ def fenced_prompt(question: str, hits) -> str:
     return f"SOURCES\n\n{sources}\n\n---\n\nQUESTION: {q}\n\nANSWER:"
 
 
-def prompt_h(question: str, hits) -> str:
-    """D's prompt with Phase 4 variant `H`'s citation reminder in the user turn.
+def legacy_d(question: str, hits) -> str:
+    """The pre-`D115` prompt — `ask.build_prompt` without the citation sentence.
 
-    NOT a fencing arm. `H` is the Phase 4 ship candidate (`D74`, `D83`): one
-    sentence about citing sources, appended to the USER turn just before the
-    ANSWER cue, with `ask.SYSTEM` left byte-identical. It is here because Phase 7
-    measured injection against `D`, and if `H` ships then `D109`'s 11-of-30 was
-    taken on a prompt that no longer runs.
+    NOT a fencing arm, and not a candidate. It is the prompt every Phase 7
+    number before 2026-09-20 was measured on: `D109`'s 11 of 30, `D110`'s
+    11/11/11, `D112`'s 16/10/10 and Round 28's control. `D115` shipped variant
+    `H`, so `ARMS["shipped"]` is now a different prompt from the one those
+    figures used — and a control you can no longer build is a control you can no
+    longer check. This keeps it buildable.
 
-    There is a reason to think it could go either way, which is why it is measured
-    rather than assumed. `H`'s sentence lands in the turn the attacker also writes
-    in, so it is one more instruction competing with the injected one -- and `D74`
-    already found that `H` moved refusal behaviour it was never aimed at.
-
-    The import is lazy and the sentence is imported, not restated: `compare_prompts`
-    pulls in `index`, which `sys.exit()`s when Qdrant is unreachable, and a copied
-    sentence would let the security round and the quality round drift into
-    measuring two different `H`s.
+    It replaces the `prompt_h` arm, which measured `H` against `D` in Round 28
+    (`D114`, 7 obeyed vs 12) and became redundant the moment `H` shipped: it
+    would now be the shipped prompt compared against itself.
     """
-    from rag import compare_prompts
-
-    return compare_prompts.user_prompt("H", ask.build_prompt(question, hits))
+    return ask.build_prompt(question, hits, reminder="")
 
 
 ARMS = {
@@ -115,9 +108,10 @@ ARMS = {
     "shipped":    (ask.build_prompt, ask.SYSTEM),
     "fence_user": (fenced_prompt, ask.SYSTEM),
     "fence_both": (fenced_prompt, ask.SYSTEM + SYSTEM_SUFFIX),
-    # Not a defense. A ship candidate from another phase, measured here because
-    # shipping it would invalidate the number this phase just produced.
-    "prompt_h":   (prompt_h, ask.SYSTEM),
+    # Not a defense. The pre-D115 prompt, kept buildable so every Phase 7 figure
+    # taken before 2026-09-20 stays reproducible (D114 measured H as `prompt_h`;
+    # H then shipped, so that arm is now `shipped` and this is the old control).
+    "legacy_d":   (legacy_d, ask.SYSTEM),
 }
 
 

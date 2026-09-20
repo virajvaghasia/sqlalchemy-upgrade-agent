@@ -382,7 +382,7 @@ def test_the_default_two_question_run_starts_and_retrieves_at_default_k(monkeypa
     seen = []
     monkeypatch.setattr(cp.sys, "argv", ["compare_prompts"])
     monkeypatch.setattr(cp.index, "retrieve", lambda q, limit: seen.append(limit) or [])
-    monkeypatch.setattr(cp.ask, "build_prompt", lambda q, hits: "prompt")
+    monkeypatch.setattr(cp.ask, "build_prompt", lambda q, hits, reminder=None: "prompt")
     monkeypatch.setattr(cp, "generate", lambda system, prompt: "The sources do not answer this.")
     cp.main()
     assert seen == [ask.DEFAULT_K] * len(cp.QUESTIONS)
@@ -393,7 +393,59 @@ def test_the_default_run_honours_dash_dash_k(monkeypatch, capsys):
     seen = []
     monkeypatch.setattr(cp.sys, "argv", ["compare_prompts", "--k", "10"])
     monkeypatch.setattr(cp.index, "retrieve", lambda q, limit: seen.append(limit) or [])
-    monkeypatch.setattr(cp.ask, "build_prompt", lambda q, hits: "prompt")
+    monkeypatch.setattr(cp.ask, "build_prompt", lambda q, hits, reminder=None: "prompt")
     monkeypatch.setattr(cp, "generate", lambda system, prompt: "answer")
     cp.main()
     assert seen == [10] * len(cp.QUESTIONS)
+
+
+def test_the_control_arm_did_not_inherit_the_shipped_reminder(monkeypatch):
+    """`D115` shipped `H`'s sentence inside `ask.build_prompt`. Every arm in this
+    module builds through that function, so the control `D` silently gained the
+    thing under test — and nothing caught it, because the existing tests only
+    checked `user_prompt`, which was still correctly a no-op for `D`.
+
+    This is the guard that was missing. `D` must reproduce the prompt that
+    `D72`, `D73` and `D74` actually measured.
+    """
+    from rag import ask
+
+    hits = []
+    d = cp.user_prompt("D", cp.ask.build_prompt("q", hits, reminder=""))
+    h = cp.user_prompt("H", cp.ask.build_prompt("q", hits, reminder=""))
+    assert ask.REMINDER not in d, "the control arm is no longer the pre-D115 prompt"
+    assert ask.REMINDER in h
+    assert h != d
+    # and H must equal what actually ships, or the sweep measures a third thing
+    assert h == ask.build_prompt("q", hits)
+
+
+def test_every_build_prompt_call_in_this_module_asks_for_the_legacy_prompt(monkeypatch):
+    """The guard above was not enough, and a mutation proved it.
+
+    It built the prompt itself with `reminder=""` and asserted on the result,
+    so dropping the kwarg from the module's OWN call sites changed nothing it
+    could see. This one records what `compare_prompts` actually passes.
+
+    Why it matters: `D115` put the citation sentence inside `ask.build_prompt`.
+    Every arm here builds through that function, so a call that forgets
+    `reminder=""` gives the control arm the thing under test and the sweep
+    reports a null while measuring the prompt against itself.
+    """
+    calls = []
+
+    def spy(question, hits, reminder=None):
+        calls.append(reminder)
+        return "prompt"
+
+    monkeypatch.setattr(cp.sys, "argv", ["compare_prompts"])
+    monkeypatch.setattr(cp.index, "retrieve", lambda q, limit: [])
+    monkeypatch.setattr(cp.ask, "build_prompt", spy)
+    monkeypatch.setattr(cp, "generate", lambda system, prompt: "The sources do not answer this.")
+    cp.main()
+
+    assert calls, "main() built no prompt at all"
+    assert all(r == "" for r in calls), (
+        f"compare_prompts built from the SHIPPED prompt: reminder={calls!r}. "
+        "The control arm is no longer the pre-D115 prompt."
+    )
