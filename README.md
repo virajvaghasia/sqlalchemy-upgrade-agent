@@ -100,7 +100,7 @@ phase: four written, **three wrong**, all four still on the page.
 CI gate has run on real GitHub runners — PR #29 passed, and PR #30, which removes the reranker, was
 **blocked** naming question `g017`. What is still open is written down rather than closed over: the refusal
 clause (below), prompt `H` on hold (`D83`), and **Phase 7, where the three review sheets came back signed
-(`D113`), and the fourth the same day — 95 of 95 attempts human-read**. The canary could not tell a model emitting the attacker's token from
+(`D113`), and the fourth the same day — 95 of 95 attempts human-read**, with a fifth added by Round 28 and not yet signed (19 more, `D114`). The canary could not tell a model emitting the attacker's token from
 one quoting it in order to refuse (`D112`); read by a human, the arm that had been rejected for opening two
 holes turned out to have opened none and is the best defense measured — **and it still does not ship**,
 missing its pre-written bar by one attempt. Close-out:
