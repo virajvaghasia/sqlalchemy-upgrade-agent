@@ -96,7 +96,7 @@ phase: four written, **three wrong**, all four still on the page.
 3. **`study/19-SECURITY.md` §R11** — the shortest complete arc: measure, defend, fail, find the ruler
    is broken, refuse to fix it yourself.
 
-**Status (2026-09-20): all six phases complete; Phase 7 (optional, security) open.** **Prompt `H`
+**Status (2026-09-21): all six phases complete; Phase 7 (optional, security) closed by accepting the measured risk with nothing shipped (`D116`).** **Prompt `H`
 shipped** (`D115`): two answers in three used to cite nothing at all, and the fix — one sentence moved
 into the user turn — takes that to **1 in 10**, reproduced on both machines. It ships for that effect
 only; the refusal gain it also showed did not reproduce and stays held (`D83`). Every generation
