@@ -1,8 +1,15 @@
 """Phase 6 Step 4 — the public demo's logic. No network, no model, no Gradio."""
+import contextlib
+import io
+import json
 import types
 import urllib.error
+from unittest import mock
 
 from rag import ask, demo
+
+# a realistic question: short placeholders are refused by the lookup guard, correctly
+Q = "Session(autocommit=True) is gone, what replaces it?"
 
 
 def hit(cid="c1"):
@@ -33,7 +40,7 @@ def test_the_demo_sends_the_shipped_prompt_not_a_rewrite():
 
 
 def test_a_missing_key_is_an_error_on_the_page_not_a_crash():
-    out = demo.answer("q", key=None, session="s", limiter=demo.RateLimiter(),
+    out = demo.answer(Q, key=None, session="s", limiter=demo.RateLimiter(),
                       retrieve=lambda q: [hit()], post=lambda m, k: reply("x"))
     assert "NVIDIA_API_KEY" in out["error"]
 
@@ -53,7 +60,7 @@ def test_rate_limit_per_session_and_per_hour():
 def test_a_rate_limited_visitor_still_sees_the_sources():
     """Retrieval costs nothing; only generation spends credits."""
     lim = demo.RateLimiter(per_hour=0)
-    out = demo.answer("q", key="k", session="s", limiter=lim,
+    out = demo.answer(Q, key="k", session="s", limiter=lim,
                       retrieve=lambda q: [hit()], post=lambda m, k: reply("x"))
     assert "hourly" in out["error"] and out["sources"][0]["path"] == "changelog/migration_20.rst"
 
@@ -61,7 +68,7 @@ def test_a_rate_limited_visitor_still_sees_the_sources():
 def test_a_remote_failure_keeps_the_sources_and_does_not_raise():
     def boom(m, k):
         raise urllib.error.URLError("down")
-    out = demo.answer("q", key="k", session="s", limiter=demo.RateLimiter(),
+    out = demo.answer(Q, key="k", session="s", limiter=demo.RateLimiter(),
                       retrieve=lambda q: [hit()], post=boom)
     assert out["error"] and out["sources"]
 
@@ -77,25 +84,26 @@ def test_overlong_and_empty_questions_are_refused_before_any_work():
 
 def test_the_hosted_page_quotes_its_own_models_numbers_and_names_whose_the_042_is():
     """D95/D104: a number quoted next to a model that did not produce it is the
-    error this project exists to avoid. The hosted notice gives nemotron's own
-    measured numbers and still says the 0.42 belongs to qwen2.5-coder:7b. Since
-    2026-09-16 the page model has no numbers of its own, and the notice says so."""
+    error this project exists to avoid. The hosted page names the model that wrote
+    the answer, gives that model's own measured figure, and still says the 0.42
+    belongs to qwen2.5-coder:7b."""
     page = demo.render({"answer": "a [1]", "sources": [], "error": None})
     assert demo.MODEL in page and "qwen2.5-coder:7b" in page and "0.42" in page
-    assert "has not been measured" in page, "the page model has no measured figure of its own"
 
 
-def test_the_hosted_notice_never_claims_the_page_model_was_measured():
-    """2026-09-16: the page's model changed and no figure describes it. A notice
-    that attached 0.58 to whatever model is serving would be the measurement rule
-    broken in the one place a stranger reads."""
-    notice = demo.NOT_THE_MEASURED_MODEL
+def test_every_figure_in_the_hosted_notice_is_attributed_to_the_model_that_produced_it():
+    """The invariant, which outlives any particular model: a figure and the model
+    that earned it travel together. 2026-09-21 the page went back to the MEASURED
+    model, so the notice states its numbers instead of disclaiming that it has
+    none -- but 0.42 still has to say qwen2.5-coder:7b next to it."""
+    notice = demo.HOSTED_NOTICE
     assert demo.MODEL in notice
-    assert "has not been measured" in notice
     assert demo.MODEL != "openai/gpt-oss-20b", "the judge must not also be the generator (D80)"
-    # every figure in the notice is attributed to the model that produced it
-    for figure, owner in (("0.42", "qwen2.5-coder:7b"), ("0.58", demo.PREVIOUS_MODEL)):
-        assert figure in notice and owner in notice
+    assert "0.42" in notice and "qwen2.5-coder:7b" in notice
+    assert "0.58" in notice, "the page model's own end-to-end figure"
+    assert "supported is not the same as correct" in notice
+    # the model that is gone must not be quoted as if it were serving
+    assert demo.PREVIOUS_MODEL not in notice
 
 
 def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
@@ -114,14 +122,14 @@ def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
     answered = [r for r in rows if not r.get("empty") and not ask.refused(r["answer"])]
     # Step 4g: the primary faithfulness figure is the judge given the block the model saw.
     share = sum(r.get("verdict_nvidia_h") == "SUPPORTED" for r in answered) / len(answered)
-    assert f"{e2e:.2f} end to end" in demo.NOT_THE_MEASURED_MODEL
-    assert f"{share:.0%} of its answers" in demo.NOT_THE_MEASURED_MODEL
+    assert f"{e2e:.2f} end to end" in demo.HOSTED_NOTICE
+    assert f"{share:.0%} of its answers" in demo.HOSTED_NOTICE
 
 
 def test_the_local_backend_needs_no_key_and_names_the_measured_model():
     """Run locally, the demo uses qwen2.5-coder:7b -- the generator the 0.42 was
     measured on -- and the page says that instead of the hosted disclaimer."""
-    out = demo.answer("q", key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
+    out = demo.answer(Q, key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
                       retrieve=lambda q: [hit()], post=lambda m, k: reply("an answer [1]"))
     assert out["error"] is None and out["answer"] == "an answer [1]"
     page = demo.render(out, "ollama")
@@ -133,7 +141,7 @@ def test_ollama_down_is_a_page_error_not_a_dead_server():
     Exception, so a plain except would let it kill the web server."""
     def down(m, k):
         raise SystemExit("cannot reach Ollama")
-    out = demo.answer("q", key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
+    out = demo.answer(Q, key=None, session="s", limiter=demo.RateLimiter(), backend="ollama",
                       retrieve=lambda q: [hit()], post=down)
     assert "Ollama" in out["error"] and out["sources"]
 
@@ -153,7 +161,8 @@ def test_source_cards_escape_markup_from_the_docs():
 
 def test_the_answer_panel_keeps_the_generator_notice():
     """The split page must not drop the sentence D102 requires."""
-    assert "has not been measured" in demo.render_answer({"answer": "a", "refused": False, "error": None})
+    # the hosted path carries the hosted notice, whichever model it currently names
+    assert demo.MODEL in demo.render_answer({"answer": "a", "refused": False, "error": None})
     assert "the generator the project measured" in demo.render_answer(
         {"answer": "a", "refused": False, "error": None}, "ollama")
 
@@ -199,7 +208,7 @@ def test_payload_carries_linked_answer_marked_sources_and_the_notice():
     assert p["status"] == "answered" and p["answer_md"] == "Use `Session.get` [[2]](#src-2)."
     assert [s["cited"] for s in p["sources"]] == [False, True] and p["sources"][0]["text"] == "Row"
     assert "the generator the project measured" in p["notice"] and p["seconds"] == 12.3
-    assert "has not been measured" in demo.payload(result, "nvidia", 1)["notice"]
+    assert demo.payload(result, "nvidia", 1)["notice"] == demo.HOSTED_NOTICE
 
 
 # --- tracing (Langfuse), 2026-09-14 ----------------------------------------------
@@ -228,7 +237,7 @@ class FakeTracer:
 
 def test_one_question_is_one_trace_with_search_and_the_model_call_inside():
     t = FakeTracer()
-    out = demo.answer("q", key="k", session="s", limiter=demo.RateLimiter(), tracer=t,
+    out = demo.answer(Q, key="k", session="s", limiter=demo.RateLimiter(), tracer=t,
                       retrieve=lambda q: [hit()], post=lambda m, k: {**reply("an answer [1]"),
                                                                     "usage": {"prompt_tokens": 10, "completion_tokens": 3}})
     assert out["answer"] == "an answer [1]"
@@ -242,7 +251,7 @@ def test_one_question_is_one_trace_with_search_and_the_model_call_inside():
 def test_a_rate_limited_question_is_traced_without_a_model_call():
     t = FakeTracer()
     lim = demo.RateLimiter(per_hour=0)
-    demo.answer("q", key="k", session="s", limiter=lim, tracer=t, retrieve=lambda q: [hit()],
+    demo.answer(Q, key="k", session="s", limiter=lim, tracer=t, retrieve=lambda q: [hit()],
                 post=lambda m, k: (_ for _ in ()).throw(AssertionError("must not call the model")))
     assert [o["name"] for o in t.obs] == ["demo.answer", "retrieve"] and t.obs[0]["level"] == "WARNING"
 
@@ -263,7 +272,96 @@ def test_a_failed_generation_names_the_http_status(monkeypatch):
         raise urllib.error.HTTPError("u", 429, "Too Many Requests", {}, None)
 
     monkeypatch.setattr(demo.urllib.request, "urlopen", boom)
-    out = demo.answer("q?", key="k", session="s", limiter=demo.RateLimiter(per_hour=9, gap=0),
+    out = demo.answer(Q, key="k", session="s", limiter=demo.RateLimiter(per_hour=9, gap=0),
                       retrieve=lambda q: [])
     assert "HTTP 429" in out["error"]
     assert "sources are listed" in out["error"]
+
+
+def test_the_hosted_call_falls_back_to_the_next_model_when_one_is_gone():
+    """2026-09-21: a pinned model left the NVIDIA catalog and the demo simply stopped
+    answering. The call now walks MODELS and answers with the first that responds."""
+    import urllib.error
+    tried = []
+
+    def fake_urlopen(request, timeout=None):
+        body = json.loads(request.data)
+        tried.append(body["model"])
+        if body["model"] != demo.MODELS[-1]:
+            raise urllib.error.HTTPError(demo.NVIDIA_URL, 410, "Gone", {}, None)
+        return contextlib.nullcontext(io.BytesIO(json.dumps(
+            {"choices": [{"message": {"content": "ok"}}], "usage": {}}).encode()))
+
+    with mock.patch("urllib.request.urlopen", fake_urlopen), \
+         mock.patch("rag.usage.record"):
+        data = demo.nvidia_post([{"role": "user", "content": "q"}], key="k")
+    assert tried == demo.MODELS, "every model is tried, in order"
+    assert data["_model"] == demo.MODELS[-1], "the reply says which model produced it"
+
+
+def test_a_200_with_no_choices_counts_as_that_model_failing():
+    """Seen live on a catalog model: HTTP 200, no `choices`. Indistinguishable from
+    success unless it is checked, and it would crash the page one line later."""
+    import urllib.error
+    tried = []
+
+    def fake_urlopen(request, timeout=None):
+        body = json.loads(request.data)
+        tried.append(body["model"])
+        payload = ({"choices": []} if body["model"] == demo.MODELS[0]
+                   else {"choices": [{"message": {"content": "ok"}}], "usage": {}})
+        return contextlib.nullcontext(io.BytesIO(json.dumps(payload).encode()))
+
+    with mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("rag.usage.record"):
+        data = demo.nvidia_post([{"role": "user", "content": "q"}], key="k")
+    assert tried[:2] == demo.MODELS[:2] and data["_model"] == demo.MODELS[1]
+
+
+def test_a_fallback_model_is_never_described_by_the_measured_models_numbers():
+    """The whole point of naming the model that answered: 0.58 belongs to the first
+    model in the list, and a fallback must not inherit it."""
+    primary, fallback = demo.MODELS[0], demo.MODELS[1]
+    assert demo.hosted_notice(primary) == demo.HOSTED_NOTICE
+    note = demo.hosted_notice(fallback)
+    assert fallback in note and "has not been measured" in note
+    assert "0.42" in note and "qwen2.5-coder:7b" in note
+
+
+def test_the_payload_names_the_model_that_actually_answered():
+    result = {"answer": "a [1]", "sources": [], "refused": False, "error": None,
+              "model": demo.MODELS[1]}
+    p = demo.payload(result, "nvidia", 1.0)
+    assert p["generator"] == demo.MODELS[1]
+    assert demo.MODELS[1] in p["notice"] and "has not been measured" in p["notice"]
+
+
+def test_every_golden_question_survives_the_lookup_guard():
+    """The guard exists to catch "Hello", not to reject real questions. The 100
+    hand-verified questions are the control: if any of them were blocked, the guard
+    would be costing answers, and only four of them are even under 40 characters."""
+    import json
+    import pathlib
+    items = json.loads((pathlib.Path(__file__).resolve().parent.parent
+                        / "deliverables" / "golden.json").read_text())["items"]
+    blocked = [i["question"] for i in items if not demo.looks_like_a_lookup(i["question"])]
+    assert not blocked, f"the guard would have refused real questions: {blocked}"
+
+
+def test_greetings_and_noise_do_not_reach_the_model():
+    for junk in ("Hello", "hi", "hey there", "thanks!", "asdf", "ok", "?"):
+        assert not demo.looks_like_a_lookup(junk), junk
+
+
+def test_a_greeting_costs_no_retrieval_no_model_call_and_shows_no_decline_note():
+    """What "Hello" used to do: 48 seconds, five unrelated pages, and the decline note
+    -- which quotes a statistic about over-refusal on REAL questions, so attaching it
+    to a greeting implies the docs might have covered it."""
+    called = []
+    result = demo.answer("Hello", key="k", session="s", limiter=demo.RateLimiter(),
+                         retrieve=lambda q: called.append("retrieve") or [],
+                         post=lambda m, k: called.append("post") or reply("x"))
+    assert called == [], "neither retrieval nor the model should run"
+    assert result["error"] == demo.NOT_A_LOOKUP
+    assert not result.get("sources"), "nothing was searched, so nothing is listed"
+    p = demo.payload(result, "nvidia", 0.1)
+    assert p["status"] == "error" and p["sources"] == []

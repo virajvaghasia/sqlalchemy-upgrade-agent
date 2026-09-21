@@ -50,8 +50,24 @@ from rag import ask
 # per-model entitlement, not credits and not an outage (PHASE-6.md, last section).
 # `D80`'s sentence, on a second provider: a pinned id is a promise about a name,
 # not a service.
-MODEL = "deepseek-ai/deepseek-v4-flash-0731"
-PREVIOUS_MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
+# 2026-09-21: `deepseek-v4-flash-0731` left the NVIDIA catalog entirely -- `/v1/models` no longer
+# lists it and the endpoint answers 410 Gone -- so the live demo stopped answering. Repointed to
+# the model this project actually MEASURED (D104 end to end, D107 faithfulness), which was dropped
+# on 2026-09-16 only because it was briefly uncallable on this key and answers in ~1.3s again.
+# `D80`'s sentence, for the third time: a pinned id is a promise about a name, not a service.
+# ORDERED FALLBACK. Two hosted models have now disappeared under this page (one to 404
+# entitlement, one out of the catalog entirely), and each time the demo simply stopped
+# answering until a human noticed. The page now walks this list and answers with the first
+# model that responds, and SAYS WHICH ONE DID -- a fallback that quietly swaps the model
+# behind an unchanged notice would be the measurement rule broken where a stranger reads.
+# All three answered on 2026-09-21; only the first has been measured on this project.
+MODELS = [
+    "nvidia/nemotron-3-ultra-550b-a55b",      # measured here: D104 end to end, D107 faithfulness
+    "nvidia/nemotron-3-super-120b-a12b",      # not measured
+    "nvidia/nemotron-3.5-lightning-30b-a3b",  # not measured
+]
+MODEL = MODELS[0]
+PREVIOUS_MODEL = "deepseek-ai/deepseek-v4-flash-0731"
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 KEY_VAR = "NVIDIA_API_KEY"
 
@@ -59,23 +75,80 @@ GLOBAL_PER_HOUR = 60        # chosen: every visitor together, per rolling hour
 SESSION_MIN_SECONDS = 20    # chosen: one visitor cannot fire questions back to back
 MAX_QUESTION_CHARS = 500    # the longest golden question is well under this
 
-MEASURED_MODEL_NOTICE = (
-    "Answers here are written by `qwen2.5-coder:7b` on Ollama, the generator the project measured: "
-    "0.42 end to end on the lab machine and 0.43 on the Mac (D83), with the same retrieval and prompt."
+# Decision-register ids (D83 for the two machines) stay in comments and docs. A visitor
+# does not know what D83 is and never will, so a notice that cites one is showing its
+# working to the wrong reader.
+# WHETHER A QUESTION IS EVEN LOOKUP-SHAPED, decided before a model is called.
+#
+# Typing "Hello" used to cost 48 seconds, return five unrelated pages, and print the decline
+# note -- which quotes a statistic about over-refusal ON REAL QUESTIONS. Attaching that to a
+# greeting implies the documentation might have covered it. Three wrongs in one reply.
+#
+# The rule is deliberately dumb: a long sentence gets the benefit of the doubt, so does anything
+# with code in it, and so does anything naming something in the library's vocabulary. A test
+# asserts all 100 golden questions pass it, which is what makes the list defensible rather than
+# invented -- only four of them are under 40 characters, and each names a term.
+CODE_SHAPE = re.compile(r"[._()\[\]=]|\b\d+\.\d+\b")
+TERMS = re.compile(
+    r"sqlalchemy|session|query|engine|orm|relationship|backref|back_populates|select|insert|"
+    r"update|delete|commit|rollback|flush|declarative|mapper|mapped|column|table|connection|"
+    r"execute|autocommit|autobegin|autoflush|lazy|eager|joinedload|selectinload|subquery|join|"
+    r"alembic|migrat|deprecat|warning|legacy|cursor|scalar|row|bind|metadata|schema|transaction|"
+    r"yield_per|from_self|baked|hybrid|association|cascade|identity|detach|expire|pool|dialect|"
+    r"psycopg|sqlite|postgres|mysql|python|import|attributeerror|typeerror|removedin|1\.4|2\.0",
+    re.I)
+MIN_SENTENCE = 40   # only 4 of the 100 golden questions are shorter, and all four name a term
+
+
+def looks_like_a_lookup(question: str) -> bool:
+    """Does this even name something the documentation could be searched for?"""
+    q = (question or "").strip()
+    return len(q) >= MIN_SENTENCE or bool(CODE_SHAPE.search(q)) or bool(TERMS.search(q))
+
+
+NOT_A_LOOKUP = (
+    "That does not look like a question about SQLAlchemy. Paste the error you got, or the 1.4 "
+    "code that stopped working, and this will search the documentation for the page that covers "
+    "it. The examples under the box are real questions it has been tested on."
 )
 
-# The two numbers are Step 4d's end to end (D104) and Step 4g's faithfulness, judged
-# on the pages exactly as the model saw them (D107). A test re-derives both from
-# deliverables/nemotron-all-phase6.json, so they cannot drift from the rows.
-NOT_THE_MEASURED_MODEL = (
-    f"Answers here are written by `{MODEL}`, and **that model has not been measured on this "
-    f"project's question set** — it was put in place on 2026-09-16 when the previous page model, "
-    f"`{PREVIOUS_MODEL}`, stopped being callable on this API key. The measured figures elsewhere "
-    f"belong to other models: `qwen2.5-coder:7b` scores 0.42 end to end and is the system of record, "
-    f"and `{PREVIOUS_MODEL}` scored 0.58 end to end with 91% of its answers judged fully supported "
-    f"by the pages it was given (2026-09-13; supported is not the same as correct). Retrieval and "
-    f"the prompt are unchanged, so the five sources below are the same ones every measurement used."
+MEASURED_MODEL_NOTICE = (
+    "Answers here are written by `qwen2.5-coder:7b` on Ollama, the generator the project measured: "
+    "0.42 end to end on the lab machine and 0.43 on the Mac, with the same retrieval and prompt."
 )
+
+# The two figures are Step 4d's end to end (D104) and Step 4g's faithfulness, judged on the pages
+# exactly as the model saw them (D107). A test re-derives both from
+# deliverables/nemotron-all-phase6.json, so they cannot drift from the rows.
+# Renamed from NOT_THE_MEASURED_MODEL on 2026-09-21: while the page served an unmeasured model that
+# name was the point of the notice, and now that the page serves the measured one it would be false.
+HOSTED_NOTICE = (
+    f"Answers here are written by `{MODEL}`, and this project did measure that model: "
+    f"0.58 end to end, with 91% of its answers judged fully supported by the pages it was given "
+    f"(2026-09-13; supported is not the same as correct). The system of record is still "
+    f"`qwen2.5-coder:7b`, which scores 0.42 end to end, and that is the model the other figures on "
+    f"this page describe. Retrieval and the prompt are unchanged, so the five sources below are the "
+    f"same ones every measurement used."
+)
+
+
+def hosted_notice(model: str | None = None) -> str:
+    """The notice for whichever hosted model actually produced the answer.
+
+    The first model in `MODELS` has measured figures and the notice quotes them.
+    A fallback has none, and the notice says so plainly rather than leaving the
+    reader to assume the numbers above describe it.
+    """
+    model = model or MODEL
+    if model == MODEL:
+        return HOSTED_NOTICE
+    return (
+        f"Answers here are written by `{model}`, and **that model has not been measured on this "
+        f"project's question set**. It answered because `{MODEL}`, which was measured (0.58 end to "
+        f"end), did not respond. The system of record is `qwen2.5-coder:7b` at 0.42 end to end, and "
+        f"that is the model the other figures on this page describe. Retrieval and the prompt are "
+        f"unchanged, so the five sources below are the same ones every measurement used."
+    )
 
 
 def langfuse_client():
@@ -126,7 +199,9 @@ class RateLimiter:
 
 
 def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
-    """One hosted call, with its token usage written to the ledger.
+    """One hosted call, trying each model in `MODELS` until one answers.
+
+    The reply carries `_model`: which model produced it, so the page can name it.
 
     Successes AND failures are recorded (`rag/usage.py`): NVIDIA sends no
     rate-limit headers, so a 429 in that file is the only place "the limit was
@@ -134,19 +209,33 @@ def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
     """
     from rag import usage as usage_mod
 
-    body = {"model": MODEL, "temperature": ask.TEMPERATURE, "max_tokens": 8192,
-            "messages": messages}
-    request = urllib.request.Request(
-        NVIDIA_URL, data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            data = json.loads(response.read())
-    except urllib.error.HTTPError as exc:
-        usage_mod.record(MODEL, None, "demo.nvidia_post", status=exc.code)
-        raise
-    usage_mod.record(MODEL, data.get("usage"), "demo.nvidia_post")
-    return data
+    last = None
+    for model in MODELS:
+        body = {"model": model, "temperature": ask.TEMPERATURE, "max_tokens": 8192,
+                "messages": messages}
+        request = urllib.request.Request(
+            NVIDIA_URL, data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                data = json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            usage_mod.record(model, None, "demo.nvidia_post", status=exc.code)
+            last = exc
+            continue
+        except (urllib.error.URLError, TimeoutError) as exc:
+            usage_mod.record(model, None, "demo.nvidia_post", status=None)
+            last = exc
+            continue
+        if not (data.get("choices") or []):
+            # 200 with no choices: seen on a live model, and indistinguishable from
+            # success unless it is checked. Treat it as this model failing.
+            last = ValueError(f"{model} returned no choices")
+            continue
+        usage_mod.record(model, data.get("usage"), "demo.nvidia_post")
+        data["_model"] = model
+        return data
+    raise last if last is not None else RuntimeError("no hosted model configured")
 
 
 def ollama_post(messages: list[dict], key: str | None) -> dict:
@@ -168,6 +257,9 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
         return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0."}
     if len(question) > MAX_QUESTION_CHARS:
         return {"error": f"Please keep the question under {MAX_QUESTION_CHARS} characters."}
+    if not looks_like_a_lookup(question):
+        # No retrieval, no model call, no decline note: none of those would be true here.
+        return {"error": NOT_A_LOOKUP}
     if backend == "ollama":
         post = ollama_post if post is nvidia_post else post
     elif not key:
@@ -227,7 +319,9 @@ def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root
     text = (data["choices"][0]["message"].get("content") or "").strip()
     if root:
         root.update(output={"refused": ask.refused(text), "answer": text})
-    return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None}
+    # `_model` is set by nvidia_post when a fallback answered; the page names it.
+    return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None,
+            "model": data.get("_model", model)}
 
 
 def render(result: dict, backend: str = "nvidia") -> str:
@@ -242,7 +336,7 @@ def render(result: dict, backend: str = "nvidia") -> str:
         for s in result["sources"]:
             parts.append(f"<details><summary>[{s['n']}] SQLAlchemy {s['version']} — "
                          f"{s['path']} — {s['heading']}</summary>\n\n```\n{s['text']}\n```\n\n</details>")
-    notice = MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL
+    notice = MEASURED_MODEL_NOTICE if backend == "ollama" else hosted_notice(result.get("model"))
     parts.append(f"\n---\n\n<sub>{notice}</sub>")
     return "\n\n".join(parts)
 
@@ -321,7 +415,7 @@ def render_answer(result: dict, backend: str = "nvidia") -> str:
         parts.append(f"**{html.escape(result['error'])}**")
     if result.get("answer"):
         parts.append(link_citations(result["answer"], len(result.get("sources") or [])))
-    notice = MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL
+    notice = MEASURED_MODEL_NOTICE if backend == "ollama" else hosted_notice(result.get("model"))
     parts.append(f"<sub>{notice}</sub>")
     return "\n\n".join(parts)
 
@@ -377,7 +471,7 @@ def payload(result: dict, backend: str, seconds: float) -> dict:
         "sources": [{"n": s["n"], "version": s["version"], "path": s["path"], "heading": s["heading"],
                      "text": SPHINX_ROLE.sub(sphinx_name, s["text"]), "cited": s["n"] in used}
                     for s in sources],
-        "notice": MEASURED_MODEL_NOTICE if backend == "ollama" else NOT_THE_MEASURED_MODEL,
-        "generator": "qwen2.5-coder:7b" if backend == "ollama" else MODEL,
+        "notice": MEASURED_MODEL_NOTICE if backend == "ollama" else hosted_notice(result.get("model")),
+        "generator": "qwen2.5-coder:7b" if backend == "ollama" else (result.get("model") or MODEL),
         "seconds": round(seconds, 1),
     }

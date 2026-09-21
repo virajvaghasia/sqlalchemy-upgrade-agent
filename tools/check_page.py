@@ -30,8 +30,12 @@ LONG = "sqlalchemy.orm.session.Session.get_bind_for_mapper_with_a_very_long_iden
 ANSWERED = {
     "status": "answered", "status_label": "Answered from the sources", "error": None, "seconds": 1,
     "generator": "qwen2.5-coder:7b", "notice": NOTICE,
+    # The comment is absurdly long on purpose. It has to overflow the code panel at DESKTOP as
+    # well as on a phone: when the answer column got wider on 2026-09-20 the old 93-character
+    # line simply fitted, and a check whose input cannot overflow cannot test overflow.
     "answer_md": (f"Use `Session.get` [[1]](#src-1), see {LONG}.\n\n```python\nwith Session(engine) as s:\n"
-                  "    user = s.get(User, 1)  # a deliberately long comment line that is far wider than a phone\n```"),
+                  "    user = s.get(User, 1)  # a deliberately long comment line that is far wider than a phone,"
+                  " and wider than the answer column on a large desktop monitor too, which is the point of it\n```"),
 }
 SOURCES = [{"n": 1, "version": "2.0.51", "cited": True, "heading": "Session > get",
             "path": "doc/build/orm/some/really/long/path/without/spaces/anywhere/in/it/at/all.rst",
