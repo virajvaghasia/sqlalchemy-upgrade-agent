@@ -54,6 +54,13 @@ from rag import corpus, embed
 URL = "http://127.0.0.1:6333"
 BATCH = 256
 
+# Where dense search runs. "qdrant" is what every measurement in this repo used.
+# "memory" is an exact dot product over corpus/embeddings.npy, for places with no
+# Qdrant -- the Phase 6 demo on a Hugging Face Space. It is only allowed to ship
+# if the golden set scores identically through it (`rag.gate`, `D102`), because
+# Qdrant's HNSW index is approximate and an exact search could rank differently.
+DENSE_ENV = "RAG_DENSE"
+
 
 def collection_name(stats: dict) -> str:
     """Project name, model, and the first 8 of the revision that produced it."""
@@ -92,6 +99,50 @@ def load_inputs():
         sys.exit(f"{len(missing)} ids are not in chunks.jsonl — re-run rag.chunk then rag.embed")
 
     return vectors, ids, stats, chunks
+
+
+_MEMORY = None
+
+
+def memory_points(query_vec, limit: int, version: str | None = None):
+    """Exact top-`limit` by dot product, shaped like Qdrant's points.
+
+    The vectors are unit length (EMBED_STATS "normalize": true), so the dot
+    product IS the cosine Qdrant computes. Ties break by row order.
+    """
+    import numpy as np
+    from types import SimpleNamespace
+    from rag import hybrid
+
+    global _MEMORY
+    if _MEMORY is None:
+        vectors, ids, _, chunks = load_inputs()
+        _MEMORY = (vectors, ids, chunks)
+    vectors, ids, chunks = _MEMORY
+    scores = vectors @ np.asarray(query_vec, dtype=np.float32)
+    rows = np.argsort(-scores, kind="stable")
+    out = []
+    for i in rows:
+        chunk = chunks[ids[i]]
+        if version and chunk["sqlalchemy_version"] != version:
+            continue
+        out.append(SimpleNamespace(score=float(scores[i]), payload=hybrid._payload_from_chunk(chunk)))
+        if len(out) == limit:
+            break
+    return out
+
+
+def dense_points_fn(stats, query_vec, limit: int, flt, version: str | None):
+    import os
+    if os.environ.get(DENSE_ENV, "qdrant") == "memory":
+        return memory_points(query_vec, limit, version)
+    return client().query_points(
+        collection_name=collection_name(stats),
+        query=query_vec,
+        limit=limit,
+        query_filter=flt,
+        with_payload=True,
+    ).points
 
 
 def client():
@@ -212,28 +263,115 @@ def query_vector(query: str) -> list[float]:
     )[0].tolist()
 
 
-def retrieve(query: str, limit: int = 5, version: str | None = None):
-    """Top-`limit` hits, newest-first by score. Shared by --search and rag.ask."""
-    from qdrant_client import models
+def retrieve(
+    query: str,
+    limit: int = 5,
+    version: str | None = None,
+    *,
+    dedupe: bool = True,
+    hybrid: bool = True,
+    rerank: bool = True,
+):
+    """Top-`limit` hits. Shared by --search, rag.ask, and rag.score.
 
-    _, _, stats, _ = load_inputs()
-    flt = (
-        models.Filter(must=[models.FieldCondition(
+    Defaults (Phase 3):
+      - `hybrid=True` — dense (Qdrant) + BM25 fused with dense-heavy RRF (`D67`)
+      - `dedupe=True` — collapse cross-version twins, prefer 2.0.51 (`D66`)
+      - `rerank=True` — seat-5 CE promotion on the hybrid list (`D68`)
+
+    Pass `hybrid=False` / `dedupe=False` / `rerank=False` only to re-measure.
+    """
+    from rag import dedup as dedup_mod
+    from rag import rerank as rerank_mod
+
+    _, _, stats, chunks = load_inputs()
+    # Filter is a Qdrant type. The memory path never uses `flt` (it filters by
+    # chunk payload in memory_points), and the hosted demo has no qdrant_client
+    # installed — so only import the client when a version filter is asked for.
+    flt = None
+    if version:
+        from qdrant_client import models
+        flt = models.Filter(must=[models.FieldCondition(
             key="sqlalchemy_version", match=models.MatchValue(value=version))])
-        if version else None
+
+    # Rerank needs ranks 6..10 on the desk; ask's limit=5 is not enough alone.
+    fetch_limit = (
+        max(limit, rerank_mod.CANDIDATE_DEPTH) if rerank else limit
     )
-    return client().query_points(
-        collection_name=collection_name(stats),
-        query=query_vector(query),
-        limit=limit,
-        query_filter=flt,
-        with_payload=True,
-    ).points
+
+    if hybrid:
+        from rag import bm25 as bm25_mod
+        from rag import hybrid as hybrid_mod
+
+        channel = hybrid_mod.CHANNEL_DEPTH
+        dense_fetch = (
+            channel if (version or not dedupe)
+            else dedup_mod.overfetch_limit(channel)
+        )
+        dense_points = dense_points_fn(stats, query_vector(query), dense_fetch, flt, version)
+        if dedupe and not version:
+            dense_points = dedup_mod.dedupe_points(dense_points, channel)
+        else:
+            dense_points = dense_points[:channel]
+
+        sparse_hits = bm25_mod.get_index().search(
+            query, limit=channel, version=version
+        )
+        dense_ids = [p.payload["chunk_id"] for p in dense_points]
+        sparse_ids = [h.chunk_id for h in sparse_hits]
+        fuse_n = (
+            fetch_limit if (version or not dedupe)
+            else dedup_mod.overfetch_limit(fetch_limit)
+        )
+        rrf_map = hybrid_mod.rrf_scores_map(dense_ids, sparse_ids)
+        ordered = hybrid_mod.rrf_fuse(
+            dense_ids, sparse_ids, limit=fuse_n
+        )
+        dense_by_id = {p.payload["chunk_id"]: p for p in dense_points}
+        points = hybrid_mod.materialize_hits(
+            ordered,
+            dense_by_id=dense_by_id,
+            chunks_by_id=chunks,
+            rrf_scores=rrf_map,
+        )
+        if dedupe and not version:
+            points = dedup_mod.dedupe_points(points, fetch_limit)
+        else:
+            points = points[:fetch_limit]
+    else:
+        # Dense-only path (Phase 1–2 measurement).
+        fetch = (
+            fetch_limit if (version or not dedupe)
+            else dedup_mod.overfetch_limit(fetch_limit)
+        )
+        points = dense_points_fn(stats, query_vector(query), fetch, flt, version)
+        if dedupe and not version:
+            points = dedup_mod.dedupe_points(points, fetch_limit)
+        else:
+            points = points[:fetch_limit]
+
+    if rerank:
+        points = rerank_mod.rerank(query, points)
+    return points[:limit]
 
 
-def search(query: str, limit: int = 5, version: str | None = None) -> None:
-    hits = retrieve(query, limit=limit, version=version)
-    print(f"\n=== {query}" + (f"   [version={version}]" if version else ""))
+def search(
+    query: str,
+    limit: int = 5,
+    version: str | None = None,
+    *,
+    hybrid: bool = True,
+    rerank: bool = True,
+) -> None:
+    hits = retrieve(
+        query, limit=limit, version=version, hybrid=hybrid, rerank=rerank
+    )
+    parts = []
+    parts.append("hybrid" if hybrid else "dense")
+    if rerank:
+        parts.append("rerank")
+    mode = "+".join(parts)
+    print(f"\n=== {query}" + (f"   [version={version}]" if version else "") + f"   [{mode}]")
     for rank, hit in enumerate(hits, 1):
         p = hit.payload
         head = " > ".join(p["heading_path"]) or "(none)"
@@ -247,7 +385,9 @@ def main() -> None:
     if "--search" in argv:
         query = argv[argv.index("--search") + 1]
         version = argv[argv.index("--version") + 1] if "--version" in argv else None
-        search(query, version=version)
+        hybrid = "--dense-only" not in argv
+        rerank = "--no-rerank" not in argv
+        search(query, version=version, hybrid=hybrid, rerank=rerank)
     else:
         build(recreate="--recreate" in argv)
 

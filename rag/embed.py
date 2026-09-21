@@ -77,6 +77,11 @@ MODEL_REVISION: str | None = "5617a9f61b028005a4858fdac845db406aefb181"
 # distance expects that. Recorded in the stats because a run that normalized and
 # a run that did not produce indexes that cannot be mixed — silently, since the
 # search still returns results.
+#
+# With BGE-M3 at MODEL_REVISION this flag changes nothing: the model's own
+# pipeline is Transformer -> Pooling -> Normalize, so vectors come out length 1
+# with the flag False too (measured 2026-09-14; study/10-RETRIEVAL.md R2.3). It
+# is kept as a second guarantee for a model whose pipeline has no Normalize step.
 NORMALIZE = True
 
 # BGE-M3 accepts 8192 tokens. Our chunks do not need it: TARGET is 1800
@@ -130,6 +135,9 @@ def embedding_input(chunk: dict) -> str:
     "this was removed in 2.0" is meaningless without the heading naming what
     "this" is. The chunker already carries the ancestry; this is where it earns
     its keep. Without it the embedding represents an orphaned paragraph.
+
+    Sphinx roles stay raw. Stripping them for embed was measured 2026-08-22 and
+    **rejected** (`D69`): recall@5 fell 0.64 → 0.58 and broke two baseline hits.
     """
     path = " > ".join(chunk["heading_path"])
     return f"{path}\n\n{chunk['text']}" if path else chunk["text"]

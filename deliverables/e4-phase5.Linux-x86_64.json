@@ -1,0 +1,156 @@
+{
+ "machine": "Linux-x86_64",
+ "arms": {
+  "plain": [
+   {
+    "question": "Was MetaData.bind removed in SQLAlchemy 2.0, and what should I use instead?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Does Query.from_self still exist in 2.0, and how do I rewrite a query that used it?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this. [1]"
+   },
+   {
+    "question": "Is engine.execute still available in 2.0, and what replaces it?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was Query.get removed in 2.0, and what is the replacement?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Does Table.tometadata still exist in 2.0, and what is it called now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The `to_metadata` method still exists in SQLAlchemy 2.0 and has the same signature as it did in version 1.4. It is used to create a copy of a table that is associated with a different metadata object.\n\nFor more information, you can refer to the [SQLAlchemy 2.0 documentation on Table](https://docs.sqlalchemy.org/en/20/core/metadata.html#sqlalchemy.schema.Table.to_metadata) [1].\n\n[1] SQLAlchemy Documentation: https://docs.sqlalchemy.org/en/20/core/metadata.html"
+   },
+   {
+    "question": "Is Row.keys() still a method in 2.0, and how do I get column names now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was the Query API removed in 2.0, and what should I write instead?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Does declarative_base still exist in 2.0, and where has it moved to?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "`declarative_base` still exists in SQLAlchemy 2.0 and has not been moved or renamed. It is used to create a base class for declarative class definitions, similar to its usage in SQLAlchemy 1.4.\n\nHere's an example of how you might use `declarative_base` in SQLAlchemy 2.0:\n\n```python\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker, declarative_base\n\nBase = declarative_base()\n\nclass User(Base):\n    __tablename__ = 'users'\n    id = Column(Integer, primary_key=True)\n    name = Column(String)\n\nengine = create_engine('sqlite:///:memory:')\nBase.metadata.create_all(engine)\nSession = sessionmaker(bind=engine)\nsession = Session()\n```\n\nThis example demonstrates how to define a base class `User` using `declarative_base`, and then create a table and session as usual."
+   },
+   {
+    "question": "Is MetaData.bind gone in 2.0, and how do I bind an engine now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was connectionless execution removed in 2.0, and how do I execute now?",
+    "tools": [
+     "search_docs"
+    ],
+    "answer": "The sources indicate that connectionless execution and bound metadata have been deprecated and removed in SQLAlchemy 2.0 [1], [2]. Instead, you should now explicitly manage connections using the `engine.connect()` method and execute statements through this connection.\n\nTo execute a statement, you can use the `execute()` method on a connection object. For example:\n\n```python\nfrom sqlalchemy import create_engine, text\n\n# Create an engine instance\nengine = create_engine('sqlite:///example.db')\n\n# Connect to the database\nwith engine.connect() as connection:\n    # Execute a query using text()\n    result = connection.execute(text(\"SELECT * FROM users\"))\n    \n    # Fetch and print results\n    for row in result:\n        print(row)\n```\n\nThis approach ensures that you have explicit control over connections, which is recommended for better performance and resource management [3], [4]."
+   }
+  ],
+  "nudged": [
+   {
+    "question": "Was MetaData.bind removed in SQLAlchemy 2.0, and what should I use instead?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "In SQLAlchemy 2.0, the `MetaData.bind` parameter has been removed. Instead of binding a `MetaData` object to an engine during its creation, you should pass the engine directly when creating tables or using reflection.\n\nHere's how you can update your code:\n\n### Before (SQLAlchemy 1.4)\n```python\nfrom sqlalchemy import create_engine, MetaData\n\nengine = create_engine('sqlite:///example.db')\nmetadata = MetaData(bind=engine)\n\n# Create tables\ntable = Table('my_table', metadata,\n              Column('id', Integer, primary_key=True),\n              Column('name', String))\n\nmetadata.create_all(engine)\n```\n\n### After (SQLAlchemy 2.0)\n```python\nfrom sqlalchemy import create_engine, MetaData, Table, Column, Integer, String\n\nengine = create_engine('sqlite:///example.db')\nmetadata = MetaData()\n\n# Create tables\ntable = Table('my_table', metadata,\n              Column('id', Integer, primary_key=True),\n              Column('name', String))\n\nwith engine.connect() as conn:\n    table.create(bind=conn)\n```\n\nIn this updated code, the `MetaData` object is created without a bind. Instead, when creating tables or reflecting them, you pass the connection directly using the `bind` parameter.\n\nFor more details and examples, refer to the [SQLAlchemy 2.0 Migration Guide][1] and the [official documentation on bound metadata removal][5].\n\n[1]: https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#migration-20-bound-metadata-removed\n[5]: https://docs.sqlalchemy.org/en/20/core/metadata.html#bound-metadata"
+   },
+   {
+    "question": "Does Query.from_self still exist in 2.0, and how do I rewrite a query that used it?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The :meth:`_orm.Query.from_self` method has been removed from SQLAlchemy 2.0. Instead, you can use the :func:`._orm.aliased` construct to achieve similar functionality.\n\nHere is how you can rewrite a query that used `Query.from_self`:\n\n```python\nfrom sqlalchemy.orm import aliased\n\n# Original query using Query.from_self\nq = (\n    session.query(User, Address.email_address)\n    .join(User.addresses)\n    .from_self(User)\n    .order_by(Address.email_address)\n)\n\n# Rewritten query using aliased\nsubquery = session.query(User).filter(User.id == 5).subquery()\n\nuser = session.query(User).select_entity_from(subquery).first()\n```\n\nIn the rewritten query, we create a subquery and then use `aliased` to select from that subquery. This approach avoids the need for `Query.from_self` and provides a more straightforward way to handle complex queries.\n\nFor more details, you can refer to the SQLAlchemy 2.0 migration guide [1] and the documentation on using :func:`._orm.aliased` [4]."
+   },
+   {
+    "question": "Is engine.execute still available in 2.0, and what replaces it?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "In SQLAlchemy 2.0, the `engine.execute` method is no longer available. Instead, you should use a connection object to execute queries. The connection can be obtained from the engine using the `connect()` method.\n\nHere's an example of how to replace `engine.execute` with a connection:\n\n```python\nfrom sqlalchemy import create_engine\n\n# Create an engine\nengine = create_engine('sqlite:///example.db')\n\n# Connect to the database\nwith engine.connect() as connection:\n    # Execute a query using the connection\n    result = connection.execute(\"SELECT * FROM table\")\n    for row in result:\n        print(row)\n```\n\nThis approach ensures that you are working with a connection object, which is the recommended way to execute queries in SQLAlchemy 2.0.\n\nFor more information, refer to the [SQLAlchemy 2.0 migration guide](https://docs.sqlalchemy.org/en/14/changelog/migration_20.html#migration-20-implicit-execution)."
+   },
+   {
+    "question": "Was Query.get removed in 2.0, and what is the replacement?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The `Query.get()` method has been moved to the `Session` object in SQLAlchemy 2.0. The primary interface for getting an object by its primary key is now through the `Session.get()` method, as shown in the example:\n\n```python\nuser_obj = session.get(User, 5)\n```\n\nThis change aims to simplify the ORM query interface and align it more closely with the Core SQL usage [1]."
+   },
+   {
+    "question": "Does Table.tometadata still exist in 2.0, and what is it called now?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "The `to_metadata` method still exists in SQLAlchemy 2.0 and has the same signature as it did in version 1.4. It is used to create a copy of a table that is associated with a different metadata object.\n\nFor more information, you can refer to the [SQLAlchemy 2.0 documentation on Table](https://docs.sqlalchemy.org/en/20/core/metadata.html#sqlalchemy.schema.Table.to_metadata) [1].\n\n[1] SQLAlchemy Documentation: https://docs.sqlalchemy.org/en/20/core/metadata.html"
+   },
+   {
+    "question": "Is Row.keys() still a method in 2.0, and how do I get column names now?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The sources do not answer this."
+   },
+   {
+    "question": "Was the Query API removed in 2.0, and what should I write instead?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The Query API was not removed in SQLAlchemy 2.0; instead, it has been integrated into a new, more consistent ORM query interface using the `Session.execute` method with `select` statements [1]. The legacy `Query` API is still supported as a legacy API and can be used freely alongside the new approach.\n\nFor migrating from the old Query API to the new one, you should use the `Session.execute` method with `select` statements. Here\u2019s an example of how you might migrate:\n\n**Old Code (using Query API):**\n```python\nfrom sqlalchemy.orm import sessionmaker\nfrom myapp.models import User\n\nSession = sessionmaker(bind=engine)\nsession = Session()\n\nusers = session.query(User).filter_by(name='John').all()\n```\n\n**New Code (using `Session.execute` with `select`):**\n```python\nfrom sqlalchemy.orm import sessionmaker\nfrom sqlalchemy import select\nfrom myapp.models import User\n\nSession = sessionmaker(bind=engine)\nsession = Session()\n\nstmt = select(User).where(User.name == 'John')\nusers = session.execute(stmt).scalars().all()\n```\n\nThis new approach provides a more consistent interface for building queries and is the recommended way to interact with the ORM in SQLAlchemy 2.0 [1]."
+   },
+   {
+    "question": "Does declarative_base still exist in 2.0, and where has it moved to?",
+    "tools": [
+     "check_api"
+    ],
+    "answer": "`declarative_base` still exists in SQLAlchemy 2.0 and has not been moved or renamed. It is used to create a base class for declarative class definitions, similar to its usage in SQLAlchemy 1.4.\n\nHere's an example of how you might use `declarative_base` in SQLAlchemy 2.0:\n\n```python\nfrom sqlalchemy import create_engine\nfrom sqlalchemy.orm import sessionmaker, declarative_base\n\nBase = declarative_base()\n\nclass User(Base):\n    __tablename__ = 'users'\n    id = Column(Integer, primary_key=True)\n    name = Column(String)\n\nengine = create_engine('sqlite:///:memory:')\nBase.metadata.create_all(engine)\nSession = sessionmaker(bind=engine)\nsession = Session()\n```\n\nThis example demonstrates how to define a base class `User` using `declarative_base`, and then create a table and session as usual."
+   },
+   {
+    "question": "Is MetaData.bind gone in 2.0, and how do I bind an engine now?",
+    "tools": [
+     "check_api",
+     "search_docs"
+    ],
+    "answer": "The `MetaData.bind` method has been removed in SQLAlchemy 2.0. Instead, you should use the `create_engine` function to create an engine and then bind it to your metadata using the `bind` parameter.\n\nHere is how you can do it:\n\n```python\nfrom sqlalchemy import MetaData, Table, Column, Integer, String\nfrom sqlalchemy import create_engine\n\n# Create an engine\nengine = create_engine(\"sqlite://\")\n\n# Create a metadata object\nmetadata = MetaData(bind=engine)\n\n# Define your table using the metadata\ntable = Table('example', metadata,\n              Column('id', Integer, primary_key=True),\n              Column('name', String))\n\n# Now you can use the engine to connect and execute queries\nwith engine.connect() as connection:\n    result = connection.execute(table.select())\n    for row in result:\n        print(row)\n```\n\nThis approach ensures that your metadata is bound to the engine, allowing you to perform database operations using the engine's connection pool."
+   },
+   {
+    "question": "Was connectionless execution removed in 2.0, and how do I execute now?",
+    "tools": [
+     "search_docs"
+    ],
+    "answer": "The sources indicate that connectionless execution and bound metadata have been deprecated and removed in SQLAlchemy 2.0 [1], [2]. Instead, you should now explicitly manage connections using the `engine.connect()` method and execute statements through this connection.\n\nTo execute a statement, you can use the `execute()` method on a connection object. For example:\n\n```python\nfrom sqlalchemy import create_engine, text\n\n# Create an engine instance\nengine = create_engine('sqlite:///example.db')\n\n# Connect to the database\nwith engine.connect() as connection:\n    # Execute a SQL statement using text()\n    result = connection.execute(text(\"SELECT * FROM users WHERE age > :age\"), {\"age\": 20})\n    \n    # Fetch all results\n    for row in result:\n        print(row)\n```\n\nThis approach ensures that you are explicitly managing the connection and adhering to the new execution patterns introduced in SQLAlchemy 2.0 [3], [4]."
+   }
+  ]
+ }
+}

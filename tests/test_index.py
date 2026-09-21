@@ -10,7 +10,10 @@ sentence-transformers, so nothing here imports them or expects a server. The
 integration checks skip rather than fail when the database is absent.
 """
 
+import contextlib
+import io
 import json
+import warnings
 
 import pytest
 
@@ -79,15 +82,28 @@ def test_search_reuses_the_corpus_embedding_settings():
 # --- integration, only when a database is actually there -------------------
 
 def _live_client():
+    """A Qdrant client if one is reachable, else None — and SILENT either way.
+
+    The silence is load-bearing, not tidiness. This runs at import time, and
+    `tools/check_runnable.py` compares stdout AND stderr for every `# runnable`
+    block — including the ones that run `pytest --collect-only`. With Qdrant
+    down, `QdrantClient` writes a version-check UserWarning to stderr, which
+    breaks those blocks while their visible output stays identical. A test
+    helper must not be able to invalidate the documentation.
+    """
     try:
         from qdrant_client import QdrantClient
     except ImportError:
         return None
     try:
-        c = QdrantClient(url=index.URL, timeout=2)
-        c.get_collections()
+        with warnings.catch_warnings(), contextlib.redirect_stderr(io.StringIO()):
+            warnings.simplefilter("ignore")
+            c = QdrantClient(url=index.URL, timeout=2)
+            c.get_collections()
         return c
-    except Exception:
+    except BaseException:
+        # BaseException: rag/index.py exits via sys.exit() on an unreachable
+        # Qdrant, and SystemExit does not inherit from Exception.
         return None
 
 
@@ -130,3 +146,19 @@ def test_every_point_carries_what_a_citation_needs():
         for field in ("chunk_id", "sqlalchemy_version", "source_path", "heading_path", "text"):
             assert field in p.payload, f"payload missing {field}"
         assert p.payload["text"].strip()
+
+
+def test_retrieve_imports_qdrant_only_when_version_filtered():
+    """The hosted demo has no qdrant-client. An unconditional import of
+    ``models`` at the top of ``retrieve`` crashed Modal's ``/api/ask`` even
+    with ``RAG_DENSE=memory`` and ``version=None`` (the only path the demo
+    uses). The Filter type is only needed when a version filter is asked for;
+    the memory path filters by chunk payload in ``memory_points`` instead.
+    """
+    import inspect
+
+    src = inspect.getsource(index.retrieve)
+    before_if, sep, after = src.partition("if version:")
+    assert sep, "retrieve must gate the Qdrant Filter behind `if version:`"
+    assert "from qdrant_client import models" not in before_if
+    assert "from qdrant_client import models" in after

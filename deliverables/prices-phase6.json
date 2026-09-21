@@ -1,0 +1,23 @@
+{
+ "source": "https://openrouter.ai/api/v1/models",
+ "fetched": "2026-09-12T22:51:05+00:00",
+ "note": "One reseller's published list price, per token in USD. Not NVIDIA's own price; the calls in D99 were made on NVIDIA free credits and cost nothing.",
+ "models": {
+  "nvidia/nemotron-3-ultra-550b-a55b": {
+   "pricing": {
+    "prompt": "0.000000625",
+    "completion": "0.000003125",
+    "input_cache_read": "0.0000001875"
+   },
+   "context_length": 262144
+  },
+  "openai/gpt-oss-20b": {
+   "pricing": {
+    "prompt": "0.00000003",
+    "completion": "0.00000013",
+    "input_cache_read": "0.00000003"
+   },
+   "context_length": 131072
+  }
+ }
+}

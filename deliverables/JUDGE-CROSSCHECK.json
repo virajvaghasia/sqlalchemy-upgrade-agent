@@ -1,0 +1,51 @@
+{
+ "second_model": "gemini-3.8-flash",
+ "rows_judge": "gemma4:e4b",
+ "verdicts": {
+  "D:g045": {
+   "verdict": "UNSUPPORTED",
+   "reason": "Passage [3] states that bound metadata and connectionless execution patterns are completely removed in SQLAlchemy 2.0, contradicting the claim.",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "D:g065": {
+   "verdict": "PARTIAL",
+   "reason": "Passages [2] and [3] mention using the DDL construct and the Alembic migration tool with SQLAlchemy, but they do not contain the specific example or instructions for creating a table and view together.",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "D:g079": {
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the provided passages state that `Session.get` supports options like `joinedload` or that `Query.options` migrates to `Session.get`.",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "D:g080": {
+   "verdict": "PARTIAL",
+   "reason": "Passages [2] and [3] explicitly cover how to use `load_only()` with related objects and collections, contradicting the claim's final sentence.",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "D:g119": {
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the provided passages discuss `scalar_one_or_none()` or compare its behavior to `session.scalar()`.",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "H:g016": {
+   "verdict": "UNSUPPORTED",
+   "reason": "",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "D:g056": {
+   "verdict": "PARTIAL",
+   "reason": "Passages [1] and [2] support defining an `addresses` property using a Python property and `_query.Query`, but do not identify the snippets as being from SQLAlchemy 1.4 and 2.0, nor does the property return a query object (it calls `.all()`).",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "H:g056": {
+   "verdict": "PARTIAL",
+   "reason": "Passage [3] supports the deprecation/removal of string attribute names and IDE/pep-484 compatibility, but none of the passages specifically state that regular Python properties with Query can be used in \"SQLAlchemy 1.4 and 2.0\" as a general feature.",
+   "judge_model": "gemini-3.8-flash"
+  },
+  "D:g060": {
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] directly supports the claim.",
+   "judge_model": "gemini-3.8-flash"
+  }
+ }
+}

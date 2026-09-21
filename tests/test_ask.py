@@ -128,3 +128,75 @@ def test_refusal_is_narrowed_to_subject_and_must_name_what_was_sought():
     assert "about the subject of the question at all" in lowered, "refusal is scoped to subject"
     assert "say exactly" not in lowered, "the A wording over-refused; see D43"
     assert "genuinely silent" not in lowered, "that is B's sufficiency test; see D52"
+
+
+def test_a_refusal_with_a_citation_in_front_of_it_is_still_a_refusal():
+    """Measured 2026-08-22. A prompt variant asking for a citation before every
+    statement produced "[2] The sources do not answer this." on six items, and
+    the bare prefix test scored every one as an ANSWER -- turning three refusals
+    into apparent fixes in a paired comparison that then read p = 0.000.
+
+    The instrument was broken by the very intervention it was measuring."""
+    assert ask.refused("[2] The sources do not answer this.")
+    assert ask.refused("[1][3] The sources do not answer this")
+    assert ask.refused("  [2]  The sources do not answer this.")
+
+
+def test_stripping_citations_does_not_turn_the_prefix_test_into_a_search():
+    """The property the prefix test exists to protect: prompt D deliberately
+    produces "here is the part the sources cover, and here is the part they do
+    not", which is an ANSWER. A substring test would score it as a refusal and
+    inflate the number in the flattering direction."""
+    assert not ask.refused(
+        "Use Session.get() [1]. The sources do not answer the second half.")
+    assert not ask.refused("[1] Use Session.get(). The sources do not answer that.")
+
+
+# --- D115: the citation reminder ships in the user turn -----------------------
+#
+# Phase 4 measured variant `H` and it was held (`D83`) because its REFUSAL effect
+# did not reproduce across machines. Its CITATION effect did: uncited 65% -> 10%
+# on the Mac and 43% -> 8% on the lab. `D115` ships it for that effect only, and
+# these tests pin the shape so the thing that shipped cannot drift from the thing
+# that was measured.
+
+def test_the_citation_reminder_is_in_the_shipped_prompt():
+    """`D73` measured 65% of answered questions citing nothing at all.
+
+    The rule was already in SYSTEM and was ignored; moving the same words into
+    the user turn, next to the ANSWER cue, is the whole of variant `H` (`D74`).
+    """
+    prompt = ask.build_prompt("q?", [hit(1)])
+    assert ask.REMINDER in prompt
+    assert "cite the source number" in prompt
+
+
+def test_the_reminder_lands_before_the_answer_cue_not_after_it():
+    """Anything after `ANSWER:` reads as the first words of the answer, so the
+    model would be completing our sentence instead of obeying the instruction.
+    `D74` is the measurement that position, not emphasis, is what worked."""
+    prompt = ask.build_prompt("q?", [hit(1)])
+    assert prompt.endswith("ANSWER:")
+    assert prompt.count("ANSWER:") == 1
+    assert prompt.index(ask.REMINDER) < prompt.index("ANSWER:")
+
+
+def test_the_pre_D115_prompt_is_still_reachable():
+    """Every figure taken before `D115` — `D72`'s 0.43, `D109`'s 11 of 30 — was
+    measured on the prompt without this sentence. `compare_prompts` needs that
+    exact prompt to stay reproducible as its control, or the historical arm
+    silently becomes the new one and the comparison measures nothing."""
+    shipped = ask.build_prompt("q?", [hit(1)])
+    legacy = ask.build_prompt("q?", [hit(1)], reminder="")
+    assert ask.REMINDER not in legacy
+    assert legacy.endswith("ANSWER:")
+    assert legacy != shipped
+    assert legacy == shipped.replace(ask.REMINDER + "\n\n", "")
+
+
+def test_the_system_prompt_did_not_change_when_H_shipped():
+    """`H` is a user-turn change and nothing else (`PHASE4_VARIANTS["H"]` was
+    `ask.SYSTEM` itself). If SYSTEM moves, this is no longer the `H` that two
+    machines measured."""
+    assert "Before answering:" not in ask.SYSTEM
+    assert ask.REMINDER not in ask.SYSTEM

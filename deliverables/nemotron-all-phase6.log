@@ -1,0 +1,331 @@
+== generate 100 2026-09-13 11:32:25
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 57747.56it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 8855.81it/s]
+  [1/100] g001 REFUSED  tokens 2036+331
+  [2/100] g002 answered  tokens 1999+453
+  [3/100] g003 REFUSED  tokens 2195+362
+  [4/100] g004 answered  tokens 3005+584
+  [5/100] g005 REFUSED  tokens 1922+518
+  [6/100] g006 answered  tokens 2566+1004
+  [7/100] g007 REFUSED  tokens 1827+612
+  [8/100] g008 answered  tokens 2894+531
+  [9/100] g009 REFUSED  tokens 1562+335
+  [10/100] g010 REFUSED  tokens 2237+640
+  [11/100] g011 answered  tokens 1979+773
+  [12/100] g012 REFUSED  tokens 2160+319
+  [13/100] g013 answered  tokens 2271+676
+  [14/100] g014 answered  tokens 2104+655
+  [15/100] g015 answered  tokens 2205+402
+  [16/100] g016 answered  tokens 2467+925
+  [17/100] g017 answered  tokens 2233+648
+  [18/100] g018 answered  tokens 1972+765
+  [19/100] g019 answered  tokens 1906+767
+  [20/100] g020 answered  tokens 2514+967
+  [21/100] g021 answered  tokens 2290+801
+  [22/100] g022 answered  tokens 2694+1213
+  [23/100] g023 REFUSED  tokens 1269+304
+  [24/100] g024 answered  tokens 2645+403
+  [25/100] g025 answered  tokens 1940+893
+  [26/100] g026 answered  tokens 1668+774
+  [27/100] g027 answered  tokens 2588+823
+  [28/100] g028 answered  tokens 1791+780
+  [29/100] g029 answered  tokens 1884+826
+  [30/100] g030 answered  tokens 1144+626
+  [31/100] g031 answered  tokens 1994+507
+  [32/100] g032 answered  tokens 2203+764
+  [33/100] g033 answered  tokens 2185+407
+  [34/100] g034 answered  tokens 2157+661
+  [35/100] g035 answered  tokens 1694+543
+  [36/100] g036 answered  tokens 2341+861
+  [37/100] g037 REFUSED  tokens 1978+393
+  [38/100] g038 answered  tokens 2979+435
+  [39/100] g039 answered  tokens 1974+578
+  [40/100] g040 answered  tokens 2304+700
+  [41/100] g041 answered  tokens 1932+602
+  [42/100] g042 REFUSED  tokens 2459+505
+  [43/100] g043 answered  tokens 2442+478
+  [44/100] g044 answered  tokens 2197+628
+  [45/100] g045 answered  tokens 1804+617
+  [46/100] g046 answered  tokens 1963+636
+  [47/100] g047 answered  tokens 2036+1112
+  [48/100] g048 answered  tokens 2411+692
+  [49/100] g049 answered  tokens 2093+629
+  [50/100] g050 answered  tokens 2221+557
+  [51/100] g051 answered  tokens 1911+1290
+  [52/100] g052 REFUSED  tokens 3123+409
+  [53/100] g053 REFUSED  tokens 2478+499
+  [54/100] g055 answered  tokens 1802+492
+  [55/100] g056 REFUSED  tokens 1992+512
+  [56/100] g057 REFUSED  tokens 2902+344
+  [57/100] g058 answered  tokens 2896+813
+  [58/100] g060 answered  tokens 1782+943
+  [59/100] g062 answered  tokens 2056+1023
+  [60/100] g064 REFUSED  tokens 2933+509
+  [61/100] g065 REFUSED  tokens 1811+490
+  [62/100] g067 REFUSED  tokens 2267+432
+  [63/100] g071 REFUSED  tokens 1564+412
+  [64/100] g074 answered  tokens 2081+616
+  [65/100] g075 REFUSED  tokens 2037+320
+  [66/100] g078 answered  tokens 2368+781
+  [67/100] g079 answered  tokens 2030+635
+  [68/100] g080 answered  tokens 2390+864
+  [69/100] g081 answered  tokens 2017+700
+  [70/100] g083 answered  tokens 2429+772
+  [71/100] g084 REFUSED  tokens 2211+291
+  [72/100] g085 answered  tokens 2207+970
+  [73/100] g087 answered  tokens 2104+961
+  [74/100] g088 answered  tokens 2087+835
+  [75/100] g090 answered  tokens 2378+959
+  [76/100] g093 REFUSED  tokens 1396+283
+  [77/100] g094 answered  tokens 1740+818
+  [78/100] g095 answered  tokens 1715+1045
+  [79/100] g096 REFUSED  tokens 2313+446
+  [80/100] g097 REFUSED  tokens 1983+284
+  [81/100] g098 answered  tokens 2323+1138
+  [82/100] g099 answered  tokens 2487+1766
+  [83/100] g100 answered  tokens 1962+592
+  [84/100] g101 REFUSED  tokens 1894+503
+  [85/100] g103 REFUSED  tokens 2012+442
+  [86/100] g104 REFUSED  tokens 2116+592
+  [87/100] g106 answered  tokens 2235+1007
+  [88/100] g109 answered  tokens 2321+608
+  [89/100] g110 answered  tokens 1812+941
+  [90/100] g111 answered  tokens 2317+812
+  [91/100] g112 answered  tokens 2163+1061
+  [92/100] g113 REFUSED  tokens 2099+542
+  [93/100] g114 REFUSED  tokens 1964+514
+  [94/100] g115 answered  tokens 2175+948
+  [95/100] g116 REFUSED  tokens 2240+428
+  [96/100] g117 REFUSED  tokens 1746+317
+  [97/100] g118 answered  tokens 1983+887
+  [98/100] g119 REFUSED  tokens 3008+746
+  [99/100] g120 answered  tokens 1947+571
+  [100/100] g121 answered  tokens 2036+1082
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    not judged yet
+
+  tokens, as returned by the API: prompt 215177, output 67260  (over 100 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+== repeat 20 2026-09-13 12:20:29
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 30366.49it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 6658.73it/s]
+  [1/20] g001 REFUSED  tokens 2036+366
+  [2/20] g002 answered  tokens 1999+423
+  [3/20] g003 REFUSED  tokens 2195+446
+  [4/20] g004 answered  tokens 3005+803
+  [5/20] g005 REFUSED  tokens 1922+502
+  [6/20] g006 answered  tokens 2566+1002
+  [7/20] g007 answered  tokens 1827+729
+  [8/20] g008 answered  tokens 2894+496
+  [9/20] g009 REFUSED  tokens 1562+474
+  [10/20] g010 REFUSED  tokens 2237+449
+  [11/20] g011 answered  tokens 1979+865
+  [12/20] g012 REFUSED  tokens 2160+432
+  [13/20] g013 answered  tokens 2271+816
+  [14/20] g014 answered  tokens 2104+714
+  [15/20] g015 answered  tokens 2205+461
+  [16/20] g016 answered  tokens 2467+914
+  [17/20] g017 answered  tokens 2233+661
+  [18/20] g018 answered  tokens 1972+731
+  [19/20] g019 answered  tokens 1906+715
+  [20/20] g020 answered  tokens 2514+1011
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    not judged yet
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+== judge 2026-09-13 12:29:07
+  g002 SUPPORTED
+  g004 SUPPORTED
+  g006 SUPPORTED
+  g008 SUPPORTED
+  g011 SUPPORTED
+  g013 PARTIAL
+  g014 SUPPORTED
+  g015 SUPPORTED
+  g016 SUPPORTED
+  g017 SUPPORTED
+  g018 SUPPORTED
+  g019 SUPPORTED
+  g020 SUPPORTED
+  g021 SUPPORTED
+  g022 SUPPORTED
+  g024 SUPPORTED
+  g025 UNPARSED
+  g026 SUPPORTED
+  g027 SUPPORTED
+  g028 PARTIAL
+  g029 SUPPORTED
+  g030 SUPPORTED
+  g031 SUPPORTED
+  g032 SUPPORTED
+  g033 SUPPORTED
+  g034 SUPPORTED
+  g035 SUPPORTED
+  g036 SUPPORTED
+  g038 SUPPORTED
+  g039 SUPPORTED
+  g040 SUPPORTED
+  g041 SUPPORTED
+  g043 SUPPORTED
+  g044 PARTIAL
+  g045 SUPPORTED
+  g046 SUPPORTED
+  g047 SUPPORTED
+  g048 PARTIAL
+  g049 SUPPORTED
+  g050 SUPPORTED
+  g051 PARTIAL
+  g055 PARTIAL
+  g058 PARTIAL
+  g060 PARTIAL
+  g062 PARTIAL
+  g074 SUPPORTED
+  g078 PARTIAL
+  g079 SUPPORTED
+  g080 PARTIAL
+  g081 SUPPORTED
+  g083 SUPPORTED
+  g085 PARTIAL
+  g087 SUPPORTED
+  g088 SUPPORTED
+  g090 SUPPORTED
+  g094 SUPPORTED
+  g095 SUPPORTED
+  g098 SUPPORTED
+  g099 SUPPORTED
+  g100 SUPPORTED
+  g106 PARTIAL
+  g109 PARTIAL
+  g110 SUPPORTED
+  g111 SUPPORTED
+  g112 SUPPORTED
+  g115 SUPPORTED
+  g118 SUPPORTED
+  g120 SUPPORTED
+  g121 PARTIAL
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=UNPARSED g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+== done 2026-09-13 12:39:16
+== re-judge UNPARSED 2026-09-13 12:40:20
+  g025 PARTIAL
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=PARTIAL g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)

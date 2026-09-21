@@ -1,0 +1,160 @@
+{
+ "A_block": [
+  {
+   "id": "g043",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [3] explicitly states that the list of columns and case criteria should be passed positionally, and provides examples of the new generative style.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The :func:`_sql.select` construct as well as the related method :meth:`_sql.FromClause.select` no longer accept keyword arguments to build up elements such as the WHERE clause, FROM list and ORDER BY. The list of columns may now be sent positionally, rather than as a list. Additionally, the :func:`_sql.case` construct now accepts its WHEN criteria positionally, rather than as a list."
+  },
+  {
+   "id": "g117",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "UNSUPPORTED",
+   "reason": "The passages demonstrate the use of relationships but do not state that this mechanism is specific to or required for async SQLAlchemy.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "To access relationships with async SQLAlchemy, you can use the `relationship` function provided by SQLAlchemy ORM. This function allows you to define relationships between different tables in your database schema. Here's an example of how you can define a relationship between two tables, `User` and `Address`, and then access the `addresses` relationship from a `User` instance:\n\n \n\nIn this example, the `User` class has a relationship with the `Address` class defined using the `relationship` function. The `back_populates` parameter is used to establish the bidirectional relationship. When you retrieve a `User` instance from the database, you can access the `addresses` relationship to get the associated `Address` instances."
+  }
+ ],
+ "B_conversation": [
+  {
+   "id": "g005",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] states that the correct way to invoke statements is via the `_engine.Connection.execute` method of a `_engine.Connection` after using `engine.connect()`.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "To execute a statement like `connection.execute(\"select 1\")` in SQLAlchemy 2.0, you need to use a `Connection` object. The correct way to do this is to get a connection from the engine and then execute the statement on that connection. Here's how you can do it:\n\n \n\nThis ensures that the statement is executed within the context of a connection, which is the required way to execute statements in SQLAlchemy 2.0."
+  },
+  {
+   "id": "g008",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "SUPPORTED",
+   "reason": "Passages [3], [4], and [5] describe the shift from legacy list-based arguments to positional arguments in the \"generative\" style of `select()`.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The list form of passing columns to the `select` function broke in SQLAlchemy 2.0. The new calling style requires passing columns positionally. Here is how you can rewrite the query using the new style:\n\n \n\nThis approach aligns with the new \"generative\" style of constructing SQL queries in SQLAlchemy 2.0, as described in [3]."
+  },
+  {
+   "id": "g016",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the passages discuss the removal of `row.keys()` in SQLAlchemy 2.0 or the specific replacement method.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The `row.keys()` method was used in SQLAlchemy 1.4 to get the column names of a result row. However, in SQLAlchemy 2.0, the `row.keys()` method has been removed. Instead, you can use the `row.keys()` method on a `MappingResult` object, which is obtained by calling the `mappings()` method on a `Result` object. This will return a dictionary-like `RowMapping` object, which has a `keys()` method that returns the column names."
+  },
+  {
+   "id": "g021",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] states that `backref` is legacy and recommends `back_populates` for explicit configuration.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The sources indicate that using `relationship(..., backref=...)` is considered legacy and should be avoided. Instead, `back_populates` is recommended for new configurations. Both `backref` and `back_populates` serve the same purpose, but `back_populates` is preferred due to its explicitness and better integration with modern SQLAlchemy features."
+  },
+  {
+   "id": "g028",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "PARTIAL",
+   "reason": "Passage [1] supports the availability of driver-level autocommit, but none of the passages state that the library-level feature was removed in SQLAlchemy 2.0.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "According to the documentation, the library-level \"autocommit\" feature was removed from both Core and ORM in SQLAlchemy 2.0 [1]. However, driver-level autocommit remains available [1]."
+  },
+  {
+   "id": "g049",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "SUPPORTED",
+   "reason": "Passage [1] and [2] state that the `_sql.case` construct now accepts its WHEN criteria positionally rather than as a list.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The :func:`_sql.case` construct now accepts its WHEN criteria positionally, rather than as a list. This change was introduced in SQLAlchemy 2.0 to align with the new \"generative\" style of constructing SQL statements, where structural elements are passed positionally. The positional form is the recommended way to specify WHEN criteria in a :func:`_sql.case` statement."
+  },
+  {
+   "id": "g050",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "PARTIAL",
+   "reason": "Passages [1] and [3] state that the correct way to invoke statements is via the :meth:`_engine.Connection.execute` method, but none of the passages state that this specific documentation is found in passage [2].",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The correct way to invoke statements in SQLAlchemy 2.0 is via the :meth:`_engine.Connection.execute` method of a :class:`_engine.Connection`:\n\n \n\nThis change is documented in SQLAlchemy 2.0's migration guide [2]."
+  },
+  {
+   "id": "g085",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "SUPPORTED",
+   "reason": "Passages [2] and [5] detail the deprecation of the subtransaction pattern and provide a replacement context manager.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The \"subtransaction\" pattern, which was used in SQLAlchemy 1.4, has been deprecated and removed in SQLAlchemy 2.0. This pattern allowed for nested transactions, which could lead to confusion and was not suitable for end-user use. In SQLAlchemy 2.0, it is preferable to ensure that the top-most level of database operations are performed with a single begin/commit pair. The sources provide examples of how to migrate from the \"subtransaction\" pattern to the new pattern in SQLAlchemy 2.0."
+  },
+  {
+   "id": "g100",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "PARTIAL",
+   "reason": "The passages show the recommended alternative pattern using [2], but they do not state that `bulk_save_objects` is unavailable in the async session in SQLAlchemy 2.0.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The `bulk_save_objects` method is not available in the async session in SQLAlchemy 2.0. Instead, you should use traditional ORM methods within an awaitable function as shown in the example in [2]."
+  },
+  {
+   "id": "g113",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the passages provide the specific syntax or example for a simple single-row update.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The proper way to do a simple single row update in SQLAlchemy 2.x is to use the `update()` method combined with the `values()` construct. Here is an example:\n\n \n\nThis code updates the `name` column of the row where `id` is 1 in the `user_table`. The `update()` method is used to create an update statement, the `where()` method specifies the condition for the row to be updated, and the `values()` method specifies the new values for the columns."
+  },
+  {
+   "id": "g114",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": false,
+   "verdict": "UNSUPPORTED",
+   "reason": "None of the passages mention the specific error \"Class 'sqlalchemy.engine.row.Row' is not mapped\" or the detailed guidance on resolving it.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The error \"Class 'sqlalchemy.engine.row.Row' is not mapped\" typically occurs when you try to delete a record using a query that returns a `Row` object instead of a mapped class instance. This can happen if you are querying for a record directly using `session.execute()` without specifying a mapped class.\n\nTo resolve this issue, you should ensure that you are querying for a mapped class instance. Here is an example of how you can modify your code to use a mapped class for deletion:\n\n \n\nIn this example, the `session.query(User).filter_by(name='John Doe').one()` query returns a `User` instance, which is a mapped class, and can be safely deleted using `session.delete()`.\n\nIf you are using a raw SQL query and need to delete a record, you should use the `session.execute()` method with a `DELETE` statement:\n\n \n\nIn this case, you are not querying for a mapped class instance, so you do not need to use `session.delete()`. Instead, you are directly executing a `DELETE` statement on the database.\n\nIf you are still encountering issues, please provide more details about your code, and I can assist you further."
+  },
+  {
+   "id": "g116",
+   "provenance": null,
+   "answerable": true,
+   "answer_in_prompt": true,
+   "verdict": "SUPPORTED",
+   "reason": "Passages [1] and [3] describe the exact scenario involving nested transactions and the need for explicit rollback of the outer transaction.",
+   "judge_model": "gemma4:e4b",
+   "machine": "Darwin-arm64",
+   "claim": "The error \"A transaction is already begun on this Session\" typically occurs when you attempt to begin a new transaction on a session that is already in an active transaction state. This can happen if you have not properly rolled back or closed the previous transaction before starting a new one.\n\nIn SQLAlchemy 1.4, you can encounter this error if you have nested transactions without properly handling the rollback of the outer transaction. For example:\n\n \n\nIn this example, `transaction2.rollback()` deactivates `transaction1`, but it is still present in the session, leading to the error.\n\nTo resolve this issue, you need to ensure that you properly roll back or close the outer transaction before starting a new one. Here is an example of how you can handle transactions in a FastAPI application:\n\n \n\nIn this example, the `get_db` dependency ensures that the session is properly closed after each request, even if an error occurs. This helps prevent the \"A transaction is already begun on this Session\" error.\n\nFor more detailed information, you can refer to the SQLAlchemy documentation on [Managing Transactions](https://docs.sqlalchemy.org/en/1.4/orm/session_transaction.html) and [Session Management](https://docs.sqlalchemy.org/en/1.4/orm/session.html#session-management)."
+  }
+ ]
+}

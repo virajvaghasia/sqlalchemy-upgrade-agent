@@ -357,3 +357,61 @@ def test_phase_1_quotes_the_measured_audit_numbers():
         ("either shape, content lost entirely", "lost"),
     ):
         assert f"{a[key]:5}" in doc, f"PHASE-1.md does not quote {label} = {a[key]}"
+
+
+# --- shape C: the boundary that lands inside a code listing (§R5.3, D70) -----
+#
+# D56's two shapes are prose. This one is not, and that is the point: broken
+# prose is visible on sight, broken code is not. Until 2026-08-22 this defect
+# had a number in study/13-VERIFICATION.md §R5.3 and no code behind it -- the
+# doc block is `# summary of` because nothing could reproduce it.
+
+
+def test_a_listing_cut_in_half_is_severed():
+    """Both edges are indented code and the second chunk starts where the first
+    ends, so the statement is split across the boundary with nothing to recover
+    it from."""
+    a = _c("a", "some prose::\n\n    stmt = select(User).where(\n", 0, 100)
+    b = _c("b", "        User.name == 'x'\n    )\n", 100, 200)
+    assert chunk.severed_listing(a, b)
+
+
+def test_an_overlapped_listing_is_not_severed():
+    """D33/D34 carry whole blocks forward. If the next chunk starts before this
+    one ends, the listing exists intact in the overlap and nothing was lost --
+    the same distinction audit()'s `a_lost` makes for shape A."""
+    a = _c("a", "prose::\n\n    stmt = select(User).where(\n", 0, 100)
+    b = _c("b", "    stmt = select(User).where(\n        User.name == 'x'\n)", 80, 200)
+    assert not chunk.severed_listing(a, b)
+
+
+def test_indented_prose_is_not_a_severed_listing():
+    """The control, and the reason §R5.3's honest count is 3 real of 5 flagged rather
+    than 123. Every glossary.rst definition body is indented under its term, so
+    'indented on both sides' alone would flag the whole file. A Python or SQL
+    token has to be there too."""
+    a = _c("a", "ACID\n    a term describing a database that is\n", 0, 100)
+    b = _c("b", "    atomic, consistent, isolated and durable\n", 100, 200)
+    assert not chunk.severed_listing(a, b)
+
+
+def test_neighbours_never_pair_two_versions_of_the_same_page():
+    """A 1.4 chunk and a 2.0 chunk of the same file are a twin (D58), not
+    adjacent text. Pairing them would make every twin look like a severed
+    boundary and invent a defect that is not there."""
+    old = _c("a", "    stmt = select(User)\n", 0, 100, version="1.4.52")
+    new = _c("b", "    stmt = select(User)\n", 0, 100, version="2.0.51")
+    nxt, prv = chunk.neighbours([old, new])
+    assert nxt == {} and prv == {}
+
+
+def test_the_module_level_predicates_are_what_audit_counts():
+    """audit() used to hold these inline. D70 needed the same questions asked of
+    a subset, and two copies of a detector drift. If this fails, the survey and
+    the corpus audit have started disagreeing."""
+    a = _c("a", "the state is as follows:", 0, 100)
+    b = _c("b", "While the above example shows the constraint", 100, 200)
+    assert chunk.ends_open_shape(a) and not chunk.ends_open_shape(b)
+    assert chunk.opens_backward_shape(b) and not chunk.opens_backward_shape(a)
+    stats = chunk.audit([a, b])
+    assert stats["ends_open"] == 1 and stats["opens_backward"] == 1

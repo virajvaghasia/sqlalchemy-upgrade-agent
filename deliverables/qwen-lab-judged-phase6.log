@@ -1,0 +1,132 @@
+== judge qwen 2026-09-13 14:53:18
+  g002 SUPPORTED
+  g004 SUPPORTED
+  g014 SUPPORTED
+  g015 PARTIAL
+  g017 SUPPORTED
+  g018 SUPPORTED
+  g019 SUPPORTED
+  g024 SUPPORTED
+  g025 PARTIAL
+  g026 SUPPORTED
+  g027 SUPPORTED
+  g030 PARTIAL
+  g031 SUPPORTED
+  g032 SUPPORTED
+  g033 SUPPORTED
+  g034 SUPPORTED
+  g035 SUPPORTED
+  g038 SUPPORTED
+  g041 SUPPORTED
+  g043 SUPPORTED
+  g045 SUPPORTED
+  g046 SUPPORTED
+  g047 SUPPORTED
+  g053 PARTIAL
+  g055 SUPPORTED
+  g056 PARTIAL
+  g060 SUPPORTED
+  g062 SUPPORTED
+  g065 UNSUPPORTED
+  g074 SUPPORTED
+  g078 PARTIAL
+  g079 SUPPORTED
+  g080 SUPPORTED
+  g081 SUPPORTED
+  g083 SUPPORTED
+  g088 SUPPORTED
+  g098 SUPPORTED
+  g109 SUPPORTED
+  g110 SUPPORTED
+  g111 SUPPORTED
+  g112 SUPPORTED
+  g115 PARTIAL
+  g117 UNSUPPORTED
+  g118 SUPPORTED
+  g120 SUPPORTED
+  g119 UNSUPPORTED
+  g121 SUPPORTED
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=PARTIAL g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  SAME JUDGE, BOTH MODELS (openai/gpt-oss-20b, each answer against its five pages)
+    qwen2.5-coder:7b (lab)   judged 47 of 47 answered   SUPPORTED 37 = 79%   PARTIAL 7   UNSUPPORTED 3
+    nemotron                 judged 69 of 69 answered   SUPPORTED 53 = 77%   PARTIAL 16   UNSUPPORTED 0
+    paired over 42 answered by both   nemotron-only SUPPORTED 3  qwen-only SUPPORTED 6  exact McNemar p = 0.5078   -> LEVEL
+      nemotron-only  g015 g030 g115
+      qwen-only      g055 g060 g062 g080 g109 g121
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+== ask UNPARSED again once 2026-09-13 15:02:05
+ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
+
+REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+  unanswerable items                9
+    refused — correct               9/9  (100%)
+    answered — FABRICATED           0/9  (0%)
+  answerable items                  91
+    refused — over-refusal          22/91  (24%)
+      with the answer IN the prompt   5   generation defect (the Q18/Q19 class)   g053, g064, g084, g103, g116
+      with the answer absent         17   honest — retrieval never supplied it
+
+  answer reached the prompt          58/91   <- retrieval's ceiling, at k=5
+  ...and was answered, not refused   53/91   = 0.58   END TO END
+  generation loses                    5/91   = 0.05 of the ceiling, invisible to every recall figure
+
+  vs lab qwen2.5-coder:7b, Round 16 (the rule)
+    delivered 53 vs 38 over 91 paired   fixed 16  broken 1  exact McNemar p = 0.0003  -> AHEAD
+    fixed   g006 g008 g013 g021 g029 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+  vs Mac qwen2.5-coder:7b, 2026-08-23 (context)
+    delivered 53 vs 39 over 91 paired   fixed 15  broken 1  exact McNemar p = 0.0005
+    fixed   g006 g008 g013 g021 g044 g048 g049 g050 g051 g087 g090 g095 g099 g100 g106
+    broken  g053
+
+  fabrications  0   rule <= 2  -> no worse   -
+
+  FAITHFULNESS (openai/gpt-oss-20b, against the five pages given; SUPPORTED is not 'correct')
+    judged 69 of 69 answered   SUPPORTED 53 = 77%   rule >= 80% -> FAIL
+    not SUPPORTED  g013=PARTIAL g025=PARTIAL g028=PARTIAL g044=PARTIAL g048=PARTIAL g051=PARTIAL g055=PARTIAL g058=PARTIAL g060=PARTIAL g062=PARTIAL g078=PARTIAL g080=PARTIAL g085=PARTIAL g106=PARTIAL g109=PARTIAL g121=PARTIAL
+
+  SAME JUDGE, BOTH MODELS (openai/gpt-oss-20b, each answer against its five pages)
+    qwen2.5-coder:7b (lab)   judged 47 of 47 answered   SUPPORTED 37 = 79%   PARTIAL 7   UNSUPPORTED 3
+    nemotron                 judged 69 of 69 answered   SUPPORTED 53 = 77%   PARTIAL 16   UNSUPPORTED 0
+    paired over 42 answered by both   nemotron-only SUPPORTED 3  qwen-only SUPPORTED 6  exact McNemar p = 0.5078   -> LEVEL
+      nemotron-only  g015 g030 g115
+      qwen-only      g055 g060 g062 g080 g109 g121
+
+  REPEAT  20 asked twice   same decision 19   rule >= 19 -> stable   identical text 0   flipped g007
+
+  tokens, as returned by the API: prompt 259231, output 80270  (over 120 generation calls)
+  shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
+== done 2026-09-13 15:02:05
