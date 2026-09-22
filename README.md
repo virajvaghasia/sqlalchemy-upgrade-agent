@@ -6,12 +6,14 @@ SQLAlchemy documentation, with every claim linked to the page it came from.**
 **Try it:** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — paste an error or a line of 1.4
 code. The first question after the page has been idle takes about a minute while it wakes up.
 
-![An answered question on the live page: the answer carries numbered citations, each code block
-can be copied, and the source panel marks which of the five pages was actually
+![An answered question on the live page: the answer carries numbered citations, the code block
+can be copied, and the source list on the right marks which of the five pages was actually
 cited](docs/images/demo-answered.png)
 
-*A real answer from the live page, 2026-09-21. Every claim carries the number of the page it came
-from; the panel on the right shows the five pages the model was given and marks the one it used.*
+*A real answer from the live page, 2026-09-22, to "query(User).get(1) warns LegacyAPIWarning, where
+did get move to". Every claim carries the number of the page it came from; the list on the right
+is the five pages the model was given, in order, with the one it used marked **cited**. The hosted
+page is answered by `nemotron-3-ultra-550b` and says so under every answer.*
 
 **When the pages it finds do not answer the question, it says so instead of guessing.** That is the
 behaviour the whole project is built around, and it is the hard part — a model will always produce
@@ -22,14 +24,23 @@ judged the pages insufficient, and the five pages it was given are still
 listed](docs/images/demo-declined.png)
 
 *The same page asked "How long will SQLAlchemy 1.4 be supported?", one of the nine questions the
-test set marks as having no answer in these documents. It declined, said what it looked for, and
-still listed the pages so you can check it. The note below the status is honest about the cost:
+test set marks as having no answer in these documents (live, 2026-09-22). It declined, said what it
+looked for, and still listed the pages so you can check it. The note below the status is honest about the cost:
 **19 of its 52 declines on the test set had the right page in hand.***
+
+**It also lists what breaks.** The page carries an index of the 23 changes in
+[`deliverables/BREAKAGES.md`](deliverables/BREAKAGES.md), each with the 1.4 call and the exception
+SQLAlchemy 2.0.51 actually raised. Picking one asks the tool about it. The index is generated from
+that file, and a test fails if the page's copy ever differs from it.
+
+![The What breaks in 2.0 section: eight groups of breaking changes, each entry showing the 1.4 call,
+the exception name and the error message](docs/images/demo-breaks.png)
 
 <details>
 <summary>On a phone</summary>
 
-![The same page at 398 pixels wide: single column, the answer above its sources](docs/images/demo-phone.png)
+![The same page at 398 pixels wide: single column, a Menu button for the sections, the question box
+with its example list](docs/images/demo-phone.png)
 
 </details>
 
