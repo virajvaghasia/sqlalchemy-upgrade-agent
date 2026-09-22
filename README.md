@@ -6,19 +6,32 @@ SQLAlchemy documentation, with every claim linked to the page it came from.**
 **Try it:** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — paste an error or a line of 1.4
 code. The first question after the page has been idle takes about a minute while it wakes up.
 
-```
-you:  query(User).get(1) warns LegacyAPIWarning, where did get move to
+![An answered question on the live page: the answer carries numbered citations, each code block
+can be copied, and the source panel marks which of the five pages was actually
+cited](docs/images/demo-answered.png)
 
-it:   Based on the provided sources, the `query(User).get(1)` method has moved to `Session.get(User, 1)`.
-      Source [1] explicitly states: > The `Query.get` method remains for legacy purposes, but ...
+*A real answer from the live page, 2026-09-21. Every claim carries the number of the page it came
+from; the panel on the right shows the five pages the model was given and marks the one it used.*
 
-      [1] SQLAlchemy 2.0.51 — doc/build/changelog/migration_20.rst
-          ... > 2.0 Migration - ORM Usage > ORM Query - get() method moves to Session
-```
+**When the pages it finds do not answer the question, it says so instead of guessing.** That is the
+behaviour the whole project is built around, and it is the hard part — a model will always produce
+something.
 
-(A real answer from the live page, 2026-09-13, shortened with `...`.)
+![A declined question on the live page: the status reads Declined, a note explains that the model
+judged the pages insufficient, and the five pages it was given are still
+listed](docs/images/demo-declined.png)
 
-When the pages it finds do not answer the question, it says so instead of guessing.
+*The same page asked "How long will SQLAlchemy 1.4 be supported?", one of the nine questions the
+test set marks as having no answer in these documents. It declined, said what it looked for, and
+still listed the pages so you can check it. The note below the status is honest about the cost:
+**19 of its 52 declines on the test set had the right page in hand.***
+
+<details>
+<summary>On a phone</summary>
+
+![The same page at 398 pixels wide: single column, the answer above its sources](docs/images/demo-phone.png)
+
+</details>
 
 ## How it works
 
