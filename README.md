@@ -205,7 +205,8 @@ uv run python -m rag.compare_embedders # BGE-M3 vs a 25x smaller model, on retri
 ```
 README.md              this file — the map
 CLAUDE.md              how the AI assistant works on this repo
-phases/                the plan: the six-phase arc, and each phase in detail (PHASE-6 is current)
+docs/images/           screenshots of the deployed page, used by this file
+phases/                the plan: the seven-phase arc, and each phase in detail — all seven closed
 study/                 the teaching material, numbered in reading order
 deliverables/          what a phase produced — BREAKAGES.md is Phase 0's, FAILURES.md is Phase 1's
 logs/                  the dated timeline
