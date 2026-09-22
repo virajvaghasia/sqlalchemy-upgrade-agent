@@ -5,457 +5,410 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>SQLAlchemy 1.4 to 2.0 upgrade answers</title>
-<!-- No webfonts: the system sans stack is what every modern product UI ships anyway, and it
-     costs zero network requests on a cold start (the first question already waits ~1 min for
-     the container). marked + DOMPurify render and sanitize the model's markdown; highlight.js
-     colours the code panels. -->
+<meta name="description" content="Ask what broke between SQLAlchemy 1.4 and 2.0. Every answer cites the documentation page it came from, or says there isn't one.">
+<!-- Geist and Geist Mono from Google's CDN, not the container, so they add nothing to the cold
+     start; `display=swap` renders text in the system face first. marked + DOMPurify render and
+     sanitize the model's markdown; highlight.js colours the code panels. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <style>
+  /* THE DESIGN IN ONE SENTENCE: it looks like a documentation tool, because that is what it is.
+     A dark "AI landing page" version was built and rejected on 2026-09-22 as slop: gradient
+     headline, glowing pill, grid-and-glow hero, fake window dots, bento stat cards. Every one of
+     those is a template habit, and together they said "generated". What this product has that
+     no template does is that every claim points at a page, so the design is built on that:
+     sources sit in the margin beside the sentence that cites them, the numbers are a plain
+     benchmark table, and nothing glows. No gradients, no cards except the input and code. */
+  /* Navy ink on warm paper, with one orange accent. Orange marks everything that points at a
+     page: citations, source markers, links. Green is reserved for one status, "answered", so
+     the accent never has to mean both "look here" and "this went well". */
   :root {
-    --bg:        #faf9f7;
+    --bg:        #faf8f4;
     --surface:   #ffffff;
-    --surface-2: #f3f1ed;
-    --text:      #1c1b19;
-    --text-2:    #56524c;
-    --text-3:    #837e76;
-    --border:    #e8e4dd;
-    --border-2:  #d5d0c7;
-    --accent:    #146b6b;
-    --accent-2:  #0f5555;
-    --accent-bg: rgba(20, 107, 107, .09);
-    --accent-line: rgba(20, 107, 107, .28);
-    --code-bg:   #1b1d22;
-    --code-bar:  #22252b;
-    --shadow-sm: 0 1px 2px rgba(28, 27, 25, .05);
-    --shadow:    0 1px 2px rgba(28, 27, 25, .04), 0 10px 28px rgba(28, 27, 25, .07);
-
-    /* One radius system: composer, cards, controls, code. Nothing square, nothing pill-mixed. */
-    --r-xl: 18px;
-    --r-lg: 14px;
-    --r:    10px;
-    --r-sm: 6px;
-
-    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --surface-2: #f2efe8;
+    --text:      #18202f;
+    --text-2:    #4b5263;
+    --text-3:    #858a96;
+    --border:    #e8e3d9;
+    --border-2:  #d6d0c3;
+    --accent:    #c2410c;
+    --accent-2:  #9a3412;
+    --accent-bg: rgba(194, 65, 12, .08);
+    --accent-soft: rgba(194, 65, 12, .45);
+    --ok:        #2f7d4f;
+    --code-bg:   #f4f1ea;
+    --mark:      rgba(194, 65, 12, .10);
+    --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg:        #16171a;
-      --surface:   #1e2024;
-      --surface-2: #26282d;
-      --text:      #eceae6;
-      --text-2:    #a9a49c;
-      --text-3:    #817c74;
-      --border:    #2c2f34;
-      --border-2:  #3b3e44;
-      --accent:    #55b8b0;
-      --accent-2:  #7ccfc7;
-      --accent-bg: rgba(85, 184, 176, .13);
-      --accent-line: rgba(85, 184, 176, .34);
-      --code-bg:   #101114;
-      --code-bar:  #17191d;
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
-      --shadow:    0 1px 2px rgba(0, 0, 0, .25), 0 10px 28px rgba(0, 0, 0, .35);
+      --bg:        #0f131b;
+      --surface:   #151a24;
+      --surface-2: #1b2130;
+      --text:      #e7e9ee;
+      --text-2:    #a3a9b6;
+      --text-3:    #707787;
+      --border:    #232a38;
+      --border-2:  #323a4b;
+      --accent:    #fb8a4b;
+      --accent-2:  #fdab7b;
+      --accent-bg: rgba(251, 138, 75, .12);
+      --accent-soft: rgba(251, 138, 75, .5);
+      --ok:        #5cc48a;
+      --code-bg:   #131824;
+      --mark:      rgba(251, 138, 75, .14);
     }
   }
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.65 var(--sans);
-    -webkit-font-smoothing: antialiased;
-  }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 var(--sans); -webkit-font-smoothing: antialiased; }
   a { color: inherit; }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
-  .sr-only {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  /* top bar */
-  /* A wordmark on the left and a badge on the right left a thousand pixels of nothing between
-     them. These are real links to real sections, not filler: they are what a visitor wants after
-     the first answer lands. */
-  .topbar {
-    display: flex; align-items: center; gap: 1.5rem;
-    height: 68px; border-bottom: 1px solid var(--border);
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px);
-    position: sticky; top: 0; z-index: 10;
-  }
-  .topbar-inner {
-    max-width: 1280px; width: 100%; margin: 0 auto; padding: 0 28px;
-    display: flex; align-items: center; gap: 1.5rem;
-  }
-  /* No mark. It is a package identifier, so it is set like one: monospace, with the library
-     it is about carried in full ink and the rest of the name stepped back. A geometric blob
-     next to a wordmark is the thing every generated page reaches for, and it says nothing. */
-  /* The accent belongs on the IDENTITY, not on the metadata. It was the other way round --
-     colour on the version chip, none on the name -- which is exactly why the name read as one
-     more nav link. `sqlalchemy` is the subject of the whole product, so it carries the colour;
-     the rest of the package name steps back; and a rule separates the name from the sections,
-     because the problem was grouping as much as colour. */
-  .brand {
-    font: 600 15.5px/1 var(--mono); letter-spacing: -.02em; flex: none;
-    text-decoration: none; color: var(--text-3); white-space: nowrap;
-    padding: 7px 0;
-  }
-  .brand b { font-weight: 700; color: var(--accent); }
-  .brand:hover b { color: var(--accent-2); }
+  /* ---------- top bar: a docs header ---------- */
+  .topbar { position: sticky; top: 0; z-index: 10; height: 56px; display: flex; align-items: center;
+    background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .topbar-inner { max-width: 1160px; width: 100%; margin: 0 auto; padding: 0 28px; display: flex; align-items: center; gap: 28px; }
+  /* The tool's name is the identity, not a fourth nav link: full ink, the library it is about in
+     the accent, and a rule plus space between it and the sections. Set in mono because it is a
+     package name, and set like one. */
+  .brand { font: 600 15px/1 var(--mono); letter-spacing: -.02em; text-decoration: none; color: var(--text); white-space: nowrap; }
+  .brand b { color: var(--accent); font-weight: 600; }
   .brand:hover { color: var(--text-2); }
-  .bar-rule { width: 1px; height: 22px; background: var(--border); flex: none; margin: 0 .25rem; }
-  .navlinks { display: flex; align-items: center; gap: 1.35rem; margin-left: .5rem; }
-  .navlinks a {
-    font: 500 14.5px var(--sans); color: var(--text-2); text-decoration: none;
-    padding: 6px 0; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
-  }
-  .navlinks a:hover { color: var(--text); border-bottom-color: var(--border-2); }
-  .navlinks a.here { color: var(--text); border-bottom-color: var(--accent); }
-  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; flex: none; }
-  .repo { font: 500 14.5px var(--sans); color: var(--text-2); text-decoration: none;
-          display: inline-flex; align-items: center; gap: 7px; }
-  .repo svg { flex: none; opacity: .85; }
-  .repo:hover svg { opacity: 1; }
+  .bar-rule { width: 1px; height: 22px; background: var(--border-2); flex: none; margin: 0 6px; }
+  .navlinks { display: flex; gap: 22px; }
+  .navlinks a { font: 400 14px var(--sans); color: var(--text-2); text-decoration: none; padding: 17px 0 15px; border-bottom: 2px solid transparent; }
+  .navlinks a:hover { color: var(--text); }
+  .navlinks a.here { color: var(--text); font-weight: 500; border-bottom-color: var(--accent); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+  .ver { font: 400 13px var(--mono); color: var(--text-3); white-space: nowrap; }
+  .ver .to, .ver .new { color: var(--accent); }
+  .repo { display: inline-flex; align-items: center; gap: 6px; font: 400 14px var(--sans); color: var(--text-2); text-decoration: none; }
   .repo:hover { color: var(--text); }
-  /* the sticky bar would otherwise land on top of whatever an anchor jumps to */
-  .how, .method, .limits { scroll-margin-top: 92px; }
-  @media (max-width: 860px) { .navlinks { display: none; } }
-  @media (max-width: 620px) { .topbar-inner { padding: 0 20px; } .repo { display: none; } }
-  /* The one decorative-looking thing that is not decorative: it names what the tool is for.
-     The old version is muted, the arrow and the new version carry the accent, so the badge
-     shows a direction rather than just sitting there in a box. */
-  .ver {
-    font: 600 13px var(--mono); color: var(--text-2);
-    background: var(--accent-bg); border: 1px solid var(--accent-line);
-    padding: 6px 12px; border-radius: var(--r); white-space: nowrap;
-  }
-  .ver .to { color: var(--accent); margin: 0 2px; font-weight: 700; }
-  .ver .new { color: var(--accent); }
+  .breaks, .how, .method, .limits { scroll-margin-top: 80px; }
+  @media (max-width: 880px) { .navlinks, .bar-rule { display: none; } }
+  /* Phone menu. The word "Menu", not three lines: it says what it is. It drops a panel under the
+     bar with the same three sections plus the source link, and closes on a pick, Escape, or a
+     tap anywhere else. */
+  .menu-btn { display: none; border: 1px solid var(--border-2); background: var(--surface); color: var(--text); border-radius: 7px;
+    font: 500 13px var(--sans); padding: 6px 11px; cursor: pointer; }
+  .menu-btn[aria-expanded="true"] { background: var(--surface-2); }
+  .menu { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--border);
+    box-shadow: 0 12px 24px -12px rgba(0, 0, 0, .18); padding: 6px 18px 12px; }
+  .menu[hidden] { display: none; }
+  .menu a { display: block; padding: 12px 2px; border-bottom: 1px solid var(--border); text-decoration: none; font: 500 15px var(--sans); color: var(--text); }
+  .menu a:last-child { border-bottom: 0; color: var(--text-2); }
+  .menu a.here { color: var(--accent); }
+  @media (max-width: 880px) { .menu-btn { display: inline-block; } }
+  /* On a phone the name, the version and the Menu button did not fit: 401px of bar on a 390px
+     screen. The version is repeated in the line under the bar, so it is the one that goes. */
+  @media (max-width: 520px) { .ver { display: none; } }
+  @media (min-width: 881px) { .menu { display: none !important; } }
+  @media (max-width: 620px) { .topbar-inner { padding: 0 18px; } .repo { display: none; } }
 
-  .shell { max-width: 1280px; margin: 0 auto; padding: 0 28px; }
-  /* Trailing room so every section can reach the top of the window. Without it the
-     last sections are unreachable and the nav cannot honestly mark where you are. */
-  /* Exactly the room the last section needs to reach the top, and no more. A fixed fraction
-     of the window was wrong in both directions: 72vh left ~650px of dead space on a short
-     window, 46vh was too little on a tall one. What is actually needed grows with the
-     window, because a taller window already shows more of the page. */
-  .tail { height: max(0px, calc(100vh - 430px)); }
+  .shell { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 620px) { .shell { padding: 0 18px; } }
+  .tail { height: 0; }
 
-  /* Wide screens get content in the space, not wider margins. The claim and the composer take
-     the left, the measured numbers take a rail on the right, and the answer and its sources sit
-     side by side. Below 1000px every one of these collapses to a single column. */
-  .top-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
-  .hero-rail { display: none; }
-  @media (min-width: 1000px) {
-    .top-grid { grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr); gap: 3rem; align-items: start; }
-    .hero-rail { display: block; padding-top: 3.6rem; }
-    .hero-rail .rail-head {
-      font: 600 13px var(--sans); color: var(--text-2); margin: 0 0 16px;
-      padding-bottom: 10px; border-bottom: 1px solid var(--border);
-    }
-    .hero-rail .figures { grid-template-columns: minmax(0, 1fr); gap: 26px; }
-    .hero-rail .fig dt { font-size: 2.15rem; }
-    .hero-rail .rail-foot {
-      margin: 26px 0 0; padding-top: 14px; border-top: 1px solid var(--border);
-      color: var(--text-3); font-size: 13px; line-height: 1.6;
-    }
-    .stats { display: none; }
-  }
+  /* One grid for the whole page: text on the left, a margin column on the right. The hero's
+     benchmark table and the answer's source notes share the right column, so they line up. */
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  @media (min-width: 1000px) { .cols { grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; } }
 
-  /* the opening: short, then straight into the composer */
-  /* Left aligned, and it makes a claim rather than asking a question. A centred box asking
-     "what do you want to know?" is the house style of every wrapper built in the last two years. */
-  .intro { padding: 3.25rem 0 1.5rem; }
-  h1 {
-    font: 700 clamp(1.95rem, 4.6vw, 2.8rem)/1.16 var(--sans);
-    letter-spacing: -.025em; margin: 0 0 .7rem; max-width: 24ch;
-  }
+  /* ---------- hero ---------- */
+  .top-grid { padding: 56px 0 44px; border-bottom: 1px solid var(--border); align-items: start; }
+  .eyebrow { margin: 0 0 18px; font: 400 13px var(--mono); color: var(--text-3); }
+  .eyebrow b { color: var(--accent); font-weight: 500; }
+  h1 { font: 600 clamp(2rem, 4.4vw, 2.85rem)/1.12 var(--sans); letter-spacing: -.035em; margin: 0 0 16px; text-wrap: balance; }
   h1 br { display: none; }
-  @media (min-width: 620px) { h1 br { display: inline; } h1 { max-width: none; } }
-  .sub { margin: 0; max-width: 58ch; color: var(--text-2); font-size: 16.5px; line-height: 1.6; }
+  @media (min-width: 620px) { h1 br { display: inline; } }
+  .sub { margin: 0 0 32px; max-width: 58ch; color: var(--text-2); font-size: 17px; line-height: 1.6; text-wrap: pretty; }
 
-  /* The page opens on a real recorded answer rather than an empty box, so what the thing
-     produces is on screen before anyone types. It is labelled as recorded, with its date and
-     its question, because passing a saved answer off as a live one would be the same lie the
-     whole project is built to avoid. */
-  .example-label {
-    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
-    margin: 0 2px 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
-  }
-  .example-label b { font: 600 13px var(--sans); color: var(--accent); }
-  .example-label .askedq { font: 13.5px var(--mono); color: var(--text-2); }
-  .example-label .when { font: 13px var(--mono); color: var(--text-3); margin-left: auto; }
-
-  /* composer: the main object on the page */
-  .composer {
-    background: var(--surface); border: 1px solid var(--border-2);
-    border-radius: var(--r-xl); box-shadow: var(--shadow);
-    padding: 14px 16px 11px; transition: border-color .15s, box-shadow .15s;
-  }
-  .composer:focus-within { border-color: var(--accent); box-shadow: var(--shadow), 0 0 0 3px var(--accent-bg); }
-  .composer textarea {
-    display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent;
-    color: var(--text); font: 16.5px/1.6 var(--sans); padding: 2px 0 0;
-    min-height: 2.5rem; max-height: 14rem;
-  }
+  .composer { background: var(--surface); border: 1px solid var(--border-2); border-radius: 10px; padding: 12px 12px 10px 14px; max-width: 720px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .04); transition: border-color .15s, box-shadow .15s; }
+  .composer:focus-within { border-color: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-bg); }
+  .composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent; color: var(--text);
+    font: 16px/1.6 var(--sans); padding: 2px 0 0; min-height: 3rem; max-height: 14rem; }
   .composer textarea::placeholder { color: var(--text-3); }
-  .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
-  .scope { font: 13.5px var(--sans); color: var(--text-3); }
+  .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+  .scope { font: 400 12.5px var(--sans); color: var(--text-3); }
+  .scope kbd { font: 400 11.5px var(--mono); color: var(--text-2); border: 1px solid var(--border-2); border-radius: 4px; padding: 0 5px; background: var(--surface-2); }
   .bar-right { display: flex; align-items: center; gap: 10px; }
-  .count { font: 13px var(--mono); color: var(--text-3); }
-  /* A word, not a glyph. A circle with an arrow in it is the chat-app idiom and it gave no clue
-     whether it was alive; a button that says what it does, and says "Asking" while it does it,
-     needs no explaining. */
-  .send {
-    flex: none; border: 0; border-radius: var(--r); cursor: pointer;
-    background: var(--accent); color: #fff;
-    font: 600 14.5px/1 var(--sans); letter-spacing: .01em; padding: .7rem 1.2rem;
-    display: inline-flex; align-items: center; gap: 7px; min-width: 78px; justify-content: center;
-    transition: background .15s, transform .1s;
-  }
-  .send:hover { background: var(--accent-2); }
+  .count { font: 12px var(--mono); color: var(--text-3); }
+  /* Neutral, like a docs site's primary button. A word, not a glyph: it says "Asking" while it works. */
+  .send { flex: none; border: 0; border-radius: 7px; cursor: pointer; background: var(--text); color: var(--bg);
+    font: 500 14px/1 var(--sans); padding: .62rem 1.05rem; min-width: 74px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; transition: opacity .15s; }
+  .send:hover { opacity: .85; }
   .send:active { transform: translateY(1px); }
-  .spin {
-    display: none; width: 12px; height: 12px; border-radius: 50%; flex: none;
-    border: 2px solid rgba(255, 255, 255, .35); border-top-color: #fff;
-    animation: spin .7s linear infinite;
-  }
+  /* Empty box, dead button: otherwise a click with nothing typed does nothing and reads as broken. */
+  .send:disabled { background: var(--surface-2); color: var(--text-3); cursor: default; opacity: 1; transform: none; }
+  .send.busy { background: var(--text); color: var(--bg); opacity: .8; }
+  .spin { display: none; width: 11px; height: 11px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
   .send.busy .spin { display: inline-block; }
-  /* Empty box, dead button. Every composer works this way, and without it clicking the circle
-     with nothing typed does nothing at all, which reads as a button that is not wired up. */
-  /* Empty box, dead button. Without it, clicking with nothing typed does nothing at all,
-     which reads as a button that is not wired up. */
-  .send:disabled { background: var(--surface-2); color: var(--text-2); cursor: default; transform: none; }
-  .send.busy { background: var(--accent-2); }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 
-  /* suggestion cards */
-  .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 1.25rem; }
+  /* Examples as a suggestion list attached under the box, the way an autocomplete offers them:
+     a label to choose by, the text that would be pasted, and a row that answers to the pointer.
+     Underlined links in a line were easy to miss and hid what each example actually asks. */
+  .composer.has-try { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .try { max-width: 720px; border: 1px solid var(--border-2); border-top: 0; border-radius: 0 0 10px 10px; background: var(--surface); overflow: hidden; }
+  .try-label { display: block; padding: 8px 14px; font: 500 11.5px var(--mono); letter-spacing: .02em; color: var(--text-3); background: var(--surface-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .chips { display: block; }
   .chip {
-    display: block; width: 100%; text-align: left; cursor: pointer;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: var(--r-lg); padding: 11px 13px;
-    font: 500 14.5px/1.4 var(--sans); color: var(--text);
-    transition: background .15s, border-color .15s;
+    display: grid; grid-template-columns: 168px minmax(0, 1fr) 16px; align-items: baseline; gap: 16px;
+    width: 100%; text-align: left; cursor: pointer; border: 0; border-top: 1px solid var(--border); background: transparent;
+    padding: 11px 14px; font: 500 14px/1.45 var(--sans); color: var(--text); transition: background .12s, box-shadow .12s;
   }
-  .chip:hover { background: var(--surface); border-color: var(--border-2); }
-  .chip .q { display: block; margin-top: 5px; font: 400 13px/1.55 var(--mono); color: var(--text-3); }
-  /* Five examples in a two-column grid: the odd one out spans the row rather than leaving a hole,
-     and it is the one the system deliberately refuses, which is worth its own line. */
-  .chip:last-child { grid-column: 1 / -1; }
-  .chip.declines .flag {
-    display: inline-block; margin-left: 8px; vertical-align: 1px;
-    font: 500 13px var(--sans); color: var(--accent);
-    background: var(--accent-bg); border-radius: 999px; padding: 3px 10px;
+  .chip:first-child { border-top: 0; }
+  .chip:hover, .chip:focus-visible { background: var(--accent-bg); outline: none; box-shadow: inset 3px 0 0 var(--accent); }
+  .chip .lbl { font-weight: 500; }
+  /* the full question, wrapped: it is the thing being asked, and cutting it off with an
+     ellipsis hid exactly the part that says what each example is about */
+  .chip .q { font: 400 13.5px/1.5 var(--sans); color: var(--text-2); }
+  .chip .go { color: var(--text-3); text-align: right; transition: transform .12s, color .12s; }
+  .chip:hover .go, .chip:focus-visible .go { color: var(--accent); transform: translateX(2px); }
+  .chip:hover .q { color: var(--text); }
+  .chip.declines .flag { display: block; width: max-content; margin-top: 4px; font: 500 11px var(--sans); color: var(--accent); background: var(--accent-bg); border-radius: 4px; padding: 1px 6px; }
+  @media (max-width: 620px) {
+    .chip { grid-template-columns: minmax(0, 1fr) 16px; gap: 3px 10px; }
+    .chip .q { grid-column: 1; grid-row: 2; }
+    .chip .go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
   }
 
-  /* results */
-  #results { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 2.25rem; }
-  @media (min-width: 1000px) {
-    #results { grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr); gap: 3rem; align-items: start; }
-    /* The sources column scrolls on its own and the page stays put behind it. The scrollbar
-       is thin and only appears when the list actually overflows; `overscroll-behavior: contain`
-       is the part that matters, because without it reaching the end of the list hands the
-       scroll to the page and the whole thing moves under you. */
-    .sources {
-      margin-top: 0; position: sticky; top: 88px;
-      max-height: calc(100vh - 116px); overflow-y: auto; overscroll-behavior: contain;
-      padding-right: 8px;
-      scrollbar-width: thin; scrollbar-color: var(--border-2) transparent;
-    }
-    .sources::-webkit-scrollbar { width: 8px; }
-    .sources::-webkit-scrollbar-track { background: transparent; }
-    .sources::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 999px; }
-    .sources::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
-    .panel { padding-top: 0; border-top: 0; }
-  }
+  /* The benchmark, as a table: a label, a value, and what the value means. */
+  /* Starts on the eyebrow's line and, on a wide screen, stretches to the bottom of the Try list,
+     with "what happens when you ask" pinned to the bottom, so the two columns share a top AND a
+     bottom edge. Without it the benchmark ended ~170px above the Try list and left a hole. */
+  .hero-rail { padding-top: 0; display: flex; flex-direction: column; }
+  @media (min-width: 1000px) { .hero-rail { align-self: stretch; } }
+  .rail-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--text); }
+  .rail-head b { font: 600 13.5px var(--sans); }
+  .rail-head span { font: 400 12.5px var(--mono); color: var(--text-3); }
+  .figures { margin: 0; }
+  .fig { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .fig dt { font: 500 17px/1.3 var(--mono); letter-spacing: -.02em; font-variant-numeric: tabular-nums; text-align: right; }
+  .fig dd { margin: 0; color: var(--text-3); font-size: 13px; line-height: 1.45; }
+  .fig dd b { display: block; color: var(--text); font-weight: 500; font-size: 14px; line-height: 1.3; margin-bottom: 2px; }
+  .meter { display: block; height: 3px; margin-top: 8px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--accent); }
+  .fig + .fig .meter i { background: var(--accent-soft); }
+  .limits code { font: 12.5px var(--mono); color: var(--text-2); }
+  .flow { margin-top: auto; padding-top: 14px; }
+  .flow-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 4px; padding-bottom: 4px; border-bottom: 1px solid var(--text); font: 600 13.5px var(--sans); }
+  .flow-head a { text-decoration: none; }
+  .flow-head a:hover { color: var(--accent); }
+  .flow-head span { font: 400 12.5px var(--mono); color: var(--text-3); }
+  /* A table of contents into the breakage index: eight groups in two columns, each with its
+     count, each a jump. It replaced a three-step "what happens when you ask" that repeated
+     "How it works" word for word further down. */
+  /* One column: in two, the names were cut to "Statement construc..." and "cascade_backrefs (...". */
+  .flow ol { margin: 0; padding: 0; list-style: none; }
+  .flow li a { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; padding: 4px 0;
+    border-bottom: 1px solid var(--border); text-decoration: none; font-size: 13px; color: var(--text-2); }
+  .flow li a:hover { color: var(--accent); }
+  .flow li .g { font: 500 11.5px var(--mono); color: var(--accent); }
+  .flow li .c { font: 400 12px var(--mono); color: var(--text-3); }
+  .flow li .nm { overflow-wrap: anywhere; }
+
+  /* ---------- the answer: a document with margin notes ---------- */
+  /* The question and its status span both columns, so the answer's first line and the first
+     source note start at the same height. With the title in the left column only, the notes
+     were pushed ~150px down to meet the first cited paragraph and left a hole under "Sources". */
+  #results { padding: 36px 0 0; row-gap: 0; }
+  .answer-head { grid-column: 1 / -1; }
   #results[hidden] { display: none !important; }
-  /* Cards are for things you can click or things that float. The answer is neither: it is
-     the content, so it sits on the page and is separated by a rule and space, not a box. */
-  .panel { padding: 22px 2px 0; border-top: 1px solid var(--border); }
+  .panel { min-width: 0; }
+  .example-label { margin: 0 0 10px; font: 400 12.5px var(--mono); color: var(--text-3); display: flex; gap: 10px; flex-wrap: wrap; }
+  .example-label b { color: var(--accent); font-weight: 500; }
+  .doc-title { font: 600 1.3rem/1.35 var(--sans); max-width: 60ch; letter-spacing: -.025em; margin: 0 0 12px; overflow-wrap: anywhere; }
+  .stamp-row { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .pill { font: 500 13px var(--sans); color: var(--text-2); display: inline-flex; align-items: center; gap: 7px; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
+  .pill.answered { color: var(--ok); }
+  .pill.answered::before { background: var(--ok); }
+  .meta { font: 12.5px var(--mono); color: var(--text-3); }
+  .quoted { margin: 0; color: var(--text-2); font-size: 16px; }
+  /* Declining is honest behaviour, shown as information: no red, no warning icon. */
+  .declined-note { margin: 0 0 18px; padding: 2px 0 2px 16px; border-left: 2px solid var(--border-2); color: var(--text-2); font-size: 15px; line-height: 1.6; }
 
-  .stamp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-  .pill {
-    display: inline-flex; align-items: center; gap: 7px;
-    font: 600 13px var(--sans); letter-spacing: .02em;
-    padding: 5px 12px; border-radius: 999px;
-    background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border);
-  }
-  .pill.answered { background: var(--accent-bg); color: var(--accent); border-color: transparent; }
-  .pill.declined, .pill.error { background: var(--surface-2); color: var(--text-2); }
-  .meta { font: 13px var(--mono); color: var(--text-3); }
-  /* the model's own sentence when it declines, quoted back rather than paraphrased */
-  .quoted { margin: 0; color: var(--text-2); font-size: 15.5px; }
-
-  /* Declining is the honest behaviour, so it is presented as information, never as an error:
-     no red, no warning icon, and the pages it was given stay listed underneath. */
-  .declined-note {
-    margin: 0 0 14px; padding: 12px 14px; border-radius: var(--r);
-    background: var(--surface-2); color: var(--text-2); font-size: 15px; line-height: 1.6;
-  }
-
-  .md { font-size: 16.5px; line-height: 1.68; }
-  .md > p, .md > ul, .md > ol { max-width: 70ch; }
-  .md p { margin: 0 0 .85rem; }
-  .md ul, .md ol { padding-left: 1.25rem; margin: 0 0 .85rem; }
+  .md { font-size: 16.5px; line-height: 1.75; }
+  .md > p, .md > ul, .md > ol { max-width: 68ch; }
+  .md p { margin: 0 0 1rem; }
+  .md ul, .md ol { padding-left: 1.25rem; margin: 0 0 1rem; }
   .md li { margin-bottom: .3rem; }
-  .md h1, .md h2, .md h3 { font: 600 1rem/1.35 var(--sans); margin: 1.3rem 0 .5rem; letter-spacing: -.01em; }
-  .md code { font: 14px var(--mono); background: var(--surface-2); border: 1px solid var(--border); padding: 1px 5px; border-radius: var(--r-sm); }
-  /* 11px on purpose. A footnote marker is a MARK, not text: at body size it stops
-     reading as a citation. The tap target is padded out instead. Same reasoning for
-     the numerals in .num and .step .n, which are numbers inside badges. */
-  .md a.cite {
-    display: inline-block; text-decoration: none; min-width: 17px; height: 17px;
-    font: 600 11px/17px var(--sans); text-align: center; vertical-align: 1px;
-    color: var(--accent); background: var(--accent-bg); border-radius: 5px;
-    padding: 0 4px; margin: 0 1px 0 2px;
-  }
-  .md a.cite:hover { background: var(--accent); color: #fff; }
+  .md h1, .md h2, .md h3 { font: 600 1.05rem/1.35 var(--sans); margin: 1.4rem 0 .5rem; }
+  .md code { font: 14px var(--mono); background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+  /* A citation is a reference mark, set like one: small, raised, the accent colour. */
+  .md a.cite { display: inline-block; text-decoration: none; font: 500 11px/1 var(--mono); color: var(--accent);
+    vertical-align: super; padding: 2px 3px; margin-left: 1px; border-radius: 3px; }
+  .md a.cite::before { content: "["; } .md a.cite::after { content: "]"; }
+  .md a.cite:hover { background: var(--accent-bg); }
 
-  /* code panels: dark, with a language bar and copy, the way developer docs ship them */
-  .codeblock { margin: 0 0 1rem; border-radius: var(--r); overflow: hidden; background: var(--code-bg); }
-  .codebar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 7px 12px; background: var(--code-bar); border-bottom: 1px solid rgba(255, 255, 255, .06);
-  }
-  .codebar .lang { font: 500 13px var(--mono); color: #99a1ad; letter-spacing: .03em; }
-  .copy {
-    border: 0; background: transparent; cursor: pointer; color: #8b929e;
-    font: 500 13px var(--sans); padding: 3px 7px; border-radius: 5px;
-  }
-  .copy:hover { color: #e6e9ef; background: rgba(255, 255, 255, .07); }
-  .md pre { margin: 0; padding: 12px 14px; background: var(--code-bg); overflow: hidden; }
-  /* The code element is the scroll box: a long line scrolls inside its own panel and never
-     widens the page. An inline `code` cannot scroll, so `display: block` is load-bearing. */
-  .md pre code {
-    display: block; overflow-x: auto; background: none; border: 0; padding: 0;
-    font: 13.5px/1.7 var(--mono); color: #d7dbe3;
-    scrollbar-width: thin; scrollbar-color: #3a3f48 transparent;
-  }
+  .codeblock { margin: .2rem 0 1.2rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--code-bg); max-width: 76ch; }
+  .codebar { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--border); }
+  .codebar .lang { font: 400 12px var(--mono); color: var(--text-3); }
+  .copy { border: 0; background: transparent; cursor: pointer; color: var(--text-3); font: 400 12.5px var(--sans); padding: 3px 7px; border-radius: 5px; }
+  .copy:hover { color: var(--text); background: var(--surface-2); }
+  .md pre { margin: 0; padding: 14px 16px; background: var(--code-bg); overflow: hidden; }
+  /* The code element is the scroll box, so a long line never widens the page. */
+  .md pre code { display: block; overflow-x: auto; background: none; padding: 0; border-radius: 0; font: 13.5px/1.7 var(--mono); color: var(--text);
+    scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
   .md pre code::-webkit-scrollbar { height: 8px; }
-  .md pre code::-webkit-scrollbar-track { background: transparent; }
-  .md pre code::-webkit-scrollbar-thumb { background: #3a3f48; border-radius: 999px; }
-  .md pre code::-webkit-scrollbar-thumb:hover { background: #4b515c; }
+  .md pre code::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 999px; }
 
-  .notice { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--border); color: var(--text-2); font-size: 14px; line-height: 1.7; }
-  .notice code { font: 13px var(--mono); color: var(--text-2); }
+  .notice { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-3); font-size: 13px; line-height: 1.7; max-width: 76ch; }
+  .notice code { font: 12.5px var(--mono); color: var(--text-2); }
   .notice strong { color: var(--text-2); font-weight: 600; }
 
-  /* waiting */
-  .steps { margin: 0 0 14px; padding: 0; list-style: none; color: var(--text-3); font-size: 14px; }
+  .steps { margin: 0 0 16px; padding: 0; list-style: none; color: var(--text-3); font-size: 14px; }
   .steps li { margin-bottom: 4px; }
-  .skel { height: 11px; border-radius: 999px; background: var(--surface-2); margin-bottom: 9px; }
-  .skel.a { animation: breathe 1.7s ease-in-out infinite; }
-  .skel.b { animation: breathe 1.7s ease-in-out .2s infinite; }
-  .skel.c { animation: breathe 1.7s ease-in-out .4s infinite; }
+  .skel { height: 10px; border-radius: 3px; background: var(--surface-2); margin-bottom: 10px; animation: breathe 1.6s ease-in-out infinite; }
+  .skel.b { animation-delay: .15s; } .skel.c { animation-delay: .3s; }
   @keyframes breathe { 50% { opacity: .45; } }
 
-  /* sources */
-  .sources { margin-top: 1.5rem; }
-  .sources-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px 2px; }
-  .sources-head h2 { font: 600 14.5px var(--sans); margin: 0; letter-spacing: -.01em; }
-  .sources-head .n { font: 13px var(--mono); color: var(--text-3); }
-  .src { border-bottom: 1px solid var(--border); border-radius: var(--r); transition: background .25s; }
-  .src:last-child { border-bottom: 0; }
-  .src summary {
-    list-style: none; cursor: pointer; display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) auto; gap: 3px 11px;
-    padding: 12px 10px; align-items: center;
-  }
-  .src summary:hover .src-head { color: var(--accent); }
+  /* Sources are a plain list in the order the model was given them, 1 to 5. An earlier version set
+     each one beside the sentence that cited it; that left holes wherever a paragraph cited nothing
+     and ran the numbers 1, 2, 5, 3, 4, and it read as broken. A [n] in the answer still jumps to
+     its source and highlights it. */
+  .sources { min-width: 0; }
+  .sources-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px; }
+  .sources-head h2 { font: 600 13.5px var(--sans); margin: 0; }
+  .sources-head .n { font: 12.5px var(--mono); color: var(--text-3); }
+  #sources { position: relative; }
+  .src { border-left: 2px solid var(--border); padding-left: 12px; margin-bottom: 14px; transition: border-color .2s, background .2s; }
+  .src.cited { border-left-color: var(--accent); }
+  .src summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1px 8px; align-items: baseline; }
   .src summary::-webkit-details-marker { display: none; }
-  .num {
-    grid-row: span 2; width: 24px; height: 24px; border-radius: 7px;
-    display: grid; place-items: center; font: 600 12px var(--sans);
-    background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border);
-  }
-  .src.cited .num { background: var(--accent); color: #fff; border-color: transparent; }
-  .src-head { font: 500 15px/1.45 var(--sans); }
-  .src-head .crumb { display: block; font: 400 13px/1.55 var(--sans); color: var(--text-3); margin-top: 3px; }
-  .src-meta { grid-column: 2; font: 13px/1.6 var(--mono); color: var(--text-3); }
-  .src-meta .cited-flag { color: var(--accent); margin-left: 7px; }
-  .toggle { grid-row: span 2; font: 500 13px var(--sans); color: var(--text-3); white-space: nowrap; }
+  .num { font: 500 12px var(--mono); color: var(--text-3); grid-row: span 2; }
+  .num::before { content: "["; } .num::after { content: "]"; }
+  .src.cited .num { color: var(--accent); }
+  .src-head { font: 500 14px/1.4 var(--sans); }
+  .src summary:hover .src-head { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-2); }
+  .src-head .crumb { display: block; font: 400 12.5px/1.45 var(--sans); color: var(--text-3); margin-top: 2px; }
+  .src-meta { grid-column: 2; font: 11.5px/1.6 var(--mono); color: var(--text-3); margin-top: 2px; }
+  .src-meta .cited-flag { color: var(--accent); margin-left: 6px; }
+  .toggle { grid-row: span 2; font: 400 12px var(--sans); color: var(--text-3); }
   .toggle::after { content: "Read"; }
   .src[open] .toggle::after { content: "Hide"; }
-  .src-body {
-    margin: 0; padding: 0 10px 14px 45px; white-space: pre-wrap;
-    font: 14px/1.7 var(--mono); color: var(--text-2);
-  }
-  .src.flash { background: var(--accent-bg); box-shadow: inset 3px 0 0 var(--accent); }
+  .src-body { margin: 10px 0 4px; padding: 10px 12px; white-space: pre-wrap; font: 12px/1.65 var(--mono); color: var(--text-2); background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; max-height: 360px; overflow: auto; }
+  .src.flash { background: var(--mark); }
   .empty { color: var(--text-3); font-size: 14px; margin: 0; }
 
-  /* how it works: three steps, numbered, no boxes */
-  .how { margin-top: 5.5rem; padding-top: 2.75rem; border-top: 1px solid var(--border); }
-  .how h2, .stats h2, .method h2, .limits h2 {
-    font: 700 19px var(--sans); margin: 0 0 20px; letter-spacing: -.015em;
+  /* ---------- what breaks: an index of deliverables/BREAKAGES.md ---------- */
+  /* Eight groups, each a short list. Every entry shows the 1.4 call, the exception 2.0.51 raised
+     and its message, and asks about itself when picked, so the index is a way in, not a wall. */
+  /* Columns, not a grid: groups are 1 to 4 entries long, and a grid started every row below the
+     tallest group and left holes under the short ones. Columns let each group follow the last. */
+  .brk-grid { columns: 1; column-gap: 40px; }
+  @media (min-width: 700px) { .brk-grid { columns: 2; } }
+  @media (min-width: 1000px) { .brk-grid { columns: 4; } }
+  .brk-group { break-inside: avoid; margin-bottom: 28px; scroll-margin-top: 90px; }
+  .brk-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 2px solid var(--text); font: 600 14px var(--sans); }
+  .brk-group h3 .g { font: 500 12px var(--mono); color: var(--accent); }
+  .brk {
+    display: block; width: 100%; text-align: left; cursor: pointer; border: 0; border-bottom: 1px solid var(--border);
+    background: transparent; padding: 9px 8px 9px 0; color: var(--text); transition: background .12s, padding .12s, box-shadow .12s;
   }
-  .steps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; }
-  .step .n {
-    display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--r-sm);
-    background: var(--accent-bg); color: var(--accent); font: 600 11.5px var(--sans); margin-bottom: 9px;
+  .brk:hover, .brk:focus-visible { background: var(--accent-bg); padding-left: 8px; box-shadow: inset 2px 0 0 var(--accent); outline: none; }
+  .brk .t { display: block; font: 500 13px/1.4 var(--mono); overflow-wrap: anywhere; }
+  /* the message on up to two lines: one line cut "'Engine' object has no a..." to nothing useful */
+  .brk .e { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+    margin-top: 3px; font: 400 12px/1.45 var(--sans); color: var(--text-3); overflow-wrap: anywhere; }
+  .brk .e b { font: 500 11.5px var(--mono); color: var(--accent); margin-right: 6px; }
+  .brk.silent .e b { color: var(--text-2); }
+
+  /* ---------- the sections below: a README ---------- */
+  .band { margin-top: 88px; padding-top: 28px; border-top: 1px solid var(--border); }
+  .band h2 { font: 600 1.35rem/1.3 var(--sans); letter-spacing: -.02em; margin: 0 0 18px; }
+  .band .lead { margin: -8px 0 24px; color: var(--text-2); max-width: 64ch; }
+  .pipeline { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .stage { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 20px; padding: 18px 0; border-top: 1px solid var(--border); }
+  .stage:first-child { border-top: 0; padding-top: 4px; }
+  .stage .big-n { font: 500 1.5rem/1.1 var(--mono); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .stage .unit { display: block; font: 400 12.5px var(--mono); color: var(--text-3); margin-top: 4px; }
+  .stage h3 { font: 600 16px var(--sans); margin: 0 0 4px; }
+  .stage p { margin: 0; color: var(--text-2); font-size: 15px; line-height: 1.65; max-width: 66ch; }
+  /* On a wide screen the three steps read left to right across the full width, each with its
+     number on top, so the section uses the page instead of the left 60% of it. A rule above
+     each step, accent on the number, and an arrow between them make it a sequence. */
+  @media (min-width: 1000px) {
+    .pipeline { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+    .stage, .stage:first-child { display: block; position: relative; padding: 18px 0 0; border-top: 2px solid var(--text); }
+    .stage .big-n { font: 600 2.1rem/1.05 var(--sans); letter-spacing: -.04em; }
+    .stage .unit { margin: 6px 0 16px; }
+    .stage:not(:last-child)::after { content: "\2192"; position: absolute; right: -28px; top: 20px; font: 16px var(--mono); color: var(--text-3); }
   }
-  .step h3 { font: 600 15px var(--sans); margin: 0 0 6px; }
-  .step p { margin: 0; color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
-  .step code { font: 11.5px var(--mono); color: var(--text-2); }
+  .method-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; }
+  .method-cols p { margin: 0 0 1rem; color: var(--text-2); font-size: 15px; line-height: 1.7; }
+  .method strong, .limits strong { color: var(--text); font-weight: 600; }
+  .limits ul { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); }
+  .limits li { padding: 14px 0 14px 22px; position: relative; color: var(--text-2); font-size: 15px; line-height: 1.65; border-top: 1px solid var(--border); }
+  .limits li::before { content: "\2014"; position: absolute; left: 0; color: var(--accent); }
+  .limits li strong { display: block; margin-bottom: 2px; }
+  @media (min-width: 1000px) {
+    .limits ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; }
+    .limits li:nth-child(-n+2) { border-top: 0; padding-top: 2px; }
+  }
+  @media (max-width: 999px) { .limits li:first-child { border-top: 0; padding-top: 2px; } }
 
-  /* method: prose in two columns, a different shape from everything above it */
-  .method { margin-top: 5.5rem; padding-top: 2.75rem; border-top: 1px solid var(--border); }
-  .method-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 44px; }
-  .method p { margin: 0 0 .9rem; color: var(--text-2); font-size: 15px; line-height: 1.65; }
-  .method strong { color: var(--text); font-weight: 600; }
+  footer { margin-top: 96px; padding: 36px 0 28px; border-top: 1px solid var(--border); color: var(--text-3); font-size: 13.5px; line-height: 1.65; }
+  .foot-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  @media (min-width: 760px) { .foot-grid { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 48px; } }
+  .foot-brand { font: 600 14.5px var(--mono); color: var(--text); margin: 0 0 8px; }
+  .foot-brand b { color: var(--accent); font-weight: 600; }
+  .foot-about { margin: 0; max-width: 46ch; color: var(--text-2); }
+  .foot-col h3 { font: 600 12.5px var(--sans); color: var(--text); margin: 0 0 10px; }
+  .foot-col ul { margin: 0; padding: 0; list-style: none; }
+  .foot-col li { margin-bottom: 6px; }
+  .foot-col a { color: var(--text-2); text-decoration: none; }
+  .foot-col a:hover { color: var(--accent); }
+  .foot-col .m { font-family: var(--mono); font-size: 12.5px; }
+  #foot { display: flex; gap: 1rem 2rem; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12.5px; }
+  #foot .foot-text { max-width: 76ch; }
+  #foot a { color: var(--text-2); text-underline-offset: 3px; text-decoration-color: var(--border-2); white-space: nowrap; }
+  #foot a:hover { color: var(--accent); }
 
-  /* what it does not claim */
-  .limits { margin-top: 5.5rem; padding-top: 2.75rem; border-top: 1px solid var(--border); }
-  .limits ul { margin: 0; padding-left: 1.1rem; }
-  .limits li { margin-bottom: .7rem; color: var(--text-2); font-size: 15px; line-height: 1.65; }
-  .limits li::marker { color: var(--text-3); }
-  .limits strong { color: var(--text); font-weight: 600; }
-  .limits code { font: 13px var(--mono); color: var(--text-2); }
+  /* Syntax colour: GitHub's palette, light and dark, because that is what these readers look at all day. */
+  .hljs-keyword, .hljs-built_in, .hljs-literal { color: #cf222e; }
+  .hljs-string, .hljs-regexp { color: #0a3069; }
+  .hljs-number { color: #0550ae; }
+  .hljs-comment, .hljs-quote { color: #6e7781; font-style: italic; }
+  .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-type { color: #8250df; }
+  .hljs-meta { color: #6e7781; }
+  @media (prefers-color-scheme: dark) {
+    .hljs-keyword, .hljs-built_in, .hljs-literal { color: #ff7b72; }
+    .hljs-string, .hljs-regexp { color: #a5d6ff; }
+    .hljs-number { color: #79c0ff; }
+    .hljs-comment, .hljs-quote, .hljs-meta { color: #8b949e; }
+    .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-type { color: #d2a8ff; }
+  }
 
-  /* measured figures */
-  .stats { margin-top: 5rem; padding-top: 2.5rem; border-top: 1px solid var(--border); }
-  .stats h2 { font: 600 15px var(--sans); margin: 0 0 14px; letter-spacing: -.01em; }
-  /* Four figures, not four cards. Boxing a number adds a border and takes away the number. */
-  .figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 20px; margin: 0; }
-  .fig { margin: 0; }
-  .fig dt { font: 700 2.05rem/1.05 var(--sans); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-  .rail-foot code { font: 13px var(--mono); color: var(--text-2); }
-  .fig dd { margin: 7px 0 0; color: var(--text-2); font-size: 13.5px; line-height: 1.55; }
+  /* Long unbroken names wrap rather than widening the page. Every grid column is minmax(0, 1fr):
+     a plain 1fr cannot shrink below its content and once widened this page to 991px on a 398px screen. */
+  .md p, .md li, .src-head, .src-meta, .src-body, .declined-note, .notice, .chip { overflow-wrap: anywhere; }
 
-  footer { margin-top: 4rem; color: var(--text-3); font-size: 13.5px; line-height: 1.65; text-align: center; }
-
-  /* Syntax colour on the dark panel, restrained: blue keywords, green strings, grey comments. */
-  .hljs-keyword, .hljs-built_in, .hljs-literal { color: #93b4ff; }
-  .hljs-string, .hljs-regexp { color: #9fd4a3; }
-  .hljs-number { color: #f0b37e; }
-  .hljs-comment, .hljs-quote { color: #7d8590; font-style: italic; }
-  .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-type { color: #d2a8ff; }
-  .hljs-attr, .hljs-params { color: #d7dbe3; }
-  .hljs-meta { color: #7d8590; }
-
-  /* Long unbroken names (dotted API paths, file paths) wrap rather than widening the page.
-     Every grid column is minmax(0, 1fr): a plain 1fr cannot shrink below its content and
-     once widened this page to 991px on a 398px screen. */
-  .md p, .md li, .src-head, .src-meta, .src-body, .declined-note, .notice, .chip, .chip .q { overflow-wrap: anywhere; }
-
+  @media (max-width: 999px) {
+    .top-grid { padding: 44px 0 40px; }
+    .hero-rail { max-width: 520px; }
+    .sources { padding-top: 8px; }
+  }
   @media (max-width: 620px) {
-    .intro { padding-top: 2.5rem; }
-    .chips { grid-template-columns: minmax(0, 1fr); }
-    .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .steps-grid, .method-cols { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-    .chip:last-child { grid-column: auto; }
-    .panel { padding: 16px; }
-    .src-body { padding-left: 10px; }
     .scope { display: none; }
     .composer-bar { justify-content: flex-end; }
+    .stage { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .method-cols { grid-template-columns: minmax(0, 1fr); }
+    .band { margin-top: 64px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
-  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -465,14 +418,16 @@
     <a class="brand" href="#" id="brand" aria-label="Back to the top"><b>sqlalchemy</b>-upgrade-agent</a>
     <span class="bar-rule" aria-hidden="true"></span>
     <nav class="navlinks" aria-label="Sections">
+      <a href="#breaks">What breaks in 2.0</a>
       <a href="#how">How it works</a>
       <a href="#measured">How it is measured</a>
       <a href="#limits">What it does not claim</a>
     </nav>
     <div class="topbar-right">
+      <span class="ver">1.4<span class="to"> &rarr; </span><span class="new">2.0</span></span>
       <a class="repo" href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent"
-         target="_blank" rel="noopener noreferrer">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+         target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
           <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577
             0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7
             c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998
@@ -482,89 +437,98 @@
             0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286
             0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
         </svg>
-        Source</a>
-      <span class="ver">1.4<span class="to"> &rarr; </span><span class="new">2.0</span></span>
+        <span>Source</span></a>
+      <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
     </div>
   </div>
+  <nav class="menu" id="menu" aria-label="Sections" hidden>
+    <a href="#breaks">What breaks in 2.0</a>
+    <a href="#how">How it works</a>
+    <a href="#measured">How it is measured</a>
+    <a href="#limits">What it does not claim</a>
+    <a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent" target="_blank" rel="noopener noreferrer">Source on GitHub &nearr;</a>
+  </nav>
 </header>
 
 <main class="shell">
-  <div class="top-grid">
-   <div class="top-main">
-  <section class="intro">
-    <h1>Every answer cites its page,<br>or says there isn't one.</h1>
-    <p class="sub">Ask about anything that broke between SQLAlchemy 1.4 and 2.0. It reads the documentation, quotes it back with the page attached, and declines when the pages do not cover you.</p>
-  </section>
+  <div class="top-grid cols">
+    <div class="top-main">
+      <p class="eyebrow">SQLAlchemy <b>1.4 &rarr; 2.0</b> &middot; migration answers from the docs</p>
+      <h1>Every answer cites its page, <br>or says there isn't one.</h1>
+      <p class="sub">Ask about anything that broke between SQLAlchemy 1.4 and 2.0. It reads the documentation, quotes it back with the page attached, and declines when the pages do not cover you.</p>
 
-  <form id="form" class="composer">
-    <label class="sr-only" for="q">Your question</label>
-    <textarea id="q" rows="1" placeholder="Paste the error, or the 1.4 code that broke..."></textarea>
-    <div class="composer-bar">
-      <span class="scope" id="scope">Searches the SQLAlchemy 1.4 and 2.0 documentation</span>
-      <span class="bar-right">
-        <span class="count" id="count"></span>
-        <button class="send" id="ask" type="submit"><span class="spin" aria-hidden="true"></span><span class="label">Ask</span></button>
-      </span>
+      <form id="form" class="composer has-try">
+        <label class="sr-only" for="q">Your question</label>
+        <textarea id="q" rows="2" placeholder="Paste the error, or the 1.4 code that broke..."></textarea>
+        <div class="composer-bar">
+          <span class="scope" id="scope"><kbd>Enter</kbd> to ask, <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line</span>
+          <span class="bar-right">
+            <span class="count" id="count"></span>
+            <button class="send" id="ask" type="submit"><span class="spin" aria-hidden="true"></span><span class="label">Ask</span></button>
+          </span>
+        </div>
+      </form>
+
+      <div class="try"><span class="try-label">Or try an example</span>
+        <span class="chips" id="chips" role="group" aria-label="Example questions"></span>
+      </div>
     </div>
-  </form>
 
-  <div class="chips" id="chips" role="group" aria-label="Example questions"></div>
-   </div>
-   <aside class="hero-rail">
-     <p class="rail-head">Measured on 100 questions</p>
-     <dl class="figures">
-       <div class="fig"><dt>100</dt><dd>questions checked by hand, each with its answer page.</dd></div>
-       <div class="fig"><dt>64%</dt><dd>put the right page into the five the model sees.</dd></div>
-       <div class="fig"><dt>0.42</dt><dd>end to end: page shown <em>and</em> answered from it.</dd></div>
-       <div class="fig"><dt>9</dt><dd>have no answer in the docs, and are refused.</dd></div>
-     </dl>
-     <p class="rail-foot">Measured with <code>qwen2.5-coder:7b</code> reading the same five pages
-     the answer above was written from. A different model writing the answers would move these
-     numbers, and the notice on every answer says which model wrote it.</p>
-   </aside>
+    <aside class="hero-rail" aria-label="Benchmark">
+      <p class="rail-head"><b>Benchmark</b><span>100 questions, checked by hand</span></p>
+      <dl class="figures">
+        <div class="fig"><dt>0.64</dt><dd><b>Right page found</b>in the five pages the model is given.<span class="meter"><i style="width:64%"></i></span></dd></div>
+        <div class="fig"><dt>0.42</dt><dd><b>Answered from it</b>page shown, and the answer uses it.<span class="meter"><i style="width:42%"></i></span></dd></div>
+        <div class="fig"><dt>100</dt><dd><b>Test questions</b>each with the page that answers it.</dd></div>
+        <div class="fig"><dt>9</dt><dd><b>Unanswerable</b>no answer in the docs; should be refused.</dd></div>
+        <div class="fig"><dt>3,284</dt><dd><b>Passages searched</b>from the 1.4 and 2.0 documentation.</dd></div>
+      </dl>
+      <nav class="flow" aria-label="Breakages by group">
+        <p class="flow-head"><a href="#breaks">What breaks in 2.0</a><span id="toc-count"></span></p>
+        <ol id="toc-breaks"></ol>
+      </nav>
+    </aside>
   </div>
 
-  <section id="results" hidden>
+  <section id="results" class="cols" hidden>
+    <header class="answer-head" id="answer-head"></header>
     <article class="panel" id="answer" aria-live="polite"></article>
-    <section class="sources">
+    <aside class="sources">
       <div class="sources-head"><h2>Sources</h2><span class="n" id="src-count"></span></div>
       <div id="sources"></div>
-    </section>
+    </aside>
   </section>
 
-  <section class="how" id="how">
+  <section class="band breaks" id="breaks">
+    <h2>What breaks in 2.0</h2>
+    <p class="lead">23 changes that break 1.4 code, each found by running the pattern on SQLAlchemy 2.0.51 and recording what it raised. Pick one to ask how to fix it.</p>
+    <div class="brk-grid" id="brk-grid"></div>
+  </section>
+
+  <section class="band how" id="how">
     <h2>How it works</h2>
-    <div class="steps-grid">
-      <div class="step">
-        <span class="n">1</span>
-        <h3>Search</h3>
-        <p>3,284 passages, cut from 270 files of the SQLAlchemy 1.4 and 2.0 documentation. Two searches run over them at once: one on meaning, one on keywords. Neither alone finds the page reliably.</p>
-      </div>
-      <div class="step">
-        <span class="n">2</span>
-        <h3>Rerank</h3>
-        <p>A second model re-reads the top candidates and can promote one page into the last of the five seats. It only reorders what search already found, so it cannot rescue a page search missed.</p>
-      </div>
-      <div class="step">
-        <span class="n">3</span>
-        <h3>Answer</h3>
-        <p>Five pages go into one prompt. The model answers from those five and cites them by number, or says they do not cover the question. It is never asked to answer from memory.</p>
-      </div>
-    </div>
+    <p class="lead">Three steps. The model never answers from memory.</p>
+    <ol class="pipeline">
+      <li class="stage">
+        <div><span class="big-n">3,284</span><span class="unit">passages</span></div>
+        <div><h3>1. Search</h3>
+        <p>3,284 passages, cut from 270 files of the SQLAlchemy 1.4 and 2.0 documentation. Two searches run over them at once: one on meaning, one on keywords. Neither alone finds the page reliably.</p></div>
+      </li>
+      <li class="stage">
+        <div><span class="big-n">5</span><span class="unit">pages kept</span></div>
+        <div><h3>2. Rerank</h3>
+        <p>A second model re-reads the top candidates and can promote one page into the last of the five seats. It only reorders what search already found, so it cannot rescue a page search missed.</p></div>
+      </li>
+      <li class="stage">
+        <div><span class="big-n">1</span><span class="unit">answer, or a refusal</span></div>
+        <div><h3>3. Answer</h3>
+        <p>Five pages go into one prompt. The model answers from those five and cites them by number, or says they do not cover the question. It is never asked to answer from memory.</p></div>
+      </li>
+    </ol>
   </section>
 
-  <section class="stats">
-    <h2>How well it does</h2>
-    <dl class="figures">
-      <div class="fig"><dt>100</dt><dd>questions checked by hand, each with its answer page.</dd></div>
-      <div class="fig"><dt>64%</dt><dd>put the right page into the five the model sees.</dd></div>
-      <div class="fig"><dt>0.42</dt><dd>end to end: page shown <em>and</em> answered from it.</dd></div>
-      <div class="fig"><dt>9</dt><dd>have no answer in the docs, and are refused.</dd></div>
-    </dl>
-  </section>
-
-  <section class="method" id="measured">
-    <h2>How those numbers were measured</h2>
+  <section class="band method" id="measured">
+    <h2>How it is measured</h2>
     <div class="method-cols">
       <div>
         <p><strong>100 questions, every one checked by a person.</strong> Each carries the documentation page that actually answers it. Nine of them have no answer anywhere in these docs, and they are kept on purpose: they are the only way to find out whether the system admits it.</p>
@@ -577,8 +541,8 @@
     </div>
   </section>
 
-  <section class="limits" id="limits">
-    <h2>What this does not claim</h2>
+  <section class="band limits" id="limits">
+    <h2>What it does not claim</h2>
     <ul>
       <li><strong>A cited answer is not a correct answer.</strong> The citation tells you which page the claim came from, so you can go and check it. That is the whole job it does.</li>
       <li><strong>The numbers belong to one model.</strong> They were measured with <code>qwen2.5-coder:7b</code>. Every answer carries a notice saying which model wrote it and whether that model is the measured one.</li>
@@ -587,7 +551,32 @@
     </ul>
   </section>
 
-  <footer id="foot"></footer>
+  <footer>
+    <div class="foot-grid">
+      <div>
+        <p class="foot-brand"><b>sqlalchemy</b>-upgrade-agent</p>
+        <p class="foot-about">A retrieval system that answers SQLAlchemy 1.4 &rarr; 2.0 migration questions from the documentation, with every claim cited, and measured on a hand-checked set of 100 questions.</p>
+      </div>
+      <div class="foot-col">
+        <h3>Project</h3>
+        <ul>
+          <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent" target="_blank" rel="noopener noreferrer">Source on GitHub</a></li>
+          <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent#readme" target="_blank" rel="noopener noreferrer">README</a></li>
+          <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent/blob/main/study/09-DECISIONS.md" target="_blank" rel="noopener noreferrer">Decision register</a></li>
+          <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent/blob/main/deliverables/golden.json" target="_blank" rel="noopener noreferrer">The 100 test questions</a></li>
+        </ul>
+      </div>
+      <div class="foot-col">
+        <h3>Built with</h3>
+        <ul>
+          <li><span class="m">BAAI/bge-m3</span> + BM25</li>
+          <li><span class="m">bge-reranker-base</span></li>
+          <li>Qdrant &middot; Ollama &middot; Modal</li>
+        </ul>
+      </div>
+    </div>
+    <div id="foot"></div>
+  </footer>
   <div class="tail" aria-hidden="true"></div>
 </main>
 
@@ -620,18 +609,20 @@ q.addEventListener("keydown", (e) => {
 // A real answer this system produced, recorded from a live run so the page is never empty.
 const EXAMPLE = {"question": "Session(autocommit=True) is gone, what replaces autocommit mode","recorded": "2026-09-20","payload": {"status": "answered","status_label": "Answered from the sources","error": null,"answer_md": "[[1]](#src-1) The `Session` will no longer support \"autocommit\" mode. Instead, you can use `Session.begin` to control when transactions begin. If not called, the session will begin automatically when database access is needed.\n\n[[1]](#src-1) Here is an example of how to use `Session.begin`:\n\n```python\nfrom sqlalchemy.orm import Session\n\nsess = Session(engine)\n\nsess.begin()  # begin explicitly; if not called, will autobegin\n# when database access is needed\n\nsess.add(obj)\n\nsess.commit()\n```","notice": "Answers here are written by `qwen2.5-coder:7b` on Ollama, the generator the project measured: 0.42 end to end on the lab machine and 0.43 on the Mac, with the same retrieval and prompt.","generator": "qwen2.5-coder:7b","seconds": 20.7},"sources": [{"n": 1,"version": "2.0.51","path": "doc/build/changelog/migration_20.rst","heading": "SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - ORM Usage > Autocommit mode removed from Session; autobegin support added","text": "Autocommit mode removed from Session; autobegin support added\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nThe Session will no longer support \"autocommit\" mode, that\nis, this pattern::\n\n    from sqlalchemy.orm import Session\n\n    sess = Session(engine, autocommit=True)\n\n    # no transaction begun, but emits SQL, won't be supported\n    obj = sess.query(Class).first()\n\n\n    # session flushes in a transaction that it begins and\n    # commits, won't be supported\n    sess.flush()\n\nThe main reason a Session is used in \"autocommit\" mode\nis so that the Session.begin method is available, so that framework\nintegrations and event hooks can control when this event happens.  In 1.4,\nthe Session now features autobegin behavior\nwhich resolves this issue; the Session.begin method may now\nbe called::\n\n\n    from sqlalchemy.orm import Session\n\n    sess = Session(engine)\n\n    sess.begin()  # begin explicitly; if not called, will autobegin\n    # when database access is needed\n\n    sess.add(obj)\n\n    sess.commit()\n\nThe \"autocommit\" mode is another holdover from the first versions\nof SQLAlchemy.  The flag has stayed around mostly in support of allowing\nexplicit use of Session.begin, which is now solved by 1.4,\nas well as to allow the use of \"subtransactions\", which are also removed in\n2.0.","cited": true},{"n": 2,"version": "2.0.51","path": "doc/build/orm/session_transaction.rst","heading": "Transactions and Connection Management > Managing Transactions > Setting Transaction Isolation Levels / DBAPI AUTOCOMMIT > Setting Isolation For A Sessionmaker / Engine Wide","text": "Above, both \"``eng``\" and ``\"autocommit_engine\"`` share the same dialect and\nconnection pool.  However the \"AUTOCOMMIT\" mode will be set upon connections\nwhen they are acquired from the ``autocommit_engine``.  The two\nsessionmaker objects \"``transactional_session``\" and \"``autocommit_session\"``\nthen inherit these characteristics when they work with database connections.\n\nThe \"``autocommit_session``\" **continues to have transactional semantics**,\nincluding that\nSession.commit and Session.rollback still consider\nthemselves to be \"committing\" and \"rolling back\" objects, however the\ntransaction will be silently absent.  For this reason, **it is typical,\nthough not strictly required, that a Session with AUTOCOMMIT isolation be\nused in a read-only fashion**, that is::\n\n\n    with autocommit_session() as session:\n        some_objects = session.execute(text(\"<statement>\"))\n        some_other_objects = session.execute(text(\"<statement>\"))\n\n    # closes connection","cited": false},{"n": 3,"version": "2.0.51","path": "doc/build/changelog/migration_20.rst","heading": "SQLAlchemy 2.0 - Major Migration Guide > 2.0 Migration - ORM Usage > Session \"subtransaction\" behavior removed","text": "Session \"subtransaction\" behavior removed\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nThe \"subtransaction\" pattern that was often used with autocommit mode is\nalso deprecated in 1.4.  This pattern allowed the use of the\nSession.begin method when a transaction were already begun,\nresulting in a construct called a \"subtransaction\", which was essentially\na block that would prevent the Session.commit method from actually\ncommitting.\n\nTo provide backwards compatibility for applications that make use of this\npattern, the following context manager or a similar implementation based on\na decorator may be used::\n\n\n    import contextlib\n\n\n    @contextlib.contextmanager\n    def transaction(session):\n        if not session.in_transaction():\n            with session.begin():\n                yield\n        else:\n            yield\n\nThe above context manager may be used in the same way the\n\"subtransaction\" flag works, such as in the following example::\n\n\n    # method_a starts a transaction and calls method_b\n    def method_a(session):\n        with transaction(session):\n            method_b(session)\n\n\n    # method_b also starts a transaction, but when\n    # called from method_a participates in the ongoing\n    # transaction.\n    def method_b(session):\n        with transaction(session):\n            session.add(SomeObject(\"bat\", \"lala\"))\n\n\n    Session = sessionmaker(engine)\n\n    # create a Session and call method_a\n    with Session() as session:\n        method_a(session)","cited": false},{"n": 4,"version": "1.4.52","path": "doc/build/orm/session_transaction.rst","heading": "Transactions and Connection Management > Managing Transactions > Setting Transaction Isolation Levels / DBAPI AUTOCOMMIT > Setting Isolation For A Sessionmaker / Engine Wide","text": "Above, both \"``eng``\" and ``\"autocommit_engine\"`` share the same dialect and\nconnection pool.  However the \"AUTOCOMMIT\" mode will be set upon connections\nwhen they are acquired from the ``autocommit_engine``.  The two\nsessionmaker objects \"``transactional_session``\" and \"``autocommit_session\"``\nthen inherit these characteristics when they work with database connections.\n\nThe \"``autocommit_session``\" **continues to have transactional semantics**,\nincluding that\nSession.commit and Session.rollback still consider\nthemselves to be \"committing\" and \"rolling back\" objects, however the\ntransaction will be silently absent.  For this reason, **it is typical,\nthough not strictly required, that a Session with AUTOCOMMIT isolation be\nused in a read-only fashion**, that is::\n\n\n    with autocommit_session() as session:\n        some_objects = session.execute(<statement>)\n        some_other_objects = session.execute(<statement>)\n\n    # closes connection","cited": false},{"n": 5,"version": "2.0.51","path": "doc/build/orm/session_transaction.rst","heading": "Transactions and Connection Management > Managing Transactions > Setting Transaction Isolation Levels / DBAPI AUTOCOMMIT > Setting Isolation for Individual Sessions","text": "Setting Isolation for Individual Sessions\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\nWhen we make a new .Session, either using the constructor directly\nor when we call upon the callable produced by a .sessionmaker,\nwe can pass the ``bind`` argument directly, overriding the pre-existing bind.\nWe can for example create our Session from a default\n.sessionmaker and pass an engine set for autocommit::\n\n    plain_engine = create_engine(\"postgresql+psycopg2://scott:tiger@localhost/test\")\n\n    autocommit_engine = plain_engine.execution_options(isolation_level=\"AUTOCOMMIT\")\n\n    # will normally use plain_engine\n    Session = sessionmaker(plain_engine)\n\n    # make a specific Session that will use the \"autocommit\" engine\n    with Session(bind=autocommit_engine) as session:\n        # work with session\n        ...\n\nFor the case where the .Session or .sessionmaker is\nconfigured with multiple \"binds\", we can either re-specify the ``binds``\nargument fully, or if we want to only replace specific binds, we\ncan use the .Session.bind_mapper or .Session.bind_table\nmethods::\n\n    with Session() as session:\n        session.bind_mapper(User, autocommit_engine)","cited": false}]};
 
+// The question being answered, shown as the answer's title. Set before every render.
+let currentQuestion = "";
+
 function showExample() {
+  currentQuestion = EXAMPLE.question;
   $("results").hidden = false;
   renderAnswer(EXAMPLE.payload);
   renderSources(EXAMPLE.sources);
   const tag = document.createElement("div");
   tag.className = "example-label";
-  tag.innerHTML = '<b>Recorded answer</b><span class="askedq">' + esc(EXAMPLE.question) +
-    // The deployed page answers with a different model than this example was recorded from,
-    // so the label names it. Two notices that look like they contradict each other is the exact
-    // confusion this project has been burned by once already.
-    '</span><span class="when">' + esc(EXAMPLE.payload.generator) + ' · ' + esc(EXAMPLE.recorded) + '</span>';
-  $("answer").prepend(tag);
+  // Labelled as recorded, with its date: passing a saved answer off as a live one would be the
+  // same lie the whole project is built to avoid. The model is named in the line under the title.
+  tag.innerHTML = '<b>Recorded answer</b><span>' + esc(EXAMPLE.recorded) + '</span>';
+  $("answer-head").prepend(tag);
 }
 showExample();
 
@@ -645,44 +636,80 @@ showExample();
 // IntersectionObserver as the trigger, measured fresh on each fire; never a scroll listener.
 const navA = [...document.querySelectorAll(".navlinks a")];
 if (navA.length && "IntersectionObserver" in window) {
-  const LINE = 110;   // just below the 68px bar, and below a clicked section's 92px landing
+  // A section is current once its top passes 40% of the way down the window (never less than
+  // just under the bar, never more than 300px). The old rule needed each section's top to reach the bar, which meant
+  // ~450px of blank page after the footer so the last one could get there. A clicked section
+  // lands its top at 80px, above this line, so clicking and scrolling still agree.
+  // Capped at 300px: on a tall window 40% reached past a short section into the next one, so
+  // clicking "How it is measured" lit up "What it does not claim" (measured at 1200px tall).
+  const line = () => Math.min(300, Math.max(110, window.innerHeight * 0.4));
   const mark = () => {
+    const LINE = line();
     let best = null;
     for (const a of navA) {
       const el = document.querySelector(a.getAttribute("href"));
       if (el && el.getBoundingClientRect().top <= LINE) best = a;
     }
     navA.forEach((a) => a.classList.toggle("here", a === best));
+    // the phone menu marks the same section
+    document.querySelectorAll('#menu a[href^="#"]').forEach((m) =>
+      m.classList.toggle("here", !!best && m.getAttribute("href") === best.getAttribute("href")));
   };
   const spy = new IntersectionObserver(mark,
-      { threshold: [0, 0.05, 0.25, 0.5, 0.75, 1], rootMargin: "-68px 0px 0px 0px" });
+      { threshold: [0, 0.05, 0.25, 0.5, 0.75, 1], rootMargin: "-56px 0px 0px 0px" });
+  // Exactly the room the last section needs to reach that line at the bottom of the page, and
+  // no more: usually a few pixels, on a very tall window a little more.
+  const tail = document.querySelector(".tail");
+  const sizeTail = () => {
+    if (!tail) return;
+    tail.style.height = "0px";
+    const last = document.querySelector(navA[navA.length - 1].getAttribute("href"));
+    const below = document.documentElement.scrollHeight - (last.getBoundingClientRect().top + window.scrollY);
+    tail.style.height = Math.max(0, Math.ceil(window.innerHeight - line() - below) + 4) + "px";
+  };
+  sizeTail();
+  window.addEventListener("resize", () => { sizeTail(); mark(); });
+  if (document.fonts) document.fonts.ready.then(sizeTail);
   navA.forEach((a) => { const el = document.querySelector(a.getAttribute("href")); if (el) spy.observe(el); });
-  navA.forEach((a) => a.addEventListener("click", () => setTimeout(mark, 700)));
+  document.querySelectorAll('.navlinks a, #menu a[href^="#"]').forEach((a) =>
+    a.addEventListener("click", () => setTimeout(mark, 700)));
 }
 
 fetch("/api/config").then((r) => r.json()).then((cfg) => {
   maxChars = cfg.max_chars;
   q.maxLength = cfg.max_chars;
-  $("foot").textContent = `Answers written by ${cfg.generator}. Retrieval graded on a 100-question set verified by hand.` +
+  const foot = document.createElement("span");
+  foot.className = "foot-text";
+  foot.textContent = `Live answers are written by ${cfg.generator}. Retrieval graded on a 100-question set verified by hand.` +
     (cfg.traced ? " Questions and answers are logged (Langfuse) to measure this demo; do not paste secrets." : "");
+  const link = document.createElement("a");
+  link.href = "https://github.com/virajvaghasia/sqlalchemy-upgrade-agent";
+  link.target = "_blank"; link.rel = "noopener noreferrer";
+  link.textContent = "Code, tests and every measurement \u2192";
+  $("foot").replaceChildren(foot, link);
   for (const ex of cfg.examples) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "chip" + (ex.declines ? " declines" : "");
     b.title = ex.q;
-    b.innerHTML = esc(ex.label) +
-      (ex.declines ? '<span class="flag">declines on purpose</span>' : "") +
-      `<span class="q">${esc(ex.q)}</span>`;
+    b.innerHTML = `<span class="lbl">${esc(ex.label)}` +
+      (ex.declines ? '<span class="flag">declines on purpose</span>' : "") + `</span>` +
+      `<span class="q">${esc(ex.q)}</span><span class="go" aria-hidden="true">&rarr;</span>`;
     b.onclick = () => { q.value = ex.q; grow(); $("form").requestSubmit(); };
     $("chips").appendChild(b);
   }
 });
 
+function titleHtml() {
+  return currentQuestion ? `<h2 class="doc-title">${esc(currentQuestion)}</h2>` : "";
+}
+
 function working() {
   $("results").hidden = false;
-  $("answer").innerHTML =
+  $("answer-head").innerHTML = titleHtml() +
     `<div class="stamp-row"><span class="pill">Working</span>` +
-    `<span class="meta">the first question after start-up takes about a minute</span></div>` +
+    `<span class="meta">the first question after start-up takes about a minute</span></div>`;
+  $("answer").innerHTML =
     `<ul class="steps"><li>Searching the documentation pages.</li>` +
     `<li>Reranking them and keeping five.</li>` +
     `<li>Writing an answer from those five only.</li></ul>` +
@@ -717,6 +744,7 @@ function renderSources(sources) {
       <div class="src-body">${esc(s.text)}</div>
     </details>`).join("");
 }
+
 
 // Each code block gets the language bar and a copy button developer docs ship with.
 function dressCode(root) {
@@ -760,9 +788,10 @@ function renderAnswer(p) {
   const notice = esc(p.notice)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  $("answer").innerHTML =
+  $("answer-head").innerHTML = titleHtml() +
     `<div class="stamp-row"><span class="pill ${p.status}">${esc(p.status_label.split(":")[0])}</span>` +
-    `<span class="meta">${p.seconds}s · ${esc(p.generator)}</span></div>` +
+    `<span class="meta">${p.seconds}s · ${esc(p.generator)}</span></div>`;
+  $("answer").innerHTML =
     `${note}<div class="md">${body}</div><div class="notice">${notice}</div>`;
   $("answer").querySelectorAll('a[href^="#src-"]').forEach((a) => {
     a.classList.add("cite");
@@ -776,6 +805,53 @@ function renderAnswer(p) {
   });
   $("answer").querySelectorAll("pre code").forEach((el) => hljs.highlightElement(el));
   dressCode($("answer"));
+}
+
+// The 23 entries of deliverables/BREAKAGES.md: the 1.4 call, the exception SQLAlchemy 2.0.51
+// raised (null for the silent #23) and its message. Generated from that file; a test fails if
+// the two ever differ (tests/test_demo_page.py).
+const BREAKAGES = [{"n":1,"group":"A","gname":"Raw SQL","title":"engine.execute(string)","error":"AttributeError","msg":"'Engine' object has no attribute 'execute'"},{"n":2,"group":"A","gname":"Raw SQL","title":"engine.scalar(string)","error":"AttributeError","msg":"'Engine' object has no attribute 'scalar'"},{"n":3,"group":"A","gname":"Raw SQL","title":"conn.execute(bare string)","error":"ObjectNotExecutableError","msg":"Not an executable object: 'SELECT 1'"},{"n":4,"group":"A","gname":"Raw SQL","title":"session.execute(bare string)","error":"ArgumentError","msg":"Textual SQL expression 'SELECT 1' should be explicitly declared as text('SELECT 1')"},{"n":5,"group":"B","gname":"Schema helpers","title":"engine.table_names()","error":"AttributeError","msg":"'Engine' object has no attribute 'table_names'"},{"n":6,"group":"B","gname":"Schema helpers","title":"engine.has_table()","error":"AttributeError","msg":"'Engine' object has no attribute 'has_table'"},{"n":7,"group":"B","gname":"Schema helpers","title":"MetaData(bind=engine)","error":"TypeError","msg":"MetaData.__init__() got an unexpected keyword argument 'bind'"},{"n":8,"group":"C","gname":"Statement construction","title":"select([...]) list form","error":"ArgumentError","msg":"Column expression, FROM clause, or other columns clause element expected, got [<sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x...>]. Did you mean to say select(<sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x...>)?"},{"n":9,"group":"C","gname":"Statement construction","title":"case([...]) list form","error":"ArgumentError","msg":"The \"whens\" argument to case(), when referring to a sequence of items, is now passed as a series of positional elements, rather than as a list."},{"n":10,"group":"C","gname":"Statement construction","title":"orm.relation() alias","error":"AttributeError","msg":"module 'sqlalchemy.orm' has no attribute 'relation'"},{"n":11,"group":"D","gname":"Query leftovers","title":"Query.filter(raw string)","error":"ArgumentError","msg":"Textual SQL expression \"status='open'\" should be explicitly declared as text(\"status='open'\")"},{"n":12,"group":"D","gname":"Query leftovers","title":"Query.from_self()","error":"AttributeError","msg":"'Query' object has no attribute 'from_self'"},{"n":13,"group":"D","gname":"Query leftovers","title":"Query.join(aliased=True)","error":"TypeError","msg":"Query.join() got an unexpected keyword argument 'aliased'"},{"n":14,"group":"E","gname":"Loader strings","title":"joinedload(string)","error":"ArgumentError","msg":"Strings are not accepted for attribute names in loader options; please use class-bound attributes directly."},{"n":15,"group":"E","gname":"Loader strings","title":"subqueryload(string)","error":"ArgumentError","msg":"Strings are not accepted for attribute names in loader options; please use class-bound attributes directly."},{"n":16,"group":"F","gname":"Rows / Result","title":"Row attr access, no .scalars()","error":"AttributeError","msg":"title"},{"n":17,"group":"F","gname":"Rows / Result","title":"row['colname'] mapping access","error":"TypeError","msg":"tuple indices must be integers or slices, not str"},{"n":18,"group":"F","gname":"Rows / Result","title":"row.keys()","error":"AttributeError","msg":"Could not locate column in row for column 'keys'"},{"n":19,"group":"F","gname":"Rows / Result","title":"joinedload(coll), no .unique()","error":"InvalidRequestError","msg":"The unique() method must be invoked on this Result, as it contains results that include joined eager loads against collections"},{"n":20,"group":"G","gname":"Session lifecycle","title":"Session(autocommit=True)","error":"ArgumentError","msg":"autocommit=True is no longer supported"},{"n":21,"group":"G","gname":"Session lifecycle","title":"session.begin(subtransactions)","error":"TypeError","msg":"Session.begin() got an unexpected keyword argument 'subtransactions'"},{"n":22,"group":"G","gname":"Session lifecycle","title":"session.transaction attribute","error":"AttributeError","msg":"'Session' object has no attribute 'transaction'"},{"n":23,"group":"H","gname":"cascade_backrefs (silent)","title":"cascade_backrefs — object attached by the many-to-one side","error":null,"msg":"attached with issue.project = project -> in database: False"}];
+
+{
+  const groups = [];
+  for (const b of BREAKAGES) {
+    let g = groups.find((x) => x.id === b.group);
+    if (!g) groups.push(g = { id: b.group, name: b.gname, items: [] });
+    g.items.push(b);
+  }
+  const ask = (b) => b.error
+    ? `${b.title} fails on SQLAlchemy 2.0 with ${b.error}: ${b.msg}. What replaces it?`
+    : `After upgrading to SQLAlchemy 2.0, ${b.title} is never inserted (${b.msg}). How do I fix it?`;
+  $("toc-count").textContent = `${BREAKAGES.length} changes`;
+  $("toc-breaks").innerHTML = groups.map((g) =>
+    `<li><a href="#brk-${esc(g.id)}"><span class="g">${esc(g.id)}</span><span class="nm">${esc(g.name)}</span>` +
+    `<span class="c">${g.items.length}</span></a></li>`).join("");
+  $("brk-grid").innerHTML = groups.map((g) => `
+    <div class="brk-group" id="brk-${esc(g.id)}"><h3><span class="g">${esc(g.id)}</span>${esc(g.name)}</h3>
+      ${g.items.map((b) => `<button type="button" class="brk${b.error ? "" : " silent"}" data-n="${b.n}"
+          title="${esc(b.error ? b.error + ": " + b.msg : "silent: " + b.msg)}">
+          <span class="t">${esc(b.title)}</span>
+          <span class="e"><b>${esc(b.error || "silent")}</b>${esc(b.error ? b.msg : "no exception; the row is never written")}</span>
+        </button>`).join("")}
+    </div>`).join("");
+  $("brk-grid").addEventListener("click", (e) => {
+    const btn = e.target.closest(".brk");
+    if (!btn) return;
+    const b = BREAKAGES.find((x) => x.n === Number(btn.dataset.n));
+    q.value = ask(b).slice(0, maxChars);
+    grow();
+    $("form").requestSubmit();
+  });
+}
+
+// Phone menu
+{
+  const btn = $("menu-btn"), menu = $("menu");
+  const setOpen = (open) => { menu.hidden = !open; btn.setAttribute("aria-expanded", String(open)); };
+  btn.addEventListener("click", (e) => { e.stopPropagation(); setOpen(menu.hidden); });
+  menu.addEventListener("click", (e) => { if (e.target.closest("a")) setOpen(false); });
+  document.addEventListener("click", (e) => { if (!menu.hidden && !e.target.closest("#menu")) setOpen(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { setOpen(false); btn.focus(); } });
 }
 
 $("brand").addEventListener("click", (e) => {
@@ -806,6 +882,7 @@ $("form").addEventListener("submit", async (e) => {
   $("ask").disabled = true;
   $("ask").classList.add("busy");
   $("ask").querySelector(".label").textContent = "Asking";
+  currentQuestion = question;
   working();
   $("results").scrollIntoView(SCROLL);
   try {

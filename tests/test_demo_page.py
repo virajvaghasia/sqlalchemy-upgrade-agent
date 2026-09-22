@@ -64,3 +64,46 @@ def test_the_page_states_the_number_of_sources_the_prompt_gets():
     # sentence-initial capital, so the count is what is asserted, not the spelling
     assert re.search(rf"\b{'five' if ask.DEFAULT_K == 5 else ask.DEFAULT_K} pages go into one prompt",
                      page_text(), re.IGNORECASE), f"page should match DEFAULT_K = {ask.DEFAULT_K}"
+
+
+def parse_breakages() -> list[dict]:
+    """The 23 entries of deliverables/BREAKAGES.md, reduced to what the page shows: number,
+    group, the 1.4 call, the exception 2.0.51 raised (None for the silent #23) and its message.
+    The page's "What breaks in 2.0" index is generated from this and must stay equal to it."""
+    lines = (ROOT / "deliverables" / "BREAKAGES.md").read_text(encoding="utf-8").splitlines()
+    out, group = [], None
+    for i, ln in enumerate(lines):
+        m = re.match(r"## Group ([A-H]) — (.+?)(?: \(#[\d–-]+\))?$", ln)
+        if m:
+            group = (m.group(1), re.sub(r"^#\d+ ", "", m.group(2)))
+            continue
+        m = re.match(r"### (\d+)\. (.+)$", ln)
+        if not m:
+            continue
+        j = next(k for k in range(i, len(lines)) if lines[k].startswith("**2.0 error**"))
+        cls = re.search(r"`([^`]+)`", lines[j])
+        k = next(k for k in range(j + 1, len(lines)) if lines[k].startswith("```"))
+        block = []
+        for b in lines[k + 1:]:
+            if b.startswith("```"):
+                break
+            block.append(b.strip())
+        # an error message wrapped over several lines is one message; the silent #23 shows
+        # its measurement instead, and the line that matters is the row that never arrived
+        msg = " ".join(block) if cls else block[-1]
+        out.append({"n": int(m.group(1)), "group": group[0], "gname": group[1], "title": m.group(2),
+                    "error": cls.group(1) if cls else None, "msg": re.sub(r"\s+", " ", msg)})
+    return out
+
+
+def test_breakage_index_matches_breakages_md():
+    page = page_text()
+    m = re.search(r"const BREAKAGES = (\[.*?\]);\n", page, re.S)
+    assert m, "page should embed the BREAKAGES index"
+    assert json.loads(m.group(1)) == parse_breakages(), \
+        "the page's breakage index drifted from deliverables/BREAKAGES.md; regenerate it"
+
+
+def test_breakage_count_in_prose_matches():
+    n = len(parse_breakages())
+    assert re.search(rf"\b{n} changes that break", page_text()), f"page should say {n} changes that break"
