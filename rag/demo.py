@@ -30,6 +30,7 @@ from __future__ import annotations
 import contextlib
 import html
 import json
+import math
 import os
 import re
 import threading
@@ -127,7 +128,8 @@ HOSTED_NOTICE = (
     f"0.58 end to end, with 91% of its answers judged fully supported by the pages it was given "
     f"(2026-09-13; supported is not the same as correct). The system of record is still "
     f"`qwen2.5-coder:7b`, which scores 0.42 end to end, and that is the model the other figures on "
-    f"this page describe. Retrieval and the prompt are unchanged, so the five sources below are the "
+    f"this page describe. Retrieval and the prompt are unchanged, so the five sources listed with this "
+    f"answer are the "
     f"same ones every measurement used."
 )
 
@@ -147,7 +149,8 @@ def hosted_notice(model: str | None = None) -> str:
         f"project's question set**. It answered because `{MODEL}`, which was measured (0.58 end to "
         f"end), did not respond. The system of record is `qwen2.5-coder:7b` at 0.42 end to end, and "
         f"that is the model the other figures on this page describe. Retrieval and the prompt are "
-        f"unchanged, so the five sources below are the same ones every measurement used."
+        f"unchanged, so the five sources listed with this answer are the same ones every measurement "
+        f"used."
     )
 
 
@@ -192,7 +195,9 @@ class RateLimiter:
                 return "The demo's hourly question limit is reached. Please try again later."
             last = self.last.get(session)
             if last is not None and now - last < self.gap:
-                return f"Please wait {self.gap - (now - last):.0f} seconds before asking again."
+                # Round UP: rounding to nearest told a visitor with 0.4 s left to "wait 0 seconds".
+                wait = max(1, math.ceil(self.gap - (now - last)))
+                return f"Please wait {wait} second{'' if wait == 1 else 's'} before asking again."
             self.calls.append(now)
             self.last[session] = now
             return None

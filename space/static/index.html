@@ -202,7 +202,12 @@
   .meter i { display: block; height: 100%; background: var(--accent); }
   .fig + .fig .meter i { background: var(--accent-soft); }
   .limits code { font: 12.5px var(--mono); color: var(--text-2); }
-  .flow { margin-top: auto; padding-top: 14px; }
+  /* The table of contents takes whatever height is left in the column and shares it out between
+     its rows, so a taller left column (1024px wide, where the examples wrap) spreads the rows a
+     little rather than opening an 80px hole above them. When the columns already match it changes
+     nothing. */
+  .flow { flex: 1; display: flex; flex-direction: column; padding-top: 14px; }
+  .flow ol { flex: 1; display: flex; flex-direction: column; justify-content: space-between; margin: 0; padding: 0; list-style: none; }
   .flow-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 4px; padding-bottom: 4px; border-bottom: 1px solid var(--text); font: 600 13.5px var(--sans); }
   .flow-head a { text-decoration: none; }
   .flow-head a:hover { color: var(--accent); }
@@ -211,7 +216,6 @@
      count, each a jump. It replaced a three-step "what happens when you ask" that repeated
      "How it works" word for word further down. */
   /* One column: in two, the names were cut to "Statement construc..." and "cascade_backrefs (...". */
-  .flow ol { margin: 0; padding: 0; list-style: none; }
   .flow li a { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; padding: 4px 0;
     border-bottom: 1px solid var(--border); text-decoration: none; font-size: 13px; color: var(--text-2); }
   .flow li a:hover { color: var(--accent); }
@@ -802,6 +806,18 @@ function renderAnswer(p) {
     if (before && before.nodeType === 3 && / $/.test(before.nodeValue)) {
       before.nodeValue = before.nodeValue.slice(0, -1);
     }
+  });
+  // The model sometimes writes a citation as a paragraph of its own ("[1]", then the claim below
+  // it), which put a lone mark on a line at the top of an answer (seen live, 2026-09-22). The prompt
+  // asks it to cite BEFORE each statement, so the mark belongs to the paragraph that follows: move
+  // it to the start of that paragraph. Only the placement changes, never the answer's wording.
+  $("answer").querySelectorAll(".md > p").forEach((p) => {
+    const cites = [...p.querySelectorAll("a.cite")];
+    const rest = [...p.childNodes].filter((n) => !cites.includes(n)).map((n) => n.textContent).join("");
+    const next = p.nextElementSibling;
+    if (!cites.length || rest.trim() || !next || next.tagName !== "P") return;
+    next.prepend(...cites, " ");
+    p.remove();
   });
   $("answer").querySelectorAll("pre code").forEach((el) => hljs.highlightElement(el));
   dressCode($("answer"));

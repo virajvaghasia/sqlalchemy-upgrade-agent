@@ -365,3 +365,25 @@ def test_a_greeting_costs_no_retrieval_no_model_call_and_shows_no_decline_note()
     assert not result.get("sources"), "nothing was searched, so nothing is listed"
     p = demo.payload(result, "nvidia", 0.1)
     assert p["status"] == "error" and p["sources"] == []
+
+
+def test_the_wait_message_counts_up_and_agrees_in_number():
+    """Seen live on 2026-09-22: "Please wait 1 seconds before asking again." Rounding to the
+    nearest second also meant 0.4 s left read as "wait 0 seconds", which is a refusal that
+    tells you to wait for nothing. Round UP, and say "second" for one."""
+    t = [0.0]
+    lim = demo.RateLimiter(gap=20, clock=lambda: t[0])
+    assert lim.check("s") is None
+    t[0] = 19.0
+    assert lim.check("s") == "Please wait 1 second before asking again."
+    t[0] = 19.6
+    assert lim.check("s") == "Please wait 1 second before asking again."
+    t[0] = 7.7
+    assert lim.check("s") == "Please wait 13 seconds before asking again."
+
+
+def test_the_notice_does_not_say_the_sources_are_below():
+    """On a wide screen the sources sit beside the answer, not below it."""
+    for text in (demo.HOSTED_NOTICE, demo.hosted_notice("some/fallback-model")):
+        assert "sources below" not in text
+        assert "five sources listed with this answer" in text
