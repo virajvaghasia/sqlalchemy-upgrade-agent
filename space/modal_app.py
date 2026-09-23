@@ -76,9 +76,18 @@ app = modal.App("sqlalchemy-upgrade-agent")
     timeout=600,          # NVIDIA answer can take ~1 min; first HF download longer
     startup_timeout=600,  # first container may still be pulling HF weights into the volume
     scaledown_window=300, # keep warm a few minutes between questions
+    # ONE container, several requests at once. The rate limiter (rag/demo.py RateLimiter) lives in
+    # the process's memory, and by default Modal starts a fresh container for each request that
+    # arrives while another is running, each with an empty limiter. Measured live on 2026-09-23:
+    # a second question 4 s after the first, same session, was NOT limited. With one container
+    # every request passes the same limiter, and cost is capped at one 8 GB container.
+    max_containers=1,
     # Modal imports this file as `modal_app` from a mount of space/; leave
     # include_source at its default True. Setting False crash-looped cold starts.
 )
+# Requests are I/O-bound (a hosted model call of up to a minute) and web.py runs each in a
+# worker thread; the limiter takes a lock, so sharing one process between a few is safe.
+@modal.concurrent(max_inputs=4)
 @modal.asgi_app(label="sqlalchemy-upgrade-agent")
 def fastapi_app():
     import os
