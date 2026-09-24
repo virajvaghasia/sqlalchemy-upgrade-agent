@@ -5,7 +5,7 @@ plausible numbers that are wrong in the same direction every time, and every
 Phase 3 decision is then made against them.
 
 These run on hand-written chunks and an injected retriever, so they work in CI
-where `corpus/chunks.jsonl` is absent (it is generated, not committed — D11)
+where `corpus/chunks.jsonl` is absent (it is generated, not committed)
 and Qdrant is not running.
 """
 
@@ -24,7 +24,7 @@ def _chunk(cid, heading, text):
 
 
 # A cross-version duplicate pair: same heading, same text, different tag.
-# These are the 437 whose vectors are byte-identical (D58).
+# These are the 437 whose vectors are byte-identical.
 PAIR_A = _chunk("c00001", ["Errors", "QueuePool"], "the pool timed out")
 PAIR_B = _chunk("c09001", ["Errors", "QueuePool"], "the pool timed out")
 # Same text, DIFFERENT heading — the 31 that are NOT identical, and must not
@@ -34,7 +34,7 @@ UNRELATED = _chunk("c02000", ["ORM", "Session"], "sessions are not thread safe")
 CHUNKS = {c["id"]: c for c in (PAIR_A, PAIR_B, OTHER, UNRELATED)}
 
 
-# --- what counts as a hit (D58) --------------------------------------------
+# --- what counts as a hit --------------------------------------------
 
 def test_a_duplicate_under_the_other_version_counts_as_a_hit():
     """The two copies have identical vectors, so no ranker can prefer one.
@@ -52,7 +52,7 @@ def test_same_text_under_a_different_heading_is_not_a_hit():
 
 
 def test_version_sensitive_items_opt_out_of_the_permissive_rule():
-    """When the version IS the answer (D10), the other copy is a miss. Without
+    """When the version IS the answer, the other copy is a miss. Without
     this, the permissive default would quietly excuse the exact failure the
     version skew was kept in the corpus to study."""
     item = {"answerable": True, "answer_chunks": ["c00001"], "version_sensitive": True}
@@ -76,13 +76,13 @@ def test_duplicate_slots_counts_the_wasted_slot():
     assert score.duplicate_slots(["c00001", "c02000", "c09001"], CHUNKS, 2) == 0
 
 
-# --- D06 enforced in code, not just documented -----------------------------
+# --- human verification enforced in code, not just documented -----------------------------
 
 def test_validate_refuses_an_item_no_human_verified():
     items = [{"id": "g1", "question": "q", "provenance": "github",
               "answerable": False, "verified_by": None}]
     problems = score.validate(items, CHUNKS)
-    assert any("D06" in p for p in problems)
+    assert any("only a person verifies" in p for p in problems)
 
 
 def test_validate_catches_an_answer_chunk_that_is_not_in_the_index():
@@ -125,17 +125,17 @@ def test_recall_at_k_is_a_slice_of_one_deep_retrieval():
     assert a["not_found_at_depth"] == 1
 
 
-# --- the statistics the numbers are reported with (D61) ---------------------
+# --- the statistics the numbers are reported with ---------------------
 
 def test_wilson_matches_the_interval_phase_2_was_planned_against():
-    """PHASE-2.md and D61 both quote ±0.131 at n=50, p=0.6. If this constant
+    """Phase 2 was planned against ±0.131 at n=50, p=0.6. If this constant
     moves, the argument for reporting flipped items instead of a recall delta
     moves with it."""
     assert score.wilson_half_width(0.6, 50) == pytest.approx(0.131, abs=0.001)
 
 
 def test_mcnemar_puts_the_bar_at_six_clean_fixes():
-    """D61's headline claim, pinned. Six fixes with no regressions is a result;
+    """The headline claim, pinned. Six fixes with no regressions is a result;
     eight fixes with two regressions is not."""
     assert score.mcnemar_exact(6, 0) < 0.05
     assert score.mcnemar_exact(5, 0) > 0.05
@@ -240,13 +240,13 @@ def test_end_to_end_against_live_retrieval():
 
 @requires_stack
 def test_phrasing_alone_can_push_the_answer_out_of_the_index():
-    """D60's hardest evidence, pinned so it cannot quietly stop being true.
+    """The hardest evidence, pinned so it cannot quietly stop being true.
 
     Two phrasings of one question, one answer chunk. Under **dense-only** search
     the corpus-vocabulary version retrieves it at rank 1; the way a stuck
     developer would type it does not retrieve it in twenty. That gap is why the
     probe questions are a labelled subset and never the benchmark — and why
-    Phase 3 added BM25 (`D67`). This test keeps `hybrid=False` so the original
+    Phase 3 added BM25. This test keeps `hybrid=False` so the original
     failure mode stays visible after hybrid ships as the default.
     """
     chunks = score.load_chunks()
@@ -260,7 +260,7 @@ def test_phrasing_alone_can_push_the_answer_out_of_the_index():
     assert rows[1]["rank"] is None or rows[1]["rank"] > rows[0]["rank"]
 
 
-# --- refusals (D62) --------------------------------------------------------
+# --- refusals --------------------------------------------------------
 #
 # The refusal section is the one that needs generation, so it is also the one
 # most easily faked into looking right. These inject both collaborators.
@@ -335,7 +335,7 @@ def test_an_over_refusal_is_split_by_whether_the_answer_was_in_the_prompt():
 
 
 def test_answer_in_prompt_honours_the_duplicate_rule():
-    """D58 applies here too: the cross-version twin is the same vector, so a
+    """The duplicate-pair rule applies here too: the cross-version twin is the same vector, so a
     refusal with the twin in the prompt is still a refusal with the answer in
     the prompt. Scoring it strictly would blame retrieval for generation's bug."""
     item = {"id": "g012", "question": "pool timeout?", "answerable": True,
@@ -345,7 +345,7 @@ def test_answer_in_prompt_honours_the_duplicate_rule():
 
 
 def test_refusals_are_never_folded_into_recall():
-    """D62's actual requirement. If the two were averaged, a system that refused
+    """The actual requirement. If the two were averaged, a system that refused
     everything would score better as it got more useless."""
     out = io.StringIO()
     rows = [
@@ -379,9 +379,9 @@ def test_the_refusal_section_names_fabrications():
 
 
 def test_refusals_are_scored_at_the_k_that_ships_not_at_the_retrieval_depth(monkeypatch):
-    """Everything else here takes DEPTH=20 and slices it, because depth is free
-    (D59). Refusal is different: it is a property of the system as configured,
-    and D54 measured that k=10 buys two over-fires and a fabrication. Scoring
+    """Everything else here takes DEPTH=20 and slices it, because depth is free.
+Refusal is different: it is a property of the system as configured,
+    and k=10 was measured buying two over-fires and a fabrication. Scoring
     refusals at 20 would report the behaviour of a system nobody runs.
 
     This drives the REAL default path -- retrieve=None -- because that is the
@@ -406,7 +406,7 @@ def test_refusals_are_scored_at_the_k_that_ships_not_at_the_retrieval_depth(monk
         "if these ever coincide this test stops proving anything")
 
 
-# --- D70: why the absent items are absent ------------------------------------
+# --- why the absent items are absent ------------------------------------
 #
 # An item outside the top-20 is beyond every reranker by construction, so the
 # absents are the only population that can justify recall-side work. "Improve
@@ -469,7 +469,7 @@ def test_found_items_are_the_control_and_are_counted_separately():
 
 def test_unanswerable_items_are_not_surveyed():
     """An unanswerable item has no answer chunks and can never be 'found'.
-    Counting it as absent would inflate the population D70 reasons about."""
+    Counting it as absent would inflate the population the absents survey reasons about."""
     items = [{"id": "g001", "answer_chunks": []}]
     rows = [{"id": "g001", "answerable": False, "rank": None}]
     a = score.absent_shapes(rows, items, SHAPES)
@@ -503,7 +503,7 @@ def test_the_survey_calls_chunk_pys_detectors_rather_than_holding_a_copy():
 
 def test_the_absent_section_says_so_plainly_when_nothing_is_flagged():
     """Zero is the load-bearing result here, and a table of zeroes does not say
-    what it means. The prose has to draw the conclusion (D70)."""
+    what it means. The prose has to draw the conclusion."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         score.report_absents(_survey({"g001": None}, {"g001": ["c00200"]}))
@@ -561,7 +561,7 @@ def test_the_generation_loss_is_the_gap_between_them():
 def test_unanswerable_items_are_not_in_the_end_to_end_denominator():
     """A correctly refused unanswerable item is a success, and putting it in
     this denominator would penalise the system for behaving well -- the same
-    trap D62 refused when it split refusal accuracy out of recall."""
+    trap that splitting refusal accuracy out of recall avoided."""
     rows = [_rrow("g001", True, False, True), _rrow("g002", False, True, False)]
     assert "1/1   = 1.00   END TO END" in _refusal_text(rows)
 

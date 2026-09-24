@@ -4,13 +4,12 @@
 
 The bundle is the hand-designed page: `web.py` (FastAPI) and `static/index.html`
 over `rag/demo.py`. It used to ship the Gradio page `app.py`, for a Hugging Face
-Gradio Space; Hugging Face refused that on the free plan (HTTP 402, PHASE-6.md
-Step 4), so the target is now any Python host with ~4 GB RAM, and `app.py` stays
+Gradio Space; Hugging Face refused that on the free plan (HTTP 402), so the target is now any Python host with ~4 GB RAM, and `app.py` stays
 in the repo only. Start the bundle with:
 
     cd space/dist && pip install -r requirements.txt && python web.py   # HOST=0.0.0.0 PORT=... on a server
 
-The corpus files are generated and gitignored in this repo (D11, D36), so the
+The corpus files are generated and gitignored in this repo, so the
 bundle is where they travel: a deployment, not a second copy of the source of
 truth. Refuses to build if the vectors, ids and
 stats disagree -- the same check rag.index makes before loading anything.

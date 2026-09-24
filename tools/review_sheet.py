@@ -16,7 +16,7 @@ WHERE THE VERIFIED ANSWER COMES FROM
 
 `deliverables/BREAKAGES.md`, the Phase 0 deliverable: 23 breakages measured
 against real 2.0.51, each with a fix marked `fix OK` by `verify_2_0.py`. That
-is the same file `rag/probe.py` drew the questions from (D09 keeps it out of
+is the same file `rag/probe.py` drew the questions from (BREAKAGES.md is kept out of
 the corpus, so asking about it is a fair test rather than a lookup).
 
 **Six of the mappings are stated outright in probe.py's comments** — questions
@@ -27,8 +27,8 @@ BREAKAGES', which is why the two sources of the mapping are kept distinct below.
 
 WHAT THIS DOES NOT DO
 
-Decide anything. Every entry ends with an empty verdict slot. D06 and D46
-reserve the judgement for a person, and a sheet that pre-filled it would be the
+Decide anything. Every entry ends with an empty verdict slot. The judgement is
+reserved for a person, and a sheet that pre-filled it would be the
 answer key grading its own homework.
 """
 
@@ -127,13 +127,13 @@ def build(full: bool = False) -> str:
         "",
         "Chunk text is omitted — open `FAILURES.md` at the numbered entry when a judgement "
         "needs the full passage. Scores are worth reading against **0.540**, what two "
-        "*unrelated* chunks average in this corpus (`study/10-RETRIEVAL.md` R2.5): a hit at "
+        "*unrelated* chunks average in this corpus: a hit at "
         "0.61 is 0.07 above noise, not 61% confident.",
         "",
         "**Verdicts were drafted by Claude and accepted by Viraj on 2026-08-17**, by comparing "
         "each answer against its BREAKAGES.md key and, where the answer proposed code, running "
         "both on real 2.0.51. `verdicts.json` is the record; this file and `FAILURES.md` render "
-        "from it. The mechanical signals (`D46`) locate problems; they never decided one.",
+        "from it. The mechanical signals locate problems; they never decided one.",
         "",
         "---",
         "",

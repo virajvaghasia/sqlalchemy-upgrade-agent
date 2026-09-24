@@ -11,7 +11,7 @@ Needs Qdrant loaded (`rag/index.py`) and Ollama running with the model below.
 
 SOURCES ARE NOT DECORATION
 
-`phases/PHASE-1.md` says this and it is the entire reason Step 4 prints them.
+That is the entire reason the answer prints them.
 Without the chunks, there is no way to tell a correct answer from a lucky one —
 you are back to trusting a fluent paragraph, which is the problem retrieval
 exists to solve. It also makes Step 5 possible at all: a failure is only
@@ -26,7 +26,7 @@ Three instructions, each earning its place:
 
   - **"Use only the sources."** The model has SQLAlchemy in its weights and will
     happily answer from memory — which is exactly the blurred 1.4/2.0 recall
-    this project exists to route around (study/10-RETRIEVAL.md §R1.1).
+    this project exists to route around.
   - **"Cite the source number."** Turns a claim into a checkable one. An answer
     citing [3] can be verified against source 3 in seconds.
   - **"Say you don't know."** A model with no "I have nothing" mechanism invents
@@ -36,8 +36,8 @@ Three instructions, each earning its place:
     the correct behaviour.
 
 **Each source carries its SQLAlchemy version in the prompt.** That is deliberate
-and it is not a Phase 3 fix smuggled in early: retrieval is still unfiltered
-(D10), and the version is metadata that honestly belongs with a quoted passage.
+and it is not a Phase 3 fix smuggled in early: retrieval is still unfiltered,
+and the version is metadata that honestly belongs with a quoted passage.
 What it buys is the chance to observe, in Step 5, whether the model *uses* it —
 whether it notices that a 1.4 page is answering a 2.0 question. That is a real
 finding either way.
@@ -45,7 +45,7 @@ finding either way.
 WHAT IS DELIBERATELY NOT DONE
 
 No streaming, no chat history, no retry, no reranking of the retrieved chunks,
-no query rewriting. Phase 1 is the naive baseline (D04). Ugly output is fine;
+no query rewriting. Phase 1 is the naive baseline. Ugly output is fine;
 the gate is that a question typed at a terminal returns an answer and its
 sources.
 """
@@ -70,9 +70,9 @@ MODEL = "qwen2.5-coder:7b"
 
 # How many pages get pasted into the prompt. Search ranks all 3284; the chatbot
 # only sees this many. `backref` landed at rank 6 of 3284 — one place below this
-# cut — so 6 would have put that page in with no other change (§R4.3). Round 7
+# cut — so 6 would have put that page in with no other change. Round 7
 # then showed refusals stay 8 at k=5, 6 and 10, and k=10 bought over-fires, so
-# D54 kept 5. The integer that fixes the miss is not the one that ships.
+# k stayed 5. The integer that fixes the miss is not the one that ships.
 DEFAULT_K = 5
 
 # Temperature 0. A retrieval system that answers the same question two different
@@ -82,7 +82,7 @@ TEMPERATURE = 0.0
 
 # The refusal clause is phrased as a LAST RESORT, and the wording is measured
 # rather than chosen. Three candidates were run against one answerable question
-# and one the corpus provably cannot answer (the API-reference hole, D07).
+# and one the corpus provably cannot answer (the API reference is not in the docs source the corpus is built from).
 #
 # A is this instruction, not a slogan:
 #   If the sources do not contain the answer, say exactly:
@@ -108,18 +108,18 @@ TEMPERATURE = 0.0
 #
 # n=1 per cell. Two questions is a diagnosis, not a benchmark — Step 5 is where
 # this gets run against a list.
-# Prompt D, shipped 2026-08-17 (09-DECISIONS.md D54). It replaced wording B,
+# Prompt D, shipped 2026-08-17. It replaced wording B,
 # which asked the model to judge SUFFICIENCY — "do these sources contain the
 # answer?" — a binary gate it applied strictly whenever a question named a
 # symbol. Measured over 19 questions, B and the stricter A refused the SAME 8,
-# so D43 had chosen between two identical options (D52).
+# so the refusal clause that over-fires had chosen between two identical options.
 #
 # D changes the mechanism rather than the wording: partial answers are the
 # expected output, refusal narrows to SUBJECT rather than sufficiency, and a
 # refusal must name what was looked for — which forces a check instead of a
 # pattern match, and makes a wrong refusal visible instead of silent.
 #
-# Measured at DEFAULT_K = 5, all nine of D's refusals are correct (D54). Do not
+# Measured at DEFAULT_K = 5, all nine of D's refusals are correct. Do not
 # raise k to "help": at 10 it buys two over-fires and one fabrication.
 SYSTEM = (
     "You answer questions about migrating Python code from SQLAlchemy 1.4 to 2.0. "
@@ -175,19 +175,19 @@ def refused(answer: str) -> bool:
     return _LEADING_CITATIONS.sub("", answer.strip()).startswith(REFUSAL_OPENING)
 
 
-# `D115` — the one sentence that ships from Phase 4's variant `H`.
+# Prompt H — the one sentence that ships from Phase 4's variant `H` (2026-09-20).
 #
 # It says nothing SYSTEM does not already say. SYSTEM has demanded citations
-# since `D43`; `D73` then measured **65% of answered questions citing nothing at
+# since the refusal-clause experiment; a later audit then measured **65% of answered questions citing nothing at
 # all**, and 26 of 28 answers containing code putting executable code on screen
-# with no source. `D74` found that moving the same words HERE — into the user
+# with no source. Moving the same words HERE — into the user
 # turn, immediately before the ANSWER cue — took uncited to 10% on the Mac and
 # 8% on the lab. **Position, not emphasis** (variant `E` shouted the rule in
 # SYSTEM and changed nothing).
 #
 # What shipped is the citation effect, which reproduced on both machines. What
 # did NOT ship is `H`'s other effect — fewer refusals, better end to end — which
-# reproduced on the Mac and not on the lab, and stays held under `D83`.
+# reproduced on the Mac and not on the lab, and stays held.
 REMINDER = (
     "Before answering: cite the source number in brackets, like [2], after each "
     "statement you take from a source, and put the source number on the line "
@@ -196,13 +196,13 @@ REMINDER = (
 
 
 def build_prompt(question: str, hits, reminder: str | None = None) -> str:
-    """The shipped prompt. `reminder=""` reproduces the pre-`D115` one.
+    """The shipped prompt. `reminder=""` reproduces the prompt from before H shipped.
 
     That escape hatch is not politeness: every generation figure taken before
-    2026-09-20 — `D72`'s 0.43 end to end, `D73`'s citation rates, `D109`'s 11 of
+    2026-09-20 — the 0.43 end to end, the citation rates, the 11 of
     30 injections — was measured without this sentence. `compare_prompts` needs
     that exact text to stay buildable or its control arm silently becomes the
-    new prompt and the comparison measures nothing (`D61`: one ruler).
+    new prompt and the comparison measures nothing (one ruler).
     """
     blocks = []
     for n, hit in enumerate(hits, 1):

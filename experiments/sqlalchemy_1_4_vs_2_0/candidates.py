@@ -6,13 +6,12 @@ READ THIS BEFORE USING THE OUTPUT.
 This does NOT produce breakage entries. It produces *candidates*: 1.4 patterns
 that the library, right now, either warns about or refuses. A candidate becomes
 a deliverables/BREAKAGES.md entry only after you have written it into real code, run it on
-real 2.0, hit the real error, and fixed it — that is what PHASE-0 means by
+real 2.0, hit the real error, and fixed it — that is what Phase 0 means by
 "breakages he personally caused, hit, and fixed".
 
-The distinction is not bureaucratic. CLAUDE.md's design notes call an
-auto-generated golden set "grading your own homework with your own answer key",
-and study/02-MIGRATION-2.0.md §21 spells out why a wrong entry costs more than a missing
-one. A list generated here and pasted into deliverables/BREAKAGES.md would be exactly that
+The distinction is not bureaucratic. An auto-generated golden set is "grading
+your own homework with your own answer key", and a wrong entry costs more than
+a missing one. A list generated here and pasted into deliverables/BREAKAGES.md would be exactly that
 failure, dressed up as measurement.
 
 What this file is genuinely good for: it stops you guessing which patterns are
@@ -118,7 +117,7 @@ print("  happened. A row here is a hypothesis. deliverables/BREAKAGES.md holds r
 # Persist the measured tiers so verify_2_0.py can quote them. It runs on 2.0,
 # where RemovedIn20Warning does not exist, so it cannot measure this itself —
 # and hardcoding the answer there would be exactly the asserted-number habit
-# CLAUDE.md forbids.
+# this project avoids.
 TIERS_PATH = pathlib.Path(__file__).with_name("tiers.json")
 TIERS_PATH.write_text(json.dumps(tiers, indent=2, sort_keys=True) + "\n")
 print()

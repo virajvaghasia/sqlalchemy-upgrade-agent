@@ -64,7 +64,7 @@ def test_unparseable_arguments_are_reported_as_such():
 
 def test_the_probe_set_is_labelled_by_construction():
     """The label has to be checkable from the question alone, or the `right
-    tool` number is graded against labels this file invented. `D06` governs the
+    tool` number is graded against labels this file invented. Human verification governs the
     golden set; this is an instrument, so the defence is that every check_api
     question names a symbol and asks whether it still exists."""
     for want, question in toolcall.PROBE:
@@ -143,7 +143,7 @@ def test_the_counts_are_computed_from_the_rows():
 
 
 def test_an_unreachable_call_costs_one_question_not_the_run():
-    """D75, third module to learn it. The first two learned it the expensive
+    """The third module to need this. The first two learned it the expensive
     way -- a sweep that died at generation 150, and one that died at item 63
     of 64."""
     def boom(question):

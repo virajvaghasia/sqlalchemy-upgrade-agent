@@ -272,40 +272,6 @@ FIXES = {
 
 
 # ---------------------------------------------------------------------------
-# Where each pattern is explained IN THIS REPO.
-# ---------------------------------------------------------------------------
-# Deliberately not upstream URLs. SQLAlchemy's own warnings carry only a
-# generic 2.0 background link (sqlalche.me/e/b8d9) for every one of these, so
-# a per-pattern upstream anchor would be something I recalled rather than
-# measured — exactly the habit CLAUDE.md forbids. These refs are checked
-# against the files by verify_2_0.py at generation time.
-DOC_SECTIONS = {
-    "engine.execute(string)":              ["MIGRATION-2.0.md §16", "MIGRATION-2.0.md §19"],
-    "engine.scalar(string)":               ["MIGRATION-2.0.md §16"],
-    "conn.execute(bare string)":           ["MIGRATION-2.0.md §16", "MIGRATION-2.0.md §19"],
-    "session.execute(bare string)":        ["MIGRATION-2.0.md §16"],
-    "engine.table_names()":                ["MIGRATION-2.0.md §16"],
-    "engine.has_table()":                  ["MIGRATION-2.0.md §16"],
-    "MetaData(bind=engine)":               ["MIGRATION-2.0.md §16", "MIGRATION-2.0.md §18"],
-    "select([...]) list form":             ["MIGRATION-2.0.md §16"],
-    "case([...]) list form":               ["MIGRATION-2.0.md §16"],
-    "orm.relation() alias":                ["MIGRATION-2.0.md §16", "CONCEPTS.md §6"],
-    "Query.filter(raw string)":            ["MIGRATION-2.0.md §16"],
-    "Query.from_self()":                   ["MIGRATION-2.0.md §16"],
-    "Query.join(aliased=True)":            ["MIGRATION-2.0.md §16", "CONCEPTS.md §9"],
-    "joinedload(string)":                  ["MIGRATION-2.0.md §17", "CONCEPTS.md §15"],
-    "subqueryload(string)":                ["MIGRATION-2.0.md §17", "CONCEPTS.md §15"],
-    "Row attr access, no .scalars()":      ["MIGRATION-2.0.md §17"],
-    "row['colname'] mapping access":       ["MIGRATION-2.0.md §17"],
-    "row.keys()":                          ["MIGRATION-2.0.md §17"],
-    "joinedload(coll), no .unique()":      ["MIGRATION-2.0.md §17", "CONCEPTS.md §15"],
-    "Session(autocommit=True)":            ["MIGRATION-2.0.md §18", "CONCEPTS.md §14"],
-    "session.begin(subtransactions)":      ["MIGRATION-2.0.md §18"],
-    "session.transaction attribute":       ["MIGRATION-2.0.md §18"],
-}
-
-
-# ---------------------------------------------------------------------------
 # Where more than one fix is defensible.
 # ---------------------------------------------------------------------------
 # FIXES above gives one answer per pattern, which quietly hides a choice on the
@@ -348,7 +314,7 @@ ALTERNATIVES = {
         ("session.execute(select(Issue).options(selectinload(Issue.comments))).scalars().all()",
          "the better answer in most cases: selectinload does not JOIN, so it never multiplies "
          "rows, so .unique() is not needed at all. Prefer this unless you specifically want "
-         "one round trip — see study/01-CONCEPTS.md §15 for the tradeoff.",
+         "one round trip.",
          lambda e, s: s.execute(
              select(Issue).options(sa.orm.selectinload(Issue.comments))).scalars().all()),
     ],

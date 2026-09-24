@@ -4,7 +4,7 @@ Two runs of `rag/embed.py` produce vectors that can live in the same index
 **only if** the model revision, the normalization setting and the dtype match.
 Get any of those wrong across two runs and the index is not degraded, it is
 meaningless — vectors from different revisions are not in the same space, and
-cosine similarity between them is noise. See `study/09-DECISIONS.md` D36.
+cosine similarity between them is noise.
 
 None of this imports torch or sentence-transformers. CI runs `uv sync --frozen`
 without `--extra embed`, so the embedding stack is absent there — and a test
@@ -72,7 +72,7 @@ def test_missing_heading_path_does_not_produce_a_leading_separator():
 @pytest.mark.parametrize("requested", ["cpu", "cuda", "mps"])
 def test_explicit_device_is_honoured_without_importing_torch(requested):
     """`--device` is the flag that lets the same code run on the Mac and the lab
-    PC (D37). It resolves before torch is imported, which is also what makes it
+    PC. It resolves before torch is imported, which is also what makes it
     testable here where torch is not installed."""
     assert embed.pick_device(requested) == requested
 

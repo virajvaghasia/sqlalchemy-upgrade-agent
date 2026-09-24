@@ -61,14 +61,14 @@ def test_retrieval_happens_once_and_both_arms_see_the_same_hits():
 
 
 def test_both_arms_are_read_by_the_same_refusal_detector():
-    """Every Phase 4 instrument is a prefix test on ask.REFUSAL_OPENING (D76).
+    """Every Phase 4 instrument is a prefix test on ask.REFUSAL_OPENING.
     If arm B's system prompt drifted, refusals would stop being comparable."""
     for build in framing.ARMS.values():
         assert ask.SYSTEM in build("q", [hit()])[0]["content"]
 
 
 def test_report_counts_only_items_whose_page_was_present(capsys):
-    """D72's defect is refusing WITH the page in hand. An item whose page never
+    """The defect is refusing WITH the page in hand. An item whose page never
     arrived is retrieval's problem and must not land in this column."""
     out = {"A_block": [
         {"id": "a", "answerable": True, "answer_in_prompt": True,
@@ -118,7 +118,7 @@ def test_a_willingness_shift_shows_as_fixes_in_one_row_and_breaks_in_another():
 
 
 def test_flips_pair_by_id_and_skip_items_missing_from_one_arm():
-    """D61: a paired comparison over two item sets is two averages."""
+    """A paired comparison over two item sets is two averages."""
     f = framing.flips([row("p", REFUSE), row("only_a", REFUSE)],
                       [row("p", "ans [1]")])
     assert f["present"] == (["p"], [])

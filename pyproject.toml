@@ -21,8 +21,8 @@ dependencies = [
 embed = [
     # BGE-M3 through sentence-transformers rather than FlagEmbedding. FlagEmbedding
     # exposes BGE-M3's dense, sparse and ColBERT outputs; sentence-transformers gives
-    # dense only. Dense-only is exactly the Phase 1 constraint (09-DECISIONS.md D04 —
-    # build the naive version first), so the simpler library is also the one that
+    # dense only. Dense-only is exactly the Phase 1 constraint (build the naive version
+    # first), so the simpler library is also the one that
     # cannot accidentally smuggle in hybrid retrieval two phases early.
     "sentence-transformers>=3.0",
     "qdrant-client>=1.9",

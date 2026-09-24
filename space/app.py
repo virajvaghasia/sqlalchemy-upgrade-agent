@@ -7,7 +7,7 @@ covers. This file is layout only.
 
 Dense search runs in memory, because a free host has no Qdrant container.
 That path was scored on the golden set against the Qdrant baseline before it
-was allowed here: broken 0, moved 0 (D102).
+was allowed here: broken 0, moved 0.
 
     # locally, with the measured generator (no key needed):
     DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with gradio==6.27.0 python space/app.py
@@ -31,10 +31,10 @@ BACKEND = os.environ.get("DEMO_GENERATOR", "nvidia")
 LIMITER = (demo.RateLimiter(per_hour=10**9, gap=0) if BACKEND == "ollama" else demo.RateLimiter())
 GENERATOR = "qwen2.5-coder:7b (Ollama, the measured model)" if BACKEND == "ollama" else demo.MODEL
 
-# Chosen from measurements, not taste (PHASE-6.md Step 4): the first four are
+# Chosen from measurements, not taste: the first four are
 # golden-set questions the measured model ANSWERED, citing its source, on the Mac
 # (framing-phase6.Darwin-arm64.json arm A). The last is one it DECLINES with the
-# answer page in hand -- a measured over-refusal (D72) -- shown on purpose.
+# answer page in hand -- a measured over-refusal -- shown on purpose.
 EXAMPLES = [
     ("query(User).get(1) moved", "query(User).get(1) warns LegacyAPIWarning, where did get move to"),
     ("backref= deprecated?", "backref= in relationship is deprecated what should I use instead"),

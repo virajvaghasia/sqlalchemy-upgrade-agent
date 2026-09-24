@@ -3,14 +3,13 @@ Check that every `# runnable` block in the docs actually reproduces.
 
     uv run python -m tools.check_runnable            # run the checkable ones
     uv run python -m tools.check_runnable --list     # classify, run nothing
-    uv run python -m tools.check_runnable --file study/07-TESTS.md
+    uv run python -m tools.check_runnable --file README.md
 
-`CLAUDE.md`'s measurement rule says: *"If a doc shows output, a `# runnable`
-command must reproduce it verbatim."* There are 139 such blocks across 18 files
-and, until this script existed, **that rule was enforced by remembering to check**
-— which is not enforcement.
+The rule: *if a doc shows output, a `# runnable` command must reproduce it
+verbatim.* Until this script existed **that rule was enforced by remembering to
+check**, which is not enforcement.
 
-It was already broken. `PHASE-1.md` quoted `p90=1738` from a run taken before
+It was already broken. A planning doc quoted `p90=1738` from a run taken before
 `LEAD_IN_MAX` was added; the real value is 1740. One stale digit, inside the
 block whose entire purpose is being verbatim, sitting there through four
 commits.
@@ -35,8 +34,8 @@ number of unverifiable blocks is itself visible rather than quietly growing.
 KNOWN COVERAGE GAP
 
 Fenced blocks nested inside a blockquote (`> ```` `) are not scanned — the
-parser only recognises a fence at the start of a line. `study/09-DECISIONS.md`
-puts its evidence inside `>` quotes, so those blocks are unchecked. Stated here
+parser only recognises a fence at the start of a line. Evidence quoted inside
+`>` quotes is therefore unchecked. Stated here
 rather than left to be discovered, because an unknown gap in a checker is worse
 than a known one.
 
@@ -99,9 +98,9 @@ ENV_MARKERS = {
     "rag.ask": "nondeterministic model output",
     "rag.probe": "nondeterministic model output; minutes to run",
     "rag.index": "needs Qdrant running",
-    "rag.score": "reads corpus/chunks.jsonl, which is generated and gitignored (D11), and the live path also needs Qdrant",
-    "rag.golden": "reads corpus/chunks.jsonl, which is generated and gitignored (D11)",
-    "rag.escalate --all": "reads corpus/chunks.jsonl (gitignored, D11) to decide whether each answer page was in the prompt",
+    "rag.score": "reads corpus/chunks.jsonl, which is generated and gitignored, and the live path also needs Qdrant",
+    "rag.golden": "reads corpus/chunks.jsonl, which is generated and gitignored",
+    "rag.escalate --all": "reads corpus/chunks.jsonl (gitignored) to decide whether each answer page was in the prompt",
     "rag.judge": "~100 Ollama generations against a gitignored corpus; ~30 min and nondeterministic",
     "rag.faithful": "needs a judge model (a key, or Ollama) plus Qdrant and the gitignored corpus; ~110 calls",
     "rag.toolcall": "needs the Ollama model server; 20-120 generations",

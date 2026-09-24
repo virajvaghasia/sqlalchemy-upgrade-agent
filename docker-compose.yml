@@ -65,7 +65,7 @@ services:
   qdrant:
     # Pinned for the same reason as postgres above. `latest` currently resolves to
     # the identical digest, so this changes nothing today and prevents the day it
-    # would — which is the whole point of pinning (09-DECISIONS.md D16).
+    # would — which is the whole point of pinning.
     image: qdrant/qdrant:v1.19.0
 
     volumes:
@@ -127,7 +127,7 @@ services:
     # which is a different image from anything you built by hand with
     # `docker build -t sqlalchemy-upgrade-agent .` — two images, one Dockerfile, drifting apart
     # silently. That is exactly how a 13-hour-stale image ended up producing
-    # believable output and disproving nothing (COMPOSE-STUDY.md §4.0).
+    # believable output and disproving nothing.
     #
     # With this line, `docker compose up --build` and `docker build -t sqlalchemy-upgrade-agent .`
     # produce the same image, and there is only ever one thing called sqlalchemy-upgrade-agent.
@@ -149,7 +149,7 @@ services:
 #
 # qdrantdata holds the vector index. Losing it costs one `rag.index` run — about a
 # second, since the vectors themselves live in corpus/embeddings.npy, which is the
-# artifact worth protecting. That split is deliberate: D36 keeps embedding output
+# artifact worth protecting. That split is deliberate: embedding output is kept
 # in a file precisely so the database is cheap to rebuild and never the only copy.
 volumes:
   pgdata:

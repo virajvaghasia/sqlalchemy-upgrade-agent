@@ -18,8 +18,8 @@ WHAT IT RECORDS, INCLUDING THE FAILURES
 Every call: model, caller, the three token counts, and the HTTP status. **A
 refused call is recorded too**, and that is the point rather than tidiness:
 with no headers, a **429** is the only signal that a rate limit was reached, and
-a **404 "not found for account"** is how an entitlement disappears (`PHASE-6.md`,
-2026-09-16 — the demo's model stopped being callable while still being listed).
+a **404 "not found for account"** is how an entitlement disappears
+(2026-09-16 — the demo's model stopped being callable while still being listed).
 A ledger that only logged successes would show silence for both.
 
 WHAT IT IS NOT
@@ -30,7 +30,7 @@ question the console does not answer.
 
 Not the demo's record either. The page runs in an ephemeral Modal container, so
 its ledger dies with the container; Langfuse keeps the page's per-question token
-counts (`D108`). This file is for runs on a machine you own.
+counts. This file is for runs on a machine you own.
 
     uv run python -m rag.usage --report
 """
@@ -118,7 +118,7 @@ def report(rows: list[dict]) -> str:
             lines.append("        so this ledger is the only place that shows it.")
         if 404 in codes:
             lines.append("  404 = 'not found for account' — an entitlement, not an outage")
-            lines.append("        (PHASE-6.md, 2026-09-16: a listed model stopped being callable).")
+            lines.append("        (2026-09-16: a listed model stopped being callable).")
     return "\n".join(lines)
 
 

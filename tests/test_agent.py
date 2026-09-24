@@ -12,7 +12,7 @@ from rag import agent, ask
 
 
 def tool_reply(name, arg, channel="content"):
-    """A tool call on either channel. The loop must not care which (D87).
+    """A tool call on either channel. The loop must not care which.
 
     The argument key is the one the schema declares -- `symbol` for check_api,
     `query` for search_docs. Writing `{"x": arg}` here made every call classify
@@ -53,7 +53,7 @@ def test_a_two_tool_task_completes():
 
 
 def test_the_loop_does_not_care_which_channel_the_call_arrived_on():
-    """D87 measured qwen returning calls in `content` and gemma on
+    """qwen was measured returning calls in `content` and gemma on
     `tool_calls`, and Round 17 may show that is an Ollama version fact. The
     loop reads `classify`, never either field, so it is correct either way --
     it was built while that measurement was still open."""
@@ -69,7 +69,7 @@ def test_the_loop_does_not_care_which_channel_the_call_arrived_on():
 # --- failure path 1: the tool raised -----------------------------------------
 
 def test_a_tool_failure_is_shown_to_the_model_rather_than_raised():
-    """D75, fifth module. The retry is the next turn WITH THE ERROR VISIBLE,
+    """The fifth module to need this. The retry is the next turn WITH THE ERROR VISIBLE,
     not a silent re-call: a model that cannot see the error cannot route
     around it."""
     seen = {}
@@ -108,14 +108,14 @@ def test_an_unknown_tool_is_an_error_not_a_crash():
 # --- failure path 2: nothing came back ---------------------------------------
 
 def test_an_empty_search_says_so_in_words_the_model_can_act_on():
-    """An empty list may read as a formatting problem. `D70`'s 17 absents are
+    """An empty list may read as a formatting problem. The 17 absents are
     the measured case where no reformulation helps, so the model has to be told
     plainly that nothing matched."""
     assert "no passages matched" in agent._observation("search_docs", [])
 
 
 def test_a_missing_symbol_is_presented_as_an_answer_not_an_error():
-    """D88's distinction, carried into what the model actually reads. `Query
+    """The distinction, carried into what the model actually reads. `Query
     .from_self` not existing is THE most common true statement in this problem
     domain, and it must not look like a broken lookup."""
     text = agent._observation("check_api", {"exists": False})
@@ -159,7 +159,7 @@ def test_the_agents_decline_is_the_string_phase_4_detects():
     """If the agent invents its own way of saying no, `--refusals`,
     `rag.judge` and `rag.faithful` all stop seeing declines and start scoring
     them as answers. Every Phase 4 instrument is a prefix test against
-    `ask.REFUSAL_OPENING` (D76)."""
+    `ask.REFUSAL_OPENING`."""
     assert agent.DECLINE.startswith(ask.REFUSAL_OPENING)
     assert ask.refused(agent.DECLINE)
 
@@ -191,15 +191,15 @@ ITEMS = [
 ]
 # `heading_path` is required: `dedup_key` uses it, because the embedder
 # prepends the heading before embedding and two chunks are the same vector
-# only if both heading and text match (D58).
+# only if both heading and text match.
 CHUNKS = {"c001": {"chunk_id": "c001", "text": "t",
                    "heading_path": ["Migration"]}}
 
 
 def test_answer_in_prompt_uses_the_same_function_as_every_other_sweep():
-    """`score.rank_of_first_hit`, not a private rule. `D85` is what happens
-    when one metric grows two implementations: this column has to line up with
-    `D72`'s table, not merely resemble it."""
+    """`score.rank_of_first_hit`, not a private rule. Two denominators for `uncited` is what happened
+    once when one metric grew two implementations: this column has to line up with
+    The table, not merely resemble it."""
     def run_one(question, call_tool=None):
         call_tool("search_docs", "x")             # the agent looked something up
         return {"answer": "an answer [1]", "steps": 2, "stopped": "answered",
@@ -221,7 +221,7 @@ def test_answer_in_prompt_uses_the_same_function_as_every_other_sweep():
 
 def test_an_agent_that_never_searched_has_no_sources():
     """Zero is a measurement, not a gap: an answer with no lookup behind it is
-    the thing `D73` was about, arriving by a different route."""
+    the uncited-answer defect, arriving by a different route."""
     def run_one(question, call_tool=None):
         return {"answer": "from memory", "steps": 1, "stopped": "answered",
                 "trace": []}
@@ -232,7 +232,7 @@ def test_an_agent_that_never_searched_has_no_sources():
 
 
 def test_one_broken_item_costs_one_item():
-    """D75, and by now the rule rather than the exception."""
+    """By now the rule rather than the exception: one bad item costs one item."""
     def boom(question, call_tool=None):
         raise RuntimeError("boom")
 
@@ -248,12 +248,12 @@ def test_a_failed_row_is_neither_delivered_nor_a_fabrication():
          "answer": "real [1]", "tools": ["search_docs"], "stopped": "answered"},
     ])
     assert got["delivered"] == 1 and got["failed"] == 1
-    assert got["n_answerable"] == 2, "the failed item stays in the denominator (D61)"
+    assert got["n_answerable"] == 2, "the failed item stays in the denominator"
 
 
 def test_the_generation_columns_come_from_judge_not_a_second_copy():
     """`summarise` delegates to `judge._sweep_generation`. A private copy here
-    is exactly the divergence `D85` had to unpick."""
+    is exactly the divergence that had to be unpicked once already."""
     from rag import judge
     rows = [{"id": "a", "answerable": True, "answer_in_prompt": True,
              "answer": "x [1]", "tools": [], "stopped": "answered"}]
@@ -293,7 +293,7 @@ def test_resume_skips_only_what_is_already_done():
 def test_the_system_prompt_is_overridable_and_defaults_to_the_shipped_one():
     """E1 needs to swap the system message without touching the loop.
 
-    The default is `SYSTEM_MUSTCALL` since `D90` — Round 18 measured it fixing
+    The default is `SYSTEM_MUSTCALL` since Round 18 measured it fixing
     9 out-of-range citations and breaking 0 on the lab, 3 and 0 on the Mac.
     `SYSTEM` is kept as the measured control rather than deleted, because the
     comparison is only readable while both exist."""
@@ -313,7 +313,7 @@ def test_the_system_prompt_is_overridable_and_defaults_to_the_shipped_one():
 
 def test_the_candidate_changes_only_the_two_things_it_claims_to():
     """A variant that quietly changed the citation clause too would make any
-    difference unattributable -- `D74` measured `I` being worse than `H`
+    difference unattributable -- `I` was measured worse than `H`
     precisely because it carried a second instruction."""
     assert "MUST call a tool" in agent.SYSTEM_MUSTCALL
     assert "do not answer from memory" in agent.SYSTEM_MUSTCALL.lower()
@@ -325,9 +325,9 @@ def test_the_candidate_changes_only_the_two_things_it_claims_to():
 
 
 def test_e1_interleaves_the_arms_per_item():
-    """One sitting is not enough on its own (`D54`); the arms are interleaved
+    """One sitting is not enough on its own; the arms are interleaved
     per item so a machine that drifts over an hour drifts through both arms
-    equally. `D89` makes that sharper — whether a tool is called disagrees 50%
+    equally. Tool use makes that sharper — whether a tool is called disagrees 50%
     across machines, so it is not a quantity to measure twice at different
     times."""
     order = []
@@ -368,7 +368,7 @@ def test_the_chaining_count_in_the_report_is_derived(capsys):
 def test_the_measured_control_prompt_is_kept_not_deleted():
     """Round 18's comparison is only readable while both prompts exist. A
     candidate that replaces its control leaves a number nobody can re-derive —
-    which is what happened to Round 14's citation cells (`D85`)."""
+    which is what happened to Round 14's citation cells."""
     assert agent.SYSTEM != agent.SYSTEM_MUSTCALL
     assert agent.DEFAULT_SYSTEM is agent.SYSTEM_MUSTCALL
     assert set(agent.E1_ARMS.values()) == {agent.SYSTEM, agent.SYSTEM_MUSTCALL}
@@ -482,7 +482,7 @@ def test_the_nudge_is_off_by_default():
 
 
 def test_e2_arms_control_against_the_CURRENT_default_not_the_old_prompt():
-    """A comparison against the prompt we no longer use would measure `D90`
+    """A comparison against the prompt we no longer use would measure the must-call prompt
     over again rather than measuring forcing. The control arm passes no
     options, so it is whatever `DEFAULT_SYSTEM` is today."""
     assert agent.E2_ARMS["B_default"] == {}
@@ -541,7 +541,7 @@ def test_e4_report_counts_chained_runs(capsys):
 
 def test_the_sweep_passes_levers_through_to_the_loop():
     """--force and --nudge must reach `run`, or a lever sweep silently
-    measures the default again — the failure mode D91 already hit once, where
+    measures the default again — the failure mode the stopping-failure experiment already hit once, where
     an experiment produced two identical rows because it never ran."""
     seen = []
 
@@ -557,7 +557,7 @@ def test_the_sweep_passes_levers_through_to_the_loop():
 
 def test_a_lever_sweep_writes_a_different_file_than_the_default_sweep():
     """Rows from a levered run must not overwrite the default run's — the same
-    evidence-destroying mistake D83 had to recover from, one level down."""
+    evidence-destroying mistake the two-machine judge files had to recover from, one level down."""
     base = f"{agent.SWEEP_NAME}.{agent.machine()}.json"
     forced = f"{agent.SWEEP_NAME}-forced-nudged.{agent.machine()}.json"
     assert base != forced
@@ -575,7 +575,7 @@ def test_search_results_are_shown_in_full_not_truncated():
 
 
 def test_the_agent_path_pins_its_context_window():
-    """D80's lesson, second module: Ollama truncates at num_ctx in SILENCE and
+    """The lesson, second module: Ollama truncates at num_ctx in SILENCE and
     the default is 4096. A two-call conversation with full passages measured
     ~3168 tokens, and a third call exceeds it — a run that silently lost the end
     of its own evidence would look like a model ignoring it."""

@@ -23,7 +23,7 @@ page says it is missing. `DEMO_GENERATOR=ollama` uses a local `qwen2.5-coder:7b`
 measured generator, and then the page's notice says so.
 
 **Public demo (Modal):** https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run — same page,
-NVIDIA generator, in-memory search (`D106`). Redeploy from the repo:
+NVIDIA generator, in-memory search. Redeploy from the repo:
 
 ```bash
 uv run python space/build.py

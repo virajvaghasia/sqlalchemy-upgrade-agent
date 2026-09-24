@@ -5,7 +5,7 @@
   "PROVENANCE, which matters for Phase 2: each verdict was DRAFTED by Claude on",
   "2026-08-17 by comparing the answer against its BREAKAGES.md key and, where the answer",
   "proposed code, running both on real SQLAlchemy 2.0.51. Viraj reviewed and accepted",
-  "them the same day. D06 is satisfied by the acceptance, not by the drafting - and a",
+  "them the same day. Human verification is satisfied by the acceptance, not by the drafting - and a",
   "golden set should say how it was arrived at rather than present verdicts as immaculate.",
   "To change one: edit here and run `uv run python -m tools.apply_verdicts`."
  ],
@@ -35,7 +35,7 @@
  ],
  "7": [
   "WRONG",
-  "Says yes, pass `future=True`, which is wrong for 2.0 where the flag does nothing. Its single source is a 2.0 page whose sentence opens 'In 1.4' \u2014 the case \u00a7R1.7 dissects."
+  "Says yes, pass `future=True`, which is wrong for 2.0 where the flag does nothing. Its single source is a 2.0 page whose sentence opens 'In 1.4' \u2014 a 1.4 statement on a 2.0 page."
  ],
  "8": [
   "CORRECT",

@@ -1,6 +1,6 @@
 """The bench that helps build the golden set must never help *verify* it.
 
-`D06` is the load-bearing rule in Phase 2: the golden dataset is hand-verified,
+Human verification is the load-bearing rule in Phase 2: the golden dataset is hand-verified,
 never auto-generated. A helper that made items easier to add would be a net loss
 if it could also mark one verified — the whole point of the ruler is that a
 person looked.
@@ -8,7 +8,7 @@ person looked.
 So the tests here are mostly about what `rag/golden.py` refuses to do.
 
 They run on temp files, so they need neither `corpus/chunks.jsonl` (generated,
-not committed — D11) nor Qdrant.
+not committed) nor Qdrant.
 """
 
 import json
@@ -31,7 +31,7 @@ def items(path):
     return json.loads(path.read_text())["items"]
 
 
-# --- D06, enforced rather than documented ----------------------------------
+# --- human verification, enforced rather than documented ----------------------------------
 
 def test_added_items_are_never_marked_verified(bench):
     """The one thing this tool must not be able to do."""
@@ -47,12 +47,12 @@ def test_an_added_item_does_not_pass_the_scorer(bench):
     quietly become the verifier."""
     golden.add("q", "github", None, answerable=True)
     problems = score.validate(items(bench), {})
-    assert any("D06" in p for p in problems)
+    assert any("only a person verifies" in p for p in problems)
 
 
 def test_provenance_is_constrained_to_the_scorer_s_set(bench):
     """A typo'd provenance would silently create a new bucket and break the
-    with/without-breakages split D60 depends on."""
+    with/without-breakages split the scorer depends on."""
     with pytest.raises(SystemExit):
         golden.add("q", "twitter", None, answerable=True)
     assert items(bench) == []

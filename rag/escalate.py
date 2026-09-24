@@ -20,7 +20,7 @@ Tokens. The API returns `usage` with every response; each row keeps
 multiplies those by a published rate, so the rate is the only input anyone has
 to look up.
 
-Rules and prediction were written into phases/PHASE-6.md before the first call.
+Rules and the prediction were written down before the first call.
 
 WHO JUDGES, AND WHY THAT ONE
 
@@ -39,10 +39,10 @@ import urllib.error
 
 from rag import ask, faithful, judge, route, score
 
-# Switched from gemini-3.7-flash on 2026-09-12 before any answer from this model
-# (PHASE-6.md Step 3b): the Gemini free tier stopped the run at 7 of 20.
+# Switched from gemini-3.7-flash on 2026-09-12 before any answer from this model:
+# the Gemini free tier stopped the run at 7 of 20.
 # nemotron-70b was listed but returned 404 on this key; this is the largest model
-# that answered a content-free probe (PHASE-6.md Step 3b, second switch).
+# that answered a content-free probe (Phase 6 Step 3b, second switch).
 MODEL = "nvidia/nemotron-3-ultra-550b-a55b"
 ROWS = judge.DELIVERABLES / "escalate-phase6.json"
 # Step 3c: the escalations a real cascade cannot tell apart from the 20.
@@ -67,7 +67,7 @@ def escalation_ids(which: str = "present") -> list[str]:
 
 def shadow_cost(rows: list[dict], prices: dict) -> float:
     """USD these calls WOULD have cost at the snapshot's list price. The calls
-    were free credits; this is the counterfactual the ROADMAP sentence needs."""
+    were free credits; this is the counterfactual cost."""
     p = prices["models"][MODEL]["pricing"]
     return sum((r["prompt_tokens"] or 0) * float(p["prompt"]) +
                (r["output_tokens"] or 0) * float(p["completion"]) for r in rows)
@@ -140,7 +140,7 @@ def generate_rows(items: list[dict], *, key: str, post, retrieve, log=print,
             log(f"  [{n}/{len(items)}] {it['id']} HTTP {exc.code} after retries -- stopping, rows so far kept")
             break
         except (TimeoutError, urllib.error.URLError) as exc:
-            # D75's gap: retrying() gives up and re-raises, which would end a
+            # The gap: retrying() gives up and re-raises, which would end a
             # 100-call run at one slow question. Leave it unasked; a resume asks it.
             log(f"  [{n}/{len(items)}] {it['id']} SKIPPED ({type(exc).__name__}); re-run to ask it")
             continue
@@ -160,7 +160,7 @@ def generate_rows(items: list[dict], *, key: str, post, retrieve, log=print,
 
 def summarise(rows: list[dict], expected: int) -> dict:
     answered = [r for r in rows if not r["refused"] and not r.get("empty")]
-    # PHASE-6.md Step 3b: the non-Google judge's verdicts are the ones scored;
+    # Phase 6 Step 3b: the non-Google judge's verdicts are the ones scored;
     # gemma's are kept for agreement. Before the NVIDIA judge runs, gemma's show.
     field = "verdict_nvidia" if any(r.get("verdict_nvidia") for r in answered) else "verdict"
     judged = [dict(r, verdict=r[field]) for r in answered if r.get(field)]
@@ -213,7 +213,7 @@ def report_rest(rows: list[dict], golden: dict, prices: dict | None) -> dict:
     return {"fabricated": fab, "absent_answered": [r["id"] for r in ans], "absent_supported": sup}
 
 
-CALIBRATION = {"g016": "not SUPPORTED", "g007": "SUPPORTED or PARTIAL"}   # executed on 2.0.51, D100
+CALIBRATION = {"g016": "not SUPPORTED", "g007": "SUPPORTED or PARTIAL"}   # both executed on 2.0.51
 
 
 def calibration_ok(rows: list[dict]) -> bool:
@@ -225,7 +225,7 @@ def report_reference(present: list[dict], rest: list[dict], delivered: int, answ
     """Step 3d: the judge against the VERIFIED answer chunks. Refuses to print a
     correctness count if the two executed calibration items fail."""
     rows = present + rest
-    print("REFERENCE JUDGE — escalated answers against the verified answer chunks (D06)")
+    print("REFERENCE JUDGE — escalated answers against the verified answer chunks")
     print()
     by = {r["id"]: r.get("verdict_ref") for r in rows}
     print(f"  calibration  g016 (wrong on 2.0.51) -> {by.get('g016')}   "
@@ -306,21 +306,21 @@ def report(s: dict) -> None:
 #
 # The escalation sets above are the questions qwen declined. The hosted demo
 # would answer every question with this model, so its end-to-end score needs
-# every question asked. Rules and the prediction are in PHASE-6.md Step 4d,
+# every question asked. Rules and the prediction are in Phase 6 Step 4d,
 # written before the first call; the constants below are those rules.
 
 ROWS_ALL = judge.DELIVERABLES / "nemotron-all-phase6.json"
 ROWS_REPEAT = judge.DELIVERABLES / "nemotron-all-repeat-phase6.json"
-QWEN_LAB = route.OUTCOMES                                          # the rule's baseline (D95)
+QWEN_LAB = route.OUTCOMES                                          # the rule's baseline
 QWEN_MAC = judge.DELIVERABLES / "prompt-sweep-phase4.json"         # context only
 MAX_MISSING = 5          # more EMPTY or unasked rows than this -> the run is not quoted
-AHEAD_FIXED, AHEAD_BROKEN, ALPHA = 6, 1, 0.05                      # D61's bar
+AHEAD_FIXED, AHEAD_BROKEN, ALPHA = 6, 1, 0.05                      # the bar
 FABRICATION_BAR = 2      # qwen's count (g056, g065)
 REPEAT_N, STABLE_AT = 20, 19
 
 
 def all_ids(golden: dict) -> list[str]:
-    """Every human-verified item, sorted. Unverified items are never scored (D06)."""
+    """Every human-verified item, sorted. Unverified items are never scored."""
     return sorted(i for i, it in golden.items() if it.get("verified_by") == "human")
 
 
@@ -348,7 +348,7 @@ def outcome_rows(rows: list[dict], golden: dict, chunks: dict) -> list[dict]:
 
 def paired(new: list[dict], old: list[dict]) -> dict:
     """By id on `route.delivered`, over answerable items present on BOTH sides,
-    so a question missing from either run is dropped from both (D61)."""
+    so a question missing from either run is dropped from both."""
     a = {r["id"]: r for r in new if r["answerable"]}
     b = {r["id"]: r for r in old if r["answerable"]}
     common = sorted(a.keys() & b.keys())
@@ -358,7 +358,7 @@ def paired(new: list[dict], old: list[dict]) -> dict:
             "delivered_new": sum(route.delivered(a[i]) for i in common),
             "delivered_old": sum(route.delivered(b[i]) for i in common),
             "p": score.mcnemar_exact(len(fixed), len(broken)),
-            # Retrieval reproduces across machines (D83); if a page-present flag
+            # Retrieval reproduces across machines; if a page-present flag
             # differs, the pairing is not comparing the same five pages.
             "flag_differs": [i for i in common if a[i]["answer_in_prompt"] != b[i]["answer_in_prompt"]]}
 
@@ -409,7 +409,7 @@ ROWS_QWEN_JUDGED = judge.DELIVERABLES / "qwen-lab-judged-phase6.json"
 def qwen_judge_rows(qwen: list[dict], nemotron: list[dict]) -> list[dict]:
     """The lab qwen's answers, each paired with the five page ids from nemotron's
     row for the same question. qwen's rows never stored page ids; retrieval
-    reproduces across machines (D83), and the report re-checks that per question."""
+    reproduces across machines, and the report re-checks that per question."""
     hits = {r["id"]: r["hits"] for r in nemotron}
     return [{"id": r["id"], "answer": r["answer"], "hits": list(hits[r["id"]]),
              "refused": False, "empty": False, "generator": "qwen2.5-coder:7b (lab, Round 16)"}
@@ -464,7 +464,7 @@ def report_same_judge(nem_rows: list[dict], qwen_judged: list[dict], nem_outs: l
 
 # --- Step 4g: the judge given what the model was given ---------------------------
 
-NOISE_N, NOISE_MAX = 20, 2    # PHASE-6.md Step 4g
+NOISE_N, NOISE_MAX = 20, 2    # Phase 6 Step 4g
 
 
 # One definition, shared with the Phase 4 judge (Round 22).
@@ -641,14 +641,14 @@ SHEET = judge.DELIVERABLES / "ESCALATE-PARTIAL-REVIEW.md"
 
 
 def write_sheet(rows: list[dict], golden: dict) -> None:
-    """The answers the scored judge called PARTIAL, laid out for a human (D06).
+    """The answers the scored judge called PARTIAL, laid out for a human.
 
     Claude drafts this sheet and never fills the verdict column. Each entry has
     the question, the verified answer chunk ids, the escalated answer in full,
     and the judge's reason, so the reader decides without opening anything else.
     """
     from rag import score as score_mod
-    # Never regenerate over a human's verdicts (D06): the file is where they live.
+    # Never regenerate over a human's verdicts: the file is where they live.
     if SHEET.exists() and any("______" not in line for line in SHEET.read_text().splitlines()
                               if line.startswith("**Human verdict:**")):
         sys.exit(f"{SHEET.name} already holds human verdicts; not overwriting it")
@@ -659,7 +659,7 @@ def write_sheet(rows: list[dict], golden: dict) -> None:
            f"Generated by `uv run python -m rag.escalate --report --sheet`. Model `{MODEL}`, judge "
            f"`{faithful.NVIDIA_JUDGE}`. **{len(partial)} items.** Fill the last line of each entry "
            "with `SUPPORTED`, `PARTIAL` or `UNSUPPORTED` against the passages the model was given, "
-           "and a one-line reason. Claude does not fill these (`D06`).", ""]
+           "and a one-line reason. Claude does not fill these.", ""]
     for r in partial:
         g = golden[r["id"]]
         out += [f"## {r['id']} — {g['question']}", "",
@@ -669,7 +669,7 @@ def write_sheet(rows: list[dict], golden: dict) -> None:
                 "**Answer:**", "", "````", r["answer"], "````", ""]
         for n, c in enumerate(r["hits"], 1):
             # The heading line is part of what ask.build_prompt gave the model. The first sheet
-            # left it out, and a human reason for g044 was written without it (PHASE-6.md).
+            # left it out, and a human reason for g044 was written without it.
             heading = " > ".join(chunks[c].get("heading_path") or []) or "(no heading)"
             out += [f"<details><summary>[{n}] {c} — {heading}</summary>", "", "````", chunks[c]["text"],
                     "````", "", "</details>", ""]
@@ -787,7 +787,7 @@ def main() -> None:
                 v = faithful.judge_answer(r["answer"], passages, key=key,
                                           model=faithful.NVIDIA_JUDGE, post=post)
             except (TimeoutError, urllib.error.URLError) as exc:
-                # D75, and the gap the 09-10 notes named: retrying() gives up and
+                # retrying() gives up and
                 # re-raises, which used to kill the whole run. Skip the item and
                 # leave it unjudged, so a resume asks it again.
                 print(f"  {r['id']} SKIPPED ({type(exc).__name__}); re-run to judge it", flush=True)

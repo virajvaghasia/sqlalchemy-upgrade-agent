@@ -53,7 +53,7 @@ def test_constants_match_measured_zero_regression_point():
 
 def test_the_reranker_is_pinned_to_a_revision_and_the_load_uses_it(monkeypatch):
     """The comment said 'pinned' for three weeks while CrossEncoder got no
-    revision (D97). Assert the load, not the constant, or the same gap reopens."""
+    revision. Assert the load, not the constant, or the same gap reopens."""
     import sys, types
     seen = {}
 

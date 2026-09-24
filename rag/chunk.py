@@ -51,8 +51,8 @@ WHAT IS DELIBERATELY NOT DONE
 
 RST markup is left **raw**. `:class:`_orm.Session`` is not rewritten to
 `Session`, even though the role syntax is noise to an embedding model and the
-rewrite would probably help. Phase 1 is the deliberately naive baseline
-(`study/09-DECISIONS.md` D04): a fix applied before its problem has been
+rewrite would probably help. Phase 1 is the deliberately naive baseline:
+a fix applied before its problem has been
 measured is a best practice copied from a blog post, not a number earned. If
 Step 5 shows markup hurting retrieval, that is a Phase 3 change with a
 before/after.
@@ -109,7 +109,7 @@ LEAD_IN_MAX = 900
 MIN_CHARS = 120
 
 # Directives that instruct Sphinx rather than say anything. `autoclass` and
-# friends are the API-reference generators (D07): at build time they read a
+# friends are the API-reference generators: at build time they read a
 # Python docstring, so in SOURCE they are an empty promise — one *line* per
 # class/function, not one unused file (R1.4: 514/569 such lines in our 270
 # files). Deliberately NOT listed: note, warning, versionadded, deprecated,
@@ -443,7 +443,7 @@ def chunk_file(path: pathlib.Path, version: str, source_path: str) -> list[dict]
     out: list[dict] = []
 
     # Byte/char offset of the start of each line, so a line span converts to the
-    # character range PHASE-1.md Step 2 asks every chunk to carry. Built once per
+    # character range Phase 1 Step 2 asks every chunk to carry. Built once per
     # file rather than recomputed per chunk.
     line_offset = [0]
     for line in lines:
@@ -518,9 +518,9 @@ def stats(chunks: list[dict]) -> dict:
             "min": sizes[0], "median": int(statistics.median(sizes)),
             "p75": q(0.75), "p90": q(0.90), "p99": q(0.99), "max": sizes[-1],
         },
-        # Carried in the committed stats file so the numbers PHASE-1.md quotes
+        # Carried in the committed stats file so the audit numbers
         # can be checked in CI, where corpus/raw/ does not exist and build()
-        # cannot run (D11). Without this the audit would be a claim no test
+        # cannot run. Without this the audit would be a claim no test
         # could reach -- the shape of every drift this repo has had to fix.
         "audit": audit(chunks),
     }
@@ -569,7 +569,7 @@ def _non_blank(text: str) -> list[str]:
 
 
 # The three boundary defects, one predicate each. They were inline inside audit()
-# until 2026-08-22, when D70 needed to ask the same questions of a *subset* — the
+# until 2026-08-22, when the boundary re-chunking survey needed to ask the same questions of a *subset* — the
 # answer chunks of the items retrieval cannot find. Same code, called twice, so
 # the survey and the corpus-wide audit cannot report different things.
 
@@ -591,14 +591,13 @@ def opens_backward_shape(c: dict) -> bool:
 
 
 # Shape C — the boundary falls INSIDE a code listing. This is the third defect,
-# named in study/13-VERIFICATION.md §R5.3 and never before written as code: the
-# §R5.3 figure ("at least 11 of 3077") was computed by hand in a session and its
-# doc block is classified `# summary of` because nothing could reproduce it.
+# never before written as code: its first figure ("at least 11 of 3077") was
+# computed by hand and nothing could reproduce it.
 #
 # It is not shape A. A chunk ending on `::` announced a listing and dropped it;
 # this one is already *inside* the listing when the cut happens, so neither edge
 # looks wrong on its own — which is the whole problem. Broken prose is visible,
-# broken code is not (§R5.3).
+# broken code is not.
 #
 # An indented line alone is a terrible proxy in glossary.rst, where every
 # definition body is indented under its term. Requiring a Python/SQL token as
@@ -606,7 +605,7 @@ def opens_backward_shape(c: dict) -> bool:
 # whole corpus on 2026-09-15 this rule (a token on BOTH sides) flags 5 of 3077
 # boundaries; a token on EITHER side flags 37; nothing here reproduces 11.
 # Read one by one, 3 of the 5 are real severances (c00233, c01869, c01094) and 2
-# are cuts between complete statements (c02626, c02823). §R5.3 has the table.
+# are cuts between complete statements (c02626, c02823).
 _CODE_TOKEN = re.compile(
     r"(=|\(|\)|\bimport\b|\bdef\b|\bclass\b|\breturn\b|\bSELECT\b|>>>|\.\.\.)")
 
@@ -619,7 +618,7 @@ def severed_listing(a: dict, b: dict) -> bool:
     """True when the cut between adjacent chunks `a` -> `b` lands inside a listing.
 
     Only meaningful for a *real* cut: if `b` starts before `a` ends the blocks
-    overlap (D33/D34) and the listing survives in both copies, so there is
+    overlap and the listing survives in both copies, so there is
     nothing severed. audit()'s `a_lost` makes the same distinction.
     """
     if b["char_start"] < a["char_end"]:
@@ -631,7 +630,7 @@ def neighbours(chunks: list[dict]) -> tuple[dict[str, dict], dict[str, dict]]:
     """Map each chunk id to the chunk after it and before it, within one file+version.
 
     Two chunks from the same page but different releases are not neighbours —
-    that is the pair D58 calls a twin, and treating them as adjacent would make
+    that is the pair the scorer calls a twin, and treating them as adjacent would make
     every twin look like a severed boundary.
     """
     order: dict[tuple[str, str], list[dict]] = {}
@@ -654,7 +653,7 @@ def audit(chunks: list[dict]) -> dict:
       * **Is this a bad chunk?** It ends mid-promise, or opens pointing at
         something that is not in it.
       * **Is the content lost?** Only if no neighbouring chunk overlaps it.
-        Overlap is by whole block (D33/D34), so it covers some boundaries
+        Overlap is by whole block, so it covers some boundaries
         entirely and others not at all — c03012's payload survives in the
         chunk that overlaps it, c00138's does not survive anywhere.
 
@@ -669,8 +668,8 @@ def audit(chunks: list[dict]) -> dict:
     introduce a listing, so the chunk would have announced code and then
     dropped it. That count is reported because **zero is a real result** —
     the packer never stops on that knife-edge. Splitting *inside* a listing
-    is a third defect, measured in study/13-VERIFICATION.md §R5.3 (5 of 3077
-    boundaries flagged by severed_listing, 3 real on reading), not here.
+    is a third defect, measured by `severed_listing` (5 of 3077
+    boundaries flagged, 3 real on reading), not here.
     """
     nxt, prv = neighbours(chunks)
 

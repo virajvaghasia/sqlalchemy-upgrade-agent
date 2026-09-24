@@ -1,16 +1,16 @@
 """
-Settle D32 — is BGE-M3 the right embedding model, or just the one we picked?
+Is BGE-M3 the right embedding model, or just the one we picked?
 
     uv run python -m rag.compare_embedders            # run the comparison
     uv run python -m rag.compare_embedders --models BAAI/bge-m3
 
-`study/09-DECISIONS.md` **D32** has said "chosen, never benchmarked" since the
-roadmap. **D37** said the comparison had to wait until there was something to
-score against. Step 5 built that, so this is the tool that empties the entry.
+The embedding model was "chosen, never benchmarked" from the start, and the
+comparison had to wait until there was something to score against. Step 5
+built that, so this is the tool that settles it.
 
 THE METRIC, AND WHY IT NEEDS NO HUMAN VERDICTS
 
-Answer quality cannot be scored here: D06 reserves that for a person, and the
+Answer quality cannot be scored here: only a person can judge that, and the
 19 verdicts in `deliverables/FAILURES.md` are still open. **Retrieval quality
 can be**, mechanically:
 
@@ -29,7 +29,7 @@ Reported per model:
                 Rewards being right at rank 1 over rank 5, which recall@5
                 cannot see.
     unfound     questions where NO chunk with the symbol exists at all. These
-                are the corpus ceiling (D45) and are excluded from the scores,
+                are the corpus ceiling and are excluded from the scores,
                 because no model can move them.
 
 WHAT THIS DOES NOT MEASURE
@@ -51,7 +51,7 @@ from rag import probe
 
 # A deliberate spread rather than two near-neighbours: 568M against 22M, 1024
 # dimensions against 384. If the small one is close, the large one is not
-# earning its VRAM — which is the whole question D32 asks.
+# earning its VRAM — which is the whole question.
 MODELS = [
     ("BAAI/bge-m3", None),
     ("sentence-transformers/all-MiniLM-L6-v2", None),
@@ -139,7 +139,7 @@ def main() -> None:
               f"{r['recall_at_5']:>6} {r['recall_at_10']:>6} {r['mrr']:>6} "
               f"{r['median_rank']:>7} {r['worst_rank']:>6}")
     print(f"\n{rows[0]['unfound_ceiling']} question(s) excluded: no chunk in the corpus "
-          f"contains the symbol at all — the ceiling (D45), which no model can move.")
+          f"contains the symbol at all — the ceiling, which no model can move.")
 
 
 if __name__ == "__main__":

@@ -76,7 +76,7 @@ def test_the_three_verdicts_parse():
 
 def test_a_verdict_the_judge_did_not_follow_the_format_for_is_UNPARSED():
     """Coercing it to UNSUPPORTED would move the number in the flattering
-    direction -- the failure ask.refused() had before D76 made it a prefix
+    direction -- the failure ask.refused() had before it became a prefix
     test. A judge that stopped following the format is a fact about the run."""
     verdict, reason = faithful.parse_verdict("Well, it depends on what you mean.")
     assert verdict == "UNPARSED"
@@ -181,7 +181,7 @@ def test_check_reports_an_unreachable_host_instead_of_raising():
 
 # --- retrying: a 503 is not a broken key ------------------------------------
 #
-# D75 in a second transport. The bug there was not "too few excepts" -- it was
+# The same crash as the first dead sweep, in a second transport. The bug there was not "too few excepts" -- it was
 # two conditions collapsed into one: the service being gone must stop the run,
 # one unlucky call must not.
 
@@ -240,7 +240,7 @@ def test_retrying_gives_up_and_raises_rather_than_returning_none():
 
 
 def test_a_socket_timeout_is_retried_not_walked_past():
-    """D75 exactly: socket.timeout is a TimeoutError and is NOT a URLError, so
+    """The first dead sweep, exactly: socket.timeout is a TimeoutError and is NOT a URLError, so
     a handler written for one does not cover the other."""
     calls = []
 
@@ -258,7 +258,7 @@ def test_a_socket_timeout_is_retried_not_walked_past():
 # --- what gets sent to the judge --------------------------------------------
 
 def test_prose_drops_fenced_code():
-    """Code grounding is judge.ungrounded_calls' half (D77) and it is exact.
+    """Code grounding is judge.ungrounded_calls' half and it is exact.
     Sending the code here would spend a call to re-answer it worse."""
     answer = "Use [1] the new API.\n```python\nop.create_view('v')\n```\nThat is all."
     assert "create_view" not in faithful.prose(answer)
@@ -274,7 +274,7 @@ def test_prose_uses_judges_own_fence_pattern():
 
 def test_a_code_only_answer_is_NO_PROSE_and_not_SUPPORTED():
     """Calling it SUPPORTED because there was nothing to read is the
-    flattering direction -- D62's trap."""
+    flattering direction -- the trap."""
     row = faithful.judge_answer("```python\nx = 1\n```", ["p"], key="k",
                                 post=fake_post("SUPPORTED\nfine"))
     assert row["verdict"] == "NO_PROSE"
@@ -344,7 +344,7 @@ def counting_retrieve():
 
 def test_refusals_are_excluded_before_any_call_is_made():
     """A decline has nothing to be faithful to, and counting it UNSUPPORTED
-    would make the system look worse the more honest it got (D62)."""
+    would make the system look worse the more honest it got."""
     retrieve = counting_retrieve()
     rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["D", "H"], key="k",
                                post=fake_post("SUPPORTED\nyes"),
@@ -353,7 +353,7 @@ def test_refusals_are_excluded_before_any_call_is_made():
 
 
 def test_a_CITED_refusal_is_still_a_refusal_here():
-    """D76: H produced '[2] The sources do not answer this.' on six items and
+    """Cited refusals: H produced '[2] The sources do not answer this.' on six items and
     the bare prefix test scored every one as an answer. This module must not
     reintroduce that by testing the raw string itself."""
     rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["H"], key="k",
@@ -364,7 +364,7 @@ def test_a_CITED_refusal_is_still_a_refusal_here():
 
 
 def test_a_failed_row_is_neither_an_answer_nor_a_refusal():
-    """D75: control-failed / variant-answered is a missing measurement, not a
+    """Control-failed / variant-answered is a missing measurement, not a
     win. It is dropped on the side that failed and kept on the side that did
     not, because there is nothing to compare it against either way."""
     rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["D", "H"], key="k",
@@ -378,7 +378,7 @@ def test_a_failed_row_is_neither_an_answer_nor_a_refusal():
 def test_both_arms_are_judged_against_ONE_retrieval_of_the_query():
     """Two lookups of the same query would almost certainly agree, and 'almost
     certainly' is how a difference between prompts becomes a difference between
-    lookups. D74 retrieves once for the same reason."""
+    lookups. The prompt sweep retrieves once for the same reason."""
     retrieve = counting_retrieve()
     faithful.sweep_rows(saved_two_arms(), ITEMS, ["D", "H"], key="k",
                         post=fake_post("SUPPORTED\nyes"),
@@ -396,7 +396,7 @@ def test_an_item_no_arm_answered_is_never_retrieved():
 
 
 def test_every_row_carries_the_judge_that_produced_it():
-    """D78: the tight property is not that the model never changes, it is that
+    """The tight property is not that the model never changes, it is that
     a row never loses track of which model read it."""
     rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["D"], key="k",
                                post=fake_post("SUPPORTED\nyes"),
@@ -416,7 +416,7 @@ def rows_of(*verdicts):
 def test_PARTIAL_is_not_counted_as_supported():
     """Half a supported answer is what g065 looks like under prompt H: a
     paraphrase of one page plus a leap. Rolling it into SUPPORTED would erase
-    the only distinction D77 found that a count could not see."""
+    the one distinction the groundedness check found that a count could not see."""
     agg = faithful.aggregate(rows_of("SUPPORTED", "PARTIAL"))
     assert agg["supported_rate"] == 0.5
 
@@ -432,14 +432,14 @@ def test_NO_PROSE_is_outside_every_rate():
 def test_UNPARSED_is_kept_and_not_coerced():
     """A judge that stopped following the format is a fact about the run.
     Mapping it onto UNSUPPORTED would move a number in the flattering
-    direction, which is the ask.refused failure of D76."""
+    direction, which is the ask.refused failure cited refusals exposed."""
     agg = faithful.aggregate(rows_of("SUPPORTED", "UNPARSED"))
     assert agg["UNPARSED"] == 1
     assert agg["judged"] == 1
 
 
 def test_an_empty_run_does_not_divide_by_zero():
-    """report() crashed on an empty run once already (D71)."""
+    """report() crashed on an empty run once already."""
     assert faithful.aggregate([])["supported_rate"] == 0.0
 
 
@@ -471,7 +471,7 @@ def test_the_sample_records_which_variant_each_verdict_came_from():
 
 
 def test_the_sheet_asks_for_a_verdict_and_supplies_none(tmp_path):
-    """D06 in the artifact, not only in the docstring."""
+    """Human verification in the artifact, not only in the docstring."""
     out = tmp_path / "sheet.md"
     faithful.agreement_sheet(
         faithful.agreement_sample({"D": rows_of("UNSUPPORTED")}, n=1),
@@ -485,7 +485,7 @@ def test_the_sheet_asks_for_a_verdict_and_supplies_none(tmp_path):
 
 
 def test_the_sweep_checkpoints_so_a_dead_run_is_not_a_lost_run(monkeypatch):
-    """D75, literally: the first full prompt sweep died at generation 150 of
+    """This happened once: the first full prompt sweep died at generation 150 of
     300 with zero rows saved. These rows cost API calls, not just time."""
     monkeypatch.setattr(faithful, "CHECKPOINT_EVERY", 1)
     written = []
@@ -500,7 +500,7 @@ def test_the_sweep_checkpoints_so_a_dead_run_is_not_a_lost_run(monkeypatch):
 def test_the_model_travels_into_the_rows_when_it_is_overridden():
     """2026-09-03: the pinned id answered 503 all day while three neighbours
     answered. --model must change what is USED and what is RECORDED together,
-    or a row claims a reader that never read it (D78)."""
+    or a row claims a reader that never read it."""
     rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["D"], key="k",
                                model="gemini-3.8-flash",
                                post=fake_post("SUPPORTED\nyes"),
@@ -521,7 +521,7 @@ def sheet_with(*answers) -> str:
 def test_DISAGREE_is_not_read_as_AGREE(tmp_path):
     """DISAGREE contains AGREE as a substring. A naive `in` test scores every
     disagreement as agreement -- the flattering direction, which is where every
-    detector bug in this phase has landed (D76, D79)."""
+    detector bug in this phase has landed."""
     f = tmp_path / "s.md"
     f.write_text(sheet_with("DISAGREE", "AGREE"))
     assert faithful.read_agreement(f) == {
@@ -567,7 +567,7 @@ def test_the_sweep_paces_itself_between_calls_but_not_before_the_first():
 def test_the_report_names_the_judge_that_actually_read_the_rows(capsys):
     """The first draft printed the module constant and so announced
     `gemini-3.7-flash` over a run judged by `gemma4:e4b`. A report that
-    misnames its own instrument is what stamp() exists to prevent (D78)."""
+    misnames its own instrument is what stamp() exists to prevent."""
     rows = rows_of("SUPPORTED")
     for r in rows:
         r["judge_model"] = "gemma4:e4b"
@@ -577,7 +577,7 @@ def test_the_report_names_the_judge_that_actually_read_the_rows(capsys):
 
 
 def test_two_judges_in_one_run_is_called_out_as_void(capsys):
-    """D78's tight property is one judge across both arms. Two ids means the
+    """The tight property is one judge across both arms. Two ids means the
     comparison is not a comparison, and silence there would let it be read as
     one."""
     a, b = rows_of("SUPPORTED"), rows_of("UNSUPPORTED")
@@ -621,7 +621,7 @@ def test_the_local_judge_pins_its_context_window():
 
 
 def test_the_local_judge_is_not_the_generator():
-    """ROADMAP.md's objection is to SELF-grading. A judge sharing weights with
+    """The usual objection is to SELF-grading. A judge sharing weights with
     ask.MODEL would be exactly that."""
     from rag import ask
     assert faithful.LOCAL_MODEL != ask.MODEL
@@ -632,7 +632,7 @@ def test_the_local_judge_is_not_the_generator():
 def test_resume_skips_items_both_arms_already_judged():
     """A killed run costs hours here. But an item is skipped only when EVERY
     selected arm already has it -- a half-judged item would leave one arm short
-    and turn a paired comparison into two averages (D61)."""
+    and turn a paired comparison into two averages."""
     prior = {"D": [{"id": "g002", "verdict": "SUPPORTED", "reason": "r",
                     "claim": "c", "judge_model": faithful.MODEL}],
              "H": [{"id": "g002", "verdict": "SUPPORTED", "reason": "r",
@@ -648,7 +648,7 @@ def test_resume_skips_items_both_arms_already_judged():
 
 def test_a_half_judged_item_is_finished_not_skipped():
     """Only D judged g002 last time. Skipping it would leave H one row short
-    on an item D has -- the unpaired shape D61 exists to prevent."""
+    on an item D has -- the unpaired shape a paired comparison cannot have."""
     prior = {"D": [{"id": "g002", "verdict": "SUPPORTED", "reason": "r",
                     "claim": "c", "judge_model": faithful.MODEL}], "H": []}
     rows = faithful.sweep_rows(saved_two_arms(), ITEMS, ["D", "H"], key="k",
@@ -727,9 +727,8 @@ def test_a_run_with_no_supported_rows_still_returns_a_full_sheet():
 
 
 def test_controls_prefer_a_supported_verdict_on_an_UNANSWERABLE_item():
-    """Measured 2026-09-03: g056 -- the item D77 names as the reason a prose
-    judge was needed -- came back SUPPORTED from both arms while D78 records
-    gemini-3.6-flash judging it PARTIAL. The first version of this sample put
+    """Measured 2026-09-03: g056 -- the reason a prose judge was needed -- came back
+    SUPPORTED from both arms while gemini-3.6-flash judged it PARTIAL. The first version of this sample put
     no controls in at all, and the second would have picked arbitrary ones. A
     SUPPORTED row nobody suspects teaches a human nothing.
 
@@ -860,7 +859,7 @@ def test_an_unreadable_429_body_still_gets_its_retries():
 def test_every_row_records_the_machine_that_produced_it():
     """Measured 2026-09-05: same judge, same saved answers, same corpus,
     temperature 0 — prompt D's supported rate was 85% on the Mac and 77% on the
-    lab 3060 (D83). Verdicts are not machine-independent, so a row carrying
+    lab 3060. Verdicts are not machine-independent, so a row carrying
     only its judge is under-labelled.
 
     **This goes through `sweep_rows`, not `stamp()`, and that is the point.**
@@ -904,7 +903,7 @@ def test_the_default_rows_path_carries_the_machine():
     """A stamp says afterwards which machine a row came from; a distinct path
     stops the second machine destroying the first one's evidence. The lab's run
     overwrote the Mac's `faithfulness-phase4.json` and the Mac's rows survived
-    only because git had them (D83)."""
+    only because git had them."""
     assert faithful.machine() in faithful.ROWS_DEFAULT.name
     assert faithful.ROWS_LEGACY.name == "faithfulness-phase4.json"
 
@@ -924,13 +923,12 @@ def failing_post(fail_on: str, exc=None):
 def test_one_timed_out_item_does_not_kill_the_sweep():
     """Measured the hard way 2026-09-10: the sweep died at item 63 of 64.
 
-    `retrying()` behaved correctly -- it caught the `TimeoutError` that `D75`
-    is about and gave up after four attempts -- and then the exception
+    `retrying()` behaved correctly -- it caught the `TimeoutError` that killed the first sweep
+    and gave up after four attempts -- and then the exception
     propagated out of `sweep_rows` and took the whole run with it. Three hours
     of judging survived only because checkpoints exist.
 
-    **`compare_prompts` already learned this and `faithful` had not.** D75's
-    own words: one retry, then the item is recorded `failed` and the sweep
+    **`compare_prompts` already learned this and `faithful` had not.** the own words: one retry, then the item is recorded `failed` and the sweep
     continues. The lesson never travelled between the two modules, and nothing
     failed until a real timeout arrived."""
     rows = faithful.sweep_rows(
@@ -945,7 +943,7 @@ def test_one_timed_out_item_does_not_kill_the_sweep():
 
 def test_a_failed_verdict_is_not_counted_as_judged():
     """A failure is not an answer and not a verdict; it is a missing
-    measurement (D75). Counting it in the denominator would move the supported
+    measurement. Counting it in the denominator would move the supported
     rate for a reason that has nothing to do with the answers."""
     rows = [{"id": "a", "verdict": "SUPPORTED"},
             {"id": "b", "verdict": "FAILED", "failed": True}]

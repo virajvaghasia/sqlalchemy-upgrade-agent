@@ -11,7 +11,7 @@ argument for everything in Phase 3.
 
 THIS SCRIPT DOES NOT GRADE ANSWERS, AND THAT IS THE POINT
 
-`study/09-DECISIONS.md` **D06**: the golden dataset is hand-verified, never
+The golden dataset is hand-verified, never
 auto-generated. If this script decided which answers were correct, Phase 2 would
 be scoring retrieval against a key written by the same family of model that
 produced the answers — measuring self-consistency rather than correctness.
@@ -22,7 +22,7 @@ or false without opinion:
 
     refused          the model declined to answer
     uncited          the answer makes claims with no [n] citation
-    duplicate_slots  the same text occupied more than one top-k slot (D38)
+    duplicate_slots  the same text occupied more than one top-k slot
     version_mixed    top-k contains both 1.4 and 2.0 passages
     symbol_missing   no retrieved chunk contains the exact symbol asked about
     single_source    search returned several pages; the answer cites only one.
@@ -41,8 +41,8 @@ WHERE THE QUESTIONS COME FROM
 verified by hand. Two properties make it the right source:
 
   - **The answers are already known and already checked**, which is what
-    `PHASE-1.md` Step 5 asks for: "run questions you know the answers to".
-  - **It is deliberately NOT in the corpus** (D09), so asking about it is a fair
+    Phase 1 Step 5 asks for: "run questions you know the answers to".
+  - **It is deliberately NOT in the corpus**, so asking about it is a fair
     test rather than a lookup of the answer key.
 
 The `symbol` field on each question is the mechanical half — the exact string
@@ -106,7 +106,7 @@ QUESTIONS = [
      "spanning", "scalars"),
     ("why do I need .unique() when using joinedload on a collection?", "spanning", "unique()"),
 
-    # --- the corpus cannot answer these (D07 — the API reference hole) ------
+    # --- the corpus cannot answer these (the API reference is not in the docs source) ------
     ("what is the exact signature and full argument list of Session.execute?", "absent",
      None),
     ("list every keyword argument accepted by relationship()", "absent", None),
@@ -247,8 +247,8 @@ def write_report(rows: list[dict]) -> None:
     add("")
     add("This file is the Phase 1 deliverable and the argument for everything in Phase 3. It is")
     add("generated, but it is *not finished* — the script records mechanical signals and never")
-    add("decides whether an answer is correct. That judgement is a human's, per")
-    add("[`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D06**: a golden set graded by the")
+    add("decides whether an answer is correct. That judgement is a human's:")
+    add("a golden set graded by the")
     add("same family of model that produced the answers measures self-consistency, not truth.")
     add("")
     add("**To use this file:** read each answer against its sources and mark the verdict line")
@@ -330,7 +330,7 @@ def write_report(rows: list[dict]) -> None:
     add("|---|---|---|")
     add("| `refused` | the model declined to answer | **correct** for `absent` questions, a failure elsewhere |")
     add("| `uncited` | a substantial answer with no `[n]` citation | usually a failure — the claim is unverifiable |")
-    add("| `duplicate_slots` | the same text held more than one top-k slot (D38) | wasted context, not automatically wrong |")
+    add("| `duplicate_slots` | the same text held more than one top-k slot | wasted context, not automatically wrong |")
     add("| `version_mixed` | top-k holds both 1.4 and 2.0 passages | usually fine, occasionally the whole problem |")
     add("| `symbol_missing` | no retrieved chunk contains the exact symbol asked about | see the two below — the reason decides the fix |")
     add("| **`retrieval_failure`** | the symbol IS in the corpus and search did not find it | **yes — and Phase 3 can fix it** |")

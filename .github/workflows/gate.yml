@@ -1,4 +1,4 @@
-# The quality gate (Phase 6, D97): a pull request that loses a golden answer
+# The quality gate (Phase 6): a pull request that loses a golden answer
 # fails this check.
 #
 # WHAT RUNS, IN ORDER
@@ -19,15 +19,15 @@
 # docs-only PR. So the workflow always starts, `changes` decides, and the gate
 # job is SKIPPED when retrieval cannot have moved. A skipped job counts as passed.
 #
-# WHAT THIS DOES NOT GRADE: generation. No Ollama here, and D83 measured
-# generation not reproducing across machines at all, while retrieval did,
+# WHAT THIS DOES NOT GRADE: generation. No Ollama here, and generation was measured
+# not reproducing across machines at all, while retrieval did,
 # exactly. The gate grades the half that survives a stranger's computer.
 
 name: quality gate
 
 on:
   pull_request:
-  # Manual runs, so the baseline can be re-derived on a runner (see D97).
+  # Manual runs, so the baseline can be re-derived on a runner.
   workflow_dispatch:
 
 concurrency:
@@ -64,13 +64,13 @@ jobs:
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     # A cold cache embeds 3284 chunks with bge-m3 on a CPU: 1106 s on the Mac's
-    # 10-core CPU (D97). A runner's time is unmeasured until this runs, so the
+    # 10-core CPU. A runner's time is unmeasured until this runs, so the
     # ceiling is generous on purpose. It is for the cold run, not the usual one.
     timeout-minutes: 300
 
     services:
       qdrant:
-        # Same pin as docker-compose.yml (D41). A different Qdrant version is a
+        # Same pin as docker-compose.yml. A different Qdrant version is a
         # different ranking engine, and the gate would blame the PR for it.
         image: qdrant/qdrant:v1.19.0
         ports:

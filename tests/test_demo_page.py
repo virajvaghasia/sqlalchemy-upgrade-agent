@@ -6,11 +6,11 @@ WHY THIS EXISTS
 corpus holds, how many files they were cut from, and how many golden questions
 grade the system. Nothing recomputes those at render time, so without this test
 they are four numbers someone typed once -- exactly the failure the measurement
-rule in CLAUDE.md exists to stop, and exactly how `seed.py 1013` survived weeks
+rule exists to stop, and exactly how `seed.py 1013` survived weeks
 of green CI after the real figure became 0.
 
 Each number below is derived from a COMMITTED artifact, so this runs in CI where
-`corpus/chunks.jsonl` (gitignored, D11) is absent.
+`corpus/chunks.jsonl` (gitignored) is absent.
 
 It deliberately does NOT pin the measured rates (64%, 0.42). Those live in
 `deliverables/` and in the register; re-deriving them here would need Qdrant and

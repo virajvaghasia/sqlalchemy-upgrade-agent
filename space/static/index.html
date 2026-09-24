@@ -566,7 +566,6 @@
         <ul>
           <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent" target="_blank" rel="noopener noreferrer">Source on GitHub</a></li>
           <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent#readme" target="_blank" rel="noopener noreferrer">README</a></li>
-          <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent/blob/main/study/09-DECISIONS.md" target="_blank" rel="noopener noreferrer">Decision register</a></li>
           <li><a href="https://github.com/virajvaghasia/sqlalchemy-upgrade-agent/blob/main/deliverables/golden.json" target="_blank" rel="noopener noreferrer">The 100 test questions</a></li>
         </ul>
       </div>
@@ -774,7 +773,7 @@ function dressCode(root) {
 
 function renderAnswer(p) {
   // The model's judgment, not a fact about the pages: on the 100-question test 19 of its 52
-  // declines had the right page in hand (PHASE-6.md Step 4b), and the "engine.execute gone"
+  // declines had the right page in hand, and the "engine.execute gone"
   // example is one of them. Wording is load-bearing; do not rewrite it.
   const note = p.status === "declined"
     ? `<p class="declined-note">The model judged that the five pages it was given don't answer this, and declined rather than guess. That judgment is sometimes wrong: on the project's 100-question test, 19 of its 52 declines had the right page in hand. The pages are listed with this answer; read them.</p>`

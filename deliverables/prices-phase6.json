@@ -1,7 +1,7 @@
 {
  "source": "https://openrouter.ai/api/v1/models",
  "fetched": "2026-09-12T22:51:05+00:00",
- "note": "One reseller's published list price, per token in USD. Not NVIDIA's own price; the calls in D99 were made on NVIDIA free credits and cost nothing.",
+ "note": "One reseller's published list price, per token in USD. Not NVIDIA's own price; the escalation calls were made on NVIDIA free credits and cost nothing.",
  "models": {
   "nvidia/nemotron-3-ultra-550b-a55b": {
    "pricing": {

@@ -83,7 +83,7 @@ def test_overlong_and_empty_questions_are_refused_before_any_work():
 
 
 def test_the_hosted_page_quotes_its_own_models_numbers_and_names_whose_the_042_is():
-    """D95/D104: a number quoted next to a model that did not produce it is the
+    """A number quoted next to a model that did not produce it is the
     error this project exists to avoid. The hosted page names the model that wrote
     the answer, gives that model's own measured figure, and still says the 0.42
     belongs to qwen2.5-coder:7b."""
@@ -98,7 +98,7 @@ def test_every_figure_in_the_hosted_notice_is_attributed_to_the_model_that_produ
     none -- but 0.42 still has to say qwen2.5-coder:7b next to it."""
     notice = demo.HOSTED_NOTICE
     assert demo.MODEL in notice
-    assert demo.MODEL != "openai/gpt-oss-20b", "the judge must not also be the generator (D80)"
+    assert demo.MODEL != "openai/gpt-oss-20b", "the judge must not also be the generator"
     assert "0.42" in notice and "qwen2.5-coder:7b" in notice
     assert "0.58" in notice, "the page model's own end-to-end figure"
     assert "supported is not the same as correct" in notice
@@ -108,13 +108,13 @@ def test_every_figure_in_the_hosted_notice_is_attributed_to_the_model_that_produ
 
 def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
     """The measurement rule: 0.58 and 91% in the notice must be what Step 4d/4g's
-    rows compute, not literals typed once (D104, D107) — they are now quoted as
+    rows compute, not literals typed once — they are now quoted as
     the PREVIOUS model's numbers, and they still have to be derived."""
     import json
     import pytest
     from rag import escalate, route, score
     if not score.CHUNKS_PATH.exists():
-        pytest.skip("corpus/chunks.jsonl is generated and gitignored (D11)")
+        pytest.skip("corpus/chunks.jsonl is generated and gitignored")
     golden = {i["id"]: i for i in score.load_golden()}
     rows = json.loads(escalate.ROWS_ALL.read_text())["rows"]
     outs = [r for r in escalate.outcome_rows(rows, golden, score.load_chunks()) if r["answerable"]]
@@ -160,7 +160,7 @@ def test_source_cards_escape_markup_from_the_docs():
 
 
 def test_the_answer_panel_keeps_the_generator_notice():
-    """The split page must not drop the sentence D102 requires."""
+    """The split page must not drop the generator notice."""
     # the hosted path carries the hosted notice, whichever model it currently names
     assert demo.MODEL in demo.render_answer({"answer": "a", "refused": False, "error": None})
     assert "the generator the project measured" in demo.render_answer(

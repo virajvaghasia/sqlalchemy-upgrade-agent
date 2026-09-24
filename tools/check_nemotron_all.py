@@ -10,7 +10,7 @@ answered), listed in `deliverables/nemotron-all-delivered.json`, which
 Step 3e's `tools/check_escalated.py` does not carry over: today's answers are new
 text (0 of 53 identical to the saved escalations).
 
-HOW EACH CHECK WAS WRITTEN (PHASE-6.md Step 4f, rules written first)
+HOW EACH CHECK WAS WRITTEN (Phase 6 Step 4f, rules written first)
 
 - Claude read each answer and wrote its central checkable claim as the `CLAIM`
   string, BEFORE this file was ever run, and committed it before the first run.
@@ -21,7 +21,7 @@ HOW EACH CHECK WAS WRITTEN (PHASE-6.md Step 4f, rules written first)
 - `NOT_CHECKABLE` (typing, advice, "the sources do not cover X") never counts as
   correct. A crash inside a check is `ERROR`, never a verdict on the answer.
 - Claims about 1.4 behaviour run in a pinned 1.4.52 subprocess, like Step 3e's g058.
-- **Claude wrote these checks. This is not a human verdict (`D06`).**
+- **Claude wrote these checks. This is not a human verdict.**
 """
 
 import asyncio
@@ -42,7 +42,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, rela
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PIN = "2.0.51"
 NOT_CHECKABLE = "NOT_CHECKABLE"
-BAR = 0.80   # PHASE-6.md Step 4f: >= 80% of checkable answers pass
+BAR = 0.80   # Phase 6 Step 4f: >= 80% of checkable answers pass
 
 
 def raises(fn, *types) -> bool:
@@ -114,7 +114,7 @@ REMOVED_IN_20_COUNT = (
     "print(sum(x.category.__name__ == 'RemovedIn20Warning' for x in w))\n"
 )
 
-# CORRECTED AFTER THE FIRST RUN (PHASE-6.md Step 4f): g027 and g055 first used the count above
+# CORRECTED AFTER THE FIRST RUN: g027 and g055 first used the count above
 # and read "with 1, without 1". Without SQLALCHEMY_WARN_20, 1.4.52 still emits ONE RemovedIn20Warning,
 # the summary "Deprecated API features detected! ... set SQLALCHEMY_WARN_20=1 to show all"; with it,
 # the specific warning naming Engine.execute(). The claim "setting it turns the warnings on" is about
@@ -347,7 +347,7 @@ def g030():
 
 def g031():
     CLAIM = "sqlalchemy.orm.mapper() is gone in 2.0; registry().map_imperatively() maps a class"
-    # CORRECTED AFTER THE FIRST RUN (PHASE-6.md Step 4f): the first version tested whether
+    # CORRECTED AFTER THE FIRST RUN: the first version tested whether
     # `from sqlalchemy.orm import mapper` fails. On 2.0.51 the name still imports, as a stub that
     # raises when CALLED ("The 'sqlalchemy.orm.mapper()' function is removed as of SQLAlchemy 2.0.
     # Use ... map_imperatively()"). The claim is that the function is replaced, so the check calls it.
@@ -810,7 +810,7 @@ def g099():
 def g100():
     CLAIM = "AsyncSession.run_sync can run synchronous bulk_save_objects inside async code"
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-    # CORRECTED AFTER THE FIRST RUN (PHASE-6.md Step 4f): the first version discarded the Address
+    # CORRECTED AFTER THE FIRST RUN: the first version discarded the Address
     # class (`Base, User, _, _ = models()`). Alone it passed; in the full run it crashed with
     # "expression 'Address' failed to locate a name" -- the unreferenced class can be garbage-
     # collected before User's relationship("Address") is configured. Keeping the reference is the fix.

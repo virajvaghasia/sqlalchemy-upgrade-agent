@@ -42,13 +42,13 @@ jobs:
       - run: uv run pytest
 
   docs:
-    # CLAUDE.md's measurement rule says every `# runnable` block reproduces
+    # Every `# runnable` block in the docs must reproduce
     # verbatim. Until 2026-08-15 that was enforced by remembering to check, and
     # it had already failed: 02-MIGRATION-2.0.md quoted `TOTAL 1042` for weeks
     # after a Day 6 change to seed.py made the real figure 29.
     #
     # This job fetches the corpus first because roughly a third of the blocks
-    # read it, and corpus/raw/ is generated rather than committed (D11). That is
+    # read it, and corpus/raw/ is generated rather than committed. That is
     # ~9MB from GitHub — the price of the rule being enforced rather than
     # remembered.
     name: docs reproduce
@@ -108,8 +108,8 @@ jobs:
       - uses: actions/checkout@v5
       - run: docker build -t sqlalchemy-upgrade-agent:ci .
 
-      # Build success says the image assembled, not that it runs — the CMD typo
-      # in study/04-DOCKER.md §2.5 built green three times. So run it.
+      # Build success says the image assembled, not that it runs — a CMD typo
+      # once built green three times. So run it.
       # No DATABASE_URL, so it uses the SQLite default and needs no services.
       - name: run it
         run: docker run --rm sqlalchemy-upgrade-agent:ci | tee run.txt

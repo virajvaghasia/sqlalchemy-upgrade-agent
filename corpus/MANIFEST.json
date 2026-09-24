@@ -1,6 +1,6 @@
 {
   "generated_by": "rag/corpus.py",
-  "decision": "phases/PHASE-1.md Step 1",
+  "decision": "Phase 1 Step 1",
   "selection": {
     "doc_root": "doc/build",
     "narrative_dirs": [

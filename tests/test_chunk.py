@@ -8,7 +8,7 @@ these are tests rather than a note in the docs.
 Split in two halves:
 
 - The pure functions are tested on hand-written RST, so they run in CI where
-  `corpus/raw/` does not exist (it is fetched, not committed — D11).
+  `corpus/raw/` does not exist (it is fetched, not committed).
 - The corpus-wide properties are checked against `corpus/CHUNK_STATS.json`,
   which IS committed, the same arrangement `test_corpus.py` uses.
 """
@@ -168,7 +168,7 @@ def test_glossary_splits_per_term():
     assert "executemany" in entries[1][1]
 
 
-# --- the character range PHASE-1.md Step 2 requires ------------------------
+# --- the character range Phase 1 Step 2 requires ------------------------
 
 # SAMPLE above is deliberately tiny and every chunk from it falls under
 # MIN_CHARS, so it is dropped. These tests need paragraphs that survive.
@@ -279,15 +279,7 @@ def test_both_versions_are_represented():
     assert all(n > 0 for n in STATS["by_version"].values())
 
 
-def test_phase_1_quotes_the_measured_chunk_counts():
-    """PHASE-1.md pastes this module's report. Fails if the chunker moves and
-    the doc does not."""
-    doc = (chunk.corpus.REPO_ROOT / "phases" / "PHASE-1.md").read_text()
-    line = f"  {STATS['n_chunks']} chunks   {STATS['n_chars']} chars"
-    assert line in doc, f"PHASE-1.md does not contain: {line!r}"
-
-
-# --- the "stands on its own" audit (D56) -----------------------------------
+# --- the "stands on its own" audit -----------------------------------
 #
 # These run on hand-written chunks, not the corpus, so they work in CI where
 # corpus/raw/ is absent. The corpus-wide numbers are pinned separately, off the
@@ -326,7 +318,7 @@ def test_audit_counts_a_chunk_ending_on_a_promise():
 
 
 def test_audit_separates_a_bad_chunk_from_lost_content():
-    """The distinction D56 turns on. Both pairs have a chunk ending mid-promise;
+    """The distinction the chunk audit turns on. Both pairs have a chunk ending mid-promise;
     only one has lost the payload. Overlap is what decides, and conflating the
     two would have reported 352 broken chunks as 352 holes in the corpus."""
     # Identical first chunk in both. The ONLY difference is whether the chunk
@@ -344,27 +336,11 @@ def test_audit_separates_a_bad_chunk_from_lost_content():
     assert chunk.audit(orphan)["lost"] == 1
 
 
-def test_phase_1_quotes_the_measured_audit_numbers():
-    """PHASE-1.md pastes `rag.chunk --audit`. Fails if the chunker changes the
-    rate and the gate record keeps claiming the old one -- which is the whole
-    point of recording an exception with a number in it."""
-    a = STATS["audit"]
-    doc = (chunk.corpus.REPO_ROOT / "phases" / "PHASE-1.md").read_text()
-    for label, key in (
-        ("A: ends announcing what never follows", "ends_open"),
-        ("B: opens pointing at what is not here", "opens_backward"),
-        ("either shape", "either"),
-        ("either shape, content lost entirely", "lost"),
-    ):
-        assert f"{a[key]:5}" in doc, f"PHASE-1.md does not quote {label} = {a[key]}"
-
-
-# --- shape C: the boundary that lands inside a code listing (§R5.3, D70) -----
+# --- shape C: the boundary that lands inside a code listing -----
 #
-# D56's two shapes are prose. This one is not, and that is the point: broken
+# The two shapes are prose. This one is not, and that is the point: broken
 # prose is visible on sight, broken code is not. Until 2026-08-22 this defect
-# had a number in study/13-VERIFICATION.md §R5.3 and no code behind it -- the
-# doc block is `# summary of` because nothing could reproduce it.
+# had a hand-computed number and no code behind it.
 
 
 def test_a_listing_cut_in_half_is_severed():
@@ -377,7 +353,7 @@ def test_a_listing_cut_in_half_is_severed():
 
 
 def test_an_overlapped_listing_is_not_severed():
-    """D33/D34 carry whole blocks forward. If the next chunk starts before this
+    """The chunker carries whole blocks forward as overlap. If the next chunk starts before this
     one ends, the listing exists intact in the overlap and nothing was lost --
     the same distinction audit()'s `a_lost` makes for shape A."""
     a = _c("a", "prose::\n\n    stmt = select(User).where(\n", 0, 100)
@@ -386,7 +362,7 @@ def test_an_overlapped_listing_is_not_severed():
 
 
 def test_indented_prose_is_not_a_severed_listing():
-    """The control, and the reason §R5.3's honest count is 3 real of 5 flagged rather
+    """The control, and the reason the honest count is 3 real of 5 flagged rather
     than 123. Every glossary.rst definition body is indented under its term, so
     'indented on both sides' alone would flag the whole file. A Python or SQL
     token has to be there too."""
@@ -396,7 +372,7 @@ def test_indented_prose_is_not_a_severed_listing():
 
 
 def test_neighbours_never_pair_two_versions_of_the_same_page():
-    """A 1.4 chunk and a 2.0 chunk of the same file are a twin (D58), not
+    """A 1.4 chunk and a 2.0 chunk of the same file are a twin, not
     adjacent text. Pairing them would make every twin look like a severed
     boundary and invent a defect that is not there."""
     old = _c("a", "    stmt = select(User)\n", 0, 100, version="1.4.52")
@@ -406,7 +382,7 @@ def test_neighbours_never_pair_two_versions_of_the_same_page():
 
 
 def test_the_module_level_predicates_are_what_audit_counts():
-    """audit() used to hold these inline. D70 needed the same questions asked of
+    """audit() used to hold these inline. The absents survey needed the same questions asked of
     a subset, and two copies of a detector drift. If this fails, the survey and
     the corpus audit have started disagreeing."""
     a = _c("a", "the state is as follows:", 0, 100)

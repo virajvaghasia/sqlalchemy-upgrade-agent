@@ -12,7 +12,7 @@ def row(i, rank, answerable=True, hits=None):
 
 
 def test_one_broken_item_blocks_even_when_the_change_is_a_net_gain():
-    """Round 14's rule and D61's reason: five fixes do not buy one lost answer
+    """Round 14's rule and the reason: five fixes do not buy one lost answer
     without a human saying so."""
     base = [row("g1", 3)] + [row(f"f{n}", None) for n in range(5)]
     now = [row("g1", 9)] + [row(f"f{n}", 1) for n in range(5)]
@@ -22,7 +22,7 @@ def test_one_broken_item_blocks_even_when_the_change_is_a_net_gain():
 
 
 def test_rank_6_is_broken_and_rank_5_is_not():
-    """The boundary is the prompt's k (D72 grades what reaches the model)."""
+    """The boundary is the prompt's k: what matters is what reaches the model."""
     assert gate.paired([row("g", 5)], [row("g", 5)])["broken"] == []
     assert gate.paired([row("g", 5)], [row("g", 6)])["broken"] == ["g"]
 
@@ -33,7 +33,7 @@ def test_fixes_alone_pass():
 
 
 def test_deleting_the_item_you_broke_does_not_pass():
-    """The ruler cannot be moved by the thing being graded (D06, D97)."""
+    """The ruler cannot be moved by the thing being graded."""
     result = gate.paired([row("g1", 1), row("g2", 1)], [row("g1", 1)])
     assert result["missing"] == ["g2"]
     assert any("ruler changed" in r for r in gate.blocked(result))

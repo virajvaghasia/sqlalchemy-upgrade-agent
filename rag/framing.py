@@ -6,8 +6,8 @@ retrieved pages:
     one-shot pipeline   refuses 19 times with the answer page in the prompt
     the agent           refuses 6 (Mac) and 0 (lab)
 
-`D72` named those 19 as generation's defect and Phase 4 could not move them:
-`D74` tried five wordings and the refusal count barely shifted. **The agent, not
+The end-to-end baseline named those 19 as generation's defect and Phase 4 could not move them:
+five prompt wordings were tried and the refusal count barely shifted. **The agent, not
 built for that problem at all, has most of it gone.**
 
 The only structural difference is HOW THE PAGES ARRIVE:
@@ -25,7 +25,7 @@ tools, no loop and no extra model call: the assistant turn is written by us, not
 generated. **If the refusals fall anyway, the fix is a prompt change to the
 shipped path** and the whole agent apparatus is beside the point.
 
-`D95`: this runs on the Mac first as a SCREEN. Any number that gets quoted is
+This runs on the Mac first as a SCREEN. Any number that gets quoted is
 the lab's, or names both machines.
 """
 
@@ -58,7 +58,7 @@ def as_conversation(question: str, hits) -> list[dict]:
 
     **The system prompt, the passages and their numbering are identical to arm
     A.** `ask.SYSTEM` carries the refusal clause every Phase 4 instrument keys
-    on, so `ask.refused()` reads both arms the same way (`D76`).
+    on, so `ask.refused()` reads both arms the same way.
     """
     return [
         {"role": "system", "content": ask.SYSTEM},
@@ -74,7 +74,7 @@ ARMS = {"A_block": as_block, "B_conversation": as_conversation}
 
 
 def generate(messages: list[dict], model: str = ask.MODEL, post=None) -> str:
-    """One call. Temperature and context pinned for the reason `D80` records:
+    """One call. Temperature and context pinned for the reason the local judge taught:
     Ollama truncates at `num_ctx` in silence, and these prompts are ~1600
     tokens before the answer."""
     body = {"model": model, "messages": messages, "stream": False,
@@ -93,7 +93,7 @@ def run(items, chunks=None, k=None, retrieve=None, gen=None, log=print) -> dict:
 
     Retrieval happens ONCE per item and both arms get the identical hits --
     two lookups of one query is how a framing difference becomes a retrieval
-    difference (`D78`'s rule, and `faithful.sweep_rows` follows it too).
+    difference (the rule, and `faithful.sweep_rows` follows it too).
     """
     from rag import index, score
 
@@ -118,7 +118,7 @@ def run(items, chunks=None, k=None, retrieve=None, gen=None, log=print) -> dict:
 def cells(rows: list[dict]) -> dict:
     """Three rows, because one refusal count hides two opposite things.
 
-    page present  refusing is generation's defect (`D72`) -- fewer is better
+    page present  refusing is generation's defect -- fewer is better
     page absent   refusing is the HONEST outcome -- more answers here is a
                   prompt answering without its evidence, not an improvement
     unanswerable  answering is a fabrication, by the same definition
@@ -149,7 +149,7 @@ def flips(control: list[dict], variant: list[dict]) -> dict:
     the row's GOOD direction, so a willingness shift shows up as fixes in one
     row and breaks in the other rather than cancelling inside one number.
 
-    Items present in only one arm are not paired (`D61`: a paired comparison
+    Items present in only one arm are not paired (a paired comparison
     over two different item sets is two averages).
     """
     a = {r["id"]: r for r in control}
@@ -184,7 +184,7 @@ def report(out: dict) -> None:
               f"{c['absent']:>12}{len(c['absent_answered']):>9}"
               f"{c['unanswerable']:>7}{len(c['fabricated']):>5}")
     print("\nover-refused = the answer page WAS in the prompt and it declined")
-    print("(D72's defect: 19 of 58 on the shipped path over the full 100)")
+    print("(the defect: 19 of 58 on the shipped path over the full 100)")
     print("answered (page absent) = answered WITHOUT the verified page; declining")
     print("there is honest, so a rise is willingness, not reading")
     if any(cells(rows)["unanswerable"] == 0 for rows in out.values()):
@@ -216,13 +216,13 @@ def select_items(golden: list[dict], n: int) -> list[dict]:
 
 
 def main() -> None:
-    """Both arms, one sitting. Rows saved machine-suffixed (`D83`).
+    """Both arms, one sitting. Rows saved machine-suffixed.
 
     --n N              first N answerable items, plus all unanswerable ones
     --report           re-print the saved file for this machine, no model
     --unanswerable     generate ONLY the unanswerable items and merge them into
                        this machine's saved file -- for a run that predates
-                       them, so its answerable rows are not regenerated (`D54`)
+                       them, so its answerable rows are not regenerated
     """
     import json as _json
     import sys

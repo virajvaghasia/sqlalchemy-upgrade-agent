@@ -2,11 +2,11 @@
 
 `deliverables/FAILURES.md` is what Phase 3's before/after gets measured against.
 If the script ever decides which of its own answers were correct, that number is
-self-consistency rather than truth (D06, D46) — and every Phase 3 claim built on
+self-consistency rather than truth — and every Phase 3 claim built on
 it inherits the softness.
 
 So these tests guard the boundary between *signal* and *verdict*, and the split
-that makes a failure actionable (D45).
+that makes a failure actionable.
 """
 
 import json
@@ -35,7 +35,7 @@ def hit(text, version="2.0.51"):
 def test_no_expected_answers_are_stored():
     """Each question carries a question, a category, and a SYMBOL — a string
     that must appear in a retrieved chunk. Never an expected answer. Storing one
-    would make this a golden set written by the wrong author (D06)."""
+    would make this a golden set written by the wrong author."""
     for entry in probe.QUESTIONS:
         assert len(entry) == 3, f"a question grew a fourth field: {entry}"
         question, category, symbol = entry
@@ -52,7 +52,7 @@ def test_signals_contain_no_verdict():
     assert not (forbidden & set(sig)), f"a verdict field appeared: {forbidden & set(sig)}"
 
 
-# --- D45: the split that decides whether Phase 3 can help ------------------
+# --- the retrieval-miss vs never-in-corpus split: the split that decides whether Phase 3 can help ------------------
 
 def test_symbol_present_in_corpus_but_not_retrieved_is_a_retrieval_failure(monkeypatch):
     monkeypatch.setattr(probe, "corpus_chunk_count", lambda s: 6)
@@ -89,7 +89,7 @@ def test_refusal_is_detected_by_the_exact_phrase_the_prompt_asks_for():
 
 
 def test_duplicate_slots_counts_repeats_not_distinct_texts():
-    """D38: the same text at two versions occupies two of five slots."""
+    """The same text at two versions occupies two of five slots."""
     same = "identical passage"
     sig = probe.signals("q?", None, [hit(same, "1.4.52"), hit(same, "2.0.51"), hit("other")],
                         "answer [1]")

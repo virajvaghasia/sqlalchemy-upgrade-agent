@@ -1,4 +1,4 @@
-"""The demo page's layout checks, in a headless browser (PHASE-6.md Step 4c, scripted).
+"""The demo page's layout checks, in a headless browser (Phase 6 Step 4c, scripted).
 
     uv run --with playwright==1.62.0 python .claude/skills/webapp-testing/scripts/with_server.py \
         --timeout 90 --server "PORT=7861 DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. \

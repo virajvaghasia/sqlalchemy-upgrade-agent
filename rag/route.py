@@ -16,15 +16,14 @@ two unrelated ways, and a stronger generator can only fix one of them:
     page ABSENT   retrieval never put the answer in the prompt. A stronger model
                   gets the same five wrong pages. It can only answer from memory,
                   which is g065's fabrication, not a fix.
-    page PRESENT  the page was there and the local model refused it (D72's
-                  over-refusals). A stronger model plausibly fixes these.
+    page PRESENT  the page was there and the local model refused it (the over-refusals). A stronger model plausibly fixes these.
 
 WHAT IS JOINED, AND WHY THAT IS ALLOWED
 
 Outcomes come from the LAB's Round 16 run of the shipped prompt (`D`, 38/91
-delivered), because `D95` says quoted numbers are the lab's. The cross-encoder
+delivered), because quoted numbers are the lab's: the Mac only screens. The cross-encoder
 signals are recomputed wherever `--signals` runs. Joining the two is only valid
-because retrieval is identical across machines (`D83`) -- so `report()` checks
+because retrieval is identical across machines -- so `report()` checks
 that first, item by item, and refuses to print a router result if a single
 page-present flag disagrees.
 
@@ -34,7 +33,7 @@ TWO DESIGNS
                     best shipped page scores lowest on the cross-encoder
     B  cascade      generate locally; escalate only if the answer is a refusal
 
-Rules for both were written into phases/PHASE-6.md before the numbers (`D98`).
+Rules for both were written down before the numbers.
 """
 
 from __future__ import annotations
@@ -75,7 +74,7 @@ def compute_signals(items, retrieve=None, ce=None) -> list[dict]:
 
 
 def delivered(row: dict) -> bool:
-    """D72's definition: the page reached the prompt AND the model answered."""
+    """The definition: the page reached the prompt AND the model answered."""
     return row["answer_in_prompt"] and not ask.refused(row["answer"])
 
 
@@ -94,7 +93,7 @@ def random_routing(n_items: int, n_failures: int, budget: int) -> list[float]:
     which `n_failures` are failures. Computed, not simulated. A first version
     simulated it and re-drew the sample once per failure, which is a binomial
     with a fatter tail (P(>= 20) = 0.14 against the true 0.057), and made a
-    marginal signal look like chance. See D98.
+    marginal signal look like chance.
     """
     return [comb(n_failures, k) * comb(n_items - n_failures, budget - k) / comb(n_items, budget)
             for k in range(budget + 1)]
@@ -175,7 +174,7 @@ def main() -> None:
         mismatches = join_check(signals, outcomes, golden, score.load_chunks())
         if mismatches:
             sys.exit(f"retrieval differs between machines on {mismatches}; "
-                     "the join is not valid (D83) and no router result is printed")
+                     "the join is not valid and no router result is printed")
     report(evaluate(signals, outcomes))
 
 

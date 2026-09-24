@@ -4,12 +4,12 @@
 
 WHY THIS EXISTS
 
-`D101` measured escalated answers against the human-verified page, which is a
+An earlier step measured escalated answers against the human-verified page, which is a
 judge model's opinion. Correctness was *executed* for two answers only (`g016`,
 `g007`), and one of those showed the judge calling a wrong answer SUPPORTED.
 This file runs every escalated answer's central claim on the real library.
 
-HOW EACH CHECK WAS WRITTEN (PHASE-6.md Step 3e, rules written first)
+HOW EACH CHECK WAS WRITTEN (Phase 6 Step 3e, rules written first)
 
 - Claude read each answer and wrote down its central checkable claim, as the
   `CLAIM` string beside each check, before this file was ever run. The file was
@@ -23,7 +23,7 @@ HOW EACH CHECK WAS WRITTEN (PHASE-6.md Step 3e, rules written first)
   It is never counted as correct.
 - An unexpected crash inside a check is `ERROR`: a bug in the check, reported
   apart, never silently counted as the answer being wrong.
-- **Claude wrote these checks. This is not a human verdict (`D06`).** Every claim
+- **Claude wrote these checks. This is not a human verdict.** Every claim
   is in the file, so anyone can read exactly what was tested and dispute it.
 
 Reads only JSON from `deliverables/`, so it runs in a bare environment with
@@ -44,7 +44,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, rela
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PIN = "2.0.51"
 NOT_CHECKABLE = "NOT_CHECKABLE"
-BAR = 0.80   # PHASE-6.md Step 3e: >= 80% of checkable 3b answers pass
+BAR = 0.80   # Phase 6 Step 3e: >= 80% of checkable 3b answers pass
 
 
 def raises(fn, *types) -> bool:
@@ -367,7 +367,7 @@ def g028():
     engine = sa.create_engine("sqlite://")
     with engine.connect() as c:
         same = c.execution_options(isolation_level="AUTOCOMMIT") is c
-        # CORRECTED AFTER THE FIRST RUN, and disclosed in PHASE-6.md Step 3e: the
+        # CORRECTED AFTER THE FIRST RUN, and disclosed in Phase 6 Step 3e: the
         # first version compared c.get_isolation_level() to "AUTOCOMMIT". On
         # SQLite that method reports the database's level ("SERIALIZABLE") even
         # in autocommit mode, so the check failed a correct answer. The driver

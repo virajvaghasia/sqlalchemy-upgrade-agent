@@ -3,7 +3,7 @@
 The failure this guards is not "the load crashed" — a crash is visible. It is a
 collection that holds vectors from two different model revisions, or a search
 issued in a different space from the one the corpus was embedded in. Both return
-plausible results while being wrong (`study/09-DECISIONS.md` D36).
+plausible results while being wrong.
 
 CI has no Qdrant, and `uv sync --frozen` installs neither qdrant-client nor
 sentence-transformers, so nothing here imports them or expects a server. The
@@ -29,7 +29,7 @@ def test_collection_name_carries_model_and_revision():
     """Qdrant has no collection-level metadata field, so what produced a
     collection goes where it cannot be ignored: the name. Re-embedding with a
     different revision then yields a DIFFERENT collection rather than a silently
-    mixed one — the same trick as declaring `image:` in Compose (D20)."""
+    mixed one — the same trick as declaring `image:` in Compose."""
     name = index.collection_name({
         "model": "BAAI/bge-m3",
         "revision": "5617a9f61b028005a4858fdac845db406aefb181",

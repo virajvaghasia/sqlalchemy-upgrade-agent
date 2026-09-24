@@ -18,7 +18,7 @@ resetting them.
 WHAT IT DOES NOT DO
 
 Decide anything, and not check the verdicts either. It moves confirmed judgements from
-the record into the deliverable. The judging is D06's, and lives with a person.
+the record into the deliverable. The judging lives with a person.
 """
 
 from __future__ import annotations

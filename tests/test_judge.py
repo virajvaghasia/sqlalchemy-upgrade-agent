@@ -135,7 +135,7 @@ def _row(**kw):
 def test_refusals_are_excluded_from_every_citation_rate():
     """An answer that declines has nothing to cite. Counting it as `uncited`
     would make the system look worse the more honest it got -- the same trap
-    D62 refused to fall into for recall."""
+    the refusal report avoids by staying out of recall."""
     rows = [_row(refused=True, uncited=True), _row()]
     a = judge.aggregate(rows)
     assert a["n_refused"] == 1 and a["n_answered"] == 1
@@ -165,7 +165,7 @@ def test_the_report_names_the_items_that_need_a_person():
 
 
 def test_judge_rows_retrieves_at_the_k_that_ships(monkeypatch):
-    """Same rule as --refusals (D62): citation behaviour is a property of the
+    """Same rule as --refusals: citation behaviour is a property of the
     configured system. Grading over score.py's DEPTH of 20 would describe a
     system nobody runs."""
     from rag import ask, index, score
@@ -215,9 +215,9 @@ def test_the_uncited_code_rate_is_over_answers_that_contain_code():
 
 
 def test_the_report_splits_by_provenance():
-    """D73 left a mechanism open -- Phase 1's probe reported uncited on 3 of 11
-    answered, this reports 31 of 48, and the bands do not overlap. D63 already
-    proved phrasing decides retrieval; this split is what tests whether it also
+    """The citation audit left a mechanism open -- Phase 1's probe reported uncited on 3 of 11
+    answered, this reports 31 of 48, and the bands do not overlap. Phrasing was already
+    shown to decide retrieval; this split is what tests whether it also
     decides citing. Without it the next run costs another ~100 generations to
     ask the same question."""
     rows = [_row(id="g001", provenance="stackoverflow", uncited=True),
@@ -259,7 +259,7 @@ def test_a_single_provenance_prints_no_split():
 # --- groundedness: the deterministic half of faithfulness ---------------------
 #
 # The one Phase 4 defect prompt work could not move: fabrications sat at 2 under
-# every wording tried (D74). g065 answered with `op.create_view`, which appears
+# every wording tried. g065 answered with `op.create_view`, which appears
 # in no retrieved source and does not exist on alembic 1.19.1.
 
 def test_a_call_absent_from_every_source_is_ungrounded():
@@ -374,19 +374,19 @@ def test_the_open_cell_is_answered_answerable_and_page_absent():
         _cell_row("had_the_page", in_prompt=True),          # scored elsewhere
         _cell_row("unanswerable", answerable=False),        # fabrication, not this
         _cell_row("refused", answer="The sources do not answer this."),
-        _cell_row("failed", failed=True),                   # D75: not a measurement
+        _cell_row("failed", failed=True),                   # a failed generation: not a measurement
     ]
     assert [r["id"] for r in judge.open_cell(rows)] == ["hit"]
 
 
 def test_a_failed_row_is_not_read_as_an_open_cell_answer():
-    """D75: a timed-out generation is neither an answer nor a refusal. Counting
+    """A timed-out generation is neither an answer nor a refusal. Counting
     it as an answer would invent an item for a human to rule on."""
     assert judge.open_cell([_cell_row("g079", failed=True)]) == []
 
 
 def test_the_sheet_renders_the_answer_and_asks_for_a_verdict(tmp_path):
-    """D06: the sheet must hand the decision over, not pre-empt it."""
+    """The sheet must hand the decision over, not pre-empt it."""
     out = tmp_path / "sheet.md"
     items = [{"id": "g014", "question": "does scalars matter?",
               "answer_chunks": ["c01588"]}]
@@ -411,14 +411,14 @@ def test_the_sheet_names_what_a_variant_ADDS_over_the_control(tmp_path):
 # --- a failed row is not a delivered answer ---------------------------------
 
 def test_a_failed_row_is_not_counted_as_delivered():
-    """Measured 2026-09-03: a D75 failed row carries no "answer" key, so
+    """Measured 2026-09-03: a row that failed to generate carries no "answer" key, so
     `ask.refused("")` is False and the row sailed into the delivered count as a
     success. H read 48/91 against a published 47/91 — and the inflation landed
-    on the arm under test, the same direction as D76 and D79.
+    on the arm under test, the same direction as the two citation-detector bugs.
 
     A failure is not an answer and not a refusal. It is a missing measurement,
     so it belongs in neither numerator while staying in the denominator, which
-    is what keeps both arms on one ruler (D61)."""
+    is what keeps both arms on one ruler."""
     rows = [
         {"id": "a", "answerable": True, "answer_in_prompt": True,
          "failed": True},                                   # no "answer" key
@@ -441,7 +441,7 @@ def test_a_failed_row_is_not_counted_as_a_fabrication():
 def test_the_published_figures_are_reproduced_from_the_saved_sweep():
     """The scorecard's generation cells are a DERIVATION, not a quote. If this
     drifts, either the saved answers or the derivation moved — and every Phase
-    4 number rests on these cells (D72, D74)."""
+    4 number rests on these cells."""
     import json
     sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
     expected = {"D": (39, 19, 2), "H": (47, 10, 2), "I": (46, 11, 2)}
@@ -453,7 +453,7 @@ def test_the_published_figures_are_reproduced_from_the_saved_sweep():
 
 
 def test_the_scorecard_warns_when_a_source_file_has_no_machine(capsys):
-    """D83: generation figures do not reproduce across machines, and it is not
+    """Generation figures do not reproduce across machines, and it is not
     hypothetical — the lab's judge rows landed beside the Mac's answers and
     nothing in either file said so."""
     items = [{"id": "g001", "answerable": True}]
@@ -463,7 +463,7 @@ def test_the_scorecard_warns_when_a_source_file_has_no_machine(capsys):
                     None, sweep_machine=None)
     out = capsys.readouterr().out
     assert "do not record which machine" in out
-    assert "D83" in out
+    assert "do NOT reproduce across machines" in out
 
 
 def test_the_scorecard_is_quiet_when_both_files_name_their_machine(capsys):
@@ -479,8 +479,8 @@ def test_the_scorecard_is_quiet_when_both_files_name_their_machine(capsys):
 
 
 def test_the_scorecard_shows_every_machines_rows_not_just_the_last(capsys):
-    """Both boxes used to write one path and the second destroyed the first
-    (D83). Two runs present is the GOOD case — it is what the finding was
+    """Both boxes used to write one path and the second destroyed the first.
+Two runs present is the GOOD case — it is what the finding was
     measured from — so the report must show both rather than pick one."""
     items = [{"id": "g001", "answerable": True}]
     sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
@@ -505,7 +505,7 @@ def test_the_legacy_unstamped_file_is_not_counted_as_a_second_run(tmp_path):
     """Measured 2026-09-10: `--report` printed the lab's faithfulness TWICE.
 
     `deliverables/faithfulness-phase4.json` was the path both machines used
-    before D83 split them by machine, and the lab's last run left a copy of its
+    before the rows were split by machine, and the lab's last run left a copy of its
     rows there as well as in `faithfulness-phase4.Linux-x86_64.json`. The glob
     reads `faithfulness-phase4*.json`, so the same 47 verdicts appeared under
     `Linux-x86_64` and again under `machine not recorded` — and a reader
@@ -540,7 +540,7 @@ def test_the_legacy_file_survives_when_it_is_the_only_copy(tmp_path):
 
 
 def test_two_files_with_different_rows_are_both_kept(tmp_path):
-    """Distinct runs are the GOOD case — D83 was measured from exactly this —
+    """Distinct runs are the GOOD case — the cross-machine finding was measured from exactly this —
     so the de-duplication must not collapse two machines that disagree."""
     def row(verdict):
         return {"D": [{"id": "g001", "verdict": verdict, "reason": "r",
@@ -628,7 +628,7 @@ def test_a_complete_faithfulness_file_is_not_labelled_incomplete(capsys):
 
 
 def test_a_failed_judge_row_does_not_count_toward_completeness(capsys):
-    """A `FAILED` row is a missing measurement, not a judged one (D75). If it
+    """A `FAILED` row is a missing measurement, not a judged one. If it
     counted as present, a run that gave up on an item would report itself
     complete and the gap would never be retried."""
     items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 3)]

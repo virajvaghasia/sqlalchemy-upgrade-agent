@@ -13,8 +13,8 @@ Run order, for someone opening this folder for the first time:
                    releases; writes corpus/MANIFEST.json, which records where
                    every file came from and which version it documents
     chunk.py       Step 2 — cut 270 files into 3284 chunks. `--audit` counts
-                   the ones that do not stand alone (D56: 10.7% / 6.3% lost)
-                   and holds the three boundary-defect detectors (D70)
+                   the ones that do not stand alone (10.7% / 6.3% lost)
+                   and holds the three boundary-defect detectors
     embed.py       Step 3 — 3284 x 1024 float32 vectors, BGE-M3
     index.py       Step 3b — load Qdrant; `retrieve()` is the one entry point
                    every other module searches through
@@ -26,38 +26,37 @@ Run order, for someone opening this folder for the first time:
 Phase 2 — measure it:
 
     golden.py      the bench for building the golden set by hand. It cannot
-                   mark anything verified, and a test asserts that (D06)
+                   mark anything verified, and a test asserts that
     score.py       the scorer. recall@k, MRR, duplicate slots, a paired
                    `--baseline` comparison with an exact McNemar p-value,
-                   `--refusals` (D62) and `--absents` (D70)
+                   `--refusals` and `--absents`
 
 Phase 3 — improve retrieval. Each of these is one measured lever:
 
-    dedup.py       D66 — collapse cross-version twins at retrieve time
-    bm25.py        D67 — keyword search, the channel dense retrieval lacks
-    hybrid.py      D67 — dense-heavy RRF over the two channels
-    rerank.py      D68 — seat-5 cross-encoder promotion. NOT a full re-sort:
+    dedup.py       collapse cross-version twins at retrieve time
+    bm25.py        keyword search, the channel dense retrieval lacks
+    hybrid.py      dense-heavy RRF over the two channels
+    rerank.py      seat-5 cross-encoder promotion. NOT a full re-sort:
                    re-sorting the top-20 broke ten items
-    textnorm.py    D69 — REJECTED. Stripping Sphinx roles before embedding
-                   cost six points of recall. Kept as the record so the next
-                   sitting does not re-derive a worse index
+    textnorm.py    REJECTED. Stripping Sphinx roles before embedding
+                   cost six points of recall. Kept as the record so nobody
+                   re-derives a worse index
 
 Phase 4 — judge the answers rather than the search:
 
-    judge.py       D71 — citation integrity, computed with no model and no API
+    judge.py       citation integrity, computed with no model and no API
                    key: citations pointing at sources that do not exist, code
                    blocks citing nothing, coverage of the prompt's pages.
-                   D77 adds ungrounded API calls; D81 adds `--report`, the
-                   whole-system scorecard PHASE-4.md's gate asks for
-    faithful.py    D80/D82 — the half that needs a reader: is this answer's
+                   Also ungrounded API calls in code, and `--report`, the
+                   whole-system scorecard for Phase 4
+    faithful.py    the half that needs a reader: is this answer's
                    PROSE supported by the pages it was given? Code is judge.py's
                    half and is deliberately stripped out. The judge is LOCAL
                    (`--local`, gemma4:e4b) because the hosted free tier allows
                    20 requests a day per model against a ~110-call run, and
-                   D78's binding property is one judge across both arms in one
+                   the binding property is one judge across both arms in one
                    sitting. `--agreement` renders Step 5's ten for a human;
                    `--cross-check` asks a second model the same ten
 
-`phases/PHASE-1.md` through `PHASE-4.md` hold the reasoning; this file only
-says what exists. Decisions are cited by id and live in study/09-DECISIONS.md.
+This file only says what exists; each module's docstring holds its reasoning.
 """

@@ -5,7 +5,7 @@ built here in the same file as the loop rather than bolted on after a demo.
 
 WHY THIS IS CHANNEL-AGNOSTIC, which is a design decision and not an accident.
 
-`D87` measured that `qwen2.5-coder:7b` returns tool calls as JSON in
+It was measured that `qwen2.5-coder:7b` returns tool calls as JSON in
 `message.content` and never on `message.tool_calls` -- on the Mac, on Ollama
 0.34.0. Round 17 is open precisely because that may be a **server version**
 fact rather than a model fact, and the lab runs an older Ollama.
@@ -18,13 +18,13 @@ writing code whose correctness depended on an open measurement.
 
 THE FOUR FAILURE PATHS, each with the defect it exists for:
 
-  tool raised        retry once, then fall back. `D75`, and this repo has now
-                     met it in four modules -- twice the expensive way, once
+  tool raised        retry once, then fall back. A long run that dies on one bad call
+                     has now happened in four modules -- twice the expensive way, once
                      at generation 150 of 300 and once at item 63 of 64.
 
   tool returned
   nothing            reformulate once; do NOT repeat the same call. The 17
-                     absents (`D70`) are the measured case where no
+                     absents are the measured case where no
                      reformulation helps, so the loop must be able to stop.
 
   budget exhausted   say so. An agent that loops is a worse failure than one
@@ -41,14 +41,14 @@ import json
 
 from rag import ask, toolcall, tools
 
-# How many tool calls one question may cost. Deliberately small: `PHASE-5.md`
-# opens on the arithmetic that each generation is a place to lose, and a wide
+# How many tool calls one question may cost. Deliberately small: each generation
+# is another place to lose the answer, and a wide
 # budget hides a bad plan behind a retry. Raise it only with a measurement.
 MAX_STEPS = 4
 
 # The agent's decline. NOT a new sentence -- `ask.REFUSAL_OPENING` is the one
 # `ask.refused()` anchors on, and every Phase 4 instrument is a prefix test
-# against it (`D76`).
+# against it.
 DECLINE = ask.REFUSAL_OPENING + " this."
 
 # --- the system prompt, and the variant under test (E1) ---------------------
@@ -56,19 +56,19 @@ DECLINE = ask.REFUSAL_OPENING + " this."
 # MEASURED 2026-09-11, lab Round 17.4: under `SYSTEM` the agent called **no
 # tool on 96 of 100** golden questions and chained two on none. The standalone
 # probe -- same model, same machine, same 100 questions -- got a usable call on
-# **100 of 100** (`D87`).
+# **100 of 100**.
 #
 # The only difference is these words. `SYSTEM` says "You may call tools" and
 # then explains how to answer in prose; the probe says "Call exactly one of
-# them" and "Do not answer from memory". That is the `D74` shape -- one
+# them" and "Do not answer from memory". That is the same shape as the prompt-position finding -- one
 # permissive word against one imperative -- and the swing is 96 points.
 #
-# **A measurement moved it, 2026-09-11 (`D90`).** Round 18 on the lab, paired,
+# **A measurement moved it, 2026-09-11.** Round 18 on the lab, paired,
 # n=20: the candidate fixes **9 out-of-range citations, breaks 0**, and takes
 # `delivered` **6↑ 0↓, p = 0.031**. On the Mac the citation fix reproduces
 # (3 fixed, 0 broken) and `delivered` does not (0↑ 1↓). The designed effect
 # reproduces, the side effect does not -- prompt `H`'s shape with the machines
-# swapped, and `D83`'s rule (believe the designed effect) applies unchanged.
+# swapped, and the rule (believe the designed effect) applies unchanged.
 #
 # So `DEFAULT` is the candidate now. **That is not the same decision as
 # shipping `H`:** `H` was a change to the production answer path with users on
@@ -94,7 +94,7 @@ SYSTEM = (
 # memory answers carrying `[n]` markers against ZERO retrieved sources, so this
 # model will write citations with nothing behind them. If the candidate
 # restores tool calls, its citations must be re-measured rather than assumed
-# fixed -- that is the whole lesson of `D79` and of E3.
+# fixed -- that is the whole lesson of the citation-detector fix and of E3.
 SYSTEM_MUSTCALL = (
     "You help a developer upgrade code from SQLAlchemy 1.4 to 2.0.\n"
     "You have two tools. You MUST call a tool before answering — do not "
@@ -123,7 +123,7 @@ def _observation(name: str, result) -> str:
     A tool that found nothing says so **in words the model can act on**, rather
     than an empty list it may read as a formatting problem. `check_api`'s
     `exists: False` is the case that matters: it is an ANSWER (the API was
-    removed) and must not read as a broken lookup (`D88`).
+    removed) and must not read as a broken lookup.
     """
     if name == "check_api":
         if result.get("error"):
@@ -194,7 +194,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
 
     Returns the transcript as well as the answer, because a trace nobody can
     read is how an agent's failures become unattributable -- the thing tools
-    were built and measured first to avoid (`D88`).
+    were built and measured first to avoid.
     """
     generate = generate or (lambda messages: toolcall.ask_messages(messages))
     call_tool = call_tool or _default_tools
@@ -241,7 +241,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
 
         result, error = call_tool(name, argument)
         if error:
-            # D75: retry once, then fall back. The retry is the loop's next
+            # Retry once, then fall back. The retry is the loop's next
             # iteration with the failure visible to the model, NOT a silent
             # re-call -- a model that cannot see the error cannot route around it.
             trace.append({"step": step, "kind": "tool_error", "tool": name,
@@ -288,8 +288,8 @@ def _default_tools(name: str, argument: str):
         return None, f"unknown tool {name!r}"
     except Exception as exc:                  # noqa: BLE001 - see below
         # Broad on purpose, and narrow in effect: this converts ANY tool
-        # failure into the loop's `error` path, which is the behaviour D75
-        # says must exist. The alternative -- letting it propagate -- is
+        # failure into the loop's `error` path, which is the behaviour a long run
+        # needs: one bad call must not end it. The alternative -- letting it propagate -- is
         # exactly the bug that killed a sweep at item 63 of 64.
         return None, f"{type(exc).__name__}: {exc}"
 
@@ -303,14 +303,14 @@ def _default_tools(name: str, argument: str):
 # It needs no new labels. The golden set, `rag.judge --report` and every Phase 4
 # column already exist; the agent is simply a different way of producing the
 # `answer` field. That is deliberate -- a task set (Step 3's second half) costs
-# human verification (`D06`), and this half costs none.
+# human verification, and this half costs none.
 
 SWEEP_NAME = "agent-sweep-phase5"
 
 
 def machine() -> str:
     """Same stamp `faithful.machine()` produces: a machine CLASS, not a
-    hostname. `D83`: generation figures do not reproduce across machines, so a
+    hostname. Generation figures do not reproduce across machines, so a
     row that does not name its machine is under-labelled."""
     from rag import faithful
     return faithful.machine()
@@ -323,7 +323,7 @@ def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
 
     Rows carry `answer_in_prompt` computed with **`score.rank_of_first_hit`,
     the same function `--refusals` and the prompt sweep use**, so the columns
-    are comparable with `D72`'s table rather than merely similar to it. For the
+    are comparable with the table rather than merely similar to it. For the
     agent that means: *did a verified answer chunk come back from any
     `search_docs` call this run made?* -- the agent's own equivalent of "the
     page reached the prompt", since the agent chooses its own retrieval.
@@ -350,7 +350,7 @@ def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
             got = (run_one or run)(item["question"], call_tool=call_tool,
                                    **run_kwargs)
         except Exception as exc:              # noqa: BLE001
-            # D75, and by now the rule rather than the exception: one bad item
+            # By now the rule rather than the exception: one bad item
             # costs one item. A `failed` row is neither an answer nor a
             # refusal, and both halves of the comparison drop it.
             log(f"  [{n}/{len(items)}] {item['id']}  FAILED {type(exc).__name__}")
@@ -391,8 +391,8 @@ def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
 
 def summarise(rows: list[dict]) -> dict:
     """Agent-specific counts. The generation and citation columns come from
-    `rag.judge`'s own functions, never from a second copy here -- `D85` is what
-    happens when one metric grows two implementations."""
+    `rag.judge`'s own functions, never from a second copy here -- two denominators for `uncited` is what
+    happened once when one metric grew two implementations."""
     from rag import judge
 
     live = [r for r in rows if not r.get("failed")]
@@ -407,7 +407,7 @@ def summarise(rows: list[dict]) -> dict:
     }
 
 
-# The agent's default since D90. `SYSTEM` is kept as the measured control, not
+# The agent's default since the must-call prompt was adopted. `SYSTEM` is kept as the measured control, not
 # deleted -- Round 18's comparison is only readable while both exist.
 DEFAULT_SYSTEM = SYSTEM_MUSTCALL
 
@@ -416,11 +416,11 @@ E1_ARMS = {"A_shipped": SYSTEM, "B_mustcall": SYSTEM_MUSTCALL}
 
 def e1(items: list[dict], chunks: dict | None = None, run_one=None,
        log=print) -> dict:
-    """Both system prompts over the same items, **in one sitting** (`D54`).
+    """Both system prompts over the same items, **in one sitting**.
 
     Arms are interleaved per item rather than run one after the other, so a
-    machine that drifts over an hour drifts through both arms equally. `D54`
-    forced this rule for refusals and `D89` makes it sharper: whether a tool is
+    machine that drifts over an hour drifts through both arms equally. Day-to-day refusal drift
+    forced this rule for refusals, and tool use makes it sharper: whether a tool is
     called at all disagrees 50% across machines, so it is not a quantity to
     measure twice at different times.
     """
@@ -456,7 +456,7 @@ def e1(items: list[dict], chunks: dict | None = None, run_one=None,
 
 
 # E2/E4's arms. `B_mustcall` is today's default and is the control -- a
-# comparison against the prompt we no longer use would measure `D90` again
+# comparison against the prompt we no longer use would measure the must-call prompt again
 # rather than measuring forcing.
 # E4's own item set, and it exists because the first attempt could not test E4
 # at all.
@@ -478,7 +478,7 @@ def e1(items: list[dict], chunks: dict | None = None, run_one=None,
 # first part is `check_api`'s and the second is `search_docs`'s, and a model
 # that stops after one has answered half.
 #
-# Synthetic and labelled as such. `D06` governs the golden set, which is a
+# Synthetic and labelled as such. The rule that only a human verifies governs the golden set, which is a
 # ruler; this is an instrument.
 E4_PROBE = [
     "Was MetaData.bind removed in SQLAlchemy 2.0, and what should I use instead?",
@@ -505,7 +505,7 @@ def e2(items: list[dict], chunks: dict | None = None, run_one=None,
     """E2 (force the first tool call) and E4 (nudge after a NOT FOUND).
 
     Arms alternate within each item, same as `e1` and for the same reason
-    (`D54`, sharpened by `D89`): on a box where tool-choice disagrees with
+    (day-to-day drift, which is sharper for tool use): on a box where tool-choice disagrees with
     another box on half the items, a quantity measured twice at different times
     is not a comparison.
     """
@@ -585,7 +585,7 @@ def e4_report(out: dict) -> None:
 
 def e1_report(out: dict) -> None:
     print("\n" + "=" * 66)
-    print(f"E1 — system prompt A/B, one sitting (D54), n={len(next(iter(out.values())))}"
+    print(f"E1 — system prompt A/B, one sitting, n={len(next(iter(out.values())))}"
           f"   [{machine()}]")
     print("=" * 66)
     print(f"{'':<12}{'no tool':>9}{'one':>6}{'two+':>6}{'in prompt':>11}"
@@ -604,7 +604,7 @@ def e1_report(out: dict) -> None:
     # sentence directly above a column containing a 1. A claim typed once, in a
     # script, contradicted by the data on the same screen: exactly what the
     # measurement rule forbids, and the second time in this project after the
-    # "Two runs above" footer (D85's sibling).
+    # "Two runs above" footer (the sibling).
     chained = sum(1 for rows in out.values() for r in rows if len(r["tools"]) > 1)
     total = sum(len(rows) for rows in out.values())
     print(f"two+      = chained tools: {chained} of {total} runs on this "
@@ -632,7 +632,7 @@ def main() -> None:
         print(f"\nAGENT — the golden set through the tool-using loop"
               f"  [{saved.get('machine', '?')}]")
         print(f"  end to end     {got['delivered']}/{got['n_answerable']} = "
-              f"{got['end_to_end']:.2f}   (D72's shipped pipeline: 39/91 = 0.43 "
+              f"{got['end_to_end']:.2f}   (the shipped pipeline: 39/91 = 0.43 "
               f"on Darwin-arm64)")
         print(f"  over-refused   {got['over_refused']}"
               f"      fabricated {got['fabricated']}"
@@ -641,8 +641,8 @@ def main() -> None:
               f"      one tool {got['one_tool_only']}"
               f"      two or more {got['multi_tool']}")
         print(f"  stopped        {got['stopped']}")
-        print("  Compare item by item, not by the averages (D61) — and only "
-              "against a run\n  from THIS machine (D83).")
+        print("  Compare item by item, not by the averages — and only "
+              "against a run\n  from THIS machine.")
         return
 
     if "--e4" in argv:
@@ -687,7 +687,7 @@ def main() -> None:
               "       uv run python -m rag.agent --report")
         return
 
-    # score.load_golden enforces D06 in code: anything whose verified_by
+    # score.load_golden enforces human verification in code: anything whose verified_by
     # is not "human" is dropped, loudly, with its id named.
     items = score.load_golden()
     if "--limit" in argv:
@@ -699,7 +699,7 @@ def main() -> None:
         if prior.get("machine") != machine():
             sys.exit(f"those rows are from {prior.get('machine')}, this host is "
                      f"{machine()}. Two machines in one file is the mistake "
-                     f"D83 cost a recovery from.")
+                     f"that already cost one recovery.")
         resume = prior
         print(f"resuming: {len(prior['rows'])} rows already done")
     elif out.exists():
@@ -707,15 +707,15 @@ def main() -> None:
         if prior and prior != machine():
             sys.exit(f"{out.name} holds rows from {prior}; this host is "
                      f"{machine()}. Overwriting destroys the other machine's "
-                     f"evidence (D83).")
+                     f"evidence.")
 
     def save(rows):
         out.write_text(_json.dumps({"machine": machine(),
                                     "n": len(rows), "rows": rows}, indent=1) + "\n")
 
-    # The two levers, off by default. Each is measured before it ships (`D90`
+    # The two levers, off by default. Each is measured before it ships (the must-call prompt
     # is the precedent: the prompt became the default only after the lab
-    # reproduced it, and `D91` is a Mac screen until Round 19 says otherwise).
+    # reproduced it, and the stopping-failure nudge stayed a Mac-only screen until the lab confirmed it).
     run_kwargs = {}
     if "--force" in argv:
         run_kwargs["force_first_tool"] = True

@@ -26,8 +26,8 @@ is a fact rather than a claim.
 What is not measured is whether a draft is the fix you want. Several patterns
 have more than one defensible answer (text() versus a real column expression;
 session.add() versus writing the collection side), and picking between them is
-the judgement PHASE-0 is asking you to exercise. CLAUDE.md allows the assistant
-to draft and reformat; only you verify. Read each one and make it yours.
+the judgement this step asks you to exercise. A tool may
+draft and reformat; only you verify. Read each one and make it yours.
 """
 
 import json
@@ -97,8 +97,7 @@ def emit_stubs(failures):
     print("# Breakages — SQLAlchemy 1.4.52 → 2.0.51")
     print()
     print("The Phase 0 Part A deliverable, and the seed of the Phase 2 golden dataset. Part of")
-    print("[`sqlalchemy-upgrade-agent`](../README.md); the mechanics behind each entry are explained")
-    print("in [`study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §16–§22.")
+    print("[`sqlalchemy-upgrade-agent`](../README.md).")
     print()
     print(f"Measured on {sa.__version__}, against `models.py` in this repo. Each entry is 1.4 "
           "code\nthat ran clean on 1.4.52 and fails on 2.0.")
@@ -110,8 +109,7 @@ def emit_stubs(failures):
     print("| 1.4 code | `patterns.py` |")
     print(f"| 2.0 error | this run, on {sa.__version__} |")
     print("| Fix | `patterns.py` — **executed on 2.0 here**, so it provably runs |")
-    print("| Docs | in-repo section refs, **checked against the files at generation time**, "
-          "plus 1.4's own deprecation text |")
+    print("| Docs | 1.4's own deprecation text, verbatim |")
     print("| Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |")
     print()
     n_alternatives = sum(
@@ -121,7 +119,7 @@ def emit_stubs(failures):
     print("an **Also defensible** block listing the other answers that work — because presenting")
     print("one option where several exist hides the decision instead of making it. Every option")
     print("shown is executed here too, so the choice is between things that all provably run.")
-    print("Choosing is the judgement `phases/PHASE-0.md` asks for; edit them into your own words.")
+    print("Choosing between them is a judgement; edit them into your own words.")
     print()
     print("> **Do not regenerate over this file once you have edited it.** The generator")
     print("> prints fresh drafts; redirecting it onto `deliverables/BREAKAGES.md` would erase every word")
@@ -186,20 +184,11 @@ def emit_stubs(failures):
                 print()
                 print(f"{awhen}  \n_({alt_results.get((label, i), '?')})_")
         print()
-        # Docs. Section refs are CHECKED against the files here, so a stale
-        # pointer becomes a visible "(section not found)" rather than a
-        # confident link to nothing.
-        refs = patterns.DOC_SECTIONS.get(label, [])
+        # Docs: what 1.4 itself says, verbatim, when it says anything.
         guidance = (TIERS.get(label) or {}).get("guidance") or []
-        print("**Docs**")
-        print()
-        if refs:
-            for ref in refs:
-                fname, _, sec = ref.partition(" ")
-                found = pathlib.Path(fname).exists() and sec in pathlib.Path(fname).read_text()
-                mark = "" if found else "  _(section not found — fix the ref)_"
-                print(f"- [`{fname}`]({fname}) {sec}{mark}")
         if guidance:
+            print("**Docs**")
+            print()
             print("- what 1.4 itself says, verbatim:")
             for g in guidance[:1]:
                 for line in textwrap.wrap(g, width=84):
@@ -275,8 +264,6 @@ def emit_stubs(failures):
     print()
     print("**Docs**")
     print()
-    print("- [`study/02-MIGRATION-2.0.md`](../study/02-MIGRATION-2.0.md) §17 — the mechanism, and what it does to seed.py")
-    print("- [`study/01-CONCEPTS.md`](../study/01-CONCEPTS.md) §14 — the save-update cascade this is half of")
     print("- what 1.4 itself says, verbatim:")
     print("  > \"X\" object is being merged into a Session along the backref cascade path for")
     print("  > relationship \"X\"; in SQLAlchemy 2.0, this reverse cascade will not take place.")
@@ -416,7 +403,7 @@ print()
 if "attached by assignment" not in landed:
     print("  CONFIRMED on real 2.0: the row is gone and nothing was raised.")
     print("  This is the only entry in the battery that a try/except harness —")
-    print("  or a passing test suite — cannot see. study/02-MIGRATION-2.0.md §17.")
+    print("  or a passing test suite — cannot see.")
 else:
     print("  NOT reproduced here. Worth investigating before trusting §17.")
 session.close()

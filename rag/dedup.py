@@ -2,15 +2,15 @@
 Cross-version duplicate collapse for retrieval (Phase 3, first lever).
 
 874 of 3284 chunks are one half of a pair that shares `(heading_path, text)` —
-the unit `rag/embed.py` embeds — and those pairs have **byte-identical vectors**
-(D38, D58). Qdrant therefore returns both into adjacent top-k slots whenever
+the unit `rag/embed.py` embeds — and those pairs have **byte-identical vectors**.
+Qdrant therefore returns both into adjacent top-k slots whenever
 either is relevant. That wastes a prompt seat on a twin page.
 
 Phase 2 measured the tax and refused to hide it (`slots_lost_to_duplicates`).
 Phase 3 removes it at retrieve time: over-fetch, keep one copy per key, prefer
-the 2.0.51 half because this product answers 1.4 → 2.0 upgrades (`D66`).
+the 2.0.51 half because this product answers 1.4 → 2.0 upgrades.
 
-Scoring still uses the same `dedup_key` for "either twin is a hit" (`D58`).
+Scoring still uses the same `dedup_key` for "either twin is a hit".
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def dedup_key(chunk: dict) -> tuple:
     `rag/embed.py` prepends the heading path before embedding, so two chunks
     match iff BOTH their heading path and text match — measured: 437 such
     pairs, 437 of 437 with byte-identical vectors, against 31 same-text
-    different-heading pairs of which 0 of 31 are identical (D58).
+    different-heading pairs of which 0 of 31 are identical.
     """
     return (tuple(chunk["heading_path"]), chunk["text"])
 
@@ -75,7 +75,7 @@ def dedupe_points(points: Iterable[Any], limit: int) -> list[Any]:
 def overfetch_limit(limit: int, factor: int = 3) -> int:
     """How many Qdrant hits to pull so dedupe can still fill `limit`.
 
-    ~26% of the index is a twin half (D38). 3× is enough for top-20 with margin;
+    ~26% of the index is a twin half. 3× is enough for top-20 with margin;
     capped so a huge k does not pull the whole collection.
     """
     return min(max(limit * factor, limit + 10), 200)

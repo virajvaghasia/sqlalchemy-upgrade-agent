@@ -30,7 +30,7 @@ LIMITER = demo.RateLimiter(per_hour=10**9, gap=0) if BACKEND == "ollama" else de
 TRACER = demo.langfuse_client()
 
 # Same measured choice as space/app.py: four the measured model answered with a
-# citation on the Mac, one it declines with the page in hand (D72), labelled.
+# citation on the Mac, one it declines with the page in hand, labelled.
 EXAMPLES = [
     {"label": "query.get() moved", "q": "query(User).get(1) warns LegacyAPIWarning, where did get move to"},
     {"label": "backref deprecated?", "q": "backref= in relationship is deprecated what should I use instead"},

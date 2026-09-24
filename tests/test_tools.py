@@ -29,14 +29,14 @@ def runner(stdout="", returncode=0, stderr=""):
 def test_the_pin_is_the_one_verify_2_0_declares():
     """One source of truth. `verify_2_0.py` owns `PIN` because its recorded
     error strings depend on it; this module reads that file rather than
-    keeping a second copy, which is the drift `D85` found elsewhere."""
+    keeping a second copy, which is the drift already found once elsewhere."""
     declared = tools._VERIFY.read_text()
     assert f'PIN = "{tools.PIN}"' in declared
 
 
 def test_the_pin_is_read_not_imported():
     """`verify_2_0` calls `sys.exit()` at module level when it finds itself on
-    1.4 -- which is always, in this project (`D04`). Importing it from here
+    1.4 -- which is always, in this project. Importing it from here
     would kill the process, and `SystemExit` does not inherit from `Exception`
     so a guard around the import would not catch it."""
     assert "import" not in tools._pin.__doc__.split("**Read, not imported")[0][-40:]
@@ -74,8 +74,7 @@ def test_an_unknown_package_is_refused_before_any_subprocess():
 
 
 def test_a_timeout_costs_one_call_not_the_run():
-    """D75, and this is the fourth module to inherit it. The first two learned
-    it the expensive way."""
+    """The fourth module to need this. The first two learned it the expensive way."""
     def boom(cmd):
         raise subprocess.TimeoutExpired(cmd, tools.TIMEOUT)
 
@@ -113,7 +112,7 @@ def test_alembic_is_reachable_because_g065_needs_it():
 
 
 def test_the_g065_expectations_are_the_measured_ones():
-    """`D77` measured `create_table` real and `create_view` absent on the same
+    """The groundedness check measured `create_table` real and `create_view` absent on the same
     script. If this table is ever edited to agree with a future alembic, the
     edit is deliberate and visible."""
     assert dict((s, e) for s, _, e in tools.G065) == {
@@ -142,7 +141,7 @@ def test_source_is_a_separate_tool_not_a_flag():
 def test_search_docs_uses_the_graded_retrieval_path():
     """NOT a private retriever. A second one would drift from the path Phase 2
     measured, and every recall figure here would quietly stop describing what
-    the agent sees -- the defect `D85` found when one metric had two
+    the agent sees -- the defect found once when one metric had two
     implementations."""
     seen = {}
 

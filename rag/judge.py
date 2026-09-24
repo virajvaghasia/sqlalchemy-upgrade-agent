@@ -4,14 +4,14 @@ Phase 4 — grade the ANSWER, not the search.
     uv run python -m rag.judge --citations              # deterministic; no model, no key
     uv run python -m rag.judge --citations --limit 20
     uv run python -m rag.judge --citations --save f.json # keep the rows; a run costs ~100 calls
-    uv run python -m rag.judge --report                 # PHASE-4.md's gate, one command
+    uv run python -m rag.judge --report                 # the Phase 4 gate, one command
 
 Phase 3 closed retrieval at recall@5 = 0.64. End to end the system answers
-0.43 (D72), so twenty-one points are lost AFTER the right page is already in
-the prompt. Every number in PHASE-3.md is computed above that gap. This module
+0.43, so twenty-one points are lost AFTER the right page is already in
+the prompt. Every Phase 3 retrieval number sits above that gap. This module
 is where the gap gets measured.
 
-The first full run said something sharper than "generation is lossy" (D73):
+The first full run said something sharper than "generation is lossy":
 of the 48 items that got an answer at all, **31 cite nothing**, and **26 of
 the 28 answers containing code** put executable code on screen with no source
 attached. Mean coverage is 0.07 -- five pages retrieved, and the answer points
@@ -26,7 +26,7 @@ TWO HALVES, AND ONLY ONE OF THEM NEEDS A MODEL
     in CI-adjacent time and it is exact.
   * **Faithfulness** -- needs a judge model, because "is this claim supported by
     that passage" is a reading task. Behind its own flag for the same reason
-    `--refusals` is (D62): it costs generations, and a number that expensive
+    `--refusals` is: it costs generations, and a number that expensive
     should not be produced as a side effect of asking for a cheap one.
 
 Build the deterministic half first and completely. It is the half that can be
@@ -89,7 +89,7 @@ GOLDEN_PATH = corpus.REPO_ROOT / "deliverables" / "golden.json"
 # code blocks": the g121 case is in prose, and a `# [2]` comment inside a fence
 # is a real citation that uncited_code_blocks() must keep seeing.
 #
-# Same shape as D76. H writes far more code than D, so the false positive only
+# Same shape as the refusal detector that H's cited refusals broke. H writes far more code than D, so the false positive only
 # became visible once the variant under test started complying -- the second
 # time in this phase that a better answer broke the instrument reading it.
 CITATION = re.compile(r"(?<![\w\]\)])\[(\d+)\]")
@@ -156,7 +156,7 @@ def ungrounded_calls(answer: str, source_texts: list[str], question: str = "") -
     """Dotted calls the answer makes that appear in NONE of its sources.
 
     This is the deterministic half of faithfulness, and the only Phase 4 metric
-    that reaches the defect the prompt work could not (D74: fabrications sat at
+    that reaches the defect the prompt work could not (fabrications sat at
     2 under every wording tried).
 
     **It measures GROUNDEDNESS, not existence, and the difference matters.**
@@ -226,7 +226,7 @@ def aggregate(rows: list[dict]) -> dict:
     """Counts over answered rows. Refusals are excluded from every citation
     figure: an answer that declines has nothing to cite, and counting it as
     `uncited` would make the system look worse the more honest it got --
-    the same trap D62 refused for recall."""
+    the same trap the refusal report avoids by staying separate from recall."""
     answered = [r for r in rows if not r["refused"]]
     n = len(answered)
     return {
@@ -268,11 +268,11 @@ def report(rows: list[dict], agg: dict) -> None:
     print(f"\n  mean source coverage                {agg['mean_coverage']:.2f}"
           f"   (fraction of the {k} prompt sources an answer cites)")
 
-    # D73: split by provenance, because the first run left a mechanism open.
+    # Split by provenance, because the first run left a mechanism open.
     # Phase 1's probe reported `uncited` on 3 of its 11 answered questions;
     # this reports 31 of 48. The bands do not overlap, so they are not the same
-    # rate measured twice -- and the obvious suspect is phrasing, which D63
-    # already proved decides retrieval. This is the split that tests it.
+    # rate measured twice -- and the obvious suspect is phrasing, which was
+    # already shown to decide retrieval. This is the split that tests it.
     provs = sorted({r.get("provenance") for r in rows if r.get("provenance")})
     if len(provs) > 1:
         print("\n  by provenance (answered items only)")
@@ -303,7 +303,7 @@ def judge_rows(items: list[dict], k: int | None = None, generate=None) -> list[d
     """Ask each item and grade the answer's citations.
 
     Retrieves at the k that SHIPS, not at score.py's DEPTH -- for the same
-    reason `--refusals` does (D62). Citation behaviour is a property of the
+    reason `--refusals` does. Citation behaviour is a property of the
     configured system; grading it over twenty sources would describe a system
     nobody runs.
     """
@@ -342,7 +342,7 @@ def judge_rows(items: list[dict], k: int | None = None, generate=None) -> list[d
 #   the answer is WRONG     -> the model answered from nothing, and the same
 #                              scorers count it as harmless
 #
-# D06 says a human decides which, and no script may. This renders the sheet;
+# A human decides which, and no script may. This renders the sheet;
 # it does not rule on it. The precedent is the golden signature, closed on a
 # risk-weighted read of ten (§H CLOSED, 2026-08-21).
 #
@@ -365,7 +365,7 @@ def open_cell(rows: list[dict]) -> list[dict]:
 
 def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
     """Render the open-cell answers for a human to rule on, one variant per
-    section. Reads the SAVED answers rather than regenerating: D54 says a
+    section. Reads the SAVED answers rather than regenerating: a
     re-run drifts, and a sheet that disagrees with the run it is meant to
     explain is worse than no sheet.
     """
@@ -374,7 +374,7 @@ def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
         "# The open cell — answers with no verified page in the prompt",
         "",
         "Generated by `rag.judge --open-cell`. **Claude renders this sheet and does",
-        "not rule on it** (`D06`). For each answer below, the question is only:",
+        "not rule on it**. For each answer below, the question is only:",
         "",
         "> Read against real SQLAlchemy 2.0.51 — **is this answer correct?**",
         "",
@@ -457,7 +457,7 @@ def _judgeable(rows: list[dict]) -> list[dict]:
     """The rows a faithfulness sweep would actually judge.
 
     Mirrors `faithful.sweep_rows`: a refusal has nothing to be faithful to and
-    a D75 failed row has no answer at all, so neither is judged. Kept here as
+    a row that failed to generate has no answer at all, so neither is judged. Kept here as
     one expression rather than a second copy of the rule -- if the two drift,
     the completeness check silently stops meaning anything.
     """
@@ -470,7 +470,7 @@ def load_faith_files(directory: pathlib.Path) -> list[dict]:
     """Every machine's faithfulness rows, each run once.
 
     Both boxes used to write one path and the second silently destroyed the
-    first (D83); they now write `faithfulness-phase4.<machine>.json`. The
+    first; they now write `faithfulness-phase4.<machine>.json`. The
     legacy unsuffixed name is still read, because a clone that never ran the
     split has its only rows there.
 
@@ -495,7 +495,7 @@ def load_faith_files(directory: pathlib.Path) -> list[dict]:
 
 # --- the scorecard ----------------------------------------------------------
 #
-# PHASE-4.md's gate, in one place:
+# the Phase 4 gate, in one place:
 #
 #   "Done when one command scores the full golden set and emits retrieval
 #    metrics, faithfulness and citation accuracy in one report -- and when the
@@ -509,7 +509,7 @@ def load_faith_files(directory: pathlib.Path) -> list[dict]:
 # the ANSWERS is read from `deliverables/prompt-sweep-phase4.json` -- 300 saved
 # generations, about two and a half hours of Mac time -- because regenerating
 # them would not only cost the evening, it would produce DIFFERENT answers
-# (`D54`) and quietly turn a scorecard into a new experiment.
+# and quietly turn a scorecard into a new experiment.
 #
 # Every section says which of the two it is. A report that mixes a live
 # measurement with a stored one and labels neither is how `0.64` came to be
@@ -518,7 +518,7 @@ def load_faith_files(directory: pathlib.Path) -> list[dict]:
 # THE CITATION FIGURES ARE RECOMPUTED, NOT READ
 #
 # The saved file carries citation fields from the day it was written --
-# 2026-08-27 -- and `D79` changed what counts as a citation on 2026-09-01: the
+# 2026-08-27 -- and a citation-detector fix changed what counts as a citation on 2026-09-01: the
 # regex was reading `keys[0]` and `row[1]` as citations of a source numbered
 # zero. Reading those stored fields would reprint a number the current code
 # disagrees with. So the answers are re-scored with today's `citation_report`,
@@ -528,27 +528,27 @@ def load_faith_files(directory: pathlib.Path) -> list[dict]:
 def _sweep_generation(rows: list[dict]) -> dict:
     """End to end, over-refusals and fabrications off saved answers.
 
-    Reproduces D72's and D74's published figures exactly -- D 39/91, 19, 2 --
+    Reproduces the and the published figures exactly -- D 39/91, 19, 2 --
     which is the check that this derivation is the same one those numbers came
     from rather than a plausible-looking second opinion.
     """
     # The denominator is every answerable item, failed rows included. Dropping
     # them per-arm would give D 91 and H 90 -- two different rulers for a
-    # comparison that only means anything item by item (D61). A failed row is
+    # comparison that only means anything item by item. A failed row is
     # simply not in the numerator, and the count is printed separately so it
     # cannot hide there.
     answerable = [r for r in rows if r.get("answerable")]
     unanswerable = [r for r in rows
                     if not r.get("answerable") and not r.get("failed")]
     # `not r.get("failed")` is load-bearing in BOTH lists, and leaving it out
-    # of the first one is a bug this file actually had. A D75 failed row
+    # of the first one is a bug this file actually had. A row that failed to generate
     # carries no "answer" key at all, so `ask.refused("")` is False and the row
     # sailed into the delivered count as a success: H read 48/91 against a
     # published 47/91, and the inflation landed on the arm under test.
     #
-    # Same family as D76 and D79 -- an instrument that breaks in the direction
+    # Same family as the two detector bugs above -- an instrument that breaks in the direction
     # of the thing being promoted. A failure is not an answer and it is not a
-    # refusal; it is a missing measurement (D75), and it belongs in neither
+    # refusal; it is a missing measurement, and it belongs in neither
     # numerator while staying in the denominator so the arms share one ruler.
     delivered = [r for r in answerable
                  if r.get("answer_in_prompt") and not r.get("failed")
@@ -563,7 +563,7 @@ def _sweep_generation(rows: list[dict]) -> dict:
         "over_refused": len(over),
         "over_refused_ids": [r["id"] for r in over],
         # An unanswerable item that got an answer. The count is 2 under every
-        # wording measured (D74) and D77 is why the count alone is not enough:
+        # wording measured, and the groundedness check shows why the count alone is not enough:
         # D invents an Alembic recipe, H paraphrases a page it cites, and both
         # land here.
         "fabricated": sum(1 for r in unanswerable
@@ -600,9 +600,9 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
     n_answerable = sum(1 for i in items if i.get("answerable"))
     print("\nPHASE 4 SCORECARD  —  the whole system, one command")
     print(f"  golden set: {len(items)} items, {n_answerable} answerable, "
-          f"{len(items) - n_answerable} not — all human-verified (D06)")
+          f"{len(items) - n_answerable} not — all human-verified")
 
-    # D83: generation figures do not reproduce across machines, so a section
+    # Generation figures do not reproduce across machines, so a section
     # read from a file that does not name its machine is under-labelled. This
     # is not hypothetical — the lab's judge rows landed beside the Mac's
     # answers and nothing in either file said so.
@@ -613,7 +613,7 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
         print(f"  !! {' and '.join(unstamped)} do not record which machine "
               f"produced them.")
         print(f"     Generation figures do NOT reproduce across machines "
-              f"(D83: end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
+              f"(end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
               f"sections below")
         print(f"     may come from different ones. Files written after "
               f"2026-09-05 carry a machine stamp.")
@@ -627,7 +627,7 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
               f"     absent from top 20  {retrieval['not_found_at_depth']}"
               f"     duplicate seats  {retrieval['slots_lost_to_duplicates']}")
         print("     This is a CEILING, not a score: it says the page arrived, "
-              "not that the user got it (D72).")
+              "not that the user got it.")
 
     print(f"\n2  GENERATION — did the user get an answer?           "
           f"[read: {SWEEP_NAME}]")
@@ -647,7 +647,7 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
               f"right page was already in the prompt.")
 
     print(f"\n3  CITATIONS — can the answer be checked?             "
-          f"[read: {SWEEP_NAME}, re-scored with today's rules (D79)]")
+          f"[read: {SWEEP_NAME}, re-scored with today's rules]")
     print(f"     {'prompt':<14}{'answered':>10}{'uncited':>16}"
           f"{'code w/o source':>19}{'out of range':>14}{'coverage':>10}")
     for v in variants:
@@ -667,14 +667,14 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
         print(f"     NOT MEASURED. `uv run python -m rag.faithful --sweep` "
               f"writes {FAITH_NAME}.")
         print("     Not zero and not a pass — unmeasured. Code grounding is "
-              "measured and separate (D77).")
+              "measured and separate.")
     else:
         # The machine is printed beside the judge because the verdicts move
         # with it: D measured 85% supported on Darwin-arm64 and 77% on
-        # Linux-x86_64, same judge, same answers, temperature 0 (D83). A file
+        # Linux-x86_64, same judge, same answers, temperature 0. A file
         # written before machines were stamped says so rather than guessing.
         for one in (faiths or [faith]):
-            where = one.get("machine") or "machine not recorded (pre-D83 file)"
+            where = one.get("machine") or "machine not recorded (written before rows were stamped)"
             print(f"     [read: {one.get('_path', FAITH_NAME)}, judge "
                   f"{one.get('judge_model', '?')} on {where}]")
             # A judge run that stopped early looks EXACTLY like a result: seen
@@ -701,12 +701,12 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
                       f"{a['supported_rate']:>10.0%}")
             print()
         if faiths and len(faiths) > 1:
-            # More than one machine is the GOOD case — it is what D83 was
-            # measured from. The COUNT is computed: it read the literal word
+            # More than one machine is the GOOD case — the cross-machine finding was
+            # measured from exactly that. The COUNT is computed: it read the literal word
             # "Two" while three blocks were printed above it, which is the
             # same defect as a hand-typed number in a doc.
             print(f"     {len(faiths)} runs above. Compare them item by item, "
-                  f"not by the percentages: D83's finding is that these move.")
+                  f"not by the percentages: the finding is that these move.")
 
     print("\n5  THE JUDGE'S OWN CEILING — does it agree with a human?")
     if agreement["n"] == 0:
@@ -714,7 +714,7 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
               f"writes {AGREEMENT_NAME}.")
     elif not agreement["filled"]:
         print(f"     {agreement['n']} verdicts in {AGREEMENT_NAME}, "
-              f"0 answered — a human has not read them yet (D06).")
+              f"0 answered — a human has not read them yet.")
         print("     An unmeasured judge is a precise instrument of unknown "
               "accuracy. This line is the assumption the gate refuses.")
     else:
@@ -778,14 +778,14 @@ def main() -> None:
             saved = {"(saved run)": saved["rows"]}
         n = open_cell_sheet(saved, items, out)
         print(f"{n} open-cell answers across {len(saved)} variant(s) -> {out}")
-        print("D06: a human rules on these. This script does not.")
+        print("A human rules on these. This script does not.")
         return
 
     if "--report" in argv:
-        # PHASE-4.md's gate in one command. Retrieval is measured live because
+        # The Phase 4 gate in one command. Retrieval is measured live because
         # it is cheap; everything about the answers is read from saved runs,
         # because regenerating them would cost the evening AND produce
-        # different answers (D54). Each section says which it is.
+        # different answers. Each section says which it is.
         from rag import faithful, score
 
         sweep_path = DELIVERABLES / SWEEP_NAME

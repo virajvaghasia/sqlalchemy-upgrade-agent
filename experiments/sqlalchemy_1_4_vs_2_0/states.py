@@ -113,8 +113,7 @@ describe("constructed", issue)
 # that leg: `issue` would stay transient, no INSERT would run, and NOTHING
 # would be raised — describe() below would print `pending` on 1.4 and
 # `transient` on 2.0. Writing the COLLECTION side (project.issues.append(issue))
-# survives both. Measured in migration.py §8; written up in study/02-MIGRATION-2.0.md
-# §17. Left as-is deliberately — this file documents 1.4 — but do not copy the
+# survives both. Measured in migration.py §8. Left as-is deliberately — this file documents 1.4 — but do not copy the
 # many-to-one form into new code.
 issue.project = project
 session.add(project)
@@ -201,7 +200,7 @@ section("5. Query counts — lazy vs selectinload vs joinedload")
 
 # The counts below are only meaningful against a known row count. State it out
 # loud rather than trusting it: an off-by-one here silently changes every
-# number in study/01-CONCEPTS.md §15.
+# count this file prints.
 n_issues = session.query(models.Issue).count()
 print(f"issues in this database: {n_issues}")
 assert n_issues == 9, f"expected 9 issues, found {n_issues} — counts below would be wrong"
@@ -371,7 +370,7 @@ def show(strategy, option):
     print(f"--- {strategy}: {len(seen_sql)} statement(s), {len(issues)} Issue objects ---")
     # The repetitive middle of an N+1 is folded HERE, in the program, and the
     # fold line names exactly which statements it covers. Doing it in the script
-    # rather than by hand in study/01-CONCEPTS.md is the point: a block labelled
+    # rather than by hand is the point: a block labelled
     # "# runnable" has to be something you can actually get by running it.
     fold = len(seen_sql) > 5
     for n, (stmt, params) in enumerate(seen_sql, 1):

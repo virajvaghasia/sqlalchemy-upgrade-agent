@@ -66,7 +66,7 @@ def test_resume_does_not_ask_a_saved_question_again():
 
 
 def test_nvidia_verdicts_are_the_scored_ones_once_they_exist(capsys):
-    """PHASE-6.md Step 3b: gemma is a Google model grading a Google model, so the
+    """Phase 6 Step 3b: gemma is a Google model grading a Google model, so the
     non-Google judge's verdicts decide the rule and gemma's only measure agreement."""
     rows = [{"id": "g1", "refused": False, "verdict": "SUPPORTED", "verdict_nvidia": "PARTIAL",
              "prompt_tokens": 1, "output_tokens": 1},
@@ -110,7 +110,7 @@ def test_an_empty_answer_is_neither_answered_nor_refused():
 
 
 def test_the_two_escalation_sets_are_disjoint_and_together_are_every_refusal():
-    """A cascade escalates every refusal (D98: 53). 3b took the 20 it can fix;
+    """A cascade escalates every refusal (53). 3b took the 20 it can fix;
     3c takes the rest. Overlap would double-count, a gap would hide a cost."""
     present, rest = escalate.escalation_ids("present"), escalate.escalation_ids("rest")
     assert not set(present) & set(rest)
@@ -217,7 +217,7 @@ def test_stability_counts_decisions_and_text_separately():
 
 
 def test_a_timeout_skips_that_question_and_the_run_continues():
-    """D75's gap, in this loop: retrying() gives up and re-raises TimeoutError,
+    """The gap, in this loop: retrying() gives up and re-raises TimeoutError,
     which used to end a 100-call run at the first slow question."""
     calls = []
 
@@ -309,7 +309,7 @@ def test_the_committed_delivered_list_matches_the_rows():
     import pytest
     from rag import score
     if not score.CHUNKS_PATH.exists():
-        pytest.skip("corpus/chunks.jsonl is generated and gitignored (D11)")
+        pytest.skip("corpus/chunks.jsonl is generated and gitignored")
     golden = {i["id"]: i for i in score.load_golden()}
     rows = json.loads(escalate.ROWS_ALL.read_text())["rows"]
     saved = json.loads(escalate.DELIVERED_IDS.read_text())["ids"]

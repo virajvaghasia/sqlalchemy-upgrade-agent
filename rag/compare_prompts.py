@@ -1,5 +1,5 @@
 """
-Re-run D43 — is the refusal clause necessary, and does the strict wording over-fire?
+Re-run the refusal-clause experiment: is the refusal clause necessary, and does the strict wording over-fire?
 
     uv run python -m rag.compare_prompts              # all three prompts, both questions
     uv run python -m rag.compare_prompts --prompt C   # just one variant
@@ -10,7 +10,7 @@ Re-run D43 — is the refusal clause necessary, and does the strict wording over
     # Phase 4 (2026-08-22): the 100-item golden set, scored on BOTH defects
     uv run python -m rag.compare_prompts --golden --save runs.json
 
-`study/09-DECISIONS.md` **D43** recorded a three-by-two table on 2026-08-15 and
+The refusal-clause decision recorded a three-by-two table on 2026-08-15 and
 shipped prompt B off it. It existed only as a table: the experiment was run by
 hand, and nothing in the repo could reproduce it. A re-run on 2026-08-16 then
 disagreed with one cell, which is exactly the situation an unreproducible
@@ -31,7 +31,7 @@ measures whatever else moved.
 
 THE TWO QUESTIONS, AND WHY EXACTLY TWO
 
-One the corpus can answer, one it provably cannot (the API-reference hole, D07).
+One the corpus can answer, one it provably cannot (the API reference is not in the docs source the corpus is built from).
 A single question cannot show the failure modes pull in opposite directions:
 A fails only on the answerable one, C only on the unanswerable one.
 
@@ -39,7 +39,7 @@ WHAT THIS DOES NOT MEASURE
 
 **A rate.** n=1 per cell. It identifies mechanisms, not frequencies, and the
 2026-08-16 re-run proved a single observation here can fail to reproduce. It
-also writes no verdicts: D06 and D46 reserve those for a person, so this prints
+also writes no verdicts: verdicts are reserved for a person, so this prints
 the answers and stops. Reading them is the job it does not do.
 
 Generation is nondeterministic, so two runs of this script may disagree. That
@@ -67,25 +67,25 @@ _TAIL = (
     "disagree, say so rather than picking one silently."
 )
 
-# A is quoted verbatim from D43. B is imported rather than retyped, so this
+# A is quoted verbatim from the original refusal-clause experiment. B is imported rather than retyped, so this
 # script cannot drift from what actually ships.
 REFUSAL_CLAUSES = {
     "A": "If the sources do not contain the answer, say exactly: "
          "\"The sources do not answer this.\" ",
     # B was shipped until 2026-08-17; kept literal so the comparison survives
-    # D becoming the default (D54). The sentinel moved to D.
+    # D becoming the default. The sentinel moved to D.
     "B": "Prefer answering from what the sources do say, even if they address the question "
          "indirectly. Only if the sources are genuinely silent on the topic, reply: "
          "\"The sources do not answer this.\" ",
     "C": "",
     # D is not a tuning of B. A and B both ask the model to judge SUFFICIENCY —
     # "do these sources contain the answer?" — a binary gate it applies strictly
-    # the moment a question names a specific symbol (D52: both refused the same
+    # the moment a question names a specific symbol (both refused the same
     # 8, including 4 where the answer was present). D removes that judgement:
     # partial answers become the expected output, and refusal is narrowed to
     # "no source is about the subject at all" plus an obligation to name what
     # was looked for. Naming it forces a check rather than a pattern match.
-    "D": None,  # sentinel: use ask.SYSTEM — D is what ships as of 2026-08-17 (D54)
+    "D": None,  # sentinel: use ask.SYSTEM — D is what ships as of 2026-08-17
 }
 
 # --- Phase 4 variants (2026-08-22) -------------------------------------------
@@ -98,14 +98,14 @@ REFUSAL_CLAUSES = {
 #
 # They exist to attack two MEASURED defects, not to tune wording:
 #
-#   D72  19 of the 58 items whose answer reached the prompt were refused anyway
+#   Over-refusal:  19 of the 58 items whose answer reached the prompt were refused anyway
 #        -- 33% of retrieval's ceiling, thrown away by generation.
-#   D73  31 of the 48 answered items cite NOTHING, and 26 of the 28 answers
+#   No citations:  31 of the 48 answered items cite NOTHING, and 26 of the 28 answers
 #        containing code show executable code with no source attached.
 #
 # The risk in E is real and is the reason it is measured rather than shipped:
-# "do not say it if you cannot cite it" is a refusal pressure, and D54 already
-# caught a wording that fixed one cell by breaking another.
+# "do not say it if you cannot cite it" is a refusal pressure, and an earlier wording change
+# already fixed one cell by breaking another.
 
 # D's citation sentence, quoted so the diff is visible.
 _CITE_D = ("Base your answer on those sources and cite the source number in "
@@ -157,7 +157,7 @@ def _phase4(cite: str, relevance: str) -> str:
 #
 # So these put the requirement in the USER message, on the last line before
 # "ANSWER:", which is the text nearest the generation point. Same mechanism
-# change D54 credits for D beating B: a different lever, not a louder one.
+# change that made D beat B: a different lever, not a louder one.
 _REMINDER_H = (
     "Before answering: cite the source number in brackets, like [2], after each "
     "statement you take from a source, and put the source number on the line "
@@ -182,10 +182,10 @@ def user_prompt(variant: str, prompt: str) -> str:
     build_prompt ends with "\n\nANSWER:"; anything appended after that would
     land after the cue and read as the start of the answer.
 
-    Since `D115` the sentence SHIPS, so every arm in this module builds from
-    `build_prompt(..., reminder="")` — the pre-`D115` prompt — and `H` puts it
+    Since prompt H shipped (2026-09-20) the sentence SHIPS, so every arm in this module builds from
+    `build_prompt(..., reminder="")` — the prompt from before H shipped — and `H` puts it
     back here. Without that the control silently becomes the new prompt and the
-    whole comparison measures nothing (`D61`: one ruler, not two).
+    whole comparison measures nothing (one ruler, not two).
     """
     suffix = USER_SUFFIX.get(variant)
     if not suffix:
@@ -198,8 +198,8 @@ LABELS = {
     "B": "refusal as last resort (was shipped to 2026-08-17)",
     "C": "no refusal clause",
     "D": "answer partially, refuse only on subject (SHIPPED)",
-    "E": "D + citation is mandatory, code blocks named (attacks D73)",
-    "F": "D + sources are search results, relevance assumed (attacks D72)",
+    "E": "D + citation is mandatory, code blocks named (attacks the missing citations)",
+    "F": "D + sources are search results, relevance assumed (attacks the over-refusals)",
     "G": "E + F together",
     "H": "D + the citation rule moved into the USER turn, next to ANSWER:",
     "I": "F's relevance premise + H's user-turn reminder",
@@ -268,7 +268,7 @@ def refused(answer: str) -> bool:
 
     Deliberately mechanical and deliberately not a verdict: a refusal is the
     CORRECT output for the unanswerable question and a failure for the other,
-    so this reports which cell it landed in and lets a reader judge (D46).
+    so this reports which cell it landed in and lets a reader judge.
 
     **This used to be a second implementation** — `answer.lower().startswith(...)`
     — which differed from `ask.refused` in two ways: it lowercased, and it did
@@ -289,8 +289,8 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> N
     """
     Every probe question against each wording, counting refusals.
 
-    D43 chose prompt B on two questions. Round 7 then found B refusing 8 of 19
-    with the answer demonstrably in the prompt (D51), which the original
+    The original experiment chose prompt B on two questions. Round 7 then found B refusing 8 of 19
+    with the answer demonstrably in the prompt, which the original
     experiment could not have seen. This is the same test at the size that
     would have caught it: refusals per variant, over the whole set.
 
@@ -298,7 +298,7 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> N
     the question here is a rate, not a reading.
     """
     # counts[variant][question_index] = how many of `repeat` runs refused.
-    # n=1 per cell is what D43 shipped on and D52 had to correct; --repeat is
+    # n=1 per cell is what prompt B shipped on, and why A and B later turned out identical; --repeat is
     # the fix, and aggregating here means one sitting settles it rather than
     # five round-trips through this file.
     counts = {v: [0] * len(probe.QUESTIONS) for v in variants}
@@ -351,11 +351,11 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
     reproducible across calls, would let the two metrics describe different
     answers.
 
-    **Every variant runs in this sitting, including D.** D54 was narrowed on
-    2026-08-21 after two items flipped between days with the prompt, temperature
+    **Every variant runs in this sitting, including D.** Refusal behaviour was shown to drift on
+    2026-08-21, when two items flipped between days with the prompt, temperature
     and index all unchanged. Comparing a new wording against yesterday's numbers
     would put that drift inside the measurement. D is re-run here as the control
-    even though its numbers are already in D72/D73.
+    even though its numbers are already published (end to end 0.43, 65% uncited).
 
     It writes no verdicts. It prints cells and names ids; which wording ships is
     a decision, and the last time that was assumed rather than asked it was the
@@ -379,7 +379,7 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
             "prompt": ask.build_prompt(it["question"], hits, reminder=""),
             "n_sources": len(hits),
             # Same definition score.py --refusals uses, so the columns below are
-            # comparable with D72's table rather than merely similar to it.
+            # comparable with the table rather than merely similar to it.
             "answer_in_prompt": (
                 score.rank_of_first_hit([h.payload["chunk_id"] for h in hits], it, chunks)
                 is not None if it.get("answerable") else False),
@@ -417,7 +417,7 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
                 answer_in_prompt=p["answer_in_prompt"],
                 # ask.refused, via citation_report -- NOT this module's legacy
                 # `refused()`, which lowercases and does not strip. The two
-                # disagree on a leading space, and D72's baseline used ask's.
+                # disagree on a leading space, and the baseline used ask's.
                 answer=answer,
             )
             rows.append(row)
@@ -443,7 +443,7 @@ def cells(rows: list[dict]) -> dict:
     for the same reason: an inline rule is a rule nothing can pin.
 
     **The citation columns count EVERY answered row, not only the answerable
-    ones (`D85`).** They used to count `ans`, which silently excluded answers
+    ones.** They used to count `ans`, which silently excluded answers
     to `answerable: false` items -- so this table and `judge --report` printed
     a column with the same name and different denominators, D reading
     `18/45 = 40%` here and `20/47 = 43%` there. The excluded rows are the
@@ -462,23 +462,23 @@ def cells(rows: list[dict]) -> dict:
     # Dropping them per-arm is how a paired comparison gets two rulers: D has
     # no failures and H has one, so this reported H as 47/90 against a
     # published 47/91 -- `judge._sweep_generation` had already been fixed for
-    # exactly this and the two modules disagreed (D61, D75).
+    # exactly this and the two modules disagreed.
     n_answerable = sum(1 for r in rows if r["answerable"])
     rows = [r for r in rows if not r.get("failed")]
 
     # Refusal is RE-SCORED from the answer text, not read from the stored
-    # field, for the reason `D79` records about citations: stored fields go
+    # field, for the reason the citation detector taught: stored fields go
     # stale the moment a detector is fixed. `ask.refused` gained the
-    # leading-`[n]` strip in `D76` -- H's saved rows predate it, so reading
+    # leading-`[n]` strip after H's cited refusals broke it -- H's saved rows predate it, so reading
     # `r["refused"]` off the 2026-08-23 sweep reports 68 answers where the
-    # published figure is 62, silently restoring the bug D76 fixed. On a fresh
+    # published figure is 62, silently restoring the bug that fix removed. On a fresh
     # run the two agree; the difference only appears when re-reading, which is
     # exactly when nobody is watching.
     def declined(r):
         return ask.refused(r["answer"]) if r.get("answer") else r.get("refused")
 
     # The citation fields are re-scored from the answer for the same reason,
-    # and this is `D79` itself rather than an analogy: under H a subscript
+    # and this is the same bug rather than an analogy: under H a subscript
     # `row[keys[0]]` had been read as citing sources 0, 1 and 2, which made an
     # UNCITED code block look cited. Rows written before that fix still carry
     # the old values, so reading them replays the bug -- `g016` is the item.
@@ -497,7 +497,7 @@ def cells(rows: list[dict]) -> dict:
         "n_ans": n_answerable,
         "n_judged": len(ans),
         "ceiling": len(in_prompt),
-            # The D72 defect: the page was there and it declined anyway.
+            # The over-refusal defect: the page was there and it declined anyway.
         "over_with": sum(1 for r in in_prompt if declined(r)),
         "end_to_end": sum(1 for r in in_prompt if not declined(r)),
         "answered": len(answered),
@@ -513,7 +513,7 @@ def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
     n_ans = t[variants[0]]["n_ans"]
 
     print("\n" + "=" * 78)
-    print("GOLDEN SWEEP — both Phase 4 defects, one sitting (D54)")
+    print("GOLDEN SWEEP — both Phase 4 defects, one sitting")
     print("=" * 78)
     print(f"\n{'':<6}{'end/end':>9}{'ceiling':>9}{'over':>7}{'uncited':>9}"
           f"{'code':>7}{'unc.code':>10}{'fabr':>6}")
@@ -527,13 +527,13 @@ def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
 
     print("\n  end/end   answer in the prompt AND not refused — what a user gets")
     print("  ceiling   answer in the prompt at all — identical across variants by design")
-    print("  over      refused WITH the page in hand (D72's defect)")
-    print("  uncited   answered items citing nothing (D73's defect)")
+    print("  over      refused WITH the page in hand (the defect)")
+    print("  uncited   answered items citing nothing (the defect)")
     print("  unc.code  answers whose code carries no source, of those containing code")
     print("  fabr      answered an unanswerable item — the worst cell in the table")
 
     base = variants[0]
-    print(f"\nPAIRED against {base}, item by item — the evidence D61 asks for, not the averages")
+    print(f"\nPAIRED against {base}, item by item: which items flipped, not the averages")
     for v in variants[1:]:
         by_id = {r["id"]: r for r in results[base] if not r.get("failed")}
         # Pairing needs BOTH sides. An item that failed in either run is dropped
@@ -568,7 +568,7 @@ def main() -> None:
     variants = [only] if only else list(REFUSAL_CLAUSES)
 
     if "--golden" in argv:
-        # D first and always: it is the control, and D54 requires it to be
+        # D first and always: it is the control, and because refusals drift day to day it must be
         # re-run in the same sitting as anything compared against it.
         vs = ([only] if only else
               [v for v in argv[argv.index("--golden") + 1:]
@@ -589,7 +589,7 @@ def main() -> None:
         sweep_all(variants, k=kk, repeat=rp)
         return
 
-    # The two-question D43 run. `k` was undefined here from eeedbc4 until
+    # The two-question refusal-clause run. `k` was undefined here from eeedbc4 until
     # 2026-09-14, so this path crashed on its first retrieve.
     k = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K
     grid: dict[tuple[str, str], bool] = {}
@@ -621,7 +621,7 @@ def main() -> None:
                 cells.append(("refused" if r else "answered") + ("  ok" if r == want_refusal else "  X"))
             print(f"{v:<8} {cells[0]:<14} {cells[1]:<14}")
         print("\nn=1 per cell — a mechanism, never a rate. Generation is nondeterministic,")
-        print("so a cell disagreeing with D43's table is a finding to record, not an error.")
+        print("so a cell disagreeing with the table is a finding to record, not an error.")
 
 
 if __name__ == "__main__":

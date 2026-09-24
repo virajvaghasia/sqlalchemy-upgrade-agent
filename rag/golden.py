@@ -8,7 +8,7 @@ Phase 2, Steps 2-3 — the bench for building the golden set by hand.
 
 WHY THIS EXISTS
 
-`D06` says the golden set is hand-verified, never auto-generated, and
+The golden set is hand-verified, never auto-generated, and
 `rag/score.py` enforces it: nothing without `verified_by: "human"` is scored.
 That makes ~50 items x ~15 minutes the largest single block of human time in
 the project.
@@ -16,7 +16,7 @@ the project.
 **Nothing here verifies anything.** It removes the parts of that 15 minutes
 that are clerical rather than judgement: finding candidate chunks, reading one
 in full, learning exactly which line of which .rst to open, and getting the
-JSON shape right. The reading and the decision stay where D06 puts them.
+JSON shape right. The reading and the decision stay with a human.
 
 WHAT --candidates DOES NOT DO
 
@@ -24,7 +24,7 @@ It ranks by the same dense search the system under test uses. So the top hit is
 *what the system found*, not *what is correct* -- and on a question phrased the
 way a developer would type it, the right chunk may not be in the list at all.
 That is not a bug in this tool, it is the measured behaviour the golden set
-exists to capture (D60: one question's answer chunk ranks 1 under corpus
+exists to capture (one question's answer chunk ranks 1 under corpus
 vocabulary and outside the top 20 under developer phrasing).
 
 **If the answer is not in the candidates, that is a finding, not a dead end.**
@@ -55,12 +55,12 @@ def _next_id(items: list[dict]) -> str:
 
 
 def status() -> None:
-    """Progress against D61's target of 50, and what each item still needs."""
+    """Progress against the target of 50, and what each item still needs."""
     items = _load()["items"]
     verified = [i for i in items if i.get("verified_by") == "human"]
     unanswerable = [i for i in items if not i.get("answerable")]
     print(f"golden set: {len(items)} items, {len(verified)} verified by a human, "
-          f"target 50 (D61)")
+          f"target 50")
     print(f"  unanswerable: {len(unanswerable)}  (at least 3 wanted — they are the only way to "
           f"measure whether the system declines when it should)")
     by_prov: dict[str, int] = {}
@@ -128,7 +128,7 @@ def candidates(question: str, limit: int = 10) -> None:
         print(f"    {head[:96]}")
         print(f"    {p['text'][:180].strip().replace(chr(10), ' ')}…\n")
     print("Read before choosing. If none of these contains the answer, find it by reading and")
-    print("record that chunk anyway — a question the system cannot retrieve is the point (D60).")
+    print("record that chunk anyway — a question the system cannot retrieve is the point.")
 
 
 def show(chunk_id: str) -> None:

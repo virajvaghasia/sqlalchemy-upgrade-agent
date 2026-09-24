@@ -1,6 +1,6 @@
 """The Phase 1 corpus decision, pinned.
 
-`phases/PHASE-1.md` Step 1 records what is in the corpus and what is deliberately
+Phase 1 Step 1 records what is in the corpus and what is deliberately
 out. `rag/corpus.py` implements it. These tests exist so the two cannot drift,
 and so a later "just add the changelog, it's only text" cannot happen quietly.
 
@@ -138,19 +138,3 @@ def test_manifest_has_no_timestamp():
 
 # --- the numbers quoted in the docs ----------------------------------------
 
-def test_phase_1_quotes_the_measured_totals():
-    """PHASE-1.md pastes rag/corpus.py's report. This fails if the corpus moves
-    and the doc does not — the failure mode this repo keeps finding."""
-    doc = (pathlib.Path(corpus.REPO_ROOT) / "phases" / "PHASE-1.md").read_text()
-
-    total_line = (
-        f"  {'TOTAL':<11} {len(FILES):>4} files  {sum(e['bytes'] for e in FILES):>8} bytes"
-    )
-    assert total_line in doc, f"PHASE-1.md does not contain: {total_line!r}"
-
-    for source in MANIFEST["sources"]:
-        line = (
-            f"  {source['tag']:<11} {source['file_count']:>4} files  "
-            f"{source['bytes']:>8} bytes   {source['url']}"
-        )
-        assert line in doc, f"PHASE-1.md does not contain: {line!r}"

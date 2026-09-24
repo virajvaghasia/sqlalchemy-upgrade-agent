@@ -49,7 +49,7 @@ def test_dedupe_prefers_2_0_even_when_1_4_ranked_first():
 
 
 def test_dedupe_does_not_collapse_same_text_under_different_headings():
-    """D58's second group: same text, different heading → different vectors."""
+    """The second group: same text, different heading → different vectors."""
     t = "identical prose, different home"
     points = [
         _hit("2.0.51", ["Path A"], t, 0.9),

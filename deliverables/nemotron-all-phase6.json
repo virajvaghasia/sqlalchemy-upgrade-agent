@@ -497,7 +497,7 @@
    "refused": false,
    "verdict_nvidia": "PARTIAL",
    "reason_nvidia": "Passage [1] states the future parameter is available and must be True if specified, but does not state it is optional.",
-   "judge_note": "first judge reply 2026-09-13 12:3x was empty -> UNPARSED; asked again once (PHASE-6.md Step 4d)",
+   "judge_note": "first judge reply 2026-09-13 12:3x was empty -> UNPARSED; asked again once (Phase 6 step 4d)",
    "verdict_nvidia_t2": "PARTIAL",
    "reason_nvidia_t2": "Passage [1] states that if specified the `future` flag must be `True`, but it does not explicitly say the flag is optional.",
    "verdict_nvidia_h": "PARTIAL",

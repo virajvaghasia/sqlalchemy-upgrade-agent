@@ -1,5 +1,5 @@
 """
-Sphinx/RST text cleanup — **rejected experiment** (`D69`, 2026-08-22).
+Sphinx/RST text cleanup — **rejected experiment** (2026-08-22).
 
 Tried stripping `:class:`_orm.Session`` → `Session` (and unwrap ``literals``)
 before dense embed and BM25. Full re-embed dropped recall@5 **0.64 → 0.58** and
@@ -39,6 +39,6 @@ def _role_inner(inner: str) -> str:
 
 
 def for_retrieval(text: str) -> str:
-    """Remove role wrappers and double-backtick literals. Not used in production (`D69`)."""
+    """Remove role wrappers and double-backtick literals. Not used in production."""
     text = _ROLE.sub(lambda m: _role_inner(m.group(1)), text)
     return _LITERAL.sub(r"\1", text)

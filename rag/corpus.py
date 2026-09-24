@@ -7,7 +7,7 @@ Phase 1, Step 1 — fetch the corpus, and record where every byte came from.
 
 WHAT THIS FETCHES, AND WHY THAT LIST
 
-`phases/PHASE-1.md` Step 1 settles the corpus. This module is that decision as
+Phase 1 Step 1 settles the corpus. This module is that decision as
 code, so the two cannot drift:
 
     in    doc/build/{orm,core,tutorial,faq}/**.rst   from BOTH pinned versions
@@ -32,14 +32,14 @@ The tags below carry documentation as reStructuredText. Three consequences:
     answerable from a directory name rather than inferred. That matters more
     than it sounds: 1.4's tutorial teaches `create_engine(..., future=True)`
     and 2.0's does not, so an untagged chunk can produce a confident, well
-    sourced, wrong answer. See PHASE-1.md Step 1.
+    sourced, wrong answer.
   - Headings and code blocks are explicit markup, not HTML that has to be
     converted back into text. The Step 2 chunker needs both intact.
   - The API reference is NOT here. Those pages are generated at Sphinx build
     time from Python docstrings. The counts 660 (1.4 tree) and 743 (2.0 tree)
     are **stub lines** (`.. autoclass::` and friends), not unused files — one
     `.rst` we keep can contain many. Inside this fetch the same count is 514 /
-    569. See study/10-RETRIEVAL.md R1.4. Docs source and API reference are two
+    569. Docs source and API reference are two
     different corpora; this is the first one.
 
 NOTHING HERE IS COMMITTED EXCEPT THE MANIFEST
@@ -218,7 +218,7 @@ def build_manifest() -> dict:
 
     return {
         "generated_by": "rag/corpus.py",
-        "decision": "phases/PHASE-1.md Step 1",
+        "decision": "Phase 1 Step 1",
         "selection": {
             "doc_root": DOC_ROOT,
             "narrative_dirs": list(NARRATIVE_DIRS),

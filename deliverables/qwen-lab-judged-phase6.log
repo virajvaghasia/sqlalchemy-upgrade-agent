@@ -48,7 +48,7 @@
   g121 SUPPORTED
 ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
 
-REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+REFUSALS  —  generation, at k=5 (not averaged into recall)
   unanswerable items                9
     refused — correct               9/9  (100%)
     answered — FABRICATED           0/9  (0%)
@@ -90,7 +90,7 @@ REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
 == ask UNPARSED again once 2026-09-13 15:02:05
 ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
 
-REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+REFUSALS  —  generation, at k=5 (not averaged into recall)
   unanswerable items                9
     refused — correct               9/9  (100%)
     answered — FABRICATED           0/9  (0%)

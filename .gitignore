@@ -32,9 +32,6 @@ build/
 # OS
 .DS_Store
 
-# Claude Code local overrides
-.claude/settings.local.json
-
 # Phase 1+ artifacts — large, regenerable, do not commit
 qdrant_storage/
 corpus/raw/
@@ -52,51 +49,10 @@ corpus/embeddings.ids.json
 deliverables/VERDICTS.md
 deliverables/VERDICTS-FULL.md
 
-# graphify — the knowledge graph of this repo (see study/README.md).
-# Same rule the corpus uses: BULK OUT, RECORD IN. What the lab PC needs to
-# query the graph is committed, because D29 says handoff goes through git;
-# what it can rebuild in one command, or what is machine-specific, is not.
-#
-#   committed   graph.json          1.0M  the graph itself. Rebuilding costs
-#                                         ~334k LLM tokens across 3 agents.
-#               GRAPH_REPORT.md      32K  god nodes, communities, audit trail
-#               manifest.json        16K  lets `--update` re-extract only what
-#                                         changed; contains no absolute paths
-#               .graphify_labels.json 4K  the 68 community names, hand-written
-#
-#   ignored     graph.html          920K  one command from graph.json
-#               cache/              1.2M  regenerable, and re-derived per machine
-#               .graphify_python           an ABSOLUTE path to a Mac uv venv —
-#               .graphify_root             committing these would break the lab PC
-#               cost.json                  local token accounting
-graphify-out/graph.html
-graphify-out/cache/
-graphify-out/.graphify_python
-graphify-out/.graphify_root
-graphify-out/cost.json
-
 # Phase 6 Step 4: the assembled Hugging Face Space bundle (space/build.py). A deployment, not source.
 space/dist/
 
-# Third-party skill packs installed with `npx skills add` (2026-09-20:
-# Leonxlnx/taste-skill, 13 design/frontend skills, MIT). Pure Markdown, no
-# executables — but they are vendored third-party instructions, and twelve of
-# the thirteen are for landing pages, brand kits and image generation, which
-# this repo does not have. `D105`'s precedent is the rule: a skill gets
-# COMMITTED, with a `SOURCE.md` recording where it came from, WHEN IT IS USED
-# for something measured here — that is how `webapp-testing` earned its place.
-# Until one of these is used, it stays local.
+# Local tooling, not part of the project
+.claude/
 .agents/
-.claude/skills/brandkit
-.claude/skills/design-taste-frontend
-.claude/skills/design-taste-frontend-v1
-.claude/skills/full-output-enforcement
-.claude/skills/gpt-taste
-.claude/skills/high-end-visual-design
-.claude/skills/image-to-code
-.claude/skills/imagegen-frontend-mobile
-.claude/skills/imagegen-frontend-web
-.claude/skills/industrial-brutalist-ui
-.claude/skills/minimalist-ui
-.claude/skills/redesign-existing-projects
-.claude/skills/stitch-design-taste
+graphify-out/

@@ -6,19 +6,19 @@ Phase 2, Step 4 — one command, one score, and the parts of it that flatter us.
     uv run python -m rag.score --baseline f    # paired comparison against an earlier run
     uv run python -m rag.score --save f        # write rows, to be a later run's baseline
 
-    uv run python -m rag.score --refusals      # D62, generation, printed apart
-    uv run python -m rag.score --absents       # D70, why the missed items are missed
+    uv run python -m rag.score --refusals      # refusal accuracy, generation, printed apart
+    uv run python -m rag.score --absents       # why the missed items are missed
 
 Two flags freeze an earlier row for a re-measure, and they are NOT interchangeable:
 
-    --no-rerank                 hybrid without seat-5 CE  -- the D67 row
-    --dense-only --no-rerank    dense + twin collapse     -- the D66 row
+    --no-rerank                 hybrid without seat-5 CE  -- the BM25 hybrid row
+    --dense-only --no-rerank    dense + twin collapse     -- the twin-collapse row
 
 `--dense-only` ALONE is neither row. It turns off BM25 and leaves the reranker
-on, a combination that has never shipped; it scores 0.53 where the D66 row is
-0.52. Three docs told you to reproduce D66 with it until 2026-08-22.
+on, a combination that has never shipped; it scores 0.53 where the twin-collapse row is
+0.52. Three docs said to reproduce the twin-collapse row with it until 2026-08-22.
 
-Refusal accuracy on the unanswerable items (D62) is the one section that needs
+Refusal accuracy on the unanswerable items is the one section that needs
 generation rather than retrieval, so it is behind `--refusals` and costs ~50
 model calls. It is never averaged into recall: a combined figure would rise as
 the system got more cautious.
@@ -28,29 +28,29 @@ WHAT THIS MEASURES, AND WHAT IT REFUSES TO
 Retrieval only, by default. `recall@k` and MRR answer *did the right page reach the
 prompt* — a set-membership test a script can settle. Whether the resulting
 answer was any good is a judgement, it is Phase 4's subject, and nothing here
-pretends otherwise (§R4.1).
+pretends otherwise.
 
-The four decisions this file implements, so they cannot drift back into prose:
+The five rules this file implements, so they cannot drift back into prose:
 
-  D58  a hit is any chunk sharing (heading_path, text) with a golden answer
+  Duplicate pairs.  A hit is any chunk sharing (heading_path, text) with a golden answer
        chunk, version tag ignored -- because 437 duplicate pairs have
        BYTE-IDENTICAL vectors and therefore identical scores against every
        possible query. No ranker can prefer the right copy, so penalising it
        measures the corpus. Items marked `version_sensitive` opt out.
-  D59  retrieve top-20 once, report the whole curve. Depth is free: latency is
+  Depth.  Retrieve top-20 once and report the whole curve. Depth is free: latency is
        the query embedding (~88 ms) and is the same at k=5 and k=50.
-  D60  report every number with and without the `breakages` items, whose
+  Subsets.  Report every number with and without the `breakages` items, whose
        vocabulary overlaps their own answers 0.57 against 0.33 for developer
        phrasing.
-  D61  a run is comparable to another run item by item. Two recall figures at
+  Flipped items.  A run is comparable to another run item by item. Two recall figures at
        n=50 have +/-0.131 intervals; the flipped items are the evidence.
-  D62  refusal accuracy is printed apart from retrieval, never averaged in.
+  Refusals.  Refusal accuracy is printed apart from retrieval, never averaged in.
 
 WHY IT READS chunks.jsonl AND NEVER FAILURES.md
 
 `deliverables/FAILURES.md` truncates each shown chunk at 700 characters and
 carries no chunk ids. Measuring duplicate slots off it returns 6 of 19; the
-real figure from full text is 2. A rendered report is not the data (D58).
+real figure from full text is 2. A rendered report is not the data.
 """
 
 from __future__ import annotations
@@ -66,10 +66,10 @@ from rag.dedup import dedup_key
 GOLDEN_PATH = corpus.REPO_ROOT / "deliverables" / "golden.json"
 CHUNKS_PATH = corpus.CORPUS_DIR / "chunks.jsonl"
 
-# D59: one retrieval depth, deep enough that every reported k is a slice of it.
+# One retrieval depth, deep enough that every reported k is a slice of it.
 DEPTH = 20
 REPORT_AT = (1, 3, 5, 10, 20)
-# D54 ships DEFAULT_K = 5, so recall@5 is the headline and the rest is context.
+# What ships is DEFAULT_K = 5, so recall@5 is the headline and the rest is context.
 HEADLINE_K = 5
 
 
@@ -81,7 +81,7 @@ def load_chunks() -> dict[str, dict]:
 
 def load_golden(path: pathlib.Path = GOLDEN_PATH) -> list[dict]:
     if not path.exists():
-        sys.exit(f"no golden set at {path.relative_to(corpus.REPO_ROOT)} — see phases/PHASE-2.md")
+        sys.exit(f"no golden set at {path.relative_to(corpus.REPO_ROOT)} — it lives in deliverables/")
     return json.loads(path.read_text())["items"]
 
 
@@ -109,10 +109,10 @@ def validate(items: list[dict], chunks: dict[str, dict]) -> list[str]:
         seen.add(it.get("id"))
         if it.get("provenance") not in PROVENANCE:
             problems.append(f"{where}: provenance {it.get('provenance')!r} not in {sorted(PROVENANCE)}")
-        # D06: a script may not decide an item is verified.
+        # A script may not decide an item is verified.
         if it.get("verified_by") != "human":
             problems.append(f"{where}: verified_by is {it.get('verified_by')!r}, not 'human' — "
-                            "D06, only a person verifies. Unverified items are not scored.")
+                            "only a person verifies. Unverified items are not scored.")
         if it.get("answerable"):
             ids = it.get("answer_chunks") or []
             if not ids:
@@ -139,7 +139,7 @@ def rank_of_first_hit(hit_ids: list[str], item: dict, chunks: dict[str, dict]) -
     """
     wanted_ids = set(item.get("answer_chunks") or [])
     if item.get("version_sensitive"):
-        # D58's opt-out: for these, the version IS the answer (D10), so only the
+        # The opt-out: for these, the version IS the answer, so only the
         # exact chunk counts and a duplicate under the other tag is a miss.
         match = lambda cid: cid in wanted_ids
     else:
@@ -157,7 +157,7 @@ def duplicate_slots(hit_ids: list[str], chunks: dict[str, dict], upto: int) -> i
 
     Reported as its own number rather than inferred from the gap between the
     permissive and strict recall figures, because a gap is a subtraction and
-    this is a count (D58).
+    this is a count.
     """
     keys = [dedup_key(chunks[c]) for c in hit_ids[:upto] if c in chunks]
     return len(keys) - len(set(keys))
@@ -190,7 +190,7 @@ def aggregate(rows: list[dict]) -> dict:
 
 def wilson_half_width(p: float, n: int, z: float = 1.96) -> float:
     """95% interval half-width. Printed next to recall so a 10-point move at
-    n=50 is not mistaken for a result (D61)."""
+    n=50 is not mistaken for a result."""
     if n == 0:
         return 0.0
     d = 1 + z * z / n
@@ -202,7 +202,7 @@ def mcnemar_exact(fixed: int, broken: int) -> float:
 
     The right test for 'did this change help', because both runs answer the SAME
     questions. At n=50 the bar is roughly six clean fixes with no regressions
-    (D61) -- stating that up front is better than discovering it after a sprint.
+ -- stating that up front is better than discovering it after a sprint.
     """
     from math import comb
     n = fixed + broken
@@ -270,7 +270,7 @@ def report(rows: list[dict]) -> None:
         print(f"  slots lost to duplicates in top-{HEADLINE_K}: {a['slots_lost_to_duplicates']}")
 
     block("ALL ITEMS", rows)
-    # D60: the breakages-derived items are the leakiest and must be separable.
+    # The breakages-derived items are the leakiest and must be separable.
     block("EXCLUDING provenance=breakages", [r for r in rows if r["provenance"] != "breakages"])
     by = {}
     for r in rows:
@@ -279,15 +279,15 @@ def report(rows: list[dict]) -> None:
         block(f"provenance={prov}", by[prov])
 
 
-# --- refusals (D62) --------------------------------------------------------
+# --- refusals --------------------------------------------------------
 #
 # This is the ONE section that needs generation. Everything above is retrieval:
 # set membership, decidable by a script with no model running. A refusal only
 # exists once something has been asked to answer.
 #
 # It retrieves at DEFAULT_K, not at DEPTH. The rest of this file takes 20 and
-# slices it, because depth is free (D59) -- but refusal is a property of what
-# SHIPS, and what ships is 5 (D54, which measured k=10 buying two over-fires
+# slices it, because depth is free -- but refusal is a property of what
+# SHIPS, and what ships is 5 (k=10 was measured buying two over-fires
 # and a fabrication). Scoring refusals at 20 would report the behaviour of a
 # system nobody is running.
 
@@ -330,7 +330,7 @@ def refusal_rows(items: list[dict], chunks: dict[str, dict],
 
 
 def report_refusals(rows: list[dict]) -> None:
-    """Printed apart from retrieval and never averaged into it (D62).
+    """Printed apart from retrieval and never averaged into it.
 
     A combined 'accuracy' would go UP as the system got more cautious, because
     correct refusals and correct answers would land in the same numerator. The
@@ -349,7 +349,7 @@ def report_refusals(rows: list[dict]) -> None:
     def pct(n, d):
         return f"{n}/{d}" + (f"  ({n / d:.0%})" if d else "")
 
-    print(f"\nREFUSALS  —  generation, at k={_ship_k()} (D62; not averaged into recall)")
+    print(f"\nREFUSALS  —  generation, at k={_ship_k()} (not averaged into recall)")
     print(f"  unanswerable items                {len(unanswerable)}")
     print(f"    refused — correct               {pct(len(correct), len(unanswerable))}")
     print(f"    answered — FABRICATED           {pct(len(fabricated), len(unanswerable))}"
@@ -366,7 +366,7 @@ def report_refusals(rows: list[dict]) -> None:
     #
     # This figure was hand-derived in the docs twice (0.36 on the 50, 0.35 on
     # the 100) by subtracting one printed number from another. That is exactly
-    # the arithmetic CLAUDE.md's measurement rule exists to stop -- a count
+    # the arithmetic the project's measurement rule exists to stop -- a count
     # nobody can reproduce with a command. It is the single most important
     # number in the Phase 4 scorecard, because it is the only one describing
     # what a user actually receives, so it prints.
@@ -389,7 +389,7 @@ def report_refusals(rows: list[dict]) -> None:
 
 
 def absent_shapes(rows: list[dict], items: list[dict], chunks: dict[str, dict]) -> dict:
-    """D70: are the answer chunks we cannot retrieve BROKEN, or just worded differently?
+    """Are the answer chunks we cannot retrieve BROKEN, or just worded differently?
 
     An item absent from the top-20 is beyond reranking by construction — the
     reranker only reorders what retrieval already returned. So the absents are
@@ -397,7 +397,7 @@ def absent_shapes(rows: list[dict], items: list[dict], chunks: dict[str, dict]) 
     is a recall-side lever. This asks whether they are shaped like the chunker's
     known defects.
 
-    The three shapes are chunk.py's own predicates (D56 A and B, plus §R5.3's
+    The three shapes are chunk.py's own predicates (shapes A and B from the chunk audit, plus the
     severed listing as shape C), so this survey and `chunk.py --audit` cannot
     disagree. The corpus-wide rate is carried alongside every count because a
     count without a base rate is not evidence: 4 of 30 would be alarming against
@@ -460,7 +460,7 @@ def absent_shapes(rows: list[dict], items: list[dict], chunks: dict[str, dict]) 
 def report_absents(a: dict) -> None:
     n = len(a["absent_chunks"])
     print(f"\nABSENT FROM TOP-{DEPTH} — are their answer chunks BROKEN, or just worded "
-          f"differently?  (D70)")
+          f"differently?")
     print(f"  {len(a['absent_ids'])} answerable items, {n} answer chunks between them")
     print("  " + ", ".join(a["absent_ids"]))
     if not n:
@@ -489,7 +489,7 @@ def report_absents(a: dict) -> None:
             print(f"    {gid}  {cid}  shape {'+'.join(f)}")
     else:
         print("\n  Not one of them. Chunk repair cannot be the lever that reaches these"
-              "\n  items; the mismatch is vocabulary, not a broken boundary (D70).")
+              "\n  items; the mismatch is vocabulary, not a broken boundary.")
 
 
 def _ship_k() -> int:
@@ -501,7 +501,7 @@ def compare(rows: list[dict], baseline: list[dict]) -> None:
     """Paired comparison: which items flipped, and whether that is a result.
 
     Two recall percentages are not the evidence at n=50 -- their intervals
-    overlap. The flipped items are (D61).
+    overlap. The flipped items are.
     """
     base = {r["id"]: r for r in baseline}
     fixed, broken = [], []
@@ -535,7 +535,7 @@ def main() -> None:
             print("  -", p)
         if "--validate" in argv:
             sys.exit(1)
-        # D06 in code: unverified items are dropped, loudly, not scored quietly.
+        # Only a human verifies, enforced in code: unverified items are dropped, loudly, not scored quietly.
         items = [i for i in items if i.get("verified_by") == "human"]
         print(f"\nscoring the {len(items)} verified item(s) only.\n")
     if "--validate" in argv:
@@ -543,14 +543,14 @@ def main() -> None:
               f"{sum(1 for i in items if not i.get('answerable'))} unanswerable")
         return
     if not items:
-        sys.exit("nothing verified to score — D06 says a human writes the verdicts.")
+        sys.exit("nothing verified to score — only a human marks an item verified.")
 
     if "--refusals" in argv:
-        # D62: its own section, its own retrieval depth, its own run. Done first
+        # Its own section, its own retrieval depth, its own run. Done first
         # so a missing Ollama fails before 50 retrievals have been paid for.
         report_refusals(refusal_rows(items, chunks))
 
-    # Default is hybrid+rerank (`D67`/`D68`). Flags re-measure earlier rows.
+    # Default is hybrid+rerank. Flags re-measure earlier rows.
     # None = index.retrieve's shipped default; a flag is the only override.
     hybrid = False if "--dense-only" in argv else None
     rerank = False if "--no-rerank" in argv else None
@@ -564,7 +564,7 @@ def main() -> None:
     rows = score_items(items, chunks, hybrid=hybrid, rerank=rerank)
     report(rows)
     if "--absents" in argv:
-        # D70: printed after the curve, because it only makes sense once you know
+        # Printed after the curve, because it only makes sense once you know
         # how many items are absent. Costs no extra retrieval -- it reads `rows`.
         report_absents(absent_shapes(rows, items, chunks))
     if "--baseline" in argv:

@@ -1,9 +1,9 @@
 """
-Pin the D43 prompt variants (A-D) and the Phase 4 candidates (E-I).
+Pin the refusal-clause prompt variants (A-D) and the Phase 4 candidates (E-I).
 
 These tests never call Ollama. They check the only thing that can silently
 rot: that the refusal variants still differ in exactly one sentence, and that
-D is still the string `rag.ask` actually ships (B was, until D54 on
+D is still the string `rag.ask` actually ships (B was, until D replaced it on
 2026-08-17). If someone edits `ask.SYSTEM` and forgets this file, D stops
 being the shipped prompt and the comparison quietly measures something else.
 """
@@ -14,15 +14,15 @@ from rag import ask, compare_prompts as cp
 def test_the_shipped_variant_is_ask_system_not_a_copy():
     """
     D must BE ask.SYSTEM — the object identity check — AND ask.SYSTEM must still
-    carry D's wording (D54), not A's or B's.
+    carry D's wording, not A's or B's.
 
     The identity half alone is worthless: `system_prompt("D")` returns
     `ask.SYSTEM`, so comparing the two is a string compared to itself and
-    cannot fail. Mutation-checking caught exactly that (D25). The second half
+    cannot fail. Mutation-checking caught exactly that. The second half
     is what actually pins production, so editing the shipped clause without
-    revisiting D54 breaks a test.
+    revisiting this file breaks a test.
     """
-    assert cp.system_prompt("D") is ask.SYSTEM, "the sentinel moved to D when D shipped (D54)"
+    assert cp.system_prompt("D") is ask.SYSTEM, "the sentinel moved to D when D shipped"
     assert "even partially" in ask.SYSTEM
     assert "name the specific thing you looked for" in ask.SYSTEM
     assert "say exactly" not in ask.SYSTEM, "that is prompt A's wording"
@@ -59,7 +59,7 @@ def test_unanswerable_question_is_a_real_corpus_hole():
     """
     The unanswerable question must actually be unanswerable, or C's failure
     proves nothing. `Session.execute`'s signature lives in the API reference,
-    which D07 excluded — so no chunk carries the argument list.
+    which the docs source excludes — so no chunk carries the argument list.
     """
     import json
     from rag import corpus
@@ -72,11 +72,11 @@ def test_unanswerable_question_is_a_real_corpus_hole():
         return
     with open(path) as fh:
         hits = sum(1 for line in fh if ".. automethod:: Session.execute" in line)
-    assert hits == 0, "if the API reference ever enters the corpus, D43's C cell changes meaning"
+    assert hits == 0, "if the API reference ever enters the corpus, the C cell changes meaning"
 
 
 def test_refusal_detector_is_not_a_verdict():
-    """`refused` reports a cell, and is deliberately blind to correctness (D46)."""
+    """`refused` reports a cell, and is deliberately blind to correctness."""
     assert cp.refused("The sources do not answer this.")
     assert not cp.refused("You can no longer call engine.execute() because [1]...")
 
@@ -102,8 +102,8 @@ def test_sweep_all_covers_every_probe_question():
     """
     --all must run the whole probe set, not a subset.
 
-    D43 chose a prompt on two questions and Round 7 found it refusing 8 of 19
-    (D51) — a rate the original experiment was too small to see. A sweep that
+    The original experiment chose a prompt on two questions and Round 7 found it refusing 8 of 19
+ — a rate the original experiment was too small to see. A sweep that
     quietly sampled would reproduce exactly that mistake.
     """
     from rag import probe
@@ -118,7 +118,7 @@ def test_prompt_d_is_a_different_mechanism_not_a_tuned_b():
     """
     D must differ from B in kind, not degree.
 
-    D52: A and B refused the same 8 questions, identically — the search space
+    The finding that prompts A and B were identical: A and B refused the same 8 questions, identically — the search space
     was two points that turned out to be one. A fourth wording that merely
     softens B's adverbs would repeat that. So D is pinned on the two things
     that make it a different mechanism: partial answers are expected output,
@@ -142,12 +142,12 @@ def test_every_variant_shares_the_same_scaffolding():
         assert s.endswith("picking one silently.")
 
 
-# --- Phase 4 variants (D72 / D73) --------------------------------------------
+# --- Phase 4 variants (over-refusal and missing citations) ---------------------
 
 def test_phase4_variants_are_built_from_the_shipped_prompt_not_retyped():
     """If ask.SYSTEM changes, E/F/G must change with it. A retyped copy would
     quietly start comparing new wordings against a prompt nobody runs -- which
-    is the failure D43 had, and the reason this whole module exists."""
+    is the failure the first refusal-clause experiment had, and the reason this whole module exists."""
     for v in ("E", "F", "G"):
         s = cp.system_prompt(v)
         assert "The sources do not answer this." in s, "D's refusal sentence must survive"
@@ -167,7 +167,7 @@ def test_the_stale_citation_sentence_guard_fires():
 
 
 def test_e_and_f_change_different_things():
-    """E attacks citations (D73), F attacks over-refusal (D72). If both edited
+    """E attacks citations, F attacks over-refusal. If both edited
     the same sentence, the sweep could not tell which lever moved a number."""
     e, f = cp.system_prompt("E"), cp.system_prompt("F")
     assert "not acceptable" in e and "not acceptable" not in f
@@ -236,7 +236,7 @@ def test_a_failed_generation_is_neither_an_answer_nor_a_refusal(capsys):
     **Changed 2026-09-10: this test used to assert `1/1` and that was the bug.**
     A failed row leaves the NUMERATOR, never the denominator. Dropping it from
     both gave each arm its own ruler -- H measured 47/90 here against a
-    published 47/91 -- which is precisely what `D61` forbids and what
+    published 47/91 -- which is precisely what a paired comparison forbids and what
     `judge._sweep_generation` had already been fixed for. The two modules
     disagreed and only the judge side had a test."""
     results = {"D": [_ok("g001", refused=False), _failed("g002")]}
@@ -289,7 +289,7 @@ def test_a_timeout_is_not_mistaken_for_ollama_being_down(monkeypatch):
 
 
 def test_uncited_counts_every_answer_the_user_sees_not_just_answerable_ones():
-    """One metric, one denominator (`D85`).
+    """One metric, one denominator.
 
     This table and `judge --report` both print a column called `uncited`, and
     they disagreed: `cells()` counted **answerable items only**, while
@@ -299,7 +299,7 @@ def test_uncited_counts_every_answer_the_user_sees_not_just_answerable_ones():
     The two rows in the gap are answers to items marked `answerable: false` --
     the fabrications. Excluding them excludes exactly the answers least worth
     trusting, and a user has no idea which of their questions was unanswerable.
-    An answer on screen with no source is the defect `D73` names, whatever the
+    An answer on screen with no source is the defect the citation audit found, whatever the
     label on the question says."""
     rows = [_ok("g001", refused=False, answerable=True, uncited=True),
             _ok("g002", refused=False, answerable=False, uncited=True),
@@ -320,7 +320,7 @@ def test_the_fabricated_answer_is_still_counted_as_a_fabrication():
 
 
 def test_a_failed_row_is_in_no_citation_denominator():
-    """D75: a row that never got a generation is not an answer."""
+    """A row that never got a generation is not an answer."""
     rows = [_ok("g001", refused=False, answerable=True, uncited=True),
             {"id": "g002", "failed": True, "answerable": True,
              "answer_in_prompt": True}]
@@ -328,7 +328,7 @@ def test_a_failed_row_is_in_no_citation_denominator():
 
 
 def test_the_two_commands_report_the_same_uncited_number():
-    """The guard that would have caught `D85` on the day it appeared.
+    """The guard that would have caught the two `uncited` denominators on the day they appeared.
 
     `compare_prompts --golden` and `judge --report` each print a column called
     `uncited`, computed in different modules. They drifted apart and nothing
@@ -351,8 +351,8 @@ def test_the_two_commands_report_the_same_uncited_number():
 
 
 def test_cells_reproduces_the_published_generation_figures():
-    """`D72`/`D74`: D 39/91 and H 47/91 on the Mac sweep. Reading the stored
-    `refused` field gave H 51/91 instead, because those rows predate `D76` --
+    """The published figures: D 39/91 and H 47/91 on the Mac sweep. Reading the stored
+    `refused` field gave H 51/91 instead, because those rows predate the cited-refusal fix to the refusal detector --
     so this pins the re-scoring, not just the arithmetic."""
     import json
     from rag import judge
@@ -363,7 +363,7 @@ def test_cells_reproduces_the_published_generation_figures():
 
 
 def test_both_arms_are_scored_against_the_same_denominator():
-    """D61: a paired comparison needs one ruler. A D75 failed row leaves the
+    """A paired comparison needs one ruler. A row that failed to generate leaves the
     numerator, never the denominator -- otherwise the arm that hit a timeout
     is graded out of a smaller total and looks better for having failed."""
     rows = [_ok("g001", refused=False, answerable=True),
@@ -375,8 +375,8 @@ def test_both_arms_are_scored_against_the_same_denominator():
 
 
 def test_the_default_two_question_run_starts_and_retrieves_at_default_k(monkeypatch, capsys):
-    """`uv run python -m rag.compare_prompts` with no flags is what 11-GENERATION.md
-    tells a reader to run. From eeedbc4 (2026-08-17) to 2026-09-14 it died on its
+    """`uv run python -m rag.compare_prompts` with no flags is the first thing
+    a reader runs. From eeedbc4 (2026-08-17) to 2026-09-14 it died on its
     first line with NameError: `k` was never defined in main(). Every other path
     passes k explicitly, so nothing else exercised it."""
     seen = []
@@ -400,20 +400,20 @@ def test_the_default_run_honours_dash_dash_k(monkeypatch, capsys):
 
 
 def test_the_control_arm_did_not_inherit_the_shipped_reminder(monkeypatch):
-    """`D115` shipped `H`'s sentence inside `ask.build_prompt`. Every arm in this
+    """Shipping prompt H put `H`'s sentence inside `ask.build_prompt`. Every arm in this
     module builds through that function, so the control `D` silently gained the
     thing under test — and nothing caught it, because the existing tests only
     checked `user_prompt`, which was still correctly a no-op for `D`.
 
     This is the guard that was missing. `D` must reproduce the prompt that
-    `D72`, `D73` and `D74` actually measured.
+    the published baseline, citation and prompt-position figures actually measured.
     """
     from rag import ask
 
     hits = []
     d = cp.user_prompt("D", cp.ask.build_prompt("q", hits, reminder=""))
     h = cp.user_prompt("H", cp.ask.build_prompt("q", hits, reminder=""))
-    assert ask.REMINDER not in d, "the control arm is no longer the pre-D115 prompt"
+    assert ask.REMINDER not in d, "the control arm is no longer the prompt from before H shipped"
     assert ask.REMINDER in h
     assert h != d
     # and H must equal what actually ships, or the sweep measures a third thing
@@ -427,7 +427,7 @@ def test_every_build_prompt_call_in_this_module_asks_for_the_legacy_prompt(monke
     so dropping the kwarg from the module's OWN call sites changed nothing it
     could see. This one records what `compare_prompts` actually passes.
 
-    Why it matters: `D115` put the citation sentence inside `ask.build_prompt`.
+    Why it matters: shipping prompt H put the citation sentence inside `ask.build_prompt`.
     Every arm here builds through that function, so a call that forgets
     `reminder=""` gives the control arm the thing under test and the sweep
     reports a null while measuring the prompt against itself.
@@ -447,5 +447,5 @@ def test_every_build_prompt_call_in_this_module_asks_for_the_legacy_prompt(monke
     assert calls, "main() built no prompt at all"
     assert all(r == "" for r in calls), (
         f"compare_prompts built from the SHIPPED prompt: reminder={calls!r}. "
-        "The control arm is no longer the pre-D115 prompt."
+        "The control arm is no longer the prompt from before H shipped."
     )

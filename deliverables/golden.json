@@ -2,7 +2,7 @@
   "_README": [
     "The Phase 2 golden set — the ruler every later number is measured with.",
     "",
-    "D06: hand-verified, NEVER auto-generated. AI may draft a question and propose",
+    "Hand-verified, NEVER auto-generated. AI may draft a question and propose",
     "candidate answer chunks; only a human sets verified_by to 'human'. rag/score.py",
     "refuses to score any item that is not human-verified, and says so loudly.",
     "",
@@ -10,7 +10,7 @@
     "`uv run python -m rag.golden --show <chunk_id>`, confirm the page answers the",
     "question (meaning — not just shared keywords), then set verified_by to 'human'",
     "and verified_on to the date. Scoring later only checks whether those chunk ids",
-    "appear in the top-k. See study/14-MEASURE.md §R6.0.",
+    "appear in the top-k.",
     "",
     "Fields: id, question, provenance (github|stackoverflow|migration_guide|breakages),",
     "answerable, answer_chunks (list, omit when unanswerable), answer_note,",
@@ -19,7 +19,7 @@
     "2026-08-21: SO/GitHub drafts reviewed (chunks fixed / ceilings marked / junk dropped),",
     "17 dropped and 17 fresh ones harvested to replace them (g101-g121).",
     "",
-    "OPEN, and it is the one thing D06 is about. Every item now carries",
+    "OPEN, and it is the one thing human verification is about. Every item now carries",
     "verified_by='human', so --validate exits 0. For g001-g050 the notes say",
     "'Viraj approved remaining drafts 2026-08-20'. For g051-g121 the notes say who",
     "actually reviewed them, in their own words: CLAUDE_REVIEW / STAMPED human /",
@@ -27,9 +27,8 @@
     "asserts it; this file was edited directly, which no test covers.",
     "Until Viraj rules, deliverables/baseline-phase1.json (the 50-item run) stays",
     "the baseline and the 100-item numbers are measured; signature was open until spot-check verified.",
-    "See study/09-DECISIONS.md section H and phases/PHASE-2.md.",
     "",
-    "Signature CLOSED 2026-08-21 — Viraj spot-check of ten, then verified (g065, g097, g093, g075, g099, g095, g088, g087, g079, g074). g065 note corrected (CREATE VIEW chunks exist; still unanswerable for same-migration). See study/09-DECISIONS.md §H CLOSED and D65."
+    "Signature CLOSED 2026-08-21 — Viraj spot-check of ten, then verified (g065, g097, g093, g075, g099, g095, g088, g087, g079, g074). g065 note corrected (CREATE VIEW chunks exist; still unanswerable for same-migration)."
   ],
   "items": [
     {
@@ -37,7 +36,7 @@
       "question": "engine.has_table() no longer exists, what is the replacement?",
       "provenance": "breakages",
       "answerable": false,
-      "answer_note": "Verified unanswerable from this corpus. `grep -c has_table corpus/chunks.jsonl` returns 0 — the string is in none of the 3284 chunks. Real 2.0 fix is inspect(engine).has_table(...), but that lives in the API reference (Sphinx from docstrings), which was never in the .rst tree we fetched (D07, D50, D45 ceiling). Correct system behaviour is to refuse. Viraj agreed 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
+      "answer_note": "Verified unanswerable from this corpus. `grep -c has_table corpus/chunks.jsonl` returns 0 — the string is in none of the 3284 chunks. Real 2.0 fix is inspect(engine).has_table(...), but that lives in the API reference (Sphinx from docstrings), which was never in the .rst tree we fetched (a corpus ceiling). Correct system behaviour is to refuse. Viraj agreed 2026-08-20. WEB+SQL audit 2026-08-21: live docs.sqlalchemy.org/en/20 (migration_20 / errors / cascades / declarative_tables / reflection as applicable) + sqlalchemy==2.0.51 executable checks and/or verify_2_0 battery. Unanswerables: has_table/with_labels/orm.relation = 0 corpus hits (whole-symbol).",
       "verified_by": "human",
       "verified_on": "2026-08-20"
     },
@@ -706,7 +705,7 @@
       "provenance": "stackoverflow",
       "source_url": "https://stackoverflow.com/questions/65890188/query-property-for-models-in-sqlalchemy-1-4-2-0",
       "answerable": false,
-      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from corpus D07; g065: Alembic). Correct system behaviour is refuse.",
+      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from the corpus; g065: Alembic). Correct system behaviour is refuse.",
       "verified_by": "human",
       "verified_on": "2026-08-21"
     },
@@ -796,7 +795,7 @@
       "provenance": "stackoverflow",
       "source_url": "https://stackoverflow.com/questions/76307478/setting-sqlalchemy-silence-uber-warning-to-avoid-deprecation-warning-does-not-wo",
       "answerable": false,
-      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from corpus D07; g065: Alembic). Correct system behaviour is refuse.",
+      "answer_note": "STAMPED human 2026-08-21 (batch 5 ceilings). Unanswerable from THIS corpus (0 narrative chunks). Live docs may still discuss the topic elsewhere (g056: scoped_session.query_property on contextual.html via autodoc; g067: SQLALCHEMY_SILENCE_UBER_WARNING on changelog_14, excluded from the corpus; g065: Alembic). Correct system behaviour is refuse.",
       "verified_by": "human",
       "verified_on": "2026-08-21"
     },
@@ -823,7 +822,7 @@
         "c00711",
         "c01010"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). mapped + calculated columns via column_property / mapped SQL expressions. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). mapped + calculated columns via column_property / mapped SQL expressions. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -832,7 +831,7 @@
       "provenance": "stackoverflow",
       "source_url": "https://stackoverflow.com/questions/78481263/sqlalchemy-relation-does-not-exist-after-flask-migrate",
       "answerable": false,
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). Postgres 'relation does not exist' after flask migrate — ops/Alembic, not corpus. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). Postgres 'relation does not exist' after flask migrate — ops/Alembic, not corpus. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -858,7 +857,7 @@
         "c01592",
         "c03004"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Session.get replaces Query.get; session_basics on get + identity map / options. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). Spot-check: swapped c01189→c03004 (2.0.51 twin, same Session.get + options text). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). Session.get replaces Query.get; session_basics on get + identity map / options. HUMAN stamp Batch 6 2026-08-21 (chunk-first + live/SQL confirm). Spot-check: swapped c01189→c03004 (2.0.51 twin, same Session.get + options text). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -941,7 +940,7 @@
         "c02711",
         "c00792"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks replaced after Batch 6). Old c01191/c03006 were refresh/expire only — did not answer 'server_default missing in __dict__ after flush'. Primary c02711: Fetching Server-Generated Defaults (server_default + eager_defaults / RETURNING). Secondary c00792: states server_default is not refreshed after INSERT and is expired until load.HUMAN stamp 2026-08-21 (chunks replaced: c02711+c00792). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep, chunks replaced after Batch 6). Old c01191/c03006 were refresh/expire only — did not answer 'server_default missing in __dict__ after flush'. Primary c02711: Fetching Server-Generated Defaults (server_default + eager_defaults / RETURNING). Secondary c00792: states server_default is not refreshed after INSERT and is expired until load.HUMAN stamp 2026-08-21 (chunks replaced: c02711+c00792). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -954,7 +953,7 @@
         "c03091",
         "c01292"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). 2.0-style transactions / join external transaction for tests. HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). 2.0-style transactions / join external transaction for tests. HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -976,7 +975,7 @@
       "provenance": "github",
       "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/11452",
       "answerable": false,
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). How long will 1.4 be supported — support policy not in this corpus. HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). How long will 1.4 be supported — support policy not in this corpus. HUMAN stamp Batch 7 2026-08-21 (chunk-first + live/GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -1003,7 +1002,7 @@
         "c01124",
         "c02746"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). populate_existing execution option. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). populate_existing execution option. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -1025,7 +1024,7 @@
       "provenance": "github",
       "source_url": "https://github.com/sqlalchemy/sqlalchemy/discussions/10743",
       "answerable": false,
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). _active_history AttributeError — 0 hits in corpus. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (unanswerable). _active_history AttributeError — 0 hits in corpus. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -1053,7 +1052,7 @@
         "c02074",
         "c02075"
       ],
-      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). MappedAsDataclass defaults: default / default_factory / insert_default FAQ. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand under D06.",
+      "answer_note": "CLAUDE_REVIEW 2026-08-21 (keep). MappedAsDataclass defaults: default / default_factory / insert_default FAQ. HUMAN stamp Batch 8 2026-08-21 (chunk-first + GH/SQL confirm). VERIFIED 2026-08-21: Viraj closed §H after spot-checking ten (sheet: g065,g097,g093,g075,g099,g095,g088,g087,g079,g074). Approved KEEP/FIX on that sheet; second-50 stamps stand as human-verified.",
       "verified_by": "human"
     },
     {
@@ -1093,7 +1092,7 @@
         "c02778",
         "c02769"
       ],
-      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS. Chunk c02778: mapped_column(deferred=True, deferred_raiseload=True). Live docs …/queryguide/columns.html § Configuring mapper-level raiseload. SQL 2.0.51: access raises InvalidRequestError; undefer loads. Async+aiosqlite: awaitable_attrs.item ALSO raises under deferred_raiseload (same lazy path — GH #13224 expected). HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02778=28.37 (orm/queryguide/columns.rst); c02388=18.90 (orm/declarative_tables.rst); c02775=17.31 (orm/queryguide/columns.rst); c02770=17.08 (orm/queryguide/columns.rst); c02482=16.13 (orm/extensions/asyncio.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02778', 'c02388'] → ['c02778', 'c02769']. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
+      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS. Chunk c02778: mapped_column(deferred=True, deferred_raiseload=True). Live docs …/queryguide/columns.html § Configuring mapper-level raiseload. SQL 2.0.51: access raises InvalidRequestError; undefer loads. Async+aiosqlite: awaitable_attrs.item ALSO raises under deferred_raiseload (same lazy path — GH #13224 expected). HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02778=28.37 (orm/queryguide/columns.rst); c02388=18.90 (orm/declarative_tables.rst); c02775=17.31 (orm/queryguide/columns.rst); c02770=17.08 (orm/queryguide/columns.rst); c02482=16.13 (orm/extensions/asyncio.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02778', 'c02388'] → ['c02778', 'c02769']. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1107,7 +1106,7 @@
         "c02306",
         "c02297"
       ],
-      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS (chunks tightened). c02306: relationship with MappedAsDataclass default/default_factory/init. c02297: MappedAsDataclass mixin. Live docs.sqlalchemy.org/en/20/orm/dataclasses.html documents relationship.init / default. SQL 2.0.51: Dog(..., human_id=) works with relationship(init=False); without init=False, missing human → TypeError (GH #13062 workaround). Replaced weaker mixin-only c02305. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02305=21.85 (orm/dataclasses.rst); c02297=20.50 (orm/dataclasses.rst); c02299=20.41 (orm/dataclasses.rst); c02014=17.10 (errors.rst); c02015=16.31 (errors.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02305', 'c02297'] → ['c02305', 'c02297']. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
+      "answer_note": "REAUDIT 2026-08-21 FULL BAR PASS (chunks tightened). c02306: relationship with MappedAsDataclass default/default_factory/init. c02297: MappedAsDataclass mixin. Live docs.sqlalchemy.org/en/20/orm/dataclasses.html documents relationship.init / default. SQL 2.0.51: Dog(..., human_id=) works with relationship(init=False); without init=False, missing human → TypeError (GH #13062 workaround). Replaced weaker mixin-only c02305. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02305=21.85 (orm/dataclasses.rst); c02297=20.50 (orm/dataclasses.rst); c02299=20.41 (orm/dataclasses.rst); c02014=17.10 (errors.rst); c02015=16.31 (errors.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02305', 'c02297'] → ['c02305', 'c02297']. HUMAN stamp Batch 9 2026-08-21 (chunk-first + GH confirm).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1121,7 +1120,7 @@
         "c00902",
         "c00903"
       ],
-      "answer_note": "SQL PASS: joinedload(of_type(with_polymorphic)) loads child cols. Live inheritance docs. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02880=20.34 (orm/queryguide/relationships.rst); c00954=18.37 (orm/loading_relationships.rst); c02207=16.77 (orm/basic_relationships.rst); c00987=16.49 (orm/loading_relationships.rst); c00942=16.39 (orm/loading_columns.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02880', 'c00954'] → ['c00902', 'c00903']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL PASS: joinedload(of_type(with_polymorphic)) loads child cols. Live inheritance docs. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02880=20.34 (orm/queryguide/relationships.rst); c00954=18.37 (orm/loading_relationships.rst); c02207=16.77 (orm/basic_relationships.rst); c00987=16.49 (orm/loading_relationships.rst); c00942=16.39 (orm/loading_columns.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02880', 'c00954'] → ['c00902', 'c00903']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1135,7 +1134,7 @@
         "c01130",
         "c02753"
       ],
-      "answer_note": "SQL PASS: yield_per exec option + unique() → InvalidRequestError. Live queryguide/api. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01130=14.25 (orm/queryguide.rst); c02752=14.08 (orm/queryguide/api.rst); c02753=13.73 (orm/queryguide/api.rst); c00029=12.06 (core/connections.rst); c01644=11.60 (core/connections.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01130', 'c02752'] → ['c01130', 'c02753']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL PASS: yield_per exec option + unique() → InvalidRequestError. Live queryguide/api. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01130=14.25 (orm/queryguide.rst); c02752=14.08 (orm/queryguide/api.rst); c02753=13.73 (orm/queryguide/api.rst); c00029=12.06 (core/connections.rst); c01644=11.60 (core/connections.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01130', 'c02752'] → ['c01130', 'c02753']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1149,7 +1148,7 @@
         "c01555",
         "c01575"
       ],
-      "answer_note": "SQL PASS: create_engine(future=True); bare string execute fails. Live migration Step Four. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01575=19.39 (changelog/migration_20.rst); c01473=19.08 (tutorial/index.rst); c00209=18.81 (core/future.rst); c01555=17.96 (changelog/migration_20.rst); c01845=17.83 (core/future.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01575', 'c01473'] → ['c01555', 'c01575']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
+      "answer_note": "SQL PASS: create_engine(future=True); bare string execute fails. Live migration Step Four. HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01575=19.39 (changelog/migration_20.rst); c01473=19.08 (tutorial/index.rst); c00209=18.81 (core/future.rst); c01555=17.96 (changelog/migration_20.rst); c01845=17.83 (core/future.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01575', 'c01473'] → ['c01555', 'c01575']. HUMAN stamp Batch 10 2026-08-21 FULL BAR (chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1163,7 +1162,7 @@
         "c01562",
         "c01572"
       ],
-      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01562=24.79 (changelog/migration_20.rst); c01572=20.01 (changelog/migration_20.rst); c01564=19.11 (changelog/migration_20.rst); c01276=18.87 (orm/session_transaction.rst); c01552=18.81 (changelog/migration_20.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01562', 'c01572'] → ['c01562', 'c01572']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/75122732/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit) → https://stackoverflow.com/questions/74706309/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01562=24.79 (changelog/migration_20.rst); c01572=20.01 (changelog/migration_20.rst); c01564=19.11 (changelog/migration_20.rst); c01276=18.87 (orm/session_transaction.rst); c01552=18.81 (changelog/migration_20.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01562', 'c01572'] → ['c01562', 'c01572']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/75122732/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit) → https://stackoverflow.com/questions/74706309/sqlalchemy-2-0-with-engine-connect-does-not-automatically-commit (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1176,7 +1175,7 @@
       "answer_chunks": [
         "c01585"
       ],
-      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c00451=33.08 (errors.rst); c02023=33.08 (errors.rst); c01467=32.21 (tutorial/index.rst); c00562=31.36 (glossary.rst); c02135=31.06 (glossary.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c00451', 'c02023'] → ['c01585', 'c01326']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/66484020/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm) → https://stackoverflow.com/questions/65754023/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c00451=33.08 (errors.rst); c02023=33.08 (errors.rst); c01467=32.21 (tutorial/index.rst); c00562=31.36 (glossary.rst); c02135=31.06 (glossary.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c00451', 'c02023'] → ['c01585', 'c01326']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/66484020/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm) → https://stackoverflow.com/questions/65754023/what-is-the-equivalent-of-query-count-in-the-sqlalchemy-1-4-orm (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1190,7 +1189,7 @@
         "c02823",
         "c02790"
       ],
-      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02135=19.13 (glossary.rst); c02812=19.09 (orm/queryguide/dml.rst); c00488=18.58 (faq/ormconfiguration.rst); c02060=18.58 (faq/ormconfiguration.rst); c01461=18.25 (tutorial/dbapi_transactions.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02135', 'c02812'] → ['c02790', 'c02823']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/75275234/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x) → https://stackoverflow.com/questions/76547268/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c02135=19.13 (glossary.rst); c02812=19.09 (orm/queryguide/dml.rst); c00488=18.58 (faq/ormconfiguration.rst); c02060=18.58 (faq/ormconfiguration.rst); c01461=18.25 (tutorial/dbapi_transactions.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c02135', 'c02812'] → ['c02790', 'c02823']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/75275234/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x) → https://stackoverflow.com/questions/76547268/proper-way-to-do-simple-single-row-update-in-sqlalchemy-2-x (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1204,7 +1203,7 @@
         "c01181",
         "c03126"
       ],
-      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c03191=27.61 (tutorial/data_update.rst); c01444=27.46 (tutorial/data_update.rst); c00495=25.02 (faq/ormconfiguration.rst); c02067=25.02 (faq/ormconfiguration.rst); c02048=24.87 (faq/connections.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c03191', 'c01444'] → ['c01181', 'c03126']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/73248905/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t) → https://stackoverflow.com/questions/69729090/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c03191=27.61 (tutorial/data_update.rst); c01444=27.46 (tutorial/data_update.rst); c00495=25.02 (faq/ormconfiguration.rst); c02067=25.02 (faq/ormconfiguration.rst); c02048=24.87 (faq/connections.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c03191', 'c01444'] → ['c01181', 'c03126']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/73248905/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t) → https://stackoverflow.com/questions/69729090/why-am-i-getting-class-sqlalchemy-engine-row-row-is-not-mapped-when-trying-t (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },
@@ -1218,7 +1217,7 @@
         "c01552",
         "c01562"
       ],
-      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01552=22.12 (changelog/migration_20.rst); c01561=20.68 (changelog/migration_20.rst); c01548=20.19 (changelog/migration_20.rst); c01551=20.17 (changelog/migration_20.rst); c01554=19.96 (changelog/migration_20.rst). verified_by null — D06 human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01552', 'c01561'] → ['c01552', 'c01562']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/76111887/sqlalchemy-2-0-migration-connection-to-database) → https://stackoverflow.com/questions/65729170/sqlalchemy-2-0-migration-connection-to-database (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
+      "answer_note": "HARVEST 2026-08-21 (third tranche → restore n=100 after verification culls). BM25 proposal (not dense — anti-circularity). Top-5: c01552=22.12 (changelog/migration_20.rst); c01561=20.68 (changelog/migration_20.rst); c01548=20.19 (changelog/migration_20.rst); c01551=20.17 (changelog/migration_20.rst); c01554=19.96 (changelog/migration_20.rst). verified_by null — human stamp required. CLAUDE_REVIEW 2026-08-21: BM25 retargeted ['c01552', 'c01561'] → ['c01552', 'c01562']. URL fixed 2026-08-21: was broken/wrong (https://stackoverflow.com/questions/76111887/sqlalchemy-2-0-migration-connection-to-database) → https://stackoverflow.com/questions/65729170/sqlalchemy-2-0-migration-connection-to-database (live title verified). HUMAN stamp Batch 11 2026-08-21 FULL BAR (URL fixed + chunk + live docs + SQL 2.0.51).",
       "verified_by": "human",
       "verified_on": null
     },

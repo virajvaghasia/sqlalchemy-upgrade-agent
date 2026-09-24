@@ -14,7 +14,7 @@ model produced the vectors, on what device, at what speed.
 
 WHY A FILE RATHER THAN WRITING STRAIGHT INTO QDRANT
 
-`study/09-DECISIONS.md` D36. Embedding is the expensive step; loading is not. A
+Embed in one run, on one machine, to a portable file. Embedding is the expensive step; loading is not. A
 file decouples them, which buys three things:
 
   - **Portability.** The lab PC and this Mac cannot route to each other. A file
@@ -41,7 +41,7 @@ WHAT IS DELIBERATELY NOT DONE
 
 BGE-M3 can emit dense, sparse and ColBERT representations. This uses
 **sentence-transformers, which gives dense only** — and that is the point. Phase
-1 is meaning-search only (D04); sparse vectors are half of hybrid search, which
+1 is meaning-search only; sparse vectors are half of hybrid search, which
 is a Phase 3 fix for a problem Step 5 has not yet demonstrated. Choosing the
 library that cannot do it is cheaper than choosing the one that can and
 remembering not to.
@@ -80,7 +80,7 @@ MODEL_REVISION: str | None = "5617a9f61b028005a4858fdac845db406aefb181"
 #
 # With BGE-M3 at MODEL_REVISION this flag changes nothing: the model's own
 # pipeline is Transformer -> Pooling -> Normalize, so vectors come out length 1
-# with the flag False too (measured 2026-09-14; study/10-RETRIEVAL.md R2.3). It
+# with the flag False too. It
 # is kept as a second guarantee for a model whose pipeline has no Normalize step.
 NORMALIZE = True
 
@@ -137,7 +137,7 @@ def embedding_input(chunk: dict) -> str:
     its keep. Without it the embedding represents an orphaned paragraph.
 
     Sphinx roles stay raw. Stripping them for embed was measured 2026-08-22 and
-    **rejected** (`D69`): recall@5 fell 0.64 → 0.58 and broke two baseline hits.
+    **rejected**: recall@5 fell 0.64 → 0.58 and broke two baseline hits.
     """
     path = " > ".join(chunk["heading_path"])
     return f"{path}\n\n{chunk['text']}" if path else chunk["text"]

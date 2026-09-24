@@ -21,7 +21,7 @@ HITS = [_hit(1, "page one"), _hit(2, "page two")]
 
 
 def test_the_shipped_prompt_is_untouched():
-    """D72's 0.43 and every Phase 4 figure were measured with these two objects.
+    """The 0.43 and every Phase 4 figure were measured with these two objects.
     Fencing is a candidate; editing them in place would move a published baseline."""
     assert fence.ARMS["shipped"] == (ask.build_prompt, ask.SYSTEM)
     assert "<<<" not in ask.SYSTEM
@@ -69,7 +69,7 @@ def test_fence_user_changes_only_the_prompt():
 
 
 def test_fence_both_adds_exactly_one_sentence_to_the_shipped_system():
-    """D74: a second instruction dilutes the first. This arm adds one, and keeps
+    """A second instruction dilutes the first. This arm adds one, and keeps
     the shipped wording ahead of it, so the difference from fence_user is that
     sentence and nothing else."""
     both = fence.system_for("fence_both")

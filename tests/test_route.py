@@ -11,7 +11,7 @@ def out(answerable=True, present=True, answer="an answer [1]"):
 
 
 def test_delivered_needs_the_page_AND_an_answer():
-    """D72: an answer without the page is not delivered, and neither is a
+    """An answer without the page is not delivered, and neither is a
     refusal with the page."""
     assert route.delivered(out())
     assert not route.delivered(out(present=False))
@@ -21,7 +21,7 @@ def test_delivered_needs_the_page_AND_an_answer():
 def test_the_random_baseline_is_hypergeometric_not_binomial():
     """The first version re-drew its sample per failure: a binomial, whose tail
     at these numbers is 0.14 against the true 0.057. It made a marginal signal
-    look like chance (D98)."""
+    look like chance."""
     pmf = route.random_routing(100, 53, 30)
     assert abs(sum(pmf) - 1) < 1e-12
     assert round(sum(pmf[20:]), 4) == 0.0571
@@ -46,7 +46,7 @@ def test_cascade_B_escalates_refusals_only_and_separates_page_present():
 
 
 def test_join_check_names_any_item_whose_page_flag_differs_between_machines():
-    """The join is only legitimate because retrieval reproduces (D83); one
+    """The join is only legitimate because retrieval reproduces; one
     disagreement and no router result may be printed."""
     golden = {"g": {"answer_chunks": ["c1"]}}
     chunks = {"c1": {"source_path": "x", "heading_path": [], "text": "t"}}

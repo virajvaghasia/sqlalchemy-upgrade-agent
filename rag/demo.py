@@ -9,13 +9,13 @@ WHAT THE DEMO RUNS, AND WHAT IT DOES NOT
 - **Retrieval is exactly the graded path**: `index.retrieve` with hybrid BM25,
   twin collapse and the seat-5 reranker. The only change is where dense search
   runs: `RAG_DENSE=memory` instead of Qdrant, and that was gated against the
-  golden baseline before it was allowed here (`D102`: broken 0, moved 0).
+  golden baseline before it was allowed here (broken 0, moved 0).
 - **The prompt is the shipped one**: `ask.SYSTEM` and `ask.build_prompt`.
 - **The generator depends on where it runs, and the page says which.**
   `backend="ollama"` (a local run) uses `qwen2.5-coder:7b` through `ask.generate`,
   the generator the 0.42 was measured on. `backend="nvidia"` (a hosted page) uses
   `nvidia/nemotron-3-ultra-550b-a55b`, because NVIDIA's API serves no qwen; that
-  model was measured on all 100 golden questions in Step 4d (`D104`), and the page
+  model was measured on all 100 golden questions in Step 4d, and the page
   quotes those numbers, not the 0.42.
 
 RATE LIMITS ARE A CHOICE, NOT A MEASUREMENT
@@ -42,20 +42,20 @@ from rag import ask
 
 # The page's generator. NOT the judge: `openai/gpt-oss-20b` grades Phase 6's
 # answers, and a page that writes with its own grader is the self-scoring shape
-# `D80` chose a different family to avoid.
+# the local judge was chosen from a different family to avoid.
 #
 # Repointed 2026-09-16. The previous model, nvidia/nemotron-3-ultra-550b-a55b,
 # began returning HTTP 404 "Specified function ... not found for account" on this
 # key -- while still being listed by GET /v1/models. Measured that day: three
 # models answered on the same key in the same minute and five 404'd, so it is
-# per-model entitlement, not credits and not an outage (PHASE-6.md, last section).
-# `D80`'s sentence, on a second provider: a pinned id is a promise about a name,
+# per-model entitlement, not credits and not an outage.
+# The sentence, on a second provider: a pinned id is a promise about a name,
 # not a service.
 # 2026-09-21: `deepseek-v4-flash-0731` left the NVIDIA catalog entirely -- `/v1/models` no longer
 # lists it and the endpoint answers 410 Gone -- so the live demo stopped answering. Repointed to
-# the model this project actually MEASURED (D104 end to end, D107 faithfulness), which was dropped
+# the model this project actually MEASURED (0.58 end to end, 91% faithful on all 100), which was dropped
 # on 2026-09-16 only because it was briefly uncallable on this key and answers in ~1.3s again.
-# `D80`'s sentence, for the third time: a pinned id is a promise about a name, not a service.
+# The sentence, for the third time: a pinned id is a promise about a name, not a service.
 # ORDERED FALLBACK. Two hosted models have now disappeared under this page (one to 404
 # entitlement, one out of the catalog entirely), and each time the demo simply stopped
 # answering until a human noticed. The page now walks this list and answers with the first
@@ -63,7 +63,7 @@ from rag import ask
 # behind an unchanged notice would be the measurement rule broken where a stranger reads.
 # All three answered on 2026-09-21; only the first has been measured on this project.
 MODELS = [
-    "nvidia/nemotron-3-ultra-550b-a55b",      # measured here: D104 end to end, D107 faithfulness
+    "nvidia/nemotron-3-ultra-550b-a55b",      # measured here: 0.58 end to end, 91% faithful
     "nvidia/nemotron-3-super-120b-a12b",      # not measured
     "nvidia/nemotron-3.5-lightning-30b-a3b",  # not measured
 ]
@@ -76,8 +76,8 @@ GLOBAL_PER_HOUR = 60        # chosen: every visitor together, per rolling hour
 SESSION_MIN_SECONDS = 20    # chosen: one visitor cannot fire questions back to back
 MAX_QUESTION_CHARS = 500    # the longest golden question is well under this
 
-# Decision-register ids (D83 for the two machines) stay in comments and docs. A visitor
-# does not know what D83 is and never will, so a notice that cites one is showing its
+# Internal decision ids never appear in the notice a visitor reads. A visitor does
+# not know what they are and never will, so a notice that cites one is showing its
 # working to the wrong reader.
 # WHETHER A QUESTION IS EVEN LOOKUP-SHAPED, decided before a model is called.
 #
@@ -118,8 +118,8 @@ MEASURED_MODEL_NOTICE = (
     "0.42 end to end on the lab machine and 0.43 on the Mac, with the same retrieval and prompt."
 )
 
-# The two figures are Step 4d's end to end (D104) and Step 4g's faithfulness, judged on the pages
-# exactly as the model saw them (D107). A test re-derives both from
+# The two figures are Step 4d's end to end and Step 4g's faithfulness, judged on the pages
+# exactly as the model saw them. A test re-derives both from
 # deliverables/nemotron-all-phase6.json, so they cannot drift from the rows.
 # Renamed from NOT_THE_MEASURED_MODEL on 2026-09-21: while the page served an unmeasured model that
 # name was the point of the notice, and now that the page serves the measured one it would be false.
@@ -309,7 +309,7 @@ def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root
                                         if k in ("prompt_tokens", "completion_tokens") and isinstance(v, int)})
     except SystemExit:
         # ask.generate exits when Ollama is unreachable -- right for a CLI,
-        # wrong for a web page. SystemExit is not an Exception (CLAUDE.md traps).
+        # wrong for a web page. SystemExit is not an Exception.
         return {"error": "The local answer model (Ollama) is not running. The search still "
                          "ran, and its sources are listed with this message.", "sources": sources}
     except (urllib.error.URLError, TimeoutError) as exc:
@@ -383,7 +383,7 @@ def link_citations(answer: str, n_sources: int) -> str:
     """[n] -> a link to source card n, outside code only, and only for n that exist.
 
     Uses `judge.CITATION`, the repo's one citation pattern, which already skips
-    subscripts like `row[1]` (D79). Fenced blocks and inline code are left alone.
+    subscripts like `row[1]`. Fenced blocks and inline code are left alone.
     """
     from rag import judge
 

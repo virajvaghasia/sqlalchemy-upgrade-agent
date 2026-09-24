@@ -3,7 +3,7 @@
 **Nothing in Phase 5 is built until this prints a number.** `qwen2.5-coder:7b`
 has been measured in this repo doing exactly one thing: answering once, in
 prose, with five passages already in the prompt. It has never been asked to
-choose a tool. `PHASE-5.md` opens on the arithmetic that makes that the
+choose a tool, and the arithmetic makes that the
 phase-deciding question -- an agent is three or more generations where `0.43`
 was measured on one.
 
@@ -53,11 +53,11 @@ HOST = "http://127.0.0.1:11434"
 
 # Temperature 0 for the same reason every other run in this repo uses it, and
 # with the same caveat attached: on this machine it does NOT make output
-# repeatable across days (D54, D84). Any before/after built on this probe is
+# repeatable across days. Any before/after built on this probe is
 # re-run in one sitting or run on the lab.
 TEMPERATURE = 0.0
 
-# **PINNED, not left to the default, and this is `D80`'s lesson arriving in a
+# **PINNED, not left to the default, and this is the lesson arriving in a
 # second module.** Ollama truncates at `num_ctx` **in silence**, and the default
 # is 4096. Measured 2026-09-11: one tool observation carrying five FULL passages
 # is ~5861 chars, so a two-call agent conversation is ~12675 chars, about 3168
@@ -66,7 +66,7 @@ TEMPERATURE = 0.0
 #
 # `rag/ask.py` is deliberately NOT changed: its single prompt measures ~6500
 # chars (~1600 tokens) and has always fit, and touching the shipped path would
-# move `D72`'s published baseline for no measured reason.
+# move the published baseline for no measured reason.
 LOCAL_CONTEXT = 8192
 
 TOOLS = [
@@ -129,9 +129,9 @@ SYSTEM = (
 # Each `check_api` question asks whether a named symbol still exists; each
 # `search_docs` question asks how or why. A reader can check the label from the
 # question alone, which is what makes it usable without a human verification
-# pass (`D06` governs the GOLDEN set; this is an instrument, not a ruler).
+# pass (human verification governs the GOLDEN set; this is an instrument, not a ruler).
 #
-# They are written in developer phrasing on purpose. `D63` measured that
+# They are written in developer phrasing on purpose. It was measured that
 # phrasing, not provenance, decides retrieval -- and if it decides retrieval it
 # may well decide tool choice too.
 PROBE = [
@@ -229,7 +229,7 @@ def classify(reply: dict) -> dict:
 
     **So "the model cannot call tools" would have been a claim about this
     parser.** Same family as the healthcheck that passed because `/dev/tcp` is
-    a bash builtin, and as D76/D79 -- an instrument breaking in the direction
+    a bash builtin, and as the two citation-detector bugs -- an instrument breaking in the direction
     of the thing under test, only this time the direction was unflattering.
 
     The two channels stay SEPARATE outcomes rather than being merged into one
@@ -261,8 +261,8 @@ def classify(reply: dict) -> dict:
         # `json.loads` on the whole string raises, so the first version scored
         # that as `prose` -- the loop read it as an answer and **never ran the
         # tool the model had just asked for.** Fourth instrument in this repo to
-        # break only once the thing under test started behaving differently
-        # (D76, D79, D87). `raw_decode` reads the leading value and reports
+        # break only once the thing under test started behaving differently.
+        # `raw_decode` reads the leading value and reports
         # where it stopped.
         try:
             blob, _ = json.JSONDecoder().raw_decode(content)
@@ -297,7 +297,7 @@ def run(pairs: list[tuple[str | None, str]], model: str = MODEL,
         try:
             got = classify(ask_one(question))
         except (urllib.error.URLError, TimeoutError) as exc:
-            # D75, third module to learn it: one unreachable call costs one
+            # The third module to need this rule: one unreachable call costs one
             # question, never the run.
             got = {"outcome": f"failed:{type(exc).__name__}",
                    "tool": None, "arg": None}
@@ -330,7 +330,7 @@ def report(got: dict, model: str, label: str) -> None:
     if got["content"] and not got["native"]:
         print("  NOTE: every call arrived as content text. An agent built on "
               "this model parses\n        JSON itself; it cannot assume the "
-              "MCP tool-call channel (D87).")
+              "MCP tool-call channel.")
 
 
 def main() -> None:

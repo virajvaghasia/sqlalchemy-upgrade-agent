@@ -12,28 +12,28 @@ Phase 4 — faithfulness: is this claim actually supported by the page it cites?
 THE HALF THAT NEEDS A MODEL, AND WHY IT WAITED
 
 `rag/judge.py` measures everything about an answer that can be counted:
-citations that point at sources which exist (`D73`), code blocks with no source
-attached, and dotted API calls that appear in none of the retrieved pages
-(`D77`). All deterministic, no key, no free tier, exact.
+citations that point at sources which exist, code blocks with no source
+attached, and dotted API calls that appear in none of the retrieved pages.
+All deterministic, no key, no free tier, exact.
 
 What none of it reaches is a claim made in **prose**. `g056` is the standing
 example: it fabricates in sentences rather than in a code block, so the
-groundedness detector is structurally blind to it (`D77` says so in as many
-words). "Is this sentence supported by that passage" is a reading task, and
+groundedness detector is structurally blind to it. "Is this sentence supported by that passage" is a reading task, and
 reading needs a reader.
 
-WHAT "PINNED" IS ACTUALLY BUYING, WHICH IS LESS THAN PHASE-4.md CLAIMED
+WHAT "PINNED" IS ACTUALLY BUYING, WHICH IS LESS THAN IT FIRST SEEMED
 
-`PHASE-4.md` Step 2 argued the judge must be pinned "the same way swapping the
-golden set would" invalidate rows (`D65`/`D61`). **That analogy imported the
+The first plan argued the judge must be pinned "the same way swapping the
+golden set would" invalidate rows. **That analogy imported the
 conclusion without the cost structure.** Re-cutting the golden ruler is ~25
-hours of `D06` hand-verification; re-running this judge is ~60 calls and a few
+hours of human verification; re-running this judge is ~60 calls and a few
 minutes. Pinning is a convenience here, not a correctness requirement.
 
 Two properties ARE tight, and neither is the snapshot id:
 
-  * **Same judge, both arms, one sitting.** `D54` applied to the judge instead
-    of the generator. Judge D on Monday and H on Friday and the comparison is
+  * **Same judge, both arms, one sitting.** Refusal cells drift from day to day,
+    so arms are compared within one sitting; the same holds for the judge.
+    Judge D on Monday and H on Friday and the comparison is
     worthless no matter how carefully the model was pinned. Free to honour.
   * **Agreement with a human, measured.** Step 5 asks for a hand-check of ten.
     A pinned judge with unmeasured agreement is a precise instrument of unknown
@@ -68,11 +68,11 @@ one, and neither substitutes for the other.
 
 No dated snapshot exists for the stable flash line -- the dated ids in the
 catalog are all previews -- so the best available pin is a version-numbered id,
-not `gemini-flash-latest`, which floats by design and is exactly what D78 says
+not `gemini-flash-latest`, which floats by design and is exactly what a pin exists
 to avoid.
 
-**AND THEN THE PIN ITSELF WENT AWAY. Measured 2026-09-03** (`D80`), which is
-the day D78's argument stopped being theoretical:
+**AND THEN THE PIN ITSELF WENT AWAY. Measured 2026-09-03**, which is
+the day the argument stopped being theoretical:
 
     gemini-3.6-flash     FAIL HTTP 503 from gemini-3.6-flash
     gemini-3.5-flash     OK   SUPPORTED
@@ -84,7 +84,7 @@ days earlier and written into this constant -- answered 503 "experiencing high
 demand" through four retries, while three neighbours answered on the first
 attempt. **A pinned id is a promise about a name, not about a service.**
 
-D78 already said the snapshot is a convenience and the tight properties are
+The judge decision already said the snapshot is a convenience and the tight properties are
 *same judge, both arms, one sitting* and *agreement measured against a human*.
 Both survive this intact: `MODEL` moves to `gemini-3.7-flash`, `stamp()` puts
 that id on every row it produces, and `--model` overrides it without a code
@@ -217,7 +217,7 @@ def parse_verdict(text: str) -> tuple[str, str]:
     rather than coerced to a verdict. A judge that stopped following the format
     is a fact about the run, and silently mapping it onto UNSUPPORTED would
     move a number in the flattering direction -- the same failure ask.refused()
-    had before it became a prefix test (`D76`).
+    had before it became a prefix test.
     """
     head, _, rest = text.strip().partition("\n")
     # First alphabetic run on the first line. Models decorate freely --
@@ -261,7 +261,7 @@ def machine() -> str:
 def stamp(row: dict, model: str = MODEL) -> dict:
     """Every row carries the judge that produced it, AND the machine it ran on.
 
-    The judge stamp is `D78`'s: not that the model never changes, but that a
+    The judge stamp keeps the property that matters: not that the model never changes, but that a
     row never loses track of which model read it.
 
     **The machine stamp was added 2026-09-05, because the lab measured what
@@ -293,11 +293,11 @@ def stamp(row: dict, model: str = MODEL) -> dict:
 #      experiencing high demand..."}}
 #
 # The key was fine. The model was busy. Without a retry that is a run of a
-# hundred calls dying somewhere in the middle -- which is exactly `D75`, where
+# hundred calls dying somewhere in the middle -- which is exactly what happened once already, when
 # a slow Ollama call walked past a handler written for "Ollama is down" and
 # killed a 300-generation sweep at 150 with zero rows saved.
 #
-# The lesson `D75` actually taught is not "catch more exceptions": it is that
+# The lesson that run actually taught is not "catch more exceptions": it is that
 # **two conditions had been collapsed into one**. *The service is gone* must
 # stop; *this call was unlucky* must not. So the retry list is explicit —
 # 429 (rate limited), and the 5xx family the API returns when it is overloaded.
@@ -344,7 +344,7 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
     behaviour, and so the tests can pass a transport that fails on demand
     without any network at all.
 
-    `TimeoutError` is caught alongside `URLError` for the reason `D75` records:
+    `TimeoutError` is caught alongside `URLError` for the reason that run exposed:
     `socket.timeout` IS a `TimeoutError` and is NOT a `URLError`, so a handler
     written for one silently does not cover the other.
     """
@@ -365,7 +365,7 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
                 # exactly right. A per-DAY limit does not clear today, so
                 # retrying it four times costs 90 seconds to arrive at the same
                 # refusal -- ten items of that is fifteen minutes of a tool
-                # looking busy while it fails. Same mistake as D75 in the other
+                # looking busy while it fails. Same mistake as that dead sweep, in the other
                 # direction: there, two conditions were collapsed and a
                 # transient killed the run; here, collapsing them makes a
                 # permanent failure pretend to be transient.
@@ -382,7 +382,7 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
 
 # --- the local judge, and why it is not a downgrade -------------------------
 #
-# MEASURED 2026-09-03, and it contradicts D78 in as many words. D78 sized the
+# MEASURED 2026-09-03, and it contradicts the original judge decision in as many words. That decision sized the
 # judging workload and concluded:
 #
 #     "Rate limits are not the constraint on any free tier, which removes the
@@ -395,11 +395,11 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
 #
 # **Twenty requests per day, per model.** D + H over the saved sweep is about
 # 110 calls, so the API judge cannot finish this comparison today, tomorrow, or
-# in any single sitting -- and `D78`'s own tight property is that both arms are
+# in any single sitting -- and the decision's own tight property is that both arms are
 # judged by the same judge in ONE sitting. Spreading a run across six days to
 # fit the quota does not satisfy it; it destroys it.
 #
-# The escape is not a bigger quota. It is that `D78` already named the fallback
+# The escape is not a bigger quota. It is that the original decision already named the fallback
 # and gave the reason it is a good one:
 #
 #     "A local judge is in fact MORE pinnable than any API -- you hold the
@@ -408,7 +408,7 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
 #
 # WHAT ABOUT "TOO WEAK TO GRADE ITSELF"
 #
-# `ROADMAP.md` asks for a strong judge because the local model is too weak to
+# A strong judge is the usual advice, because a local model is too weak to
 # grade itself. That objection is about **self**-grading, and this is not that:
 # the generator is `qwen2.5-coder:7b` and the judge is a different family and a
 # different size. Nothing here asks a model to mark its own homework.
@@ -423,7 +423,7 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 
 # A different family and a different size from ask.MODEL (`qwen2.5-coder:7b`),
 # which is the whole point: a judge that shares weights with the generator is
-# the self-grading ROADMAP.md objects to.
+# the self-grading that advice objects to.
 LOCAL_MODEL = "gemma4:e4b"
 
 # Ollama's default context is 4096 tokens and it TRUNCATES SILENTLY past it --
@@ -479,7 +479,7 @@ def local_post(path: str, body: dict, key: str, timeout: int = 300) -> dict:
     Same `(path, body, key, timeout)` signature and same return shape, so
     `generate`, `judge_claim`, `judge_answer` and `sweep_rows` are untouched by
     which judge is in use. A judge swap that needed changes in four call sites
-    is a judge swap nobody makes under time pressure -- and D78 says the swap
+    is a judge swap nobody makes under time pressure -- and the swap
     has to stay cheap, because the pin is a convenience.
 
     `key` is ignored and that is deliberate rather than sloppy: it keeps the
@@ -509,8 +509,8 @@ def local_post(path: str, body: dict, key: str, timeout: int = 300) -> dict:
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 NVIDIA_KEY_VAR = "NVIDIA_API_KEY"
 # A judge from outside Google (Gemini, gemma) and Alibaba (qwen), chosen in
-# PHASE-6.md Step 3b before it read any answer.
-# mistral-large-2 was the first choice and returns 404 on this key (PHASE-6.md).
+# Phase 6 Step 3b before it read any answer.
+# mistral-large-2 was the first choice and returns 404 on this key.
 NVIDIA_JUDGE = "openai/gpt-oss-20b"
 
 
@@ -565,12 +565,12 @@ def nvidia_post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
 #
 # The prose only. Fenced code is stripped out before the claim is built, and
 # that is a division of labour rather than a shortcut: `judge.ungrounded_calls`
-# already grades code deterministically, exactly, with no key (`D77`), and it
+# already grades code deterministically, exactly, with no key, and it
 # found D 2 ungrounded of 48 and H 0 of 62. Sending the code here as well would
 # spend a paid-tier call to re-answer a question a regex already answers
 # exactly, and would let a judge's opinion overrule a measurement.
 #
-# What that leaves is precisely `D77`'s stated blind spot:
+# What that leaves is precisely the stated blind spot:
 #
 #     "What it cannot see: g056, which fabricates in prose rather than in code.
 #      A code grounding detector is structurally blind to that."
@@ -584,7 +584,7 @@ def nvidia_post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
 # useful. It also multiplies a 110-answer run into roughly 500 calls, and the
 # free tier is the constraint the whole judge was chosen under (zero paid API
 # calls). One call per answer keeps D + H inside a single sitting -- which
-# `D78` names as the property that actually matters, above the pinned id -- and
+# is the property that actually matters, above the pinned id -- and
 # the judge's one-sentence reason still names the passage that decided it.
 #
 # `--claims` exists for when the aggregate has already pointed at an item and
@@ -622,7 +622,7 @@ def judge_answer(answer: str, passages: list[str], *, key: str,
     rather than judged. That is not a pass: a code-only answer has already been
     graded by `judge.ungrounded_calls` and by `uncited_code_blocks`, and
     calling it SUPPORTED here because there was nothing to read would be the
-    flattering direction -- the same trap `D62` names for refusals.
+    flattering direction -- the same trap the refusal report avoids.
     """
     claim = prose(answer)
     if len(claim.split()) < MIN_WORDS_TO_JUDGE:
@@ -639,20 +639,20 @@ def judge_answer(answer: str, passages: list[str], *, key: str,
 # The saved sweep (`deliverables/prompt-sweep-phase4.json`) holds 300 answers
 # that cost about two and a half hours of Mac generation. Regenerating them to
 # judge them would spend that again AND make the result non-comparable, because
-# `D54` says refusal cells drift across days with the prompt, temperature and
-# index all unchanged. `D77` took this route for exactly this reason and it is
+# refusal cells drift across days with the prompt, temperature and
+# index all unchanged. The groundedness check took this route for exactly this reason and it is
 # the same route here.
 #
 # The sources are NOT in that file, so they are re-retrieved. That is cheap and
 # it is safe: retrieval is deterministic and does not depend on the prompt --
-# `D74`'s sweep retrieves once and reuses the hits across every variant for
+# The sweep retrieves once and reuses the hits across every variant for
 # precisely that reason. So one retrieval per item serves every arm, which also
 # guarantees the arms are judged against identical passages rather than against
 # two runs of the same query.
 #
 # WHAT "ONE SITTING" MEANS HERE
 #
-# `D78`: the tight property is not the pinned id, it is that both arms are read
+# The tight property is not the pinned id, it is that both arms are read
 # by the same judge in one sitting. Judging D on Monday and H on Friday is
 # worthless however carefully the model was pinned. So `--sweep` takes the
 # variants together and interleaves them item by item, rather than finishing D
@@ -662,7 +662,7 @@ def judge_answer(answer: str, passages: list[str], *, key: str,
 CHECKPOINT_EVERY = 10
 
 
-# --- the page as the model saw it (PHASE-6.md Step 4g, Round 22) -------------
+# --- the page as the model saw it -------------
 #
 # ask.build_prompt gives the model each source as a source line, a heading line
 # and the text. This judge was given the text only, in every run before
@@ -730,7 +730,7 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
     Returns `{variant: [row, ...]}`. Refused, failed and unanswered rows are
     excluded before any call is made: a decline has nothing to be faithful to,
     and counting it UNSUPPORTED would make the system look worse the more
-    honest it got (`D62`).
+    honest it got.
     """
     from rag import ask
 
@@ -746,8 +746,8 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
     # Rows already judged in an earlier attempt, keyed by variant. An item is
     # skipped only when EVERY selected variant already has it -- a half-judged
     # item would otherwise leave one arm short and turn a paired comparison
-    # into two averages (D61).
-    # A `FAILED` row is NOT done. It is a missing measurement (D75), and
+    # into two averages.
+    # A `FAILED` row is NOT done. It is a missing measurement, and
     # treating it as a verdict would make `--resume` skip the one item the
     # previous run could not judge -- a permanently absent row inside a file
     # that looks complete.
@@ -788,11 +788,11 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
                 # MEASURED 2026-09-10: without this the sweep died at item 63
                 # of 64 and three hours of judging survived only because
                 # checkpoints exist. `retrying()` had already done its job --
-                # it caught the `TimeoutError` that IS `D75`, retried four
+                # it caught the `TimeoutError` that killed the first sweep, retried four
                 # times, and gave up -- and then the exception walked straight
                 # out of the loop.
                 #
-                # `compare_prompts` learned this in D75 and wrote it down:
+                # `compare_prompts` learned this when its first sweep died, and wrote it down:
                 # retry, then record the item `failed` and continue. **The
                 # lesson never travelled to this module**, and nothing failed
                 # until a real timeout arrived. One unreachable call must cost
@@ -887,7 +887,7 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
             })
         log(f"  [{n}/{len(ids)}] {item_id}  "
             + "  ".join(f"{v}={seen.get(v, '-')}" for v in variants))
-        # D75, literally: the first full prompt sweep died at generation 150 of
+        # This happened once: the first full prompt sweep died at generation 150 of
         # 300 with ZERO rows saved, and the whole night was spent again. Rows
         # cost money and minutes here too; write them down as they arrive.
         if checkpoint and n % CHECKPOINT_EVERY == 0:
@@ -917,26 +917,26 @@ def report(by_variant: dict) -> None:
     # The header names the model that ACTUALLY read these rows, taken from the
     # stamps, not the module constant. The first draft printed MODEL and so
     # announced `gemini-3.7-flash` over a run judged by `gemma4:e4b` -- a
-    # report that misnames its own instrument, which is the exact failure D78
-    # made stamp() mandatory to prevent.
+    # report that misnames its own instrument, which is the exact failure
+    # stamp() was made mandatory to prevent.
     models = sorted({r["judge_model"] for rows in by_variant.values()
                      for r in rows})
     machines = sorted({r["machine"] for rows in by_variant.values()
                        for r in rows if r.get("machine")})
-    print("\nFAITHFULNESS  —  prose only; code is judge.py's half (D77)")
+    print("\nFAITHFULNESS  —  prose only; code is judge.py's half")
     print(f"  judge: {', '.join(models) or '(no rows)'} on "
           f"{', '.join(machines) or 'a machine these rows do not record'}, "
           f"one sitting, both arms, identical passages")
     if len(machines) > 1:
         # Not fatal like two judges, but it must be visible: D's supported rate
         # measured 85% on Darwin-arm64 and 77% on Linux-x86_64 with everything
-        # else held fixed (D83).
+        # else held fixed.
         print("  !! ROWS FROM MORE THAN ONE MACHINE — these verdicts do not "
-              "reproduce across machines (D83)")
+              "reproduce across machines")
     if len(models) > 1:
-        # Not a warning, a disqualification. D78's tight property is one judge
+        # Not a warning, a disqualification. The tight property is one judge
         # across both arms; two ids here means the comparison is void.
-        print("  !! TWO JUDGES IN ONE RUN — this is not a comparison (D78)")
+        print("  !! TWO JUDGES IN ONE RUN — this is not a comparison")
     print()
     head = f"  {'variant':<10}{'answers':>9}{'judged':>8}{'SUPP':>7}{'PART':>7}{'UNSUP':>7}{'UNPARSED':>10}{'NO_PROSE':>10}{'supported':>11}"
     print(head)
@@ -967,7 +967,7 @@ def report(by_variant: dict) -> None:
 #
 # An LLM judge agrees with a human 85-92% of the time in the literature, which
 # is a number about somebody else's judge on somebody else's task. Ours is
-# unmeasured until ten of its verdicts are read by a human, and `PHASE-4.md`'s
+# unmeasured until ten of its verdicts are read by a human, and the Phase 4
 # gate says the agreement rate has to be IN the report rather than assumed.
 #
 # The sample is risk-weighted rather than random, which is the same call the
@@ -977,7 +977,7 @@ def report(by_variant: dict) -> None:
 # UNSUPPORTED and PARTIAL goes in first, and SUPPORTED rows fill the rest --
 # without those the sheet can only find false accusations and never a miss.
 #
-# Claude renders this sheet. Claude does not fill it in (`D06`).
+# Claude renders this sheet. Claude does not fill it in.
 
 
 # How many SUPPORTED rows are RESERVED in the sample of ten.
@@ -1012,9 +1012,9 @@ def agreement_sample(by_variant: dict, n: int = 10,
     # teaches a human nothing.
     #
     # Measured 2026-09-03, and it is why this ranking exists at all: `g056` --
-    # the item D77 names as the reason a prose judge was needed, because it
+    # the reason a prose judge was needed, because it
     # fabricates in prose rather than in code -- came back **SUPPORTED from
-    # both arms**, while D78 records `gemini-3.6-flash` judging the same item
+    # both arms**, while `gemini-3.6-flash` judged the same item
     # **PARTIAL**. The two judges disagree on the single most important item,
     # the local one is the lenient one, and the first version of this sample
     # did not put g056 in front of a human at all.
@@ -1123,7 +1123,7 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
         "# The judge's ceiling — ten verdicts for a human to check",
         "",
         "Generated by `rag.faithful --agreement`. **Claude renders this sheet and",
-        "does not fill it in** (`D06`). `PHASE-4.md`'s gate asks for the judge's",
+        "does not fill it in**. The Phase 4 gate asks for the judge's",
         "agreement with a human as a number in the report rather than an",
         "assumption, and this is the ten it is computed from.",
         "",
@@ -1140,7 +1140,7 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
         "> which verdict it should have been.",
         "",
         "Code blocks are stripped from the claim on purpose: code grounding is",
-        "`judge.ungrounded_calls`' deterministic half (`D77`), and this half is",
+        "`judge.ungrounded_calls`' deterministic half, and this half is",
         "the prose it is structurally blind to.",
         "",
         "---",
@@ -1170,7 +1170,7 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
                 "",
                 f"_second model: `{other['judge_model']}` — {flag}. Two models "
                 f"agreeing can still both be wrong; your reading is the one "
-                f"that counts (`D06`)._",
+                f"that counts._",
                 "",
             ]
         lines += [
@@ -1242,7 +1242,7 @@ SWEEP_DEFAULT = REPO / "deliverables" / "prompt-sweep-phase4.json"
 # A stamp tells you afterwards which machine a row came from. A distinct path
 # stops the second machine from destroying the first one's evidence in the
 # first place -- and comparing the two runs is the entire point of running it
-# twice (`D83`).
+# twice.
 ROWS_DEFAULT = REPO / "deliverables" / f"faithfulness-phase4.{machine()}.json"
 
 
@@ -1344,9 +1344,9 @@ def main() -> None:
         return
 
     if "--sweep" in argv:
-        # Judges SAVED answers. It does not generate: D54 says a re-run drifts,
+        # Judges SAVED answers. It does not generate: a re-run drifts,
         # and a faithfulness row describing a different answer than the one
-        # D72/D73 were computed from is worse than no row at all.
+        # the published figures were computed from is worse than no row at all.
         src_path = pathlib.Path(_arg(argv, "--sweep", str(SWEEP_DEFAULT)))
         saved = json.loads(src_path.read_text())
         if "rows" in saved:                       # a judge --save file
@@ -1361,7 +1361,7 @@ def main() -> None:
             items = items[: int(_arg(argv, "--limit"))]
         model = _arg(argv, "--model", LOCAL_MODEL if local else MODEL)
         # `--resume` picks up a run that died or was killed. It is NOT a way to
-        # spread a run across days: D78's binding property is same judge, both
+        # spread a run across days: the binding property is same judge, both
         # arms, one sitting. What makes a resume safe here is that the sweep
         # judges D and H back-to-back on each item, so a gap falls BETWEEN
         # items rather than between arms -- and the judge is a local model with
@@ -1377,7 +1377,7 @@ def main() -> None:
                 sys.exit(f"cannot resume: those rows were judged by "
                          f"{prior.get('judge_model')}, this run uses {model}.\n"
                          f"  Two judges in one comparison is not a comparison "
-                         f"(D78). Delete the file, or pass --model {prior.get('judge_model')}.")
+                         f". Delete the file, or pass --model {prior.get('judge_model')}.")
             resume = prior.get("variants", {})
             print(f"resuming: {sum(len(r) for r in resume.values())} rows "
                   f"already judged by {model}", flush=True)
@@ -1393,7 +1393,7 @@ def main() -> None:
                     f"{out.name} holds rows from {prior}; this host is "
                     f"{machine()}.\n"
                     f"  Overwriting would destroy the other machine's evidence, "
-                    f"and comparing the two is the point (D83).\n"
+                    f"and comparing the two is the point.\n"
                     f"  Default path for this host: {ROWS_DEFAULT.name}")
 
         def save(rows):
@@ -1404,7 +1404,7 @@ def main() -> None:
                                        "variants": rows}, indent=1) + "\n")
 
         print(f"judging {', '.join(variants)} from {src_path.name} with "
-              f"{model} - one sitting, both arms, identical passages (D78)")
+              f"{model} - one sitting, both arms, identical passages")
         try:
             rows = sweep_rows(saved, items, variants, key=key or "", model=model,
                               post=post, checkpoint=save, pace=pace,
@@ -1412,12 +1412,12 @@ def main() -> None:
                               workers=int(_arg(argv, "--workers", "1")), headings=headings,
                               log=lambda line: print(line, flush=True))
         except urllib.error.HTTPError as exc:
-            # D75: a sweep that dies with nothing written is the expensive
+            # A sweep that dies with nothing written is the expensive
             # failure. Say what died, and say what survived.
             hint = ("  the free tier is 20 requests PER DAY PER MODEL "
                     "(measured 2026-09-03); this run needs ~110.\n"
-                    "  --local judges with Ollama instead: no quota, and D78 "
-                    "names it as the fallback.\n"
+                    "  --local judges with Ollama instead: no quota, and it was "
+                    "named as the fallback from the start.\n"
                     if exc.code == 429 else
                     "  --models lists what this key can reach; --model picks "
                     "another without a code edit.\n")
@@ -1463,11 +1463,11 @@ def main() -> None:
         # replacement for the human -- two models agreeing can both be wrong in
         # the same direction, which is the whole reason Step 5 asks for a
         # person. What it does buy is a cheap prior on WHERE to look, and it
-        # fits the free tier: ten calls against a 20/day/model ceiling (D80).
+        # fits the free tier: ten calls against a 20/day/model ceiling.
         #
-        # It exists because of one measured disagreement. `g056` -- D77's named
+        # It exists because of one measured disagreement. `g056` -- the named
         # blind spot -- is SUPPORTED under gemma4:e4b and PARTIAL under
-        # gemini-3.6-flash (D78). One item is not a pattern; ten is a start.
+        # gemini-3.6-flash. One item is not a pattern; ten is a start.
         rows_path = pathlib.Path(_arg(argv, "--rows", str(ROWS_DEFAULT)))
         if not rows_path.exists():
             sys.exit(f"{rows_path} does not exist - run --sweep first")
@@ -1494,7 +1494,7 @@ def main() -> None:
             # A second opinion is best-effort by definition, so one bad call
             # must not throw away the ones already collected. Measured
             # 2026-09-03: this died on item 6 of 10 with a 503 and printed
-            # nothing but a traceback -- D75's shape for the third time in one
+            # nothing but a traceback -- the shape for the third time in one
             # day, in the one place I had already written the lesson down.
             try:
                 got = judge_claim(row["claim"], passages, key=key,
@@ -1530,9 +1530,9 @@ def main() -> None:
         print(f"  saved to {out} — --agreement puts both opinions on the sheet")
         if asked_failed:
             print(f"  {asked_failed} of {len(sample)} got no answer from "
-                  f"{second} — free tier is 20/day/model (D80)")
+                  f"{second} — free tier is 20/day/model")
         print("  This is NOT the Step 5 number. Two models can be wrong the "
-              "same way; only a human closes it (D06).")
+              "same way; only a human closes it.")
         return
 
     if "--agreement" in argv:
@@ -1552,7 +1552,7 @@ def main() -> None:
             counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
         print(f"{n} verdicts -> {out}")
         print("  " + ", ".join(f"{v} {c}" for v, c in sorted(counts.items())))
-        print("D06: a human agrees or disagrees. This script does not.")
+        print("A human agrees or disagrees. This script does not.")
         return
 
     sys.exit(__doc__.strip().splitlines()[0]

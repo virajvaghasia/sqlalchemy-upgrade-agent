@@ -1,6 +1,10 @@
 == generate 100 2026-09-13 11:32:25
-Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 57747.56it/s]
-Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 8855.81it/s]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 57747.56it/s]
+
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 201/201 [00:00<00:00, 8855.81it/s]
   [1/100] g001 REFUSED  tokens 2036+331
   [2/100] g002 answered  tokens 1999+453
   [3/100] g003 REFUSED  tokens 2195+362
@@ -103,7 +107,7 @@
   [100/100] g121 answered  tokens 2036+1082
 ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
 
-REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+REFUSALS  —  generation, at k=5 (not averaged into recall)
   unanswerable items                9
     refused — correct               9/9  (100%)
     answered — FABRICATED           0/9  (0%)
@@ -133,8 +137,12 @@ REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
   tokens, as returned by the API: prompt 215177, output 67260  (over 100 generation calls)
   shadow cost of the 100: $0.3447, $3.45 per 1000 queries  (price snapshot; calls were free credits)
 == repeat 20 2026-09-13 12:20:29
-Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 30366.49it/s]
-Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 6658.73it/s]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 30366.49it/s]
+
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 201/201 [00:00<00:00, 6658.73it/s]
   [1/20] g001 REFUSED  tokens 2036+366
   [2/20] g002 answered  tokens 1999+423
   [3/20] g003 REFUSED  tokens 2195+446
@@ -157,7 +165,7 @@ REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
   [20/20] g020 answered  tokens 2514+1011
 ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
 
-REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+REFUSALS  —  generation, at k=5 (not averaged into recall)
   unanswerable items                9
     refused — correct               9/9  (100%)
     answered — FABRICATED           0/9  (0%)
@@ -260,7 +268,7 @@ REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
   g121 PARTIAL
 ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
 
-REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+REFUSALS  —  generation, at k=5 (not averaged into recall)
   unanswerable items                9
     refused — correct               9/9  (100%)
     answered — FABRICATED           0/9  (0%)
@@ -297,7 +305,7 @@ REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
   g025 PARTIAL
 ALL 100 — nvidia/nemotron-3-ultra-550b-a55b, shipped prompt, k=5  (asked 100, EMPTY 0)
 
-REFUSALS  —  generation, at k=5 (D62; not averaged into recall)
+REFUSALS  —  generation, at k=5 (not averaged into recall)
   unanswerable items                9
     refused — correct               9/9  (100%)
     answered — FABRICATED           0/9  (0%)

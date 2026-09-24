@@ -2,8 +2,8 @@
 Cross-encoder rerank — seat-5 promotion only (Phase 3, lever 3).
 
 A full `CrossEncoder` reorder of the hybrid top-20 **raises** recall@5
-(57 → 60) and also **breaks ten** items hybrid already had (`D61` cares about
-flips, not averages). Hybrid-heavy RRF with the CE list is a no-op once
+(57 → 60) and also **breaks ten** items hybrid already had (flips matter,
+not averages). Hybrid-heavy RRF with the CE list is a no-op once
 weighted safely. Freeze-head fill always keeps broken > 0 until head=5
 (identity).
 
@@ -15,9 +15,9 @@ What survives a sweep on the 100-item set (Mac, 2026-08-21):
 Measured: **1 fixed** (`g017`), **0 broken**, recall@5 57 → 58. Absents stay 17
 — a reranker cannot invent a page.
 
-Model: `BAAI/bge-reranker-base` (ROADMAP's bge-reranker family; base fits Mac +
-leaves room for Ollama on the 3060). Full replace and deeper tails are rejected
-in `D68`, not forgotten.
+Model: `BAAI/bge-reranker-base` (the bge-reranker family; base fits Mac +
+leaves room for Ollama on the 3060). Full replace and deeper tails were measured
+and rejected, not forgotten.
 """
 
 from __future__ import annotations
@@ -29,10 +29,10 @@ MODEL_ID = "BAAI/bge-reranker-base"
 
 # The line above said "pinned" from 2026-08-21 and nothing was: CrossEncoder got
 # the model id and no revision, so every load took whatever `main` pointed at.
-# Found 2026-09-12 building the CI gate (D97), where it stops being cosmetic -- a
+# Found 2026-09-12 building the CI gate, where it stops being cosmetic -- a
 # fresh runner downloads `main`, and a new upload could flip `g017` (this
 # lever's only fix) with no code change, and the gate would blame the PR.
-# This is the snapshot every D68 measurement was taken with: it is the only one
+# This is the snapshot every seat-5 reranker measurement was taken with: it is the only one
 # in the Mac's Hugging Face cache, and refs/main there names it.
 MODEL_REVISION = "2cfc18c9415c912f9d8155881c133215df768a70"
 

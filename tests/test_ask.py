@@ -3,7 +3,7 @@
 Two properties, both easy to break without noticing:
 
 - **The prompt must carry the version of every source.** Retrieval is
-  deliberately unfiltered (D10), so 1.4 and 2.0 passages arrive together. If the
+  deliberately unfiltered, so 1.4 and 2.0 passages arrive together. If the
   version does not reach the model, it cannot report a disagreement it has no
   way to see.
 - **Sources must always be printed.** An answer without them is indistinguishable
@@ -88,7 +88,7 @@ def test_a_missing_heading_does_not_render_as_empty():
 
 def test_model_tag_is_pinned():
     """`:latest` would let two machines answer with different weights while
-    reporting the same model — the same drift D16 and D36 exist to stop."""
+    reporting the same model — the same drift pinning the 2.0 version and embedding on one machine exist to stop."""
     assert ":" in ask.MODEL and not ask.MODEL.endswith(":latest")
 
 
@@ -106,7 +106,7 @@ def test_temperature_is_zero():
 def test_system_prompt_keeps_its_three_jobs(instruction):
     """The refusal clause is load-bearing and was measured, not assumed: without
     it the model invented a full method signature for Session.execute out of its
-    own weights, because the corpus provably cannot answer that (D07). With it
+    own weights, because the corpus provably cannot answer that. With it
     phrased strictly, it refused a question whose answer was in the prompt. The
     surviving wording is a last resort rather than an easy exit."""
     assert instruction.lower() in ask.SYSTEM.lower()
@@ -114,11 +114,11 @@ def test_system_prompt_keeps_its_three_jobs(instruction):
 
 def test_refusal_is_narrowed_to_subject_and_must_name_what_was_sought():
     """
-    Prompt D, shipped 2026-08-17 (D54).
+    Prompt D, shipped 2026-08-17.
 
     This used to assert the B wording — "prefer answering", "only if". B and the
     stricter A were then measured over 19 questions and refused the SAME 8, so
-    D43 had chosen between two identical options (D52). D changes the mechanism:
+    The refusal clause that over-fires had chosen between two identical options. D changes the mechanism:
     partial answers are the expected output, refusal narrows to SUBJECT rather
     than sufficiency, and a refusal must name what was looked for.
     """
@@ -126,8 +126,8 @@ def test_refusal_is_narrowed_to_subject_and_must_name_what_was_sought():
     assert "even partially" in lowered, "partial answers must be the expected output"
     assert "name the specific thing you looked for" in lowered, "refusal must require naming"
     assert "about the subject of the question at all" in lowered, "refusal is scoped to subject"
-    assert "say exactly" not in lowered, "the A wording over-refused; see D43"
-    assert "genuinely silent" not in lowered, "that is B's sufficiency test; see D52"
+    assert "say exactly" not in lowered, "the A wording over-refused"
+    assert "genuinely silent" not in lowered, "that is B's sufficiency test, which behaved identically to A"
 
 
 def test_a_refusal_with_a_citation_in_front_of_it_is_still_a_refusal():
@@ -152,19 +152,19 @@ def test_stripping_citations_does_not_turn_the_prefix_test_into_a_search():
     assert not ask.refused("[1] Use Session.get(). The sources do not answer that.")
 
 
-# --- D115: the citation reminder ships in the user turn -----------------------
+# --- prompt H: the citation reminder ships in the user turn -----------------------
 #
-# Phase 4 measured variant `H` and it was held (`D83`) because its REFUSAL effect
+# Phase 4 measured variant `H` and it was held because its REFUSAL effect
 # did not reproduce across machines. Its CITATION effect did: uncited 65% -> 10%
-# on the Mac and 43% -> 8% on the lab. `D115` ships it for that effect only, and
+# on the Mac and 43% -> 8% on the lab. It ships for that effect only, and
 # these tests pin the shape so the thing that shipped cannot drift from the thing
 # that was measured.
 
 def test_the_citation_reminder_is_in_the_shipped_prompt():
-    """`D73` measured 65% of answered questions citing nothing at all.
+    """A citation audit measured 65% of answered questions citing nothing at all.
 
     The rule was already in SYSTEM and was ignored; moving the same words into
-    the user turn, next to the ANSWER cue, is the whole of variant `H` (`D74`).
+    the user turn, next to the ANSWER cue, is the whole of variant `H`.
     """
     prompt = ask.build_prompt("q?", [hit(1)])
     assert ask.REMINDER in prompt
@@ -174,15 +174,15 @@ def test_the_citation_reminder_is_in_the_shipped_prompt():
 def test_the_reminder_lands_before_the_answer_cue_not_after_it():
     """Anything after `ANSWER:` reads as the first words of the answer, so the
     model would be completing our sentence instead of obeying the instruction.
-    `D74` is the measurement that position, not emphasis, is what worked."""
+    It was measured that position, not emphasis, is what worked."""
     prompt = ask.build_prompt("q?", [hit(1)])
     assert prompt.endswith("ANSWER:")
     assert prompt.count("ANSWER:") == 1
     assert prompt.index(ask.REMINDER) < prompt.index("ANSWER:")
 
 
-def test_the_pre_D115_prompt_is_still_reachable():
-    """Every figure taken before `D115` — `D72`'s 0.43, `D109`'s 11 of 30 — was
+def test_the_pre_h_prompt_is_still_reachable():
+    """Every figure taken before prompt H shipped — the 0.43, the 11 of 30 — was
     measured on the prompt without this sentence. `compare_prompts` needs that
     exact prompt to stay reproducible as its control, or the historical arm
     silently becomes the new one and the comparison measures nothing."""

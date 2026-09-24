@@ -4,8 +4,8 @@
 
 This file is the Phase 1 deliverable and the argument for everything in Phase 3. It is
 generated, but it is *not finished* — the script records mechanical signals and never
-decides whether an answer is correct. That judgement is a human's, per
-[`../study/09-DECISIONS.md`](../study/09-DECISIONS.md) **D06**: a golden set graded by the
+decides whether an answer is correct. That judgement is a human's:
+a golden set graded by the
 same family of model that produced the answers measures self-consistency, not truth.
 
 **To use this file:** read each answer against its sources and mark the verdict line
@@ -87,7 +87,7 @@ recall test.
 |---|---|---|
 | `refused` | the model declined to answer | **correct** for `absent` questions, a failure elsewhere |
 | `uncited` | a substantial answer with no `[n]` citation | usually a failure — the claim is unverifiable |
-| `duplicate_slots` | the same text held more than one top-k slot (D38) | wasted context, not automatically wrong |
+| `duplicate_slots` | the same text held more than one top-k slot | wasted context, not automatically wrong |
 | `version_mixed` | top-k holds both 1.4 and 2.0 passages | usually fine, occasionally the whole problem |
 | `symbol_missing` | no retrieved chunk contains the exact symbol asked about | see the two below — the reason decides the fix |
 | **`retrieval_failure`** | the symbol IS in the corpus and search did not find it | **yes — and Phase 3 can fix it** |
@@ -957,7 +957,7 @@ and techniques.
 
 **Signals:** `single_source`
 
-**Verdict:** `WRONG` — Says yes, pass `future=True`, which is wrong for 2.0 where the flag does nothing. Its single source is a 2.0 page whose sentence opens 'In 1.4' — the case §R1.7 dissects.
+**Verdict:** `WRONG` — Says yes, pass `future=True`, which is wrong for 2.0 where the flag does nothing. Its single source is a 2.0 page whose sentence opens 'In 1.4' — a 1.4 statement on a 2.0 page.
 
 ### Answer
 

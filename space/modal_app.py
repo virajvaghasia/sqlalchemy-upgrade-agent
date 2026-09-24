@@ -1,16 +1,16 @@
 """Host the demo on Modal (FastAPI ASGI over the space/dist bundle).
 
-Why Modal: Hugging Face Gradio Spaces returned HTTP 402 on the free plan
-(PHASE-6.md Step 4). Modal's Starter credits fit the ~4 GB RAM the page needs
+Why Modal: Hugging Face Gradio Spaces returned HTTP 402 on the free plan.
+Modal's Starter credits fit the ~4 GB RAM the page needs
 (BGE-M3 + seat-5 reranker + torch) and scale to zero when idle.
 
     # once: token + secret (secret name must be `nvidia`, key NVIDIA_API_KEY)
     uv run python space/build.py
     uv run --with modal modal deploy space/modal_app.py
 
-The page is the same `web.py` + `rag/demo.py` path gated in D102. Generator is
+The page is the same `web.py` + `rag/demo.py` path, with dense search in memory. Generator is
 NVIDIA (nemotron); the page's notice quotes that model's own measured numbers
-(0.58 end to end, D104; 91% supported, D107) and names the 0.42 as qwen's.
+(0.58 end to end; 91% supported) and names the 0.42 as qwen's.
 
 Keep DEPS in sync with space/requirements.txt (minus torch — see below). Do not
 `Path.read_text()` that file at import time: Modal re-imports this module inside

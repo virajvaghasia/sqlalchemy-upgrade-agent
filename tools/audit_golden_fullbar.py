@@ -114,7 +114,7 @@ class ItemReport:
             return
         # Hard bar: chunk must resolve; docs must hit live page; SQL PASS or N/A.
         # Chunk SOFT (low token overlap) is OK when docs+SQL both PASS — phrasing
-        # mismatch is exactly what D63 measured (e.g. cascade_backrefs / g042).
+        # mismatch is exactly what the phrasing measurement found (e.g. cascade_backrefs / g042).
         if self.chunk_ok in ("PASS", "SOFT") and self.docs_ok == "PASS" and self.sql_ok in (
             "PASS", "N/A", "SKIP",
         ):
@@ -1428,7 +1428,7 @@ def main() -> int:
     # neither passes nor failures, and reading only the rollup makes 9 items
     # look checked when nothing executable ran. Generated, not hand-typed —
     # a written-in-by-hand version of this section lived in the report on
-    # 2026-08-21 and did not survive a re-run (CLAUDE.md's measurement rule).
+    # 2026-08-21 and did not survive a re-run (the project's measurement rule).
     for label, getter, detail in (
         ("SQL", lambda r: r.sql_ok, lambda r: r.sql_detail),
         ("Docs", lambda r: r.docs_ok, lambda r: r.docs_detail),

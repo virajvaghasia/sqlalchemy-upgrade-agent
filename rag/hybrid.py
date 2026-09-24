@@ -18,7 +18,7 @@ Constants below were swept on the 100-item golden set (2026-08-21):
 | 30 | 80 | 0.637 | 13 | 2 |
 
 `kd=25, kb=90` is what ships: the densest *zero-regression* point. Higher
-recall with broken items is a worse McNemar story (`D61`). `hybrid=False` on
+recall with broken items is a worse McNemar story. `hybrid=False` on
 `retrieve` keeps the dense-only path for re-measurement.
 """
 

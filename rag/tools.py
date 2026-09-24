@@ -2,8 +2,8 @@
 
 **Tools first, loop second**, for a reason that is not sequencing taste: these
 are independently testable and independently useful, and an agent built on
-tools nobody has measured produces failures you cannot attribute. `D87` already
-made that mistake cheap to imagine -- a parser bug nearly ended the phase.
+tools nobody has measured produces failures you cannot attribute. The model returning tool calls as plain text
+already made that mistake cheap to imagine -- a parser bug nearly ended the phase.
 
   search_docs        the corpus, through the SAME retrieval path the rest of
                      the system uses (`index.retrieve`). Not a second
@@ -18,7 +18,7 @@ made that mistake cheap to imagine -- a parser bug nearly ended the phase.
 
   check_api          does this symbol still exist in 2.0, and what is its
                      signature? **This is the differentiator and it is not
-                     hypothetical.** `D77` proved `g065` fabricated by
+                     hypothetical.** the groundedness check proved `g065` fabricated by
                      measuring `hasattr(Operations, "create_view") is False`
                      on alembic while `create_table` in the same script was
                      real. As a tool the model can call BEFORE it writes, that
@@ -28,7 +28,7 @@ made that mistake cheap to imagine -- a parser bug nearly ended the phase.
 THE VERSION PROBLEM, and why there is a subprocess here.
 
 This project's own environment is pinned to **SQLAlchemy 1.4.52** -- deliberately,
-because `experiments/` is an instrument pointed at 1.4 (`D04`). So the process
+because `experiments/` is an instrument pointed at 1.4. So the process
 asking "does this exist in 2.0?" cannot import 2.0 to find out. `verify_2_0.py`
 solved this first and this module reuses its answer rather than inventing a
 second one:
@@ -37,7 +37,7 @@ second one:
 
 **One pin, one place.** `PIN` is imported from `verify_2_0` so a version bump
 cannot leave two files disagreeing about which 2.0 is "real 2.0" -- exactly the
-drift `D85` found between two copies of a metric.
+drift already found once between two copies of one metric.
 """
 
 import json
@@ -54,16 +54,16 @@ def _pin() -> str:
 
     **Read, not imported, and that is not squeamishness.** `verify_2_0` runs a
     module-level `sys.exit()` when it finds itself on 1.4 -- which is always,
-    here, because this project is pinned to 1.4.52 by design (`D04`). Importing
+    here, because this project is pinned to 1.4.52 by design. Importing
     it from a 1.4 process kills the process, and `SystemExit` does not inherit
     from `Exception`, so a `try/except Exception` around the import would not
-    even catch it. That trap is already written up in `CLAUDE.md`; this is the
+    even catch it. That trap is already written up in the project; this is the
     second module to meet it.
 
     One source of truth either way: `PIN` stays declared in `verify_2_0.py`,
     which is the file whose measured error strings depend on it. A test pins
     the two together so a version bump cannot leave them disagreeing -- the
-    drift `D85` found when one metric had two implementations.
+    drift already found once when one metric had two implementations.
     """
     found = re.search(r'^PIN = "([^"]+)"', _VERIFY.read_text(), re.M)
     if not found:                              # a rename must fail loudly
@@ -158,7 +158,7 @@ def _run(symbol: str, package: str, source: bool, runner=None) -> dict:
     try:
         done = runner(command)
     except subprocess.TimeoutExpired:
-        # D75, and this module is the fourth to inherit it: one unreachable
+        # The fourth module to need this rule: one unreachable
         # call costs one question, never the run.
         return {"exists": False, "error": f"timed out after {TIMEOUT}s"}
     if done.returncode != 0:
@@ -198,10 +198,10 @@ def search_docs(query: str, k: int = 5, retrieve=None) -> list[dict]:
     """The corpus, through the graded retrieval path.
 
     Calls `index.retrieve`, which is hybrid + dedupe + seat-5 rerank
-    (`D66`-`D68`). **Not a private retriever.** A second one would drift from
+    **Not a private retriever.** A second one would drift from
     the one Phase 2 measured, and every recall figure in this repo would
     quietly stop describing what the agent actually sees -- the same defect
-    `D85` found when one metric had two implementations.
+    found once when one metric had two implementations.
     """
     if retrieve is None:                      # imported late: needs Qdrant up
         from rag import index
@@ -215,7 +215,7 @@ def search_docs(query: str, k: int = 5, retrieve=None) -> list[dict]:
 # The two calls that make `g065` a measurement rather than an anecdote. Prompt
 # D answered an unanswerable question with an Alembic script in which
 # `op.create_table` is real and `op.create_view` does not exist -- two invented
-# calls sitting next to two working ones (`D77`). A count of fabrications
+# calls sitting next to two working ones. A count of fabrications
 # cannot see that; this can, and an agent can call it before it writes.
 G065 = [("alembic.operations.Operations.create_table", "alembic", True),
         ("alembic.operations.Operations.create_view", "alembic", False)]
@@ -229,7 +229,7 @@ def main() -> None:
 
     if "--g065" in argv:
         print(f"g065 — the fabricated Alembic script, checked against real "
-              f"alembic (D77)")
+              f"alembic")
         ok = True
         for symbol, pkg, expected in G065:
             got = check_api(symbol, package=pkg)

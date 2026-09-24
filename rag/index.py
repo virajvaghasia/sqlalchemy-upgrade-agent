@@ -9,7 +9,7 @@ Phase 1, Step 3b — load the vectors into Qdrant.
 Reads `corpus/embeddings.npy` and `corpus/chunks.jsonl`, both generated. Writes
 nothing to the repo — the output of this step lives in a Docker volume, and
 that is on purpose: losing it costs one re-run of this script, because the
-vectors themselves are a file (D36) rather than something only the database has.
+vectors themselves are a file rather than something only the database has.
 
 WHY A DATABASE AT ALL, WHEN A DOT PRODUCT ALREADY WORKS
 
@@ -35,12 +35,12 @@ WHY THE COLLECTION NAME CONTAINS THE MODEL AND REVISION
 `sqlalchemy-upgrade-agent-bge-m3-5617a9f6`, not `chunks`.
 
 Vectors from two model revisions are not comparable — cosine between them is
-noise, not degradation (D36). Qdrant has no collection-level metadata field to
+noise, not degradation. Qdrant has no collection-level metadata field to
 record what produced a collection, so the fact is put where it cannot be
 ignored: in the name. Re-embed with a different revision and you get a
 different collection rather than a silently mixed one.
 
-Same reasoning as declaring `image:` in Compose (D20) — make the wrong thing
+Same reasoning as declaring `image:` in Compose — make the wrong thing
 inexpressible rather than merely discouraged.
 """
 
@@ -57,7 +57,7 @@ BATCH = 256
 # Where dense search runs. "qdrant" is what every measurement in this repo used.
 # "memory" is an exact dot product over corpus/embeddings.npy, for places with no
 # Qdrant -- the Phase 6 demo on a Hugging Face Space. It is only allowed to ship
-# if the golden set scores identically through it (`rag.gate`, `D102`), because
+# if the golden set scores identically through it (`rag.gate`, the in-memory demo retrieval), because
 # Qdrant's HNSW index is approximate and an exact search could rank differently.
 DENSE_ENV = "RAG_DENSE"
 
@@ -214,7 +214,7 @@ def build(recreate: bool) -> None:
                         "n_chars": chunks[cid]["n_chars"],
                         # The character range in the source file. A retrieved
                         # passage you distrust is one you want to open at the
-                        # original — PHASE-1.md Step 2 requires it, and without
+                        # original — Phase 1 Step 2 requires it, and without
                         # it a citation names a file but not a place in it.
                         "char_start": chunks[cid]["char_start"],
                         "char_end": chunks[cid]["char_end"],
@@ -275,9 +275,9 @@ def retrieve(
     """Top-`limit` hits. Shared by --search, rag.ask, and rag.score.
 
     Defaults (Phase 3):
-      - `hybrid=True` — dense (Qdrant) + BM25 fused with dense-heavy RRF (`D67`)
-      - `dedupe=True` — collapse cross-version twins, prefer 2.0.51 (`D66`)
-      - `rerank=True` — seat-5 CE promotion on the hybrid list (`D68`)
+      - `hybrid=True` — dense (Qdrant) + BM25 fused with dense-heavy RRF
+      - `dedupe=True` — collapse cross-version twins, prefer 2.0.51
+      - `rerank=True` — seat-5 CE promotion on the hybrid list
 
     Pass `hybrid=False` / `dedupe=False` / `rerank=False` only to re-measure.
     """

@@ -17,14 +17,14 @@ answer page in the top 5?* -- on both sides.
 
 **A single broken item blocks the merge**, even if the same change fixes five
 others. That is not new strictness invented for CI: it is Round 14's rule, the
-one still holding prompt H back (`D83`), and `D61`'s reason for reading flipped
+one still holding prompt H back, and the reason for reading flipped
 items rather than averages. A net gain that breaks `g043` has taken an answer
 away from the developer who asks `g043`, and the gate makes that a decision a
 human signs off rather than a side effect nobody saw.
 
 WHAT IT DOES NOT CHECK
 
-- **Generation.** No Ollama in CI, and `D83` measured generation not
+- **Generation.** No Ollama in CI, and generation was measured not
   reproducing across machines at all. Retrieval did, exactly. So the gate grades
   the half that can be graded on a stranger's computer.
 - **The average.** recall@5 is printed for context and gates nothing. A PR can
@@ -34,13 +34,13 @@ THE RULER CANNOT BE MOVED BY THE THING BEING GRADED
 
 If a PR deletes the golden item it breaks, there is nothing left to compare and
 a naive join passes it. Same if it flips the item to `answerable: false`. Both
-fail here as `ruler changed`: editing `deliverables/golden.json` is a human act
-(`D06`), and it belongs in its own PR where it is the only thing being reviewed.
+fail here as `ruler changed`: editing `deliverables/golden.json` is a human act,
+and it belongs in its own PR where it is the only thing being reviewed.
 New items are allowed and reported as `unpaired` -- there is no baseline for
 them yet, so they cannot be broken.
 
 In CI the baseline is read from the BASE branch, never from the PR's own copy of
-the file, for the same reason. See `D97`.
+the file, for the same reason.
 """
 
 from __future__ import annotations

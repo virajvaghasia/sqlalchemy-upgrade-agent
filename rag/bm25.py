@@ -8,8 +8,7 @@ rewards — `autoload_with` on g044 goes from dense rank 12 to BM25 rank 1.
 
 It does not rescue `engine.table_names()`, the example this docstring used to
 give. The answer pages say `get_table_names`, a different token, so zero chunks
-hold the word the developer typed (measured 2026-09-14; study/10-RETRIEVAL.md
-R2.6). BM25 needs the question and the page to share the word.
+hold the word the developer typed (measured 2026-09-14). BM25 needs the question and the page to share the word.
 
 No third-party BM25 package — Okapi BM25 is ~40 lines, and pinning another
 library for one formula would be theatre. The index builds once from
@@ -111,7 +110,7 @@ class Bm25Index:
 
 def _doc_text(chunk: dict) -> str:
     # Heading path is part of what `rag/embed.py` prepends before embedding.
-    # BM25 sees the same raw words as dense (`D69` rejected stripping roles —
+    # BM25 sees the same raw words as dense (stripping Sphinx roles was measured and rejected —
     # cleaning BM25 alone also failed to move absents without hurting fusion).
     head = " ".join(chunk.get("heading_path") or [])
     return f"{head} {chunk['text']}"
