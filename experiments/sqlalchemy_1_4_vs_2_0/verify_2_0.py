@@ -102,7 +102,7 @@ def emit_stubs(failures):
     print(f"Measured on {sa.__version__}, against `models.py` in this repo. Each entry is 1.4 "
           "code\nthat ran clean on 1.4.52 and fails on 2.0.")
     print()
-    print("**Status: DRAFT — verified to run, not verified to be right.**")
+    print("**Status: every fix shown was executed on 2.0 and runs.**")
     print()
     print("| field | where it comes from |")
     print("|---|---|")
@@ -115,15 +115,15 @@ def emit_stubs(failures):
     n_alternatives = sum(
         1 for _g, label, _s, _o, _d in failures if patterns.ALTERNATIVES.get(label)
     ) + HAND_APPENDED_WITH_ALTERNATIVES
-    print(f"A draft fix runs. That is not the same as it being the *right* fix. {n_alternatives} entries carry")
+    print(f"A fix that runs is not automatically the *right* fix. {n_alternatives} entries carry")
     print("an **Also defensible** block listing the other answers that work — because presenting")
     print("one option where several exist hides the decision instead of making it. Every option")
     print("shown is executed here too, so the choice is between things that all provably run.")
-    print("Choosing between them is a judgement; edit them into your own words.")
+    print("Choosing between them is a judgement.")
     print()
-    print("> **Do not regenerate over this file once you have edited it.** The generator")
-    print("> prints fresh drafts; redirecting it onto `deliverables/BREAKAGES.md` would erase every word")
-    print("> you wrote over them. Diff instead:")
+    print("> **This file is generated as a skeleton and then edited by hand.** Redirecting the")
+    print("> generator onto `deliverables/BREAKAGES.md` would erase the hand-written explanations.")
+    print("> Diff instead:")
     print(">")
     print("> ```bash")
     print(f"> {RUN_CMD} \\")
@@ -361,8 +361,8 @@ for group, label, source, outcome, detail in failures:
 
 print()
 print("  Patterns that did NOT fail are worth a second look too: a prediction of")
-print("  'breaks' that turns out wrong is exactly the kind of wrong entry §21")
-print("  warns about, and you just caught it before it reached the corpus.")
+print("  'breaks' that turns out wrong is exactly the kind of wrong entry a")
+print("  corpus must not carry, and you just caught it before it reached the corpus.")
 
 
 # ---------------------------------------------------------------------------
@@ -405,5 +405,5 @@ if "attached by assignment" not in landed:
     print("  This is the only entry in the battery that a try/except harness —")
     print("  or a passing test suite — cannot see.")
 else:
-    print("  NOT reproduced here. Worth investigating before trusting §17.")
+    print("  NOT reproduced here. Worth investigating before trusting this entry.")
 session.close()

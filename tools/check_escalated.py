@@ -11,7 +11,7 @@ This file runs every escalated answer's central claim on the real library.
 
 HOW EACH CHECK WAS WRITTEN (Phase 6 Step 3e, rules written first)
 
-- Claude read each answer and wrote down its central checkable claim, as the
+- An AI assistant read each answer and wrote down its central checkable claim, as the
   `CLAIM` string beside each check, before this file was ever run. The file was
   committed before its first run, so the history shows the checks predate the
   results.
@@ -23,7 +23,7 @@ HOW EACH CHECK WAS WRITTEN (Phase 6 Step 3e, rules written first)
   It is never counted as correct.
 - An unexpected crash inside a check is `ERROR`: a bug in the check, reported
   apart, never silently counted as the answer being wrong.
-- **Claude wrote these checks. This is not a human verdict.** Every claim
+- **An AI assistant wrote these checks. This is not a human verdict.** Every claim
   is in the file, so anyone can read exactly what was tested and dispute it.
 
 Reads only JSON from `deliverables/`, so it runs in a bare environment with

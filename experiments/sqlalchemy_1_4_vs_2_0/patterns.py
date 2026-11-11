@@ -8,7 +8,7 @@ cases are constructs 2.0 removed entirely.
 
 Deliberately, the fixture attaches issues with `project.issues.append(issue)` —
 the collection side — because that is the direction that survives 2.0
-(MIGRATION-2.0.md §17). If the fixture used the many-to-one side, every case
+(the cascade_backrefs removal). If the fixture used the many-to-one side, every case
 below would run against an empty database on 2.0 and the results would be
 garbage.
 """

@@ -113,7 +113,7 @@ describe("constructed", issue)
 # that leg: `issue` would stay transient, no INSERT would run, and NOTHING
 # would be raised — describe() below would print `pending` on 1.4 and
 # `transient` on 2.0. Writing the COLLECTION side (project.issues.append(issue))
-# survives both. Measured in migration.py §8. Left as-is deliberately — this file documents 1.4 — but do not copy the
+# survives both. Measured in migration.py section 8. Left as-is deliberately — this file documents 1.4 — but do not copy the
 # many-to-one form into new code.
 issue.project = project
 session.add(project)

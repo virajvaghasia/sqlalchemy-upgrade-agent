@@ -1,9 +1,10 @@
 """The demo page's layout checks, in a headless browser (Phase 6 Step 4c, scripted).
 
-    uv run --with playwright==1.62.0 python .claude/skills/webapp-testing/scripts/with_server.py \
-        --timeout 90 --server "PORT=7861 DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. \
-        uv run --with fastapi --with uvicorn python space/web.py" --port 7861 \
-        -- uv run --with playwright==1.62.0 python tools/check_page.py http://127.0.0.1:7861
+    # terminal 1: serve the page (no model is asked, so any generator setting works)
+    PORT=7861 DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. \
+        uv run --with fastapi --with uvicorn python space/web.py
+    # terminal 2: run the checks against it
+    uv run --with playwright==1.62.0 python tools/check_page.py http://127.0.0.1:7861
 
 WHY IT EXISTS
 

@@ -1,10 +1,10 @@
 """
 sweep.py — step 1 of the migration recipe, done across the WHOLE package.
 
-MIGRATION-2.0.md §19 demonstrates the inventory by running app.py and counting
+The quick way to take the inventory is to run app.py and count its
 5 warnings. That is a demonstration, not an inventory: app.py only *queries*, so
 it never builds an object graph, so it never triggers the cascade_backrefs
-breakage (§17) — the most dangerous item in this repo. A one-file sweep found
+breakage — the most dangerous item in this repo. A one-file sweep found
 five things and missed the worst one.
 
 This runs the sweep the way the recipe actually means it: every module, each in

@@ -394,7 +394,7 @@ def test_the_sheet_renders_the_answer_and_asks_for_a_verdict(tmp_path):
     text = out.read_text()
     assert n == 1
     assert "does scalars matter?" in text and "c01588" in text
-    assert "Verdict:" in text and "does\nnot rule on it" in text
+    assert "Verdict:" in text and "carries no\nruling of its own" in text
 
 
 def test_the_sheet_names_what_a_variant_ADDS_over_the_control(tmp_path):

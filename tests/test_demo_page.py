@@ -13,7 +13,7 @@ Each number below is derived from a COMMITTED artifact, so this runs in CI where
 `corpus/chunks.jsonl` (gitignored) is absent.
 
 It deliberately does NOT pin the measured rates (64%, 0.42). Those live in
-`deliverables/` and in the register; re-deriving them here would need Qdrant and
+`deliverables/`; re-deriving them here would need Qdrant and
 a model, and `tools/check_page.py` plus `rag.score` already own them.
 """
 

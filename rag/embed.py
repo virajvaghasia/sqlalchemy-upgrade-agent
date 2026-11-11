@@ -17,7 +17,7 @@ WHY A FILE RATHER THAN WRITING STRAIGHT INTO QDRANT
 Embed in one run, on one machine, to a portable file. Embedding is the expensive step; loading is not. A
 file decouples them, which buys three things:
 
-  - **Portability.** The lab PC and this Mac cannot route to each other. A file
+  - **Portability.** The two machines this ran on cannot route to each other. A file
     can be copied by hand; a running Qdrant on the wrong machine cannot.
   - **Resumability.** A failure halfway through costs the remaining chunks, not
     the whole run.
@@ -40,11 +40,10 @@ instead of assumed compatible.
 WHAT IS DELIBERATELY NOT DONE
 
 BGE-M3 can emit dense, sparse and ColBERT representations. This uses
-**sentence-transformers, which gives dense only** — and that is the point. Phase
-1 is meaning-search only; sparse vectors are half of hybrid search, which
-is a Phase 3 fix for a problem Step 5 has not yet demonstrated. Choosing the
-library that cannot do it is cheaper than choosing the one that can and
-remembering not to.
+**sentence-transformers, which gives dense only**. Keyword search was added
+later as its own BM25 channel (`bm25.py`, fused in `hybrid.py`) once the probe
+showed dense search missing exact identifiers, rather than as BGE-M3's sparse
+vectors.
 """
 
 from __future__ import annotations

@@ -3,7 +3,7 @@
     DEMO_GENERATOR=ollama RAG_DENSE=memory PYTHONPATH=. uv run --with fastapi --with uvicorn python space/web.py
     # then open http://127.0.0.1:7860
 
-Replaces the Gradio page's look, not its behaviour. Search, prompt, refusal
+This file holds no behaviour of its own. Search, prompt, refusal
 check, citation linking, source escaping-by-rendering and the generator notice
 all come from `rag/demo.py` (covered by tests/test_demo.py); this file only
 serves one HTML page and one JSON endpoint.
@@ -29,7 +29,7 @@ LIMITER = demo.RateLimiter(per_hour=10**9, gap=0) if BACKEND == "ollama" else de
 # Langfuse tracing when its keys are set (the Modal `langfuse` secret); None otherwise.
 TRACER = demo.langfuse_client()
 
-# Same measured choice as space/app.py: four the measured model answered with a
+# A measured choice: four questions the measured model answered with a
 # citation on the Mac, one it declines with the page in hand, labelled.
 EXAMPLES = [
     {"label": "query.get() moved", "q": "query(User).get(1) warns LegacyAPIWarning, where did get move to"},

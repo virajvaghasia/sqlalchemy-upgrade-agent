@@ -1,26 +1,26 @@
 """
 migration.py — the 1.4 → 2.0 migration mechanics, measured on 1.4.52.
 
-MIGRATION-2.0.md (§16-§22) makes a series of claims that are easy to assert and
+A 1.4 → 2.0 migration rests on a series of claims that are easy to assert and
 easy to get wrong. Every one of them is measured here rather than believed:
 
-  §16  session.query() and select() emit near-identical SQL — a rename, not a
+  1    session.query() and select() emit near-identical SQL — a rename, not a
        rewrite. Same for Query.get() vs Session.get().
-  §17  session.execute() returns Row tuples, not objects. That is why .scalars()
+  2    session.execute() returns Row tuples, not objects. That is why .scalars()
        exists, and why it is the single most common 2.0 papercut.
-  §18  a Session begins its transaction lazily, on first use — not at
+  3    a Session begins its transaction lazily, on first use — not at
        construction. "Autocommit removal" is really "autobegin".
-  §19  the 2.0 warnings are OFF by default. The two that mark real breakages
+  4,9  the 2.0 warnings are OFF by default. The two that mark real breakages
        are invisible unless you ask for them.
-  §20  future=True makes a 1.4 engine enforce 2.0's rules, so you can hit the
+  4,5  future=True makes a 1.4 engine enforce 2.0's rules, so you can hit the
        2.0 errors today without upgrading anything — and what it does NOT
        catch, which matters just as much if you use it as a gate.
-  §17  .unique() — the one place where query() -> select() is NOT purely
+  6    .unique() — the one place where query() -> select() is NOT purely
        cosmetic. Query de-duplicated joined eager loads silently; select()
        refuses to guess.
-  §21  the N+1 in app.issue_report() is version-independent, and costs a
+  7    the N+1 in app.issue_report() is version-independent, and costs a
        number nobody in this repo had actually counted.
-  §17  cascade_backrefs — the only breakage here that does NOT raise. Under
+  8    cascade_backrefs — the only breakage here that does NOT raise. Under
        2.0, an object attached by the MANY-TO-ONE side of a relationship
        (comment.issue = issue) is never enrolled in the session and its
        INSERT silently never runs; the collection side survives. Found by
@@ -32,7 +32,7 @@ Run:  uv run python -m experiments.sqlalchemy_1_4_vs_2_0.migration
 Section 7 reads the seeded file DB, so seed it first:
       uv run python -m experiments.sqlalchemy_1_4_vs_2_0.seed
 
-§19 also needs a second run against the real query layer, because that is where
+The warning count also needs a second run against the real query layer, because that is where
 the deprecated calls live:
       SQLALCHEMY_WARN_20=1 uv run python -W always::DeprecationWarning \\
           -m experiments.sqlalchemy_1_4_vs_2_0.app
@@ -102,7 +102,7 @@ def sql_for(work):
 
 
 # ---------------------------------------------------------------------------
-# 1. §16 — is the query-style migration a rewrite, or a rename?
+# 1. is the query-style migration a rewrite, or a rename?
 # ---------------------------------------------------------------------------
 section("1. session.query() vs select() — what each actually sends")
 
@@ -155,7 +155,7 @@ print(f"     Query.get(1) vs Session.get(Issue, 1) — identical SQL: {old_get =
 
 
 # ---------------------------------------------------------------------------
-# 2. §17 — what session.execute() actually hands back
+# 2. what session.execute() actually hands back
 # ---------------------------------------------------------------------------
 section("2. The Result API — why .scalars() exists")
 
@@ -194,7 +194,7 @@ print(f"    the index is a parameter: .scalars(1).all()-> {session.execute(two_c
 print()
 print("  So the rule is not 'always add .scalars()'. It is 'add it when you")
 print("  selected ONE thing'. On a wider select it silently returns column 0,")
-print("  which is the opposite of the loud .unique() error in §6: same release,")
+print("  which is the opposite of the loud .unique() error in section 6: same release,")
 print("  one method guesses and the other refuses to.")
 print()
 
@@ -212,7 +212,7 @@ print("  scalar_one() states an expectation the database then enforces.")
 
 
 # ---------------------------------------------------------------------------
-# 3. §18 — when does a transaction actually begin?
+# 3. when does a transaction actually begin?
 # ---------------------------------------------------------------------------
 section("3. Autobegin — the transaction starts on first use, not on construct")
 
@@ -231,7 +231,7 @@ print("  autocommit — and why commit() matters even for read-only work.")
 
 
 # ---------------------------------------------------------------------------
-# 4. §20 — future=True: 2.0's rules on the version already installed
+# 4. future=True: 2.0's rules on the version already installed
 # ---------------------------------------------------------------------------
 section("4. future=True — hitting the 2.0 error without upgrading")
 
@@ -269,7 +269,7 @@ print()
 
 # But do NOT read that as "clean under future=True means ready to upgrade".
 # The flag is an engine/connection-level gate. It is silent about migration
-# items that live elsewhere — which is exactly why §19's warning sweep is a
+# items that live elsewhere — which is exactly why the warning sweep (sweep.py) is a
 # separate step and not an alternative to this one.
 print("  What future=True stays SILENT about (all real migration items):")
 
@@ -279,7 +279,7 @@ print( "    declarative_base      -> models.py still imports it from")
 print( "                             sqlalchemy.ext.declarative, and the future")
 print( "                             engine built every table from those models")
 print( "                             without a word. That is a MovedIn20Warning")
-print( "                             item, and only §19's sweep reports it.")
+print( "                             item, and only the warning sweep reports it.")
 print()
 print("  So: future=True fails what will FAIL AT THE ENGINE. It does not")
 print("  enumerate what will WARN. Steps 1 and 4 of the recipe answer")
@@ -299,17 +299,17 @@ print("  with future.connect() as conn:")
 print("      conn.execute(text('SELECT count(*) FROM issues')).scalar()")
 print(f"  -> {total}   (runs clean on the future=True engine)")
 print()
-print("  Two fixes in one line, matching the two warnings §19 counts:")
+print("  Two fixes in one line, matching the two warnings the sweep counts:")
 print("    connectionless execution -> with engine.connect() as conn")
 print("    bare SQL string          -> text(...)")
 
 
 # ---------------------------------------------------------------------------
-# 6. §17 — .unique(): where "a rename, not a rewrite" stops being true
+# 6. .unique(): where "a rename, not a rewrite" stops being true
 # ---------------------------------------------------------------------------
 section("6. .unique() — the one place query() -> select() changes behaviour")
 
-# §1 measured the SQL and found no difference. That result is real but narrow:
+# Section 1 measured the SQL and found no difference. That result is real but narrow:
 # it covers what gets SENT. This section covers what comes BACK, and here the
 # two APIs genuinely disagree.
 uni_engine = fresh_engine()
@@ -355,7 +355,7 @@ print(f"  2.0  session.execute(stmt).unique().scalars().all()")
 print(f"       -> {len(deduped)} Issue objects")
 print()
 print("  Same SQL, different contract. Query decided for you; select() refuses")
-print("  to guess. This is the counter-example to §16: the query-style")
+print("  to guess. This is the counter-example to section 1: the query-style")
 print("  migration is cosmetic EXCEPT where joined eager loading against a")
 print("  collection is involved, and then it raises until you say .unique().")
 print()
@@ -418,13 +418,13 @@ uni_session.close()
 
 
 # ---------------------------------------------------------------------------
-# 7. §21 — what the N+1 actually costs, counted rather than estimated
+# 7. what the N+1 actually costs, counted rather than estimated
 # ---------------------------------------------------------------------------
 section("7. The N+1 in issue_report() — the number, measured")
 
-# Nobody had counted THIS loop. CONCEPTS §15's 201/202 are a different loop
-# (apollo.issues + per-issue .labels), extrapolated correctly from a measured
-# 9-issue run; the working estimate for issue_report() was 1 + 200 + 200 = 401.
+# Nobody had counted THIS loop. The 201/202 that states.py measures are a
+# different loop (apollo.issues + per-issue .labels) on a 9-issue run; the
+# working estimate for issue_report() was 1 + 200 + 200 = 401.
 # Counting it is more interesting than either, because the two lazy loads in
 # the loop behave differently and only one of them is an N+1.
 from experiments.sqlalchemy_1_4_vs_2_0 import app          # noqa: E402
@@ -466,7 +466,7 @@ else:
     print("                                    first and only misses once per")
     print("                                    distinct project.          <- 3, not 200")
     print()
-    print("  That is CONCEPTS §13's correction showing up at scale: 'a lazy load")
+    print("  That is the identity map showing up at scale: 'a lazy load")
     print("  fires a query' is false for many-to-one on an object you already")
     print("  have. Estimating this loop as 1 + 200 + 200 overshoots by 197.")
 
@@ -474,7 +474,7 @@ report_session.close()
 
 
 # ---------------------------------------------------------------------------
-# 8. §17 — cascade_backrefs: the breakage that fails SILENTLY
+# 8. cascade_backrefs: the breakage that fails SILENTLY
 # ---------------------------------------------------------------------------
 # Found by sweeping every module in this package, not just app.py. app.py never
 # builds an object graph, so its 5-warning inventory misses this entirely — and
@@ -482,7 +482,7 @@ report_session.close()
 # it raises nothing. It just stops doing the work.
 section("8. cascade_backrefs — the 2.0 change that fails silently")
 
-print("  CONCEPTS §14 teaches that you need not session.add() an object if you")
+print("  The usual rule is that you need not session.add() an object if you")
 print("  attach it to one already in the session — the save-update cascade")
 print("  enrolls it. Half of that is still true in 2.0. The half that isn't")
 print("  loses rows without raising anything.")
@@ -586,7 +586,7 @@ print("  shipped by accident. This can.")
 print()
 
 # How wide is the exposure? Read it off the mappers rather than claiming "all
-# of them" — the same rule states.py §7 follows for the join multiplication.
+# of them" — the same rule states.py section 7 follows for the join multiplication.
 configure_mappers()
 backref_rels = [
     f"{m.class_.__name__}.{r.key}"
@@ -605,7 +605,7 @@ print("  capability. cascade_backrefs=False adopts the 2.0 behaviour today.")
 
 
 # ---------------------------------------------------------------------------
-# 9. §19/§20 — the warning sweep and future=True miss DIFFERENT things
+# 9. the warning sweep and future=True miss DIFFERENT things
 # ---------------------------------------------------------------------------
 # Written after conflating two counts: "distinct RemovedIn20Warning messages"
 # is not "things that break in 2.0". Neither tool alone produces the breakage
@@ -617,7 +617,7 @@ def classify(build_case):
     """Return (warning classes under WARN_20, outcome under 2.0 rules).
 
     SQLALCHEMY_WARN_20 is normally read from the environment at import time,
-    which is why §19's sweep has to spawn a subprocess. The same switch is a
+    which is why sweep.py has to spawn a subprocess. The same switch is a
     plain module flag underneath, so this section can toggle it in place and
     measure both tools in one run.
     """

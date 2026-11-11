@@ -199,7 +199,7 @@ deliverables/          the measured outputs: breakages, the golden set, audits, 
 experiments/           the code under study: the 1.4 app and the measurement harness
 rag/                   retrieval, generation, the judges, the agent, the CI gate
 tools/                 check_runnable.py — every `# runnable` block, verified; check_*.py — answers run on 2.0.51, the demo page in a browser
-space/                 the demo: web.py + static/, modal_app.py (Modal host), app.py (older Gradio), pins, build script
+space/                 the demo: web.py + static/, modal_app.py (Modal host), pins, build script
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
 tests/                 607 tests
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer

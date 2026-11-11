@@ -3,7 +3,7 @@ Pin Phase 7 Step 1's candidate prompts. No model is called here.
 
 The property that has to hold is narrow and testable: untrusted text cannot
 close the frame it sits in. Everything else about fencing is a measurement
-(Round 27), not a guarantee.
+not a guarantee.
 """
 
 from types import SimpleNamespace

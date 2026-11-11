@@ -139,7 +139,7 @@ def test_both_channels_produce_a_prompt_that_still_contains_the_pages(channel):
 
 def test_every_arm_is_attacked_and_carries_its_own_system_prompt(monkeypatch):
     """Step 1 compares arms in ONE sitting, so the control is re-run beside
-    the candidates rather than read off Round 25's file."""
+    the candidates rather than read off an earlier run's file."""
     from rag import fence
     seen = []
     monkeypatch.setattr(inject.cp, "generate",
@@ -230,7 +230,7 @@ def test_a_short_attempt_is_not_flagged(monkeypatch):
 
 def test_the_hosted_backend_retries_a_timeout_once_at_a_longer_ceiling(monkeypatch):
     """The fourth module to need this: a slow call and a dead server are two conditions, and
-    the first attempt at Round 28 died after 10 paid-for calls because of it."""
+    the first attempt at one run died after 10 paid-for calls because of it."""
     from rag import demo, faithful
     tries = []
 
@@ -288,9 +288,9 @@ def test_rows_are_checkpointed_after_every_attempt(tmp_path, monkeypatch):
 def test_a_failed_attempt_is_recorded_and_the_run_carries_on(monkeypatch):
     """The fifth module to need this. `hosted_generate` gives up after two timeouts and
     raises; before this, that exception walked straight out of `run()` and killed
-    the sweep. Round 28's Step 2b died at 7 of 90 that way, having already spent
+    the sweep. One 90-attempt run died at 7 of 90 that way, having already spent
     the calls. One attempt the server would not answer is a data point; the other
-    89 are the round."""
+    89 are the run."""
     monkeypatch.setattr(inject.index, "retrieve", lambda q, limit: HITS)
     monkeypatch.setattr(inject, "golden_items",
                         lambda: {"g1": {"id": "g1", "question": "q?"}})
@@ -462,9 +462,9 @@ def test_the_review_sheet_counts_what_is_at_stake_without_deciding_it():
 
 # --- the `legacy_d` arm: every Phase 7 figure from before prompt H shipped stays buildable --------
 #
-# Round 28 measured `H` as the `prompt_h` arm (7 obeyed against a 12
+# A 2026-09-19 run measured `H` as the `prompt_h` arm (7 obeyed against a 12
 # control). `H` then SHIPPED, which makes `ARMS["shipped"]` a different
-# prompt from the one the injection baseline, both fencing runs and Round 28's control all used. A
+# prompt from the one the injection baseline, both fencing runs and that run's control all used. A
 # control you can no longer build is a control you can no longer check, so the
 # old prompt keeps an arm of its own.
 
@@ -495,7 +495,7 @@ def test_legacy_d_arm_is_the_prompt_every_earlier_phase_7_figure_used():
 
 def test_the_retired_prompt_h_arm_is_gone_because_it_is_now_shipped():
     """Keeping it would compare the shipped prompt against itself and report a
-    null that means nothing. Round 28's result is the record of what it measured."""
+    null that means nothing. The saved 2026-09-19 rows are the record of what it measured."""
     from rag import fence
 
     assert "prompt_h" not in fence.ARMS

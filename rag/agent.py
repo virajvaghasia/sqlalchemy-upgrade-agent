@@ -1,4 +1,4 @@
-"""Phase 5, Step 2 — the loop, and the failure path that justifies it.
+"""The agent loop, and the failure paths that justify it.
 
 **An agent with no failure path is decoration**, so the recovery behaviours are
 built here in the same file as the loop rather than bolted on after a demo.
@@ -6,15 +6,14 @@ built here in the same file as the loop rather than bolted on after a demo.
 WHY THIS IS CHANNEL-AGNOSTIC, which is a design decision and not an accident.
 
 It was measured that `qwen2.5-coder:7b` returns tool calls as JSON in
-`message.content` and never on `message.tool_calls` -- on the Mac, on Ollama
-0.34.0. Round 17 is open precisely because that may be a **server version**
-fact rather than a model fact, and the lab runs an older Ollama.
+`message.content` and never on `message.tool_calls` -- on a Mac, on Ollama
+0.34.0. That may be a **server version** fact rather than a model fact.
 
 So this loop never looks at either field. It calls `toolcall.classify`, which
 already treats `tool_calls` and `content_json` as two outcomes of one question,
-and it acts on `outcome in toolcall.USABLE`. **Whichever way Round 17 comes
-back, this file does not change.** Building it the other way would have meant
-writing code whose correctness depended on an open measurement.
+and it acts on `outcome in toolcall.USABLE`. **Either way, this file does not
+change.** Building it the other way would have meant writing code whose
+correctness depended on which server version it met.
 
 THE FOUR FAILURE PATHS, each with the defect it exists for:
 
@@ -53,7 +52,7 @@ DECLINE = ask.REFUSAL_OPENING + " this."
 
 # --- the system prompt, and the variant under test (E1) ---------------------
 #
-# MEASURED 2026-09-11, lab Round 17.4: under `SYSTEM` the agent called **no
+# MEASURED 2026-09-11, Linux GPU box: under `SYSTEM` the agent called **no
 # tool on 96 of 100** golden questions and chained two on none. The standalone
 # probe -- same model, same machine, same 100 questions -- got a usable call on
 # **100 of 100**.
@@ -63,7 +62,7 @@ DECLINE = ask.REFUSAL_OPENING + " this."
 # them" and "Do not answer from memory". That is the same shape as the prompt-position finding -- one
 # permissive word against one imperative -- and the swing is 96 points.
 #
-# **A measurement moved it, 2026-09-11.** Round 18 on the lab, paired,
+# **A measurement moved it, 2026-09-11.** On the Linux GPU box, paired,
 # n=20: the candidate fixes **9 out-of-range citations, breaks 0**, and takes
 # `delivered` **6↑ 0↓, p = 0.031**. On the Mac the citation fix reproduces
 # (3 fixed, 0 broken) and `delivered` does not (0↑ 1↓). The designed effect
@@ -72,9 +71,9 @@ DECLINE = ask.REFUSAL_OPENING + " this."
 #
 # So `DEFAULT` is the candidate now. **That is not the same decision as
 # shipping `H`:** `H` was a change to the production answer path with users on
-# the other side, and this is unshipped Phase 5 code where the only question is
+# the other side, and this is the agent's own prompt, where the only question is
 # which prompt to keep measuring with. Measuring on a prompt that fabricates
-# citations on nearly half the lab's items would make every later number a
+# citations on nearly half that box's items would make every later number a
 # measurement of a known defect.
 
 SYSTEM = (
@@ -408,7 +407,7 @@ def summarise(rows: list[dict]) -> dict:
 
 
 # The agent's default since the must-call prompt was adopted. `SYSTEM` is kept as the measured control, not
-# deleted -- Round 18's comparison is only readable while both exist.
+# deleted -- the paired comparison is only readable while both exist.
 DEFAULT_SYSTEM = SYSTEM_MUSTCALL
 
 E1_ARMS = {"A_shipped": SYSTEM, "B_mustcall": SYSTEM_MUSTCALL}

@@ -11,8 +11,8 @@ WHY IT EXISTS, AND WHY IT IS SEPARATE FROM check_page.py
 makes it fast and CI-able -- and it means the entire submit path was covered by
 nothing: the send button, the suggestion chips, the Enter key, the disabled
 state while a question is in flight, and the recorded example being cleared when
-a real answer replaces it. Viraj asked whether the send button was actually
-wired. It was, but nothing in the repo could have told him so.
+a real answer replaces it. The send button was wired, but nothing in the repo
+could have shown that.
 
 This script asks the real model through the real endpoint, three times, so it
 needs Ollama running and takes a couple of minutes. It is NOT part of CI and is

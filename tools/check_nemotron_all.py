@@ -12,7 +12,7 @@ text (0 of 53 identical to the saved escalations).
 
 HOW EACH CHECK WAS WRITTEN (Phase 6 Step 4f, rules written first)
 
-- Claude read each answer and wrote its central checkable claim as the `CLAIM`
+- An AI assistant read each answer and wrote its central checkable claim as the `CLAIM`
   string, BEFORE this file was ever run, and committed it before the first run.
 - A check tests the old behaviour the answer says is gone AND the new behaviour
   it recommends. Exceptions are narrow.
@@ -21,7 +21,7 @@ HOW EACH CHECK WAS WRITTEN (Phase 6 Step 4f, rules written first)
 - `NOT_CHECKABLE` (typing, advice, "the sources do not cover X") never counts as
   correct. A crash inside a check is `ERROR`, never a verdict on the answer.
 - Claims about 1.4 behaviour run in a pinned 1.4.52 subprocess, like Step 3e's g058.
-- **Claude wrote these checks. This is not a human verdict.**
+- **An AI assistant wrote these checks. This is not a human verdict.**
 """
 
 import asyncio

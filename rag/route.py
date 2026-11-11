@@ -20,8 +20,8 @@ two unrelated ways, and a stronger generator can only fix one of them:
 
 WHAT IS JOINED, AND WHY THAT IS ALLOWED
 
-Outcomes come from the LAB's Round 16 run of the shipped prompt (`D`, 38/91
-delivered), because quoted numbers are the lab's: the Mac only screens. The cross-encoder
+Outcomes come from the Linux GPU box's 2026-09-10 run of the shipped prompt (`D`, 38/91
+delivered), because quoted numbers come from that box: the Mac only screens. The cross-encoder
 signals are recomputed wherever `--signals` runs. Joining the two is only valid
 because retrieval is identical across machines -- so `report()` checks
 that first, item by item, and refuses to print a router result if a single
@@ -141,7 +141,7 @@ def evaluate(signals: dict, outcomes: dict, budget: int = BUDGET) -> dict:
 def report(e: dict) -> None:
     a, b = e["A"], e["B"]
     n_fail, n_pf = len(e["failures"]), len(e["present_failures"])
-    print(f"local pipeline (lab, Round 16, prompt D): {e['answerable'] - n_fail}/{e['answerable']} "
+    print(f"local pipeline (Linux GPU box, 2026-09-10, prompt D): {e['answerable'] - n_fail}/{e['answerable']} "
           f"delivered, {n_fail} failures, {n_pf} of them with the page PRESENT")
     print()
     verdict = "PASS" if len(a["caught"]) >= CAPTURE_BAR else "FAIL"

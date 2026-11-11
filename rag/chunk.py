@@ -51,11 +51,9 @@ WHAT IS DELIBERATELY NOT DONE
 
 RST markup is left **raw**. `:class:`_orm.Session`` is not rewritten to
 `Session`, even though the role syntax is noise to an embedding model and the
-rewrite would probably help. Phase 1 is the deliberately naive baseline:
-a fix applied before its problem has been
-measured is a best practice copied from a blog post, not a number earned. If
-Step 5 shows markup hurting retrieval, that is a Phase 3 change with a
-before/after.
+rewrite looks like it should help. It was measured later (`textnorm.py`):
+stripping the roles before embedding cost six points of recall, so the text
+stays raw.
 """
 
 from __future__ import annotations

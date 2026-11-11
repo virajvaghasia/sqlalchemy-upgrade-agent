@@ -164,7 +164,7 @@ def gen(i, answer="an answer [1]", hits=("c1",), empty=False):
 
 def test_all_ids_are_every_verified_item_sorted_and_repeat_is_the_first_twenty():
     golden = {i: gold(i) for i in [f"g{n:03d}" for n in range(30, 0, -1)]}
-    golden["g999"] = gold("g999", verified="claude")
+    golden["g999"] = gold("g999", verified="model")
     ids = escalate.all_ids(golden)
     assert ids == sorted(i for i in golden if i != "g999")
     assert escalate.repeat_ids(golden) == ids[:20]

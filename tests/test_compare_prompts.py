@@ -102,7 +102,7 @@ def test_sweep_all_covers_every_probe_question():
     """
     --all must run the whole probe set, not a subset.
 
-    The original experiment chose a prompt on two questions and Round 7 found it refusing 8 of 19
+    The original experiment chose a prompt on two questions and the full probe set found it refusing 8 of 19
  — a rate the original experiment was too small to see. A sweep that
     quietly sampled would reproduce exactly that mistake.
     """

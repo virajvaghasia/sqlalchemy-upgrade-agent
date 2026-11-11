@@ -16,7 +16,7 @@ Two flags freeze an earlier row for a re-measure, and they are NOT interchangeab
 
 `--dense-only` ALONE is neither row. It turns off BM25 and leaves the reranker
 on, a combination that has never shipped; it scores 0.53 where the twin-collapse row is
-0.52. Three docs said to reproduce the twin-collapse row with it until 2026-08-22.
+0.52.
 
 Refusal accuracy on the unanswerable items is the one section that needs
 generation rather than retrieval, so it is behind `--refusals` and costs ~50

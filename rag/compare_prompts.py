@@ -10,11 +10,10 @@ Re-run the refusal-clause experiment: is the refusal clause necessary, and does 
     # Phase 4 (2026-08-22): the 100-item golden set, scored on BOTH defects
     uv run python -m rag.compare_prompts --golden --save runs.json
 
-The refusal-clause decision recorded a three-by-two table on 2026-08-15 and
-shipped prompt B off it. It existed only as a table: the experiment was run by
-hand, and nothing in the repo could reproduce it. A re-run on 2026-08-16 then
-disagreed with one cell, which is exactly the situation an unreproducible
-measurement makes impossible to investigate. Hence this file.
+The first version of this experiment was run by hand and existed only as a
+three-by-two table. A re-run the next day disagreed with one cell, and an
+unreproducible measurement cannot be investigated. This file is the experiment
+as a command.
 
 WHAT IS VARIED, AND WHAT IS HELD STILL
 
@@ -289,7 +288,7 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> N
     """
     Every probe question against each wording, counting refusals.
 
-    The original experiment chose prompt B on two questions. Round 7 then found B refusing 8 of 19
+    The original experiment chose prompt B on two questions. The full probe set then found B refusing 8 of 19
     with the answer demonstrably in the prompt, which the original
     experiment could not have seen. This is the same test at the size that
     would have caught it: refusals per variant, over the whole set.

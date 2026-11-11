@@ -6,7 +6,7 @@ The Phase 0 Part A deliverable, and the seed of the Phase 2 golden dataset. Part
 Measured on 2.0.51, against `models.py` in this repo. Each entry is 1.4 code
 that ran clean on 1.4.52 and fails on 2.0.
 
-**Status: DRAFT — verified to run, not verified to be right.**
+**Status: every fix shown was executed on 2.0 and runs.**
 
 | field | where it comes from |
 |---|---|
@@ -16,15 +16,15 @@ that ran clean on 1.4.52 and fails on 2.0.
 | Docs | 1.4's own deprecation text, verbatim |
 | Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |
 
-A draft fix runs. That is not the same as it being the *right* fix. 6 entries carry
+A fix that runs is not automatically the *right* fix. 6 entries carry
 an **Also defensible** block listing the other answers that work — because presenting
 one option where several exist hides the decision instead of making it. Every option
 shown is executed here too, so the choice is between things that all provably run.
-Choosing between them is a judgement; edit them into your own words.
+Choosing between them is a judgement.
 
-> **Do not regenerate over this file once you have edited it.** The generator
-> prints fresh drafts; redirecting it onto `deliverables/BREAKAGES.md` would erase every word
-> you wrote over them. Diff instead:
+> **This file is generated as a skeleton and then edited by hand.** Redirecting the
+> generator onto `deliverables/BREAKAGES.md` would erase the hand-written explanations.
+> Diff instead:
 >
 > ```bash
 > uv run --no-project --with 'sqlalchemy==2.0.51' \

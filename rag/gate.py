@@ -16,8 +16,8 @@ answer page in the top 5?* -- on both sides.
     same either way    unchanged
 
 **A single broken item blocks the merge**, even if the same change fixes five
-others. That is not new strictness invented for CI: it is Round 14's rule, the
-one still holding prompt H back, and the reason for reading flipped
+others. That is not new strictness invented for CI: it is the rule written before
+prompt H was measured on a second machine, and the reason for reading flipped
 items rather than averages. A net gain that breaks `g043` has taken an answer
 away from the developer who asks `g043`, and the gate makes that a decision a
 human signs off rather than a side effect nobody saw.

@@ -89,12 +89,12 @@ def legacy_d(question: str, hits) -> str:
     """The prompt from before H shipped — `ask.build_prompt` without the citation sentence.
 
     NOT a fencing arm, and not a candidate. It is the prompt every Phase 7
-    number before 2026-09-20 was measured on: the 11 of 30, the 11/11/11, the 16/10/10 and Round 28's control. Prompt H shipped on 2026-09-20 as variant
+    number before 2026-09-20 was measured on: the 11 of 30, the 11/11/11, the 16/10/10 and the 2026-09-19 control. Prompt H shipped on 2026-09-20 as variant
     `H`, so `ARMS["shipped"]` is now a different prompt from the one those
     figures used — and a control you can no longer build is a control you can no
     longer check. This keeps it buildable.
 
-    It replaces the `prompt_h` arm, which measured `H` against `D` in Round 28
+    It replaces the `prompt_h` arm, which measured `H` against `D` on 2026-09-19
     (7 obeyed vs 12) and became redundant the moment `H` shipped: it
     would now be the shipped prompt compared against itself.
     """

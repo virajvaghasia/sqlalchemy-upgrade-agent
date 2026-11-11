@@ -130,7 +130,7 @@ def build(full: bool = False) -> str:
         "*unrelated* chunks average in this corpus: a hit at "
         "0.61 is 0.07 above noise, not 61% confident.",
         "",
-        "**Verdicts were drafted by Claude and accepted by Viraj on 2026-08-17**, by comparing "
+        "**Verdicts were drafted by an AI assistant and accepted by the maintainer on 2026-08-17**, by comparing "
         "each answer against its BREAKAGES.md key and, where the answer proposed code, running "
         "both on real 2.0.51. `verdicts.json` is the record; this file and `FAILURES.md` render "
         "from it. The mechanical signals locate problems; they never decided one.",

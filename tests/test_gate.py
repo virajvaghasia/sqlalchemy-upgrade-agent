@@ -12,7 +12,7 @@ def row(i, rank, answerable=True, hits=None):
 
 
 def test_one_broken_item_blocks_even_when_the_change_is_a_net_gain():
-    """Round 14's rule and the reason: five fixes do not buy one lost answer
+    """The gate's rule and the reason: five fixes do not buy one lost answer
     without a human saying so."""
     base = [row("g1", 3)] + [row(f"f{n}", None) for n in range(5)]
     now = [row("g1", 9)] + [row(f"f{n}", 1) for n in range(5)]

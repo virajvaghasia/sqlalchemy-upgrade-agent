@@ -446,7 +446,7 @@ def test_an_empty_run_does_not_divide_by_zero():
 # --- Step 5: the sample a human reads ---------------------------------------
 
 def test_the_agreement_sample_puts_the_risky_verdicts_first():
-    """Risk-weighted, like the golden signature's ten (§H CLOSED). A uniform
+    """Risk-weighted, like the golden set's spot-check of ten. A uniform
     sample from a mostly-SUPPORTED set measures agreement where it is
     easiest."""
     by_variant = {"D": rows_of("SUPPORTED", "SUPPORTED", "UNSUPPORTED",
@@ -478,7 +478,7 @@ def test_the_sheet_asks_for_a_verdict_and_supplies_none(tmp_path):
         ITEMS, out, retrieve=lambda q: [("c00001", "a passage")])
     text = out.read_text()
     assert faithful.HUMAN_VERDICT + " _______" in text
-    assert "does not fill it in" in text
+    assert "only a human fills it in" in text
     assert faithful.read_agreement(out) == {"n": 1, "filled": 0, "agree": 0,
                                            "corrections": [],
                                             "rate": None}
@@ -774,7 +774,7 @@ def test_the_sheet_is_unchanged_when_there_is_no_second_opinion(tmp_path):
 # --- a name is not an identity ----------------------------------------------
 
 def test_two_tags_of_one_model_are_recognised_as_the_same_model():
-    """Measured 2026-09-03 on this Mac: `gpt-5.5:latest` and `gemma4:e4b` share
+    """Measured 2026-09-03 on an M4 Mac: `gpt-5.5:latest` and `gemma4:e4b` share
     the digest c6eb396dbd59 -- two tags, one set of weights. A cross-check
     comparing only the strings would report high agreement while measuring a
     model against itself, which is the most flattering result this tool could
@@ -1036,7 +1036,7 @@ def test_a_disagreement_with_no_correction_is_still_a_disagreement(tmp_path):
                                    "should_be": None}]
 
 
-# --- Round 22: Phase 4's judge given the pages as the model saw them ------------
+# --- the faithfulness judge given the pages as the model saw them ------------
 
 def _payload():
     return {"chunk_id": "c7", "text": "Use autoload_with.", "heading_path": ["Guide", "\"bound metadata\" removed"],

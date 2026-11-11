@@ -1,6 +1,6 @@
 """Phase 6, Step 4 — the public demo's logic: one question in, a cited answer out.
 
-The Gradio page (`space/app.py`) is a thin wrapper around `answer()`. The logic
+The server (`space/web.py`) is a thin wrapper around `answer()`. The logic
 lives here, inside the tested package, so the demo is covered by the same suite
 as everything it reuses.
 
@@ -20,7 +20,7 @@ WHAT THE DEMO RUNS, AND WHAT IT DOES NOT
 
 RATE LIMITS ARE A CHOICE, NOT A MEASUREMENT
 
-A public page spends Viraj's free NVIDIA credits. The two numbers below bound
+A public page spends the maintainer's free NVIDIA credits. The two numbers below bound
 that spend; they were picked, not derived, and changing them changes nothing
 this repo has measured.
 """

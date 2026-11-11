@@ -1,4 +1,4 @@
-"""Phase 6 Step 4 — the public demo's logic. No network, no model, no Gradio."""
+"""Phase 6 Step 4 — the public demo's logic. No network, no model."""
 import contextlib
 import io
 import json

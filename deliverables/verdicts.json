@@ -2,7 +2,7 @@
  "_README": [
   "THE VERDICT RECORD for deliverables/FAILURES.md. This file is the source of truth;",
   "FAILURES.md renders from it, so a regeneration cannot destroy the judgements.",
-  "PROVENANCE, which matters for Phase 2: each verdict was DRAFTED by Claude on",
+  "PROVENANCE, which matters for Phase 2: each verdict was DRAFTED by an AI assistant on",
   "2026-08-17 by comparing the answer against its BREAKAGES.md key and, where the answer",
   "proposed code, running both on real SQLAlchemy 2.0.51. Viraj reviewed and accepted",
   "them the same day. Human verification is satisfied by the acceptance, not by the drafting - and a",

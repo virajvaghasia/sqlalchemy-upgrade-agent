@@ -44,10 +44,9 @@ finding either way.
 
 WHAT IS DELIBERATELY NOT DONE
 
-No streaming, no chat history, no retry, no reranking of the retrieved chunks,
-no query rewriting. Phase 1 is the naive baseline. Ugly output is fine;
-the gate is that a question typed at a terminal returns an answer and its
-sources.
+No streaming, no chat history, no retry, no query rewriting. Retrieval is
+whatever `index.retrieve` returns; this module only builds the prompt and
+calls the model.
 """
 
 from __future__ import annotations
@@ -63,14 +62,14 @@ from rag import index
 
 OLLAMA_URL = "http://127.0.0.1:11434"
 
-# Pinned like everything else. `qwen2.5-coder:7b` is what Phase 0 measured on the
-# lab PC at 62.23 tok/s, and it is already local on the Mac — using the same tag
+# Pinned like everything else. `qwen2.5-coder:7b` was measured on the
+# Linux GPU box (RTX 3060) at 62.23 tok/s, and it is already local on the Mac — using the same tag
 # on both machines is what makes those numbers comparable.
 MODEL = "qwen2.5-coder:7b"
 
 # How many pages get pasted into the prompt. Search ranks all 3284; the chatbot
 # only sees this many. `backref` landed at rank 6 of 3284 — one place below this
-# cut — so 6 would have put that page in with no other change. Round 7
+# cut — so 6 would have put that page in with no other change. A sweep over k
 # then showed refusals stay 8 at k=5, 6 and 10, and k=10 bought over-fires, so
 # k stayed 5. The integer that fixes the miss is not the one that ships.
 DEFAULT_K = 5

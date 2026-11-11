@@ -54,9 +54,8 @@ def test_a_two_tool_task_completes():
 
 def test_the_loop_does_not_care_which_channel_the_call_arrived_on():
     """qwen was measured returning calls in `content` and gemma on
-    `tool_calls`, and Round 17 may show that is an Ollama version fact. The
-    loop reads `classify`, never either field, so it is correct either way --
-    it was built while that measurement was still open."""
+    `tool_calls`, which may be an Ollama version fact rather than a model fact. The
+    loop reads `classify`, never either field, so it is correct either way."""
     for channel in ("content", "native"):
         got = agent.run("q", generate=scripted(
             tool_reply("check_api", "Session.get", channel=channel),
@@ -293,8 +292,8 @@ def test_resume_skips_only_what_is_already_done():
 def test_the_system_prompt_is_overridable_and_defaults_to_the_shipped_one():
     """E1 needs to swap the system message without touching the loop.
 
-    The default is `SYSTEM_MUSTCALL` since Round 18 measured it fixing
-    9 out-of-range citations and breaking 0 on the lab, 3 and 0 on the Mac.
+    The default is `SYSTEM_MUSTCALL` since a paired run measured it fixing
+    9 out-of-range citations and breaking 0 on the Linux GPU box, 3 and 0 on the Mac.
     `SYSTEM` is kept as the measured control rather than deleted, because the
     comparison is only readable while both exist."""
     seen = {}
@@ -366,9 +365,9 @@ def test_the_chaining_count_in_the_report_is_derived(capsys):
 
 
 def test_the_measured_control_prompt_is_kept_not_deleted():
-    """Round 18's comparison is only readable while both prompts exist. A
+    """The paired comparison is only readable while both prompts exist. A
     candidate that replaces its control leaves a number nobody can re-derive —
-    which is what happened to Round 14's citation cells."""
+    which is what happened to an earlier run's citation cells."""
     assert agent.SYSTEM != agent.SYSTEM_MUSTCALL
     assert agent.DEFAULT_SYSTEM is agent.SYSTEM_MUSTCALL
     assert set(agent.E1_ARMS.values()) == {agent.SYSTEM, agent.SYSTEM_MUSTCALL}

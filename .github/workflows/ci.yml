@@ -42,15 +42,10 @@ jobs:
       - run: uv run pytest
 
   docs:
-    # Every `# runnable` block in the docs must reproduce
-    # verbatim. Until 2026-08-15 that was enforced by remembering to check, and
-    # it had already failed: 02-MIGRATION-2.0.md quoted `TOTAL 1042` for weeks
-    # after a Day 6 change to seed.py made the real figure 29.
-    #
-    # This job fetches the corpus first because roughly a third of the blocks
-    # read it, and corpus/raw/ is generated rather than committed. That is
-    # ~9MB from GitHub — the price of the rule being enforced rather than
-    # remembered.
+    # Every `# runnable` block in the docs must reproduce verbatim. Before this job
+    # existed that was enforced by remembering to check, and it had already failed:
+    # a doc quoted `TOTAL 1042` for weeks after a change to seed.py made the real
+    # figure 29.
     name: docs reproduce
     runs-on: ubuntu-latest
     steps:

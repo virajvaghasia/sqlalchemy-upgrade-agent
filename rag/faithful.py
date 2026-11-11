@@ -1,103 +1,61 @@
 """
-Phase 4 — faithfulness: is this claim actually supported by the page it cites?
+Faithfulness: is this claim actually supported by the page it cites?
 
     uv run python -m rag.faithful --check            # one call; proves the key works
     uv run python -m rag.faithful --models           # what this key can actually pin to
     uv run python -m rag.faithful --sweep --local    # judge the saved D/H answers
     uv run python -m rag.faithful --sweep --local --resume   # pick up a killed run
     uv run python -m rag.faithful --claims g056      # one item, sentence by sentence
-    uv run python -m rag.faithful --agreement        # Step 5's ten, for a human
+    uv run python -m rag.faithful --agreement        # ten verdicts for a human to check
     uv run python -m rag.faithful --cross-check gemini-3.8-flash   # a 2nd model on those ten
 
-THE HALF THAT NEEDS A MODEL, AND WHY IT WAITED
+WHAT THIS ADDS TO rag/judge.py
 
 `rag/judge.py` measures everything about an answer that can be counted:
 citations that point at sources which exist, code blocks with no source
 attached, and dotted API calls that appear in none of the retrieved pages.
-All deterministic, no key, no free tier, exact.
+All deterministic, no key, exact.
 
 What none of it reaches is a claim made in **prose**. `g056` is the standing
 example: it fabricates in sentences rather than in a code block, so the
-groundedness detector is structurally blind to it. "Is this sentence supported by that passage" is a reading task, and
-reading needs a reader.
+groundedness detector cannot see it. "Is this sentence supported by that
+passage" is a reading task, and reading needs a reader. This module is the
+reader: a judge model given the answer and the passages the answer was built
+from, returning SUPPORTED, PARTIAL or UNSUPPORTED with a reason.
 
-WHAT "PINNED" IS ACTUALLY BUYING, WHICH IS LESS THAN IT FIRST SEEMED
+THE TWO PROPERTIES A JUDGE RUN MUST HAVE
 
-The first plan argued the judge must be pinned "the same way swapping the
-golden set would" invalidate rows. **That analogy imported the
-conclusion without the cost structure.** Re-cutting the golden ruler is ~25
-hours of human verification; re-running this judge is ~60 calls and a few
-minutes. Pinning is a convenience here, not a correctness requirement.
+  * **Same judge, both arms, one sitting.** Model output drifts from day to
+    day even at temperature 0, so two prompts are only comparable when the same
+    judge reads both in one run. A sweep uses one model id for both arms or it
+    is not a comparison; switching model mid-run is refused.
+  * **Agreement with a human, measured.** `--agreement` renders ten verdicts
+    for a hand check. A judge with unmeasured agreement is a precise instrument
+    of unknown accuracy.
 
-Two properties ARE tight, and neither is the snapshot id:
+Pinning the judge's model id is a convenience, not a correctness requirement:
+re-running the judge costs about 110 calls. So `MODEL` is recorded rather than
+defended, and `stamp()` writes the model and the machine onto every row, so a
+later run that disagrees has something to compare against.
 
-  * **Same judge, both arms, one sitting.** Refusal cells drift from day to day,
-    so arms are compared within one sitting; the same holds for the judge.
-    Judge D on Monday and H on Friday and the comparison is
-    worthless no matter how carefully the model was pinned. Free to honour.
-  * **Agreement with a human, measured.** Step 5 asks for a hand-check of ten.
-    A pinned judge with unmeasured agreement is a precise instrument of unknown
-    accuracy, and `g065` is the proof that the unmeasurable label is exactly
-    where this repo has been wrong before.
+WHY THE JUDGE IS LOCAL
 
-So `MODEL` below is recorded rather than defended, and every row this module
-writes carries the model that produced it. A future run that disagrees then has
-something to blame instead of a mystery.
+The hosted free tier allows 20 requests per day per model (the 429 body names
+the quota), and one sweep of both arms needs about 110. Spreading a run over
+six days would break the one-sitting property, so `--local` judges with
+`gemma4:e4b` on Ollama. The generator is `qwen2.5-coder:7b`, a different model
+family, so nothing grades its own output.
 
-WHY THE MODEL ID IS NOT HARDCODED FROM MEMORY
+CHOOSING A HOSTED MODEL ID
 
-Model ids churn and a stale one 404s. `--models` asks the key what it can
-actually reach and prints the ids, so the pin is chosen from what exists rather
-than from what someone remembered. Put the chosen id in `MODEL` and it travels
-into every row.
+Model ids churn: an id written from memory returned 404, and an id pinned three
+days earlier answered 503 while its neighbours answered. `--models` lists what
+the key can reach, and the listing can include ids that fail when called, so
+`--check` (exactly one call) is the authority. `--model` overrides `MODEL`
+without a code edit.
 
-**Measured on 2026-08-31, first contact with a real key.** `gemini-2.5-flash`
--- written here from memory -- returned:
-
-    HTTP 404: This model models/gemini-2.5-flash is no longer available to new
-    users. Please update your code to use models/gemini-3.6-flash
-
-and the key itself was fine: a 404 on the model, not a 401 on the credential.
-That is the whole argument for `--models` in one response.
-
-**AND THE CATALOG IS NOT THE TRUTH.** `--models` lists `gemini-2.5-flash` --
-the same id that had just 404'd. The listing is what the API advertises; what a
-call does is what a call does. **`--check` is the authority, not `--models`.**
-So `--models` is for discovering candidates and `--check` is for confirming
-one, and neither substitutes for the other.
-
-No dated snapshot exists for the stable flash line -- the dated ids in the
-catalog are all previews -- so the best available pin is a version-numbered id,
-not `gemini-flash-latest`, which floats by design and is exactly what a pin exists
-to avoid.
-
-**AND THEN THE PIN ITSELF WENT AWAY. Measured 2026-09-03**, which is
-the day the argument stopped being theoretical:
-
-    gemini-3.6-flash     FAIL HTTP 503 from gemini-3.6-flash
-    gemini-3.5-flash     OK   SUPPORTED
-    gemini-3.7-flash     OK   SUPPORTED
-    gemini-3.8-flash     OK   SUPPORTED
-
-One call each, same key, same minute. `gemini-3.6-flash` -- the id pinned three
-days earlier and written into this constant -- answered 503 "experiencing high
-demand" through four retries, while three neighbours answered on the first
-attempt. **A pinned id is a promise about a name, not about a service.**
-
-The judge decision already said the snapshot is a convenience and the tight properties are
-*same judge, both arms, one sitting* and *agreement measured against a human*.
-Both survive this intact: `MODEL` moves to `gemini-3.7-flash`, `stamp()` puts
-that id on every row it produces, and `--model` overrides it without a code
-edit the next time a flash model is busy. What is NOT allowed is switching
-model **mid-run** -- that breaks the one property that actually matters, so a
-sweep uses one id for both arms or it is not a comparison.
-
-ZERO PAID API CALLS (unchanged, and this module cannot enforce it)
-
-The free tier is the constraint. This module does not and cannot check whether
-billing is attached to the key -- that is a property of the Google Cloud
-project, not of the request. `--check` makes exactly ONE call so that finding
-out the key is wrong costs one call rather than a hundred.
+This module cannot check whether billing is attached to a key; that is a
+property of the cloud project, not of the request.
 """
 
 from __future__ import annotations
@@ -264,8 +222,8 @@ def stamp(row: dict, model: str = MODEL) -> dict:
     The judge stamp keeps the property that matters: not that the model never changes, but that a
     row never loses track of which model read it.
 
-    **The machine stamp was added 2026-09-05, because the lab measured what
-    Round 15 had written down as the second possible outcome.** Same judge
+    **The machine stamp was added 2026-09-05, because a second machine measured
+    the outcome the run's own plan had named as possible.** Same judge
     (`gemma4:e4b`), same saved answers, same corpus, temperature 0 — and prompt
     D's supported rate came back **85% on the Mac and 77% on the 3060**. The
     verdicts are not machine-independent, so a row that records only its judge
@@ -274,7 +232,7 @@ def stamp(row: dict, model: str = MODEL) -> dict:
     lab's while `prompt-sweep-phase4.json` stayed the Mac's, and nothing in
     either file said so.
 
-    Round 15's own pre-decided reading called for this before the data arrived:
+    The reading written down before that run called for this:
     *"then every faithfulness figure has to carry its machine the way rows
     already carry their judge model."*
     """
@@ -382,8 +340,8 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
 
 # --- the local judge, and why it is not a downgrade -------------------------
 #
-# MEASURED 2026-09-03, and it contradicts the original judge decision in as many words. That decision sized the
-# judging workload and concluded:
+# MEASURED 2026-09-03, and it contradicts the assumption this judge was first designed on,
+# which sized the judging workload and concluded:
 #
 #     "Rate limits are not the constraint on any free tier, which removes the
 #      reason most people pick one."
@@ -395,11 +353,11 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
 #
 # **Twenty requests per day, per model.** D + H over the saved sweep is about
 # 110 calls, so the API judge cannot finish this comparison today, tomorrow, or
-# in any single sitting -- and the decision's own tight property is that both arms are
+# in any single sitting -- and the one property that matters is that both arms are
 # judged by the same judge in ONE sitting. Spreading a run across six days to
 # fit the quota does not satisfy it; it destroys it.
 #
-# The escape is not a bigger quota. It is that the original decision already named the fallback
+# The escape is not a bigger quota. It is that the original design already named the fallback
 # and gave the reason it is a good one:
 #
 #     "A local judge is in fact MORE pinnable than any API -- you hold the
@@ -441,7 +399,7 @@ LOCAL_CONTEXT = 8192
 def local_digests(timeout: int = 10) -> dict:
     """`{model name: content digest}` from Ollama, or `{}` if it is not there.
 
-    Needed because a name is not an identity. Measured 2026-09-03 on this Mac:
+    Needed because a name is not an identity. Measured 2026-09-03 on an M4 Mac:
 
         NAME                ID              SIZE
         gpt-5.5:latest      c6eb396dbd59    9.6 GB
@@ -708,7 +666,7 @@ def compare_headings(text: dict, head: dict) -> dict:
 
 
 def headings_verdict(compared: dict) -> str:
-    """Round 22's rule, the same as Step 4g's: an arm moves if >= 3 answers become
+    """The rule, written before either headings run: an arm moves if >= 3 answers become
     SUPPORTED, more than move the other way, at exact McNemar p < 0.05."""
     from rag import score
     for arm, c in compared.items():
@@ -971,13 +929,13 @@ def report(by_variant: dict) -> None:
 # gate says the agreement rate has to be IN the report rather than assumed.
 #
 # The sample is risk-weighted rather than random, which is the same call the
-# golden signature made on 2026-08-21 (§H CLOSED): a uniform sample of ten from
+# golden set's spot-check made on 2026-08-21: a uniform sample of ten from
 # a set that is mostly SUPPORTED measures agreement where it is easiest and
 # says nothing about the verdicts a decision would actually rest on. So every
 # UNSUPPORTED and PARTIAL goes in first, and SUPPORTED rows fill the rest --
 # without those the sheet can only find false accusations and never a miss.
 #
-# Claude renders this sheet. Claude does not fill it in.
+# The sheet is generated blank. Only a human fills it in.
 
 
 # How many SUPPORTED rows are RESERVED in the sample of ten.
@@ -1122,8 +1080,8 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
     lines = [
         "# The judge's ceiling — ten verdicts for a human to check",
         "",
-        "Generated by `rag.faithful --agreement`. **Claude renders this sheet and",
-        "does not fill it in**. The Phase 4 gate asks for the judge's",
+        "Generated by `rag.faithful --agreement`. **The sheet is generated blank and",
+        "only a human fills it in**. The Phase 4 gate asks for the judge's",
         "agreement with a human as a number in the report rather than an",
         "assumption, and this is the ten it is computed from.",
         "",
@@ -1248,7 +1206,7 @@ ROWS_DEFAULT = REPO / "deliverables" / f"faithfulness-phase4.{machine()}.json"
 
 def judged_rows_path(headings: bool = False) -> pathlib.Path:
     """A headings run gets its own file, so it can never overwrite the text-only
-    rows it is compared against (Round 22)."""
+    rows it is compared against."""
     return (REPO / "deliverables" / f"faithfulness-phase4-headings.{machine()}.json"
             if headings else ROWS_DEFAULT)
 ROWS_LEGACY = REPO / "deliverables" / "faithfulness-phase4.json"
@@ -1319,7 +1277,7 @@ def main() -> None:
         return
 
     if "--headings-report" in argv:
-        # Round 22: the committed text-only rows against the headings rows, same machine.
+        # The committed text-only rows against the headings rows, same machine.
         text_path = pathlib.Path(_arg(argv, "--text", str(ROWS_DEFAULT)))
         head_path = pathlib.Path(_arg(argv, "--head", str(judged_rows_path(True))))
         text = json.loads(text_path.read_text())
