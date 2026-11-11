@@ -53,7 +53,8 @@ import platform
 import sys
 import urllib.error
 
-from rag import ask, compare_prompts as cp, fence, index
+from rag import ask, fence, index
+from rag import compare_prompts as cp
 
 DELIVERABLES = pathlib.Path(__file__).resolve().parent.parent / "deliverables"
 GOLDEN = DELIVERABLES / "golden.json"

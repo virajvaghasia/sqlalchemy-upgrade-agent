@@ -25,8 +25,8 @@ import json
 import math
 import re
 from collections import Counter, defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from rag import corpus, embed
 

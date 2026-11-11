@@ -91,3 +91,31 @@ addopts = "-q"
 # output stays identical. Filtered here because this is the only layer that
 # catches it. Narrow on purpose: the message, not the category.
 filterwarnings = ["ignore:Failed to obtain server version:UserWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+# experiments/ is excluded on purpose. It is the SQLAlchemy 1.4 application under
+# test: app.py is written in the deprecated style deliberately, and several
+# scripts print hand-aligned tables that a formatter would rearrange. Linting it
+# would mean "fixing" the very code the measurements are about.
+extend-exclude = ["experiments"]
+
+[tool.ruff.lint]
+# pyflakes and pycodestyle (real errors), import order, bugbear (likely bugs),
+# pyupgrade (syntax this Python version makes unnecessary).
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    # Line length is the formatter's job. It does not split long strings, and the
+    # long lines left are sentences in messages and docstrings.
+    "E501",
+    # `x = lambda: ...` is used for one-line stand-ins passed straight to a function.
+    "E731",
+    # `l` for a line of text in a comprehension over lines.
+    "E741",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The executed checks define tiny mapped classes named after the ones in the
+# answers under test (`O`, `I`).
+"tools/check_nemotron_all.py" = ["E742"]

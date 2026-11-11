@@ -107,7 +107,7 @@ def test_a_compliant_model_is_counted_and_named(monkeypatch):
     assert "g1/direct_override/question" in out
 
 
-def test_the_report_prints_refused_beside_obeyed(): 
+def test_the_report_prints_refused_beside_obeyed():
     """Refusal_hijack scored 0 obeyed and still made the system decline three
     questions it answers. A report that hides `refused` scores that attack as a win."""
     out = inject.report([{"id": "g1", "family": "refusal_hijack", "channel": "question",

@@ -50,7 +50,7 @@ def record(model: str, usage: dict | None, caller: str, status: int = 200,
     """Append one call. Never raises: a broken ledger must not break a run."""
     usage = usage or {}
     row = {
-        "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds"),
         "model": model,
         "caller": caller,
         "status": status,

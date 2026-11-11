@@ -23,13 +23,11 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-import sys
 import time
 import urllib.error
 import urllib.request
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any
 
 # Imported at module level so Mapped[] annotations on probe models resolve
 # (SQLAlchemy looks up Mapped in the module globals of the class).
@@ -209,10 +207,13 @@ def audit_docs(item: dict, chunks: dict[str, dict], cache: dict[str, tuple[str, 
 
 def _probe_mapped_as_dataclass() -> tuple[str, str]:
     """Module-level Mapped[] models — nested Mapped annotations break."""
-    from sqlalchemy import create_engine, ForeignKey
+    from sqlalchemy import ForeignKey, create_engine
     from sqlalchemy.orm import (
-        DeclarativeBase, Mapped, mapped_column, Session, relationship,
+        DeclarativeBase,
         MappedAsDataclass,
+        Session,
+        mapped_column,
+        relationship,
     )
 
     class Base(MappedAsDataclass, DeclarativeBase):
@@ -222,7 +223,7 @@ def _probe_mapped_as_dataclass() -> tuple[str, str]:
         __tablename__ = "human"
         id: Mapped[int] = mapped_column(primary_key=True, init=False)
         name: Mapped[str]
-        dogs: Mapped[list["Dog"]] = relationship(
+        dogs: Mapped[list[Dog]] = relationship(
             init=False, default_factory=list, back_populates="human",
         )
 
@@ -258,14 +259,32 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
     try:
         import sqlalchemy as sa
         from sqlalchemy import (
-            create_engine, select, text, func, update, ForeignKey,
-            Integer, String, Table, Column, MetaData,
+            Column,
+            ForeignKey,
+            Integer,
+            MetaData,
+            String,
+            Table,
+            create_engine,
+            func,
+            select,
+            text,
+            update,
         )
         from sqlalchemy.orm import (
-            DeclarativeBase, mapped_column, Session, relationship,
-            joinedload, selectinload, with_polymorphic, aliased,
-            column_property, undefer, defaultload,
-            contains_eager, load_only,
+            DeclarativeBase,
+            Session,
+            aliased,
+            column_property,
+            contains_eager,
+            defaultload,
+            joinedload,
+            load_only,
+            mapped_column,
+            relationship,
+            selectinload,
+            undefer,
+            with_polymorphic,
         )
     except ImportError as e:
         return "SKIP", f"sqlalchemy not importable: {e}"
@@ -719,10 +738,14 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
         # async relationships
         if "async" in q and "relationship" in q:
             try:
-                from sqlalchemy.ext.asyncio import (
-                    AsyncAttrs, AsyncSession, async_sessionmaker, create_async_engine,
-                )
                 import asyncio
+
+                from sqlalchemy.ext.asyncio import (
+                    AsyncAttrs,
+                    AsyncSession,
+                    async_sessionmaker,
+                    create_async_engine,
+                )
             except ImportError as e:
                 return "SKIP", f"asyncio extras missing: {e}"
 
@@ -912,15 +935,15 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             try:
                 MetaData(bind=e)  # type: ignore[call-arg]
                 return "FAIL", "MetaData(bind=) should fail"
-            except TypeError as ex:
+            except TypeError:
                 md = MetaData()
                 md.create_all(e)
-                return "PASS", f"MetaData(bind=)→TypeError; create_all(engine) ok"
+                return "PASS", "MetaData(bind=)→TypeError; create_all(engine) ok"
 
         if "case([" in q or ("case statement" in q and "list" in q) or (
             "case([(cond" in q
         ):
-            from sqlalchemy import case, literal_column
+            from sqlalchemy import case
             try:
                 case([(True, 1)])  # type: ignore[arg-type]
                 return "FAIL", "case([(…)]) should fail"
@@ -934,7 +957,6 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
         if ("joinedload" in q and "string" in q) or ("subqueryload" in q and "string" in q) or (
             "joinedload with a string" in q
         ):
-            from sqlalchemy.orm import subqueryload
             class B(DeclarativeBase):
                 pass
             class U(B):
@@ -1135,7 +1157,6 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                 return "PASS", f"autoload=True→{type(ex).__name__}; autoload_with cols={list(t.c.keys())}"
 
         if "warn_20" in q or "sqlalchemy_warn_20" in q or "legacy warnings" in q or "suppress legacy" in q:
-            import os
             # On 2.0.51 RemovedIn20Warning is gone; env flag is historical
             from sqlalchemy import exc
             present = hasattr(exc, "RemovedIn20Warning")
@@ -1154,6 +1175,7 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         if "enum" in q and "mapped_column" in q:
             import enum
+
             from sqlalchemy import Enum
             class Color(enum.Enum):
                 red = "red"
@@ -1358,7 +1380,7 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             # typing-only claim — runtime Mapped[bool|None] accepts None assignment to Optional
             return "N/A", "IDE typing claim; no runtime SQL (docs chunk covers Mapped[] typing)"
 
-        
+
         return "N/A", "no fresh probe matched this question shape"
 
     except Exception as e:  # noqa: BLE001
@@ -1396,8 +1418,8 @@ def main() -> int:
     lines = [
         "# Golden set full-bar audit",
         "",
-        f"Generated by `tools/audit_golden_fullbar.py` (fresh; **not** `verify_2_0`).",
-        f"SQLAlchemy pin checked inside probes: **2.0.51**.",
+        "Generated by `tools/audit_golden_fullbar.py` (fresh; **not** `verify_2_0`).",
+        "SQLAlchemy pin checked inside probes: **2.0.51**.",
         f"Items: **{len(reports)}**.",
         "",
         "## What this audited",
@@ -1411,8 +1433,8 @@ def main() -> int:
         "",
         "## Summary",
         "",
-        f"| rollup | n |",
-        f"|---|---|",
+        "| rollup | n |",
+        "|---|---|",
     ]
     for k, v in sorted(counts.items()):
         lines.append(f"| {k} | {v} |")

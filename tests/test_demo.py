@@ -111,7 +111,9 @@ def test_the_hosted_notices_numbers_are_derived_from_the_saved_rows():
     rows compute, not literals typed once — they are now quoted as
     the PREVIOUS model's numbers, and they still have to be derived."""
     import json
+
     import pytest
+
     from rag import escalate, route, score
     if not score.CHUNKS_PATH.exists():
         pytest.skip("corpus/chunks.jsonl is generated and gitignored")
@@ -266,6 +268,7 @@ def test_a_failed_generation_names_the_http_status(monkeypatch):
     """"HTTPError" alone cannot tell 429 (rate limited) from 404 (this account
     cannot call this model). On 2026-09-16 that ambiguity cost an afternoon."""
     import urllib.error
+
     from rag import demo
 
     def boom(*a, **k):
@@ -302,7 +305,6 @@ def test_the_hosted_call_falls_back_to_the_next_model_when_one_is_gone():
 def test_a_200_with_no_choices_counts_as_that_model_failing():
     """Seen live on a catalog model: HTTP 200, no `choices`. Indistinguishable from
     success unless it is checked, and it would crash the page one line later."""
-    import urllib.error
     tried = []
 
     def fake_urlopen(request, timeout=None):

@@ -10,7 +10,6 @@ the provenance record, so the manifest is what gets checked.
 """
 
 import json
-import pathlib
 
 import pytest
 

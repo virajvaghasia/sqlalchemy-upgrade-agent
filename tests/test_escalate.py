@@ -78,6 +78,7 @@ def test_nvidia_verdicts_are_the_scored_ones_once_they_exist(capsys):
 
 def test_nvidia_transport_speaks_openai_and_returns_gemini_shape(monkeypatch):
     import json as _json
+
     from rag import faithful
     seen = {}
 
@@ -306,7 +307,9 @@ def test_the_committed_delivered_list_matches_the_rows():
     """tools/check_nemotron_all.py runs with nothing but SQLAlchemy installed, so it
     reads this list from a file. The file must be what the rows compute."""
     import json
+
     import pytest
+
     from rag import score
     if not score.CHUNKS_PATH.exists():
         pytest.skip("corpus/chunks.jsonl is generated and gitignored")

@@ -110,8 +110,10 @@ def memory_points(query_vec, limit: int, version: str | None = None):
     The vectors are unit length (EMBED_STATS "normalize": true), so the dot
     product IS the cosine Qdrant computes. Ties break by row order.
     """
-    import numpy as np
     from types import SimpleNamespace
+
+    import numpy as np
+
     from rag import hybrid
 
     global _MEMORY

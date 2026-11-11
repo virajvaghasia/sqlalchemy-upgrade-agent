@@ -11,10 +11,7 @@ import contextlib
 import io
 import json
 
-import pytest
-
 from rag import judge
-
 
 # The g065 answer, in shape. It emitted an Alembic script calling
 # `op.create_view` (which does not exist on alembic 1.19.1) next to

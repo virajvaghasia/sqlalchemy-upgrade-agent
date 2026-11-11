@@ -19,6 +19,7 @@ needs Ollama running and takes a couple of minutes. It is NOT part of CI and is
 not a pytest: it is the check you run before showing the page to anyone.
 """
 import sys
+
 from playwright.sync_api import sync_playwright
 
 URL = sys.argv[1]

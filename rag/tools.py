@@ -271,8 +271,8 @@ def main() -> None:
         else "sqlalchemy"
 
     if "--g065" in argv:
-        print(f"g065 — the fabricated Alembic script, checked against real "
-              f"alembic")
+        print("g065 — the fabricated Alembic script, checked against real "
+              "alembic")
         ok = True
         for symbol, pkg, expected in G065:
             got = check_api(symbol, package=pkg)

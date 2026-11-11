@@ -1260,8 +1260,8 @@ def main() -> None:
         for n in sorted(names):
             print(f"  {n}{'   <- MODEL' if n == MODEL else ''}")
         print(
-            f"\nPin one of these in rag/faithful.py MODEL. Prefer a dated snapshot\n"
-            f"over a floating alias -- the alias moves under you, the snapshot does not."
+            "\nPin one of these in rag/faithful.py MODEL. Prefer a dated snapshot\n"
+            "over a floating alias -- the alias moves under you, the snapshot does not."
         )
         return
 

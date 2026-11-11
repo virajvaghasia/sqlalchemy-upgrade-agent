@@ -514,7 +514,7 @@ def test_the_model_travels_into_the_rows_when_it_is_overridden():
 def sheet_with(*answers) -> str:
     out = []
     for a in answers:
-        out += [f"## x", faithful.HUMAN_VERDICT + f" {a}", ""]
+        out += ["## x", faithful.HUMAN_VERDICT + f" {a}", ""]
     return "\n".join(out)
 
 
@@ -1045,6 +1045,7 @@ def _payload():
 
 def test_passage_as_shown_is_the_block_ask_build_prompt_gives_the_model():
     import types
+
     from rag import ask, escalate
     h = types.SimpleNamespace(payload=_payload())
     block = ask.build_prompt("q?", [h]).split("SOURCES\n\n", 1)[1].split("\n\n---\n\n", 1)[0]
@@ -1088,6 +1089,7 @@ def test_a_headings_sweep_sends_the_heading_to_the_judge(monkeypatch):
     """The wiring, end to end without a model: with headings=True the judge prompt
     carries the heading line; without it, it does not."""
     import types
+
     from rag import index
     hit = types.SimpleNamespace(payload=_payload())
     monkeypatch.setattr(index, "retrieve", lambda q, limit=5, **kw: [hit])

@@ -614,7 +614,6 @@ def e1_report(out: dict) -> None:
 
 def main() -> None:
     import json as _json
-    import pathlib
     import sys
 
     from rag import judge, score

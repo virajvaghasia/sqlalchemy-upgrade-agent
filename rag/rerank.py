@@ -22,7 +22,8 @@ and rejected, not forgotten.
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 # Pinned like embed.MODEL_REVISION — changing it means re-measure, not retune.
 MODEL_ID = "BAAI/bge-reranker-base"
@@ -52,6 +53,7 @@ def get_model():
     global _MODEL
     if _MODEL is None:
         from sentence_transformers import CrossEncoder
+
         from rag import embed
 
         _MODEL = CrossEncoder(MODEL_ID, revision=MODEL_REVISION,

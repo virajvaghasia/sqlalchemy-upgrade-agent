@@ -9,14 +9,13 @@ So these tests guard the boundary between *signal* and *verdict*, and the split
 that makes a failure actionable.
 """
 
-import json
 import re
 import sys
 import types
 
 import pytest
 
-from rag import corpus, probe
+from rag import probe
 
 
 def hit(text, version="2.0.51"):

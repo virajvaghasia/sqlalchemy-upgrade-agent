@@ -76,7 +76,9 @@ def test_missing_usage_block_is_zero_not_a_crash(tmp_path):
 
 def test_the_demo_records_every_hosted_call(monkeypatch, tmp_path):
     """Wiring check: the ledger is only useful if the call sites use it."""
-    import io, json as _json, urllib.error
+    import io
+    import json as _json
+
     from rag import demo
 
     led = tmp_path / "u.jsonl"
@@ -93,6 +95,7 @@ def test_the_demo_records_every_hosted_call(monkeypatch, tmp_path):
 
 def test_the_demo_records_a_refused_call(monkeypatch, tmp_path):
     import urllib.error
+
     from rag import demo
 
     led = tmp_path / "u.jsonl"

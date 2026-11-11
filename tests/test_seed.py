@@ -7,7 +7,8 @@ data twice produces the same database. Nothing enforced that until now.
 
 from sqlalchemy import create_engine, func, select
 
-from experiments.sqlalchemy_1_4_vs_2_0 import models, seed as seed_mod
+from experiments.sqlalchemy_1_4_vs_2_0 import models
+from experiments.sqlalchemy_1_4_vs_2_0 import seed as seed_mod
 
 # The seeded counts. If a change to seed.py moves any of them, this test
 # says so before a reader finds out.

@@ -35,7 +35,6 @@ proves retrieval is failing.
 from __future__ import annotations
 
 import json
-import pathlib
 import sys
 
 from rag import corpus, score
@@ -102,7 +101,7 @@ def add(question: str, provenance: str, url: str | None, answerable: bool) -> No
     _save(data)
     print(f"added {item['id']} as a DRAFT. Next:")
     print(f"  uv run python -m rag.golden --candidates {question!r}")
-    print(f"  then set answer_chunks, write answer_note, and set verified_by to \"human\".")
+    print("  then set answer_chunks, write answer_note, and set verified_by to \"human\".")
 
 
 def candidates(question: str, limit: int = 10) -> None:

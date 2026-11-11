@@ -427,7 +427,7 @@ def g035():
     with engine.connect() as c:
         c.execute(sa.select(t).where(t.c.x == 1))
         r = c.execute(sa.select(t).where(t.c.x == 2))
-        from sqlalchemy.engine import default   # CACHE_HIT is module-level (looked up before the first run)
+        from sqlalchemy.engine import default  # CACHE_HIT is module-level (looked up before the first run)
         return CLAIM, r.context.cache_hit is default.CACHE_HIT
 
 

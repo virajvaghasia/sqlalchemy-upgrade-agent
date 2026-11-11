@@ -8,7 +8,8 @@ D is still the string `rag.ask` actually ships (B was, until D replaced it on
 being the shipped prompt and the comparison quietly measures something else.
 """
 
-from rag import ask, compare_prompts as cp
+from rag import ask
+from rag import compare_prompts as cp
 
 
 def test_the_shipped_variant_is_ask_system_not_a_copy():
@@ -61,7 +62,6 @@ def test_unanswerable_question_is_a_real_corpus_hole():
     proves nothing. `Session.execute`'s signature lives in the API reference,
     which the docs source excludes — so no chunk carries the argument list.
     """
-    import json
     from rag import corpus
 
     _, question = cp.QUESTIONS[1]
@@ -106,8 +106,9 @@ def test_sweep_all_covers_every_probe_question():
  — a rate the original experiment was too small to see. A sweep that
     quietly sampled would reproduce exactly that mistake.
     """
-    from rag import probe
     import inspect as _inspect
+
+    from rag import probe
     src = _inspect.getsource(cp.sweep_all)
     assert "probe.QUESTIONS" in src, "the sweep must iterate the full question set"
     assert "[:5]" not in src and "sample" not in src, "no subsetting"
@@ -337,6 +338,7 @@ def test_the_two_commands_report_the_same_uncited_number():
     match -- so a future private copy of the rule fails here rather than in a
     doc six weeks later."""
     import json
+
     from rag import judge
     sweep = json.loads(
         (judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
@@ -355,6 +357,7 @@ def test_cells_reproduces_the_published_generation_figures():
     `refused` field gave H 51/91 instead, because those rows predate the cited-refusal fix to the refusal detector --
     so this pins the re-scoring, not just the arithmetic."""
     import json
+
     from rag import judge
     sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
     assert cp.cells(sweep["D"])["end_to_end"] == 39

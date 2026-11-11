@@ -236,7 +236,7 @@ def aggregate(rows: list[dict]) -> dict:
 
 
 def report(rows: list[dict], agg: dict) -> None:
-    print(f"\nCITATION INTEGRITY  —  deterministic, no judge model (Phase 4)")
+    print("\nCITATION INTEGRITY  —  deterministic, no judge model (Phase 4)")
     print(f"  items asked                    {agg['n']:>4}")
     print(f"    refused, nothing to cite     {agg['n_refused']:>4}")
     print(f"    answered                     {agg['n_answered']:>4}   <- every rate below is over these")
@@ -603,11 +603,11 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
     if unstamped:
         print(f"  !! {' and '.join(unstamped)} do not record which machine "
               f"produced them.")
-        print(f"     Generation figures do NOT reproduce across machines "
-              f"(end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
-              f"sections below")
-        print(f"     may come from different ones. Files written after "
-              f"2026-09-05 carry a machine stamp.")
+        print("     Generation figures do NOT reproduce across machines "
+              "(end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
+              "sections below")
+        print("     may come from different ones. Files written after "
+              "2026-09-05 carry a machine stamp.")
 
     print("\n1  RETRIEVAL — did the right page reach the prompt?   [measured live]")
     if retrieval is None:
