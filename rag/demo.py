@@ -175,6 +175,13 @@ def _observe(tracer, **kw):
     return tracer.start_as_current_observation(**kw) if tracer else contextlib.nullcontext(None)
 
 
+# What can go wrong, as a name a program can branch on. `answer()` puts one of
+# these in `code` beside the sentence in `error`; `rag/server.py` maps each to an
+# HTTP status. A declined answer is not here: declining is a correct result.
+ERROR_CODES = ("empty_question", "question_too_long", "not_a_lookup", "not_configured",
+               "rate_limited", "generator_unavailable")
+
+
 class RateLimiter:
     """A rolling-hour global cap plus a minimum gap per session. `clock` is
     injectable so the tests need no sleeping."""
@@ -188,19 +195,29 @@ class RateLimiter:
 
     def check(self, session: str) -> str | None:
         """None if allowed (and the call is recorded), else the reason it is not."""
+        return self.check_detail(session)[0]
+
+    def check_detail(self, session: str) -> tuple[str | None, int | None]:
+        """`(None, None)` if allowed (and the call is recorded), else the reason and
+        the whole seconds until asking again can succeed. The server sends that
+        number as `Retry-After`, so a client can wait instead of guessing."""
         with self.lock:
             now = self.clock()
             self.calls = [t for t in self.calls if now - t < 3600]
             if len(self.calls) >= self.per_hour:
-                return "The demo's hourly question limit is reached. Please try again later."
+                # The window reopens when its oldest call turns an hour old.
+                wait = math.ceil(3600 - (now - self.calls[0])) if self.calls else 3600
+                return ("The demo's hourly question limit is reached. Please try again later.",
+                        max(1, wait))
             last = self.last.get(session)
             if last is not None and now - last < self.gap:
                 # Round UP: rounding to nearest told a visitor with 0.4 s left to "wait 0 seconds".
                 wait = max(1, math.ceil(self.gap - (now - last)))
-                return f"Please wait {wait} second{'' if wait == 1 else 's'} before asking again."
+                return (f"Please wait {wait} second{'' if wait == 1 else 's'} before asking again.",
+                        wait)
             self.calls.append(now)
             self.last[session] = now
-            return None
+            return None, None
 
 
 def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
@@ -255,20 +272,26 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
     """Question in, {'answer', 'sources', 'refused', 'error'} out. Never raises
     for a visitor's input or a remote failure; the page shows `error` instead.
 
+    An error also carries `code`, one of `ERROR_CODES`: the sentence in `error`
+    is for a person, the code is for the server, which maps it to an HTTP status.
+
     With `tracer` (a Langfuse client, see `langfuse_client`) each question is one
     trace: `retrieve` (the five page ids) and `generate` (answer + token usage)."""
     question = (question or "").strip()
     if not question:
-        return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0."}
+        return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0.",
+                "code": "empty_question"}
     if len(question) > MAX_QUESTION_CHARS:
-        return {"error": f"Please keep the question under {MAX_QUESTION_CHARS} characters."}
+        return {"error": f"Please keep the question under {MAX_QUESTION_CHARS} characters.",
+                "code": "question_too_long"}
     if not looks_like_a_lookup(question):
         # No retrieval, no model call, no decline note: none of those would be true here.
-        return {"error": NOT_A_LOOKUP}
+        return {"error": NOT_A_LOOKUP, "code": "not_a_lookup"}
     if backend == "ollama":
         post = ollama_post if post is nvidia_post else post
     elif not key:
-        return {"error": f"The demo is not configured: the {KEY_VAR} secret is missing."}
+        return {"error": f"The demo is not configured: the {KEY_VAR} secret is missing.",
+                "code": "not_configured"}
     if retrieve is None:
         from rag import index
         retrieve = lambda q: index.retrieve(q, limit=ask.DEFAULT_K)
@@ -283,21 +306,26 @@ def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter
 
 
 def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root, model) -> dict:
+    started = time.perf_counter()
     with _observe(tracer, as_type="retriever", name="retrieve", input=question) as r:
         hits = retrieve(question)
         if r:
             r.update(output=[h.payload.get("chunk_id") for h in hits])
+    # Per-stage wall time, so "the page is slow" can be split into search and model.
+    timings = {"retrieve_ms": round((time.perf_counter() - started) * 1000)}
     sources = [{"n": n, "version": h.payload["sqlalchemy_version"],
                 "path": h.payload["source_path"],
                 "heading": " > ".join(h.payload["heading_path"]) or "(no heading)",
                 "text": h.payload["text"]} for n, h in enumerate(hits, 1)]
-    blocked = limiter.check(session)
+    blocked, retry_after = limiter.check_detail(session)
     if blocked:
         if root:
             root.update(output={"error": blocked}, level="WARNING")
-        return {"error": blocked, "sources": sources}
+        return {"error": blocked, "sources": sources, "code": "rate_limited",
+                "retry_after": retry_after, "timings": timings}
     messages = [{"role": "system", "content": ask.SYSTEM},
                 {"role": "user", "content": ask.build_prompt(question, hits)}]
+    started = time.perf_counter()
     try:
         with _observe(tracer, as_type="generation", name="generate", model=model,
                       input=messages[1]["content"]) as g:
@@ -311,7 +339,8 @@ def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root
         # ask.generate exits when Ollama is unreachable -- right for a CLI,
         # wrong for a web page. SystemExit is not an Exception.
         return {"error": "The local answer model (Ollama) is not running. The search still "
-                         "ran, and its sources are listed with this message.", "sources": sources}
+                         "ran, and its sources are listed with this message.", "sources": sources,
+                "code": "generator_unavailable", "timings": timings}
     except (urllib.error.URLError, TimeoutError) as exc:
         # Name the HTTP status when there is one. "HTTPError" alone cannot tell
         # 429 (rate limited, try later) from 404 (this account cannot call this
@@ -320,13 +349,15 @@ def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root
         code = getattr(exc, "code", None)
         detail = f"HTTP {code}" if code else type(exc).__name__
         return {"error": f"The answer model did not respond ({detail}). "
-                         "The search still ran, and its sources are listed.", "sources": sources}
+                         "The search still ran, and its sources are listed.", "sources": sources,
+                "code": "generator_unavailable", "timings": timings}
+    timings["generate_ms"] = round((time.perf_counter() - started) * 1000)
     text = (data["choices"][0]["message"].get("content") or "").strip()
     if root:
         root.update(output={"refused": ask.refused(text), "answer": text})
     # `_model` is set by nvidia_post when a fallback answered; the page names it.
     return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None,
-            "model": data.get("_model", model)}
+            "model": data.get("_model", model), "timings": timings}
 
 
 def render(result: dict, backend: str = "nvidia") -> str:
@@ -479,4 +510,6 @@ def payload(result: dict, backend: str, seconds: float) -> dict:
         "notice": MEASURED_MODEL_NOTICE if backend == "ollama" else hosted_notice(result.get("model")),
         "generator": "qwen2.5-coder:7b" if backend == "ollama" else (result.get("model") or MODEL),
         "seconds": round(seconds, 1),
+        "code": result.get("code"),
+        "timings": result.get("timings") or {},
     }

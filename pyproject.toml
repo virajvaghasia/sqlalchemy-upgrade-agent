@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "RAG system that helps developers upgrade Python code from SQLAlchemy 1.4 to 2.0"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Viraj Vaghasia" }]
+keywords = ["rag", "retrieval", "llm-evaluation", "sqlalchemy", "mcp", "agents"]
 dependencies = [
     "psycopg2-binary>=2.9.12",
     "sqlalchemy==1.4.52",
@@ -27,10 +30,48 @@ embed = [
     "sentence-transformers>=3.0",
     "qdrant-client>=1.9",
 ]
+# The web page. Pinned to the versions the deployed page runs
+# (space/requirements.txt), so a local server and the hosted one are the same code.
+serve = [
+    "fastapi==0.141.1",
+    "uvicorn==0.52.4",
+]
+# The MCP server (rag/mcp_server.py). The 2.x SDK: its server class is MCPServer,
+# not the 1.x FastMCP, so the major version is pinned.
+mcp = [
+    "mcp>=2.3,<3",
+]
+
+[project.urls]
+Repository = "https://github.com/virajvaghasia/sqlalchemy-upgrade-agent"
+Demo = "https://virajvaghasia--sqlalchemy-upgrade-agent.modal.run"
+
+# One command with three subcommands (rag/cli.py):
+#     sqla-upgrade ask "why can't I call engine.execute any more?"
+#     sqla-upgrade serve        # the web page, needs the `serve` extra
+#     sqla-upgrade mcp          # the MCP server on stdio, needs the `mcp` extra
+[project.scripts]
+sqla-upgrade = "rag.cli:main"
+
+# A build backend is what makes [project.scripts] installable. `uv sync` installs
+# the project in editable mode, so the command runs the checkout it sits in.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rag", "experiments", "tools"]
 
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    # The server and the MCP server are tested in-process, so their libraries are
+    # dev dependencies as well as extras. httpx is what FastAPI's TestClient drives.
+    "fastapi==0.141.1",
+    "httpx>=0.28",
+    "mcp>=2.3,<3",
+    "ruff>=0.9",
+    "mypy>=1.14",
 ]
 
 [tool.pytest.ini_options]

@@ -906,8 +906,11 @@ $("form").addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, session }),
     });
-    if (!r.ok) throw new Error(`server answered ${r.status}`);
-    const p = await r.json();
+    // 422, 429 and 503 carry the same body as 200: the sentence to show and any
+    // sources that were found. Only a reply that is not that body is a server fault.
+    let p = null;
+    try { p = await r.json(); } catch (err) { p = null; }
+    if (!p || !p.status) throw new Error(`server answered ${r.status}`);
     renderAnswer(p);
     renderSources(p.sources || []);
   } catch (err) {
