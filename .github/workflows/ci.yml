@@ -93,6 +93,16 @@ jobs:
           grep -q "22 of 24 patterns FAIL on 2.0.51" out.txt \
             || { echo "::error::BREAKAGES.md documents 22 of 24 on 2.0.51; this run disagrees."; exit 1; }
 
+      # deliverables/BREAKAGES.md tells its reader to diff against this generator.
+      # Nothing ran it, and it crashed on an undefined name for weeks. Run it, and
+      # require the same 23 entries the file has.
+      - name: the BREAKAGES.md generator still runs
+        run: |
+          uv run --no-project --with 'sqlalchemy==2.0.51' \
+            python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 --stubs > stubs.md
+          test "$(grep -c '^### ' stubs.md)" = "$(grep -c '^### ' deliverables/BREAKAGES.md)" \
+            || { echo "::error::the generator and BREAKAGES.md disagree on the number of entries."; exit 1; }
+
   image:
     # The Dockerfile is only exercised by someone running docker build. This is
     # also the first time it is built on amd64 — every local build so far has

@@ -193,8 +193,6 @@ def emit_stubs(failures):
             for g in guidance[:1]:
                 for line in textwrap.wrap(g, width=84):
                     print(f"  > {line}")
-        if not refs and not guidance:
-            print("- _no in-repo section yet, and 1.4 emits no guidance for this one._")
         print()
         tier = TIERS.get(label)
         if tier:
