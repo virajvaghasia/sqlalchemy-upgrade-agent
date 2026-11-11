@@ -111,9 +111,7 @@ def _echo(name: str, argument: str) -> str:
     about to read its own turn back, and a transcript that does not look like
     what it produced is a needless source of confusion.
     """
-    return json.dumps({"name": name,
-                       "arguments": {toolcall.REQUIRED_ARG.get(name, "arg"):
-                                     argument}})
+    return json.dumps({"name": name, "arguments": {toolcall.REQUIRED_ARG.get(name, "arg"): argument}})
 
 
 def _observation(name: str, result) -> str:
@@ -128,10 +126,11 @@ def _observation(name: str, result) -> str:
         if result.get("error"):
             return f"check_api failed: {result['error']}"
         if not result.get("exists"):
-            return ("check_api: NOT FOUND. This symbol does not exist in the "
-                    "pinned version. That is a definite answer, not an error.")
-        return (f"check_api: exists. signature: {result.get('signature')}. "
-                f"{result.get('doc') or ''}").strip()
+            return (
+                "check_api: NOT FOUND. This symbol does not exist in the "
+                "pinned version. That is a definite answer, not an error."
+            )
+        return (f"check_api: exists. signature: {result.get('signature')}. {result.get('doc') or ''}").strip()
     if name == "search_docs":
         if not result:
             return "search_docs: no passages matched. Try different wording once."
@@ -144,13 +143,11 @@ def _observation(name: str, result) -> str:
         #
         # Safe to widen because the window is now pinned (`toolcall.
         # LOCAL_CONTEXT`, 8192) rather than left at Ollama's silent 4096.
-        return "\n\n".join(
-            f"[{n}] ({hit['chunk_id']}) {hit['text']}"
-            for n, hit in enumerate(result, 1))
+        return "\n\n".join(f"[{n}] ({hit['chunk_id']}) {hit['text']}" for n, hit in enumerate(result, 1))
     return json.dumps(result)[:2000]
 
 
-DEFAULT_SYSTEM = None          # set below, after both prompts are defined
+DEFAULT_SYSTEM = None  # set below, after both prompts are defined
 
 
 # E2. `SYSTEM_MUSTCALL` *asks* for a tool call; this *requires* one. When the
@@ -186,9 +183,16 @@ NUDGE_AFTER_NOT_FOUND = (
 )
 
 
-def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS,
-        log=lambda *a: None, system: str | None = None,
-        force_first_tool: bool = False, nudge_not_found: bool = False) -> dict:
+def run(
+    question: str,
+    generate=None,
+    call_tool=None,
+    max_steps: int = MAX_STEPS,
+    log=lambda *a: None,
+    system: str | None = None,
+    force_first_tool: bool = False,
+    nudge_not_found: bool = False,
+) -> dict:
     """One question, up to `max_steps` tool calls, one answer or one decline.
 
     Returns the transcript as well as the answer, because a trace nobody can
@@ -198,8 +202,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
     generate = generate or (lambda messages: toolcall.ask_messages(messages))
     call_tool = call_tool or _default_tools
 
-    messages = [{"role": "system", "content": system or DEFAULT_SYSTEM},
-                {"role": "user", "content": question}]
+    messages = [{"role": "system", "content": system or DEFAULT_SYSTEM}, {"role": "user", "content": question}]
     trace, seen_calls = [], set()
     forced, tools_run = 0, 0
 
@@ -223,19 +226,21 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
             # Prose at this point is the model answering, which is the normal
             # way out of the loop -- not a failure.
             trace.append({"step": step, "kind": "answer"})
-            return {"answer": content or DECLINE, "steps": step,
-                    "trace": trace, "stopped": "answered",
-                    "forced": forced}
+            return {
+                "answer": content or DECLINE,
+                "steps": step,
+                "trace": trace,
+                "stopped": "answered",
+                "forced": forced,
+            }
 
         name, argument = got["tool"], got["arg"]
         key = (name, argument)
         if key in seen_calls:
             # Repeating a call cannot produce new information and is the
             # cheapest way for a loop to burn its whole budget looking busy.
-            trace.append({"step": step, "kind": "repeat", "tool": name,
-                          "arg": argument})
-            return {"answer": DECLINE, "steps": step, "trace": trace,
-                    "stopped": "repeated_call", "forced": forced}
+            trace.append({"step": step, "kind": "repeat", "tool": name, "arg": argument})
+            return {"answer": DECLINE, "steps": step, "trace": trace, "stopped": "repeated_call", "forced": forced}
         seen_calls.add(key)
 
         result, error = call_tool(name, argument)
@@ -243,26 +248,24 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
             # Retry once, then fall back. The retry is the loop's next
             # iteration with the failure visible to the model, NOT a silent
             # re-call -- a model that cannot see the error cannot route around it.
-            trace.append({"step": step, "kind": "tool_error", "tool": name,
-                          "arg": argument, "error": error})
+            trace.append({"step": step, "kind": "tool_error", "tool": name, "arg": argument, "error": error})
             log(f"  [{step}] {name}({argument!r}) FAILED: {error}")
-            messages.append({"role": "assistant",
-                             "content": _echo(name, argument)})
-            messages.append({"role": "user",
-                             "content": f"The tool failed: {error}. Try a "
-                                        f"different tool or a different "
-                                        f"argument, or decline."})
+            messages.append({"role": "assistant", "content": _echo(name, argument)})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"The tool failed: {error}. Try a different tool or a different argument, or decline.",
+                }
+            )
             continue
 
         observation = _observation(name, result)
         tools_run += 1
         # E4: a NOT FOUND settles half of a two-part question. Firing the nudge
         # only here is what separates a planning failure from a stopping one.
-        if (nudge_not_found and name == "check_api"
-                and not result.get("exists") and not result.get("error")):
+        if nudge_not_found and name == "check_api" and not result.get("exists") and not result.get("error"):
             observation += "\n" + NUDGE_AFTER_NOT_FOUND
-        trace.append({"step": step, "kind": "tool", "tool": name,
-                      "arg": argument, "observation": observation[:200]})
+        trace.append({"step": step, "kind": "tool", "tool": name, "arg": argument, "observation": observation[:200]})
         log(f"  [{step}] {name}({argument!r})")
         messages.append({"role": "assistant", "content": _echo(name, argument)})
         messages.append({"role": "user", "content": observation})
@@ -271,8 +274,7 @@ def run(question: str, generate=None, call_tool=None, max_steps: int = MAX_STEPS
     # silently returns its best half-formed guess after four tool calls is
     # indistinguishable, downstream, from one that knew the answer.
     trace.append({"step": max_steps, "kind": "budget"})
-    return {"answer": DECLINE, "steps": max_steps, "trace": trace,
-            "stopped": "budget", "forced": forced}
+    return {"answer": DECLINE, "steps": max_steps, "trace": trace, "stopped": "budget", "forced": forced}
 
 
 def _default_tools(name: str, argument: str):
@@ -285,7 +287,7 @@ def _default_tools(name: str, argument: str):
         if name == "search_docs":
             return tools.search_docs(argument), None
         return None, f"unknown tool {name!r}"
-    except Exception as exc:                  # noqa: BLE001 - see below
+    except Exception as exc:  # noqa: BLE001 - see below
         # Broad on purpose, and narrow in effect: this converts ANY tool
         # failure into the loop's `error` path, which is the behaviour a long run
         # needs: one bad call must not end it. The alternative -- letting it propagate -- is
@@ -312,12 +314,19 @@ def machine() -> str:
     hostname. Generation figures do not reproduce across machines, so a
     row that does not name its machine is under-labelled."""
     from rag import faithful
+
     return faithful.machine()
 
 
-def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
-          checkpoint=None, log=print, resume: dict | None = None,
-          **run_kwargs) -> list[dict]:
+def sweep(
+    items: list[dict],
+    chunks: dict | None = None,
+    run_one=None,
+    checkpoint=None,
+    log=print,
+    resume: dict | None = None,
+    **run_kwargs,
+) -> list[dict]:
     """Every golden item through the agent, saved in Phase 4's row shape.
 
     Rows carry `answer_in_prompt` computed with **`score.rank_of_first_hit`,
@@ -346,41 +355,52 @@ def sweep(items: list[dict], chunks: dict | None = None, run_one=None,
             return result, error
 
         try:
-            got = (run_one or run)(item["question"], call_tool=call_tool,
-                                   **run_kwargs)
-        except Exception as exc:              # noqa: BLE001
+            got = (run_one or run)(item["question"], call_tool=call_tool, **run_kwargs)
+        except Exception as exc:  # noqa: BLE001
             # By now the rule rather than the exception: one bad item
             # costs one item. A `failed` row is neither an answer nor a
             # refusal, and both halves of the comparison drop it.
             log(f"  [{n}/{len(items)}] {item['id']}  FAILED {type(exc).__name__}")
-            rows.append({"id": item["id"], "failed": True,
-                         "answerable": bool(item.get("answerable")),
-                         "answer_in_prompt": False,
-                         "provenance": item.get("provenance")})
+            rows.append(
+                {
+                    "id": item["id"],
+                    "failed": True,
+                    "answerable": bool(item.get("answerable")),
+                    "answer_in_prompt": False,
+                    "provenance": item.get("provenance"),
+                }
+            )
             if checkpoint:
                 checkpoint(rows)
             continue
 
-        in_prompt = bool(item.get("answerable")) and seen_chunks and \
-            score.rank_of_first_hit(seen_chunks, item, chunks) is not None
-        rows.append({
-            "id": item["id"],
-            "provenance": item.get("provenance"),
-            "answerable": bool(item.get("answerable")),
-            "answer_in_prompt": bool(in_prompt),
-            "answer": got["answer"],
-            # The agent's sources ARE what it retrieved, so the citation
-            # denominator is the number of passages it actually saw. Zero when
-            # it never searched -- which is itself a measurement (an answer
-            # with no lookup behind it).
-            "n_sources": len(seen_chunks),
-            "steps": got["steps"],
-            "stopped": got["stopped"],
-            "tools": [t.get("tool") for t in got["trace"] if t["kind"] == "tool"],
-            "trace": got["trace"],
-        })
-        log(f"  [{n}/{len(items)}] {item['id']}  steps={got['steps']} "
-            f"stopped={got['stopped']} tools={rows[-1]['tools']}")
+        in_prompt = (
+            bool(item.get("answerable"))
+            and seen_chunks
+            and score.rank_of_first_hit(seen_chunks, item, chunks) is not None
+        )
+        rows.append(
+            {
+                "id": item["id"],
+                "provenance": item.get("provenance"),
+                "answerable": bool(item.get("answerable")),
+                "answer_in_prompt": bool(in_prompt),
+                "answer": got["answer"],
+                # The agent's sources ARE what it retrieved, so the citation
+                # denominator is the number of passages it actually saw. Zero when
+                # it never searched -- which is itself a measurement (an answer
+                # with no lookup behind it).
+                "n_sources": len(seen_chunks),
+                "steps": got["steps"],
+                "stopped": got["stopped"],
+                "tools": [t.get("tool") for t in got["trace"] if t["kind"] == "tool"],
+                "trace": got["trace"],
+            }
+        )
+        log(
+            f"  [{n}/{len(items)}] {item['id']}  steps={got['steps']} "
+            f"stopped={got['stopped']} tools={rows[-1]['tools']}"
+        )
         if checkpoint and n % 5 == 0:
             checkpoint(rows)
     if checkpoint:
@@ -401,8 +421,7 @@ def summarise(rows: list[dict]) -> dict:
         "no_tool_call": len(live) - len(used),
         "one_tool_only": sum(1 for r in used if len(r["tools"]) == 1),
         "multi_tool": sum(1 for r in used if len(r["tools"]) > 1),
-        "stopped": {k: sum(1 for r in live if r.get("stopped") == k)
-                    for k in ("answered", "budget", "repeated_call")},
+        "stopped": {k: sum(1 for r in live if r.get("stopped") == k) for k in ("answered", "budget", "repeated_call")},
     }
 
 
@@ -413,8 +432,7 @@ DEFAULT_SYSTEM = SYSTEM_MUSTCALL
 E1_ARMS = {"A_shipped": SYSTEM, "B_mustcall": SYSTEM_MUSTCALL}
 
 
-def e1(items: list[dict], chunks: dict | None = None, run_one=None,
-       log=print) -> dict:
+def e1(items: list[dict], chunks: dict | None = None, run_one=None, log=print) -> dict:
     """Both system prompts over the same items, **in one sitting**.
 
     Arms are interleaved per item rather than run one after the other, so a
@@ -437,19 +455,20 @@ def e1(items: list[dict], chunks: dict | None = None, run_one=None,
                     _s.extend(hit["chunk_id"] for hit in result)
                 return result, error
 
-            got = (run_one or run)(item["question"], call_tool=call_tool,
-                                   system=prompt)
+            got = (run_one or run)(item["question"], call_tool=call_tool, system=prompt)
             used = [t.get("tool") for t in got["trace"] if t["kind"] == "tool"]
             report = judge.citation_report(got["answer"], len(seen))
-            out[arm].append({
-                "id": item["id"], "tools": used, "n_sources": len(seen),
-                "answerable": True,
-                "answer_in_prompt": bool(
-                    seen and score.rank_of_first_hit(seen, item, chunks)
-                    is not None),
-                "answer": got["answer"],
-                "out_of_range": bool(report["out_of_range"]),
-            })
+            out[arm].append(
+                {
+                    "id": item["id"],
+                    "tools": used,
+                    "n_sources": len(seen),
+                    "answerable": True,
+                    "answer_in_prompt": bool(seen and score.rank_of_first_hit(seen, item, chunks) is not None),
+                    "answer": got["answer"],
+                    "out_of_range": bool(report["out_of_range"]),
+                }
+            )
             log(f"  {arm} [{n}/{len(items)}] {item['id']} tools={used}")
     return out
 
@@ -499,8 +518,7 @@ E2_ARMS = {
 }
 
 
-def e2(items: list[dict], chunks: dict | None = None, run_one=None,
-       log=print) -> dict:
+def e2(items: list[dict], chunks: dict | None = None, run_one=None, log=print) -> dict:
     """E2 (force the first tool call) and E4 (nudge after a NOT FOUND).
 
     Arms alternate within each item, same as `e1` and for the same reason
@@ -522,21 +540,22 @@ def e2(items: list[dict], chunks: dict | None = None, run_one=None,
                     _s.extend(hit["chunk_id"] for hit in result)
                 return result, error
 
-            got = (run_one or run)(item["question"], call_tool=call_tool,
-                                   **kwargs)
+            got = (run_one or run)(item["question"], call_tool=call_tool, **kwargs)
             used = [t.get("tool") for t in got["trace"] if t["kind"] == "tool"]
             report = judge.citation_report(got["answer"], len(seen))
-            out[arm].append({
-                "id": item["id"], "tools": used, "n_sources": len(seen),
-                "answerable": True, "answer": got["answer"],
-                "forced": got.get("forced", 0),
-                "answer_in_prompt": bool(
-                    seen and score.rank_of_first_hit(seen, item, chunks)
-                    is not None),
-                "out_of_range": bool(report["out_of_range"]),
-            })
-            log(f"  {arm} [{n}/{len(items)}] {item['id']} tools={used} "
-                f"forced={got.get('forced', 0)}")
+            out[arm].append(
+                {
+                    "id": item["id"],
+                    "tools": used,
+                    "n_sources": len(seen),
+                    "answerable": True,
+                    "answer": got["answer"],
+                    "forced": got.get("forced", 0),
+                    "answer_in_prompt": bool(seen and score.rank_of_first_hit(seen, item, chunks) is not None),
+                    "out_of_range": bool(report["out_of_range"]),
+                }
+            )
+            log(f"  {arm} [{n}/{len(items)}] {item['id']} tools={used} forced={got.get('forced', 0)}")
     return out
 
 
@@ -552,31 +571,30 @@ def e4(questions: list[str] | None = None, run_one=None, log=print) -> dict:
     a **stopping** one (it would continue if told). Those look identical from
     outside and have completely different fixes.
     """
-    arms = {"plain": {"force_first_tool": True},
-            "nudged": {"force_first_tool": True, "nudge_not_found": True}}
+    arms = {"plain": {"force_first_tool": True}, "nudged": {"force_first_tool": True, "nudge_not_found": True}}
     out = {arm: [] for arm in arms}
     for n, question in enumerate(questions or E4_PROBE, 1):
         for arm, kwargs in arms.items():
             got = (run_one or run)(question, **kwargs)
             used = [t.get("tool") for t in got["trace"] if t["kind"] == "tool"]
-            out[arm].append({"question": question, "tools": used,
-                             "answer": got["answer"]})
+            out[arm].append({"question": question, "tools": used, "answer": got["answer"]})
             log(f"  {arm} [{n}] tools={used}")
     return out
 
 
 def e4_report(out: dict) -> None:
     print("\n" + "=" * 70)
-    print(f"E4 — does a nudge after NOT FOUND produce the second call? "
-          f"[{machine()}]")
+    print(f"E4 — does a nudge after NOT FOUND produce the second call? [{machine()}]")
     print("=" * 70)
     print(f"{'':<10}{'no tool':>9}{'one':>6}{'two+':>6}{'check_api first':>18}")
     for arm, rows in out.items():
-        print(f"{arm:<10}"
-              f"{sum(1 for r in rows if not r['tools']):>9}"
-              f"{sum(1 for r in rows if len(r['tools']) == 1):>6}"
-              f"{sum(1 for r in rows if len(r['tools']) > 1):>6}"
-              f"{sum(1 for r in rows if r['tools'][:1] == ['check_api']):>18}")
+        print(
+            f"{arm:<10}"
+            f"{sum(1 for r in rows if not r['tools']):>9}"
+            f"{sum(1 for r in rows if len(r['tools']) == 1):>6}"
+            f"{sum(1 for r in rows if len(r['tools']) > 1):>6}"
+            f"{sum(1 for r in rows if r['tools'][:1] == ['check_api']):>18}"
+        )
     print("\nEvery question is two-part: a symbol that is gone, plus what to")
     print("use instead. Answering fully REQUIRES two tools, so `two+` is the")
     print("number — and the nudge can only fire after a check_api NOT FOUND.")
@@ -584,19 +602,19 @@ def e4_report(out: dict) -> None:
 
 def e1_report(out: dict) -> None:
     print("\n" + "=" * 66)
-    print(f"E1 — system prompt A/B, one sitting, n={len(next(iter(out.values())))}"
-          f"   [{machine()}]")
+    print(f"E1 — system prompt A/B, one sitting, n={len(next(iter(out.values())))}   [{machine()}]")
     print("=" * 66)
-    print(f"{'':<12}{'no tool':>9}{'one':>6}{'two+':>6}{'in prompt':>11}"
-          f"{'delivered':>11}{'bad cites':>11}")
+    print(f"{'':<12}{'no tool':>9}{'one':>6}{'two+':>6}{'in prompt':>11}{'delivered':>11}{'bad cites':>11}")
     for arm, rows in out.items():
-        print(f"{arm:<12}"
-              f"{sum(1 for r in rows if not r['tools']):>9}"
-              f"{sum(1 for r in rows if len(r['tools']) == 1):>6}"
-              f"{sum(1 for r in rows if len(r['tools']) > 1):>6}"
-              f"{sum(1 for r in rows if r['answer_in_prompt']):>11}"
-              f"{sum(1 for r in rows if r['answer_in_prompt'] and not ask.refused(r['answer'])):>11}"
-              f"{sum(1 for r in rows if r['out_of_range']):>11}")
+        print(
+            f"{arm:<12}"
+            f"{sum(1 for r in rows if not r['tools']):>9}"
+            f"{sum(1 for r in rows if len(r['tools']) == 1):>6}"
+            f"{sum(1 for r in rows if len(r['tools']) > 1):>6}"
+            f"{sum(1 for r in rows if r['answer_in_prompt']):>11}"
+            f"{sum(1 for r in rows if r['answer_in_prompt'] and not ask.refused(r['answer'])):>11}"
+            f"{sum(1 for r in rows if r['out_of_range']):>11}"
+        )
     print("\nbad cites = [n] pointing at a source that was never retrieved (E3)")
     # DERIVED, not asserted. The first version printed "ZERO under both prompts
     # on both machines" as fixed text -- and the lab's own run printed that
@@ -606,10 +624,12 @@ def e1_report(out: dict) -> None:
     # "Two runs above" footer (the sibling).
     chained = sum(1 for rows in out.values() for r in rows if len(r["tools"]) > 1)
     total = sum(len(rows) for rows in out.values())
-    print(f"two+      = chained tools: {chained} of {total} runs on this "
-          f"machine. Across both\n"
-          f"            machines so far it is rare but NOT zero — no wording "
-          f"tested moves it.")
+    print(
+        f"two+      = chained tools: {chained} of {total} runs on this "
+        f"machine. Across both\n"
+        f"            machines so far it is rare but NOT zero — no wording "
+        f"tested moves it."
+    )
 
 
 def main() -> None:
@@ -623,66 +643,66 @@ def main() -> None:
 
     if "--report" in argv:
         if not out.exists():
-            sys.exit(f"no rows yet: {out.name}\n"
-                     f"  run: uv run python -m rag.agent --golden")
+            sys.exit(f"no rows yet: {out.name}\n  run: uv run python -m rag.agent --golden")
         saved = _json.loads(out.read_text())
         got = summarise(saved["rows"])
-        print(f"\nAGENT — the golden set through the tool-using loop"
-              f"  [{saved.get('machine', '?')}]")
-        print(f"  end to end     {got['delivered']}/{got['n_answerable']} = "
-              f"{got['end_to_end']:.2f}   (the shipped pipeline: 39/91 = 0.43 "
-              f"on Darwin-arm64)")
-        print(f"  over-refused   {got['over_refused']}"
-              f"      fabricated {got['fabricated']}"
-              f"      failed {got['failed']}")
-        print(f"  no tool call   {got['no_tool_call']}"
-              f"      one tool {got['one_tool_only']}"
-              f"      two or more {got['multi_tool']}")
+        print(f"\nAGENT — the golden set through the tool-using loop  [{saved.get('machine', '?')}]")
+        print(
+            f"  end to end     {got['delivered']}/{got['n_answerable']} = "
+            f"{got['end_to_end']:.2f}   (the shipped pipeline: 39/91 = 0.43 "
+            f"on Darwin-arm64)"
+        )
+        print(f"  over-refused   {got['over_refused']}      fabricated {got['fabricated']}      failed {got['failed']}")
+        print(
+            f"  no tool call   {got['no_tool_call']}"
+            f"      one tool {got['one_tool_only']}"
+            f"      two or more {got['multi_tool']}"
+        )
         print(f"  stopped        {got['stopped']}")
-        print("  Compare item by item, not by the averages — and only "
-              "against a run\n  from THIS machine.")
+        print("  Compare item by item, not by the averages — and only against a run\n  from THIS machine.")
         return
 
     if "--e4" in argv:
         got = e4()
         e4_report(got)
         path = judge.DELIVERABLES / f"e4-phase5.{machine()}.json"
-        path.write_text(_json.dumps({"machine": machine(), "arms": got},
-                                    indent=1) + "\n")
+        path.write_text(_json.dumps({"machine": machine(), "arms": got}, indent=1) + "\n")
         print(f"\nsaved to {path.name}")
         return
 
     if "--e2" in argv:
         from rag import score as _score
+
         n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 20
         items = [i for i in _score.load_golden() if i.get("answerable")][:n]
         got = e2(items)
         e1_report(got)
         path = judge.DELIVERABLES / f"e2-phase5.{machine()}.json"
-        path.write_text(_json.dumps({"machine": machine(), "arms": got},
-                                    indent=1) + "\n")
+        path.write_text(_json.dumps({"machine": machine(), "arms": got}, indent=1) + "\n")
         print(f"\nsaved to {path.name}")
         return
 
     if "--e1" in argv:
         from rag import score as _score
+
         n = int(argv[argv.index("--n") + 1]) if "--n" in argv else 20
         items = [i for i in _score.load_golden() if i.get("answerable")][:n]
         got = e1(items)
         e1_report(got)
         path = judge.DELIVERABLES / f"e1-phase5.{machine()}.json"
-        path.write_text(_json.dumps({"machine": machine(), "arms": got},
-                                    indent=1) + "\n")
+        path.write_text(_json.dumps({"machine": machine(), "arms": got}, indent=1) + "\n")
         print(f"\nsaved to {path.name}")
         return
 
     if "--golden" not in argv:
-        print("usage: uv run python -m rag.agent --golden [--limit N] [--resume]\n"
-              "       uv run python -m rag.agent --e1 [--n 20]   prompt A/B\n"
-              "       uv run python -m rag.agent --e2 [--n 20]   forcing + nudge\n"
-              "       uv run python -m rag.agent --e4            two-part questions\n"
-              "  add --force and/or --nudge to --golden to measure the levers\n"
-              "       uv run python -m rag.agent --report")
+        print(
+            "usage: uv run python -m rag.agent --golden [--limit N] [--resume]\n"
+            "       uv run python -m rag.agent --e1 [--n 20]   prompt A/B\n"
+            "       uv run python -m rag.agent --e2 [--n 20]   forcing + nudge\n"
+            "       uv run python -m rag.agent --e4            two-part questions\n"
+            "  add --force and/or --nudge to --golden to measure the levers\n"
+            "       uv run python -m rag.agent --report"
+        )
         return
 
     # score.load_golden enforces human verification in code: anything whose verified_by
@@ -695,21 +715,24 @@ def main() -> None:
     if "--resume" in argv and out.exists():
         prior = _json.loads(out.read_text())
         if prior.get("machine") != machine():
-            sys.exit(f"those rows are from {prior.get('machine')}, this host is "
-                     f"{machine()}. Two machines in one file is the mistake "
-                     f"that already cost one recovery.")
+            sys.exit(
+                f"those rows are from {prior.get('machine')}, this host is "
+                f"{machine()}. Two machines in one file is the mistake "
+                f"that already cost one recovery."
+            )
         resume = prior
         print(f"resuming: {len(prior['rows'])} rows already done")
     elif out.exists():
         prior = _json.loads(out.read_text()).get("machine")
         if prior and prior != machine():
-            sys.exit(f"{out.name} holds rows from {prior}; this host is "
-                     f"{machine()}. Overwriting destroys the other machine's "
-                     f"evidence.")
+            sys.exit(
+                f"{out.name} holds rows from {prior}; this host is "
+                f"{machine()}. Overwriting destroys the other machine's "
+                f"evidence."
+            )
 
     def save(rows):
-        out.write_text(_json.dumps({"machine": machine(),
-                                    "n": len(rows), "rows": rows}, indent=1) + "\n")
+        out.write_text(_json.dumps({"machine": machine(), "n": len(rows), "rows": rows}, indent=1) + "\n")
 
     # The two levers, off by default. Each is measured before it ships (the must-call prompt
     # is the precedent: the prompt became the default only after the lab
@@ -724,17 +747,16 @@ def main() -> None:
             f"{SWEEP_NAME}"
             f"{'-forced' if '--force' in argv else ''}"
             f"{'-nudged' if '--nudge' in argv else ''}"
-            f".{machine()}.json")
+            f".{machine()}.json"
+        )
         print(f"levers: {', '.join(sorted(run_kwargs))} — writing {out.name}")
 
-    print(f"agent over {len(items)} golden items — checkpointing every 5 to "
-          f"{out.name}")
+    print(f"agent over {len(items)} golden items — checkpointing every 5 to {out.name}")
     rows = sweep(items, checkpoint=save, resume=resume, **run_kwargs)
     save(rows)
     print(f"\nsaved {len(rows)} rows to {out.name}")
     main_report = summarise(rows)
-    print(f"  end to end {main_report['delivered']}/{main_report['n_answerable']}"
-          f" = {main_report['end_to_end']:.2f}")
+    print(f"  end to end {main_report['delivered']}/{main_report['n_answerable']} = {main_report['end_to_end']:.2f}")
 
 
 if __name__ == "__main__":

@@ -56,6 +56,7 @@ def test_the_reranker_is_pinned_to_a_revision_and_the_load_uses_it(monkeypatch):
     revision. Assert the load, not the constant, or the same gap reopens."""
     import sys
     import types
+
     seen = {}
 
     class FakeCE:
@@ -63,8 +64,8 @@ def test_the_reranker_is_pinned_to_a_revision_and_the_load_uses_it(monkeypatch):
             seen.update(kw, model_id=model_id)
 
     from rag import embed
-    monkeypatch.setitem(sys.modules, "sentence_transformers",
-                        types.SimpleNamespace(CrossEncoder=FakeCE))
+
+    monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(CrossEncoder=FakeCE))
     # CI's tests job installs no torch; pick_device(None) would import it.
     monkeypatch.setattr(embed, "pick_device", lambda requested: "cpu")
     rerank.reset_model()

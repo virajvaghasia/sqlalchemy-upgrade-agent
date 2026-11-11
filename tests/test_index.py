@@ -25,15 +25,18 @@ needs_stats = pytest.mark.skipif(STATS is None, reason="no EMBED_STATS.json — 
 
 # --- the collection name is the compatibility guard ------------------------
 
+
 def test_collection_name_carries_model_and_revision():
     """Qdrant has no collection-level metadata field, so what produced a
     collection goes where it cannot be ignored: the name. Re-embedding with a
     different revision then yields a DIFFERENT collection rather than a silently
     mixed one — the same trick as declaring `image:` in Compose."""
-    name = index.collection_name({
-        "model": "BAAI/bge-m3",
-        "revision": "5617a9f61b028005a4858fdac845db406aefb181",
-    })
+    name = index.collection_name(
+        {
+            "model": "BAAI/bge-m3",
+            "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+        }
+    )
     assert name == "sqlalchemy-upgrade-agent-bge-m3-5617a9f6"
 
 
@@ -68,18 +71,20 @@ def test_the_name_matches_the_run_that_actually_happened():
 
 # --- the query must live in the same space as the corpus -------------------
 
+
 def test_search_reuses_the_corpus_embedding_settings():
     """A query normalized differently, or truncated differently, from the corpus
     is compared against vectors it does not share a space with. Search still
     returns results; they are just ranked wrong. So `index.search` must read
     these from `rag.embed` rather than restating them."""
-    source = (index.__file__ and open(index.__file__).read())
+    source = index.__file__ and open(index.__file__).read()
     assert "embed.NORMALIZE" in source, "search must use the corpus's normalize setting"
     assert "embed.MODEL_REVISION" in source, "search must use the pinned revision"
     assert "embed.MAX_SEQ_LENGTH" in source, "search must use the corpus's sequence window"
 
 
 # --- integration, only when a database is actually there -------------------
+
 
 def _live_client():
     """A Qdrant client if one is reachable, else None — and SILENT either way.

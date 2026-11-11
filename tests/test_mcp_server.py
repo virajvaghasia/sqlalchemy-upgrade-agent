@@ -69,14 +69,15 @@ def test_search_docs_returns_passages_and_caps_how_many_a_client_can_ask_for(mon
 
 def test_get_function_source_passes_the_package_through(monkeypatch):
     seen = []
-    monkeypatch.setattr(tools, "get_function_source",
-                        lambda symbol, package="sqlalchemy": seen.append(package) or {"exists": True})
-    call("get_function_source", {"symbol": "alembic.operations.Operations.create_table",
-                                 "package": "alembic"})
+    monkeypatch.setattr(
+        tools, "get_function_source", lambda symbol, package="sqlalchemy": seen.append(package) or {"exists": True}
+    )
+    call("get_function_source", {"symbol": "alembic.operations.Operations.create_table", "package": "alembic"})
     assert seen == ["alembic"]
 
 
 # --- the command ---------------------------------------------------------------
+
 
 def test_the_command_has_the_three_subcommands_and_requires_one():
     parser = cli.build_parser()
@@ -89,13 +90,20 @@ def test_the_command_has_the_three_subcommands_and_requires_one():
 
 def test_ask_hands_the_question_and_flags_to_the_pipeline(monkeypatch):
     from rag import ask
+
     seen = {}
     monkeypatch.setattr(ask, "ask", lambda question, **kw: seen.update(question=question, **kw))
     cli.main(["ask", "why did engine.execute go", "--k", "8", "--retrieval-only"])
-    assert seen == {"question": "why did engine.execute go", "k": 8, "version": None,
-                    "retrieval_only": True, "show_prompt": False}
+    assert seen == {
+        "question": "why did engine.execute go",
+        "k": 8,
+        "version": None,
+        "retrieval_only": True,
+        "show_prompt": False,
+    }
 
 
 def test_the_default_k_is_the_shipped_one_not_a_second_copy():
     from rag import ask
+
     assert cli.build_parser().parse_args(["ask", "q"]).k == ask.DEFAULT_K

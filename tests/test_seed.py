@@ -54,9 +54,12 @@ def test_seed_is_deterministic(tmp_path):
         seed_mod.seed(eng).close()
         with eng.connect() as conn:
             titles.append(
-                [r[0] for r in conn.execute(
-                    models.Issue.__table__.select().order_by(models.Issue.__table__.c.id)
-                ).fetchall()][:20]
+                [
+                    r[0]
+                    for r in conn.execute(
+                        models.Issue.__table__.select().order_by(models.Issue.__table__.c.id)
+                    ).fetchall()
+                ][:20]
             )
         eng.dispose()
     assert titles[0] == titles[1]

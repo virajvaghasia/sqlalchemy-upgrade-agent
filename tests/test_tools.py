@@ -21,12 +21,13 @@ from rag import tools
 def runner(stdout="", returncode=0, stderr=""):
     def run(cmd):
         run.cmd = cmd
-        return types.SimpleNamespace(stdout=stdout, returncode=returncode,
-                                     stderr=stderr)
+        return types.SimpleNamespace(stdout=stdout, returncode=returncode, stderr=stderr)
+
     return run
 
 
 # --- the pin -----------------------------------------------------------------
+
 
 def test_the_pin_is_the_one_verify_2_0_declares():
     """One source of truth. `verify_2_0.py` owns `PIN` because its recorded
@@ -47,21 +48,21 @@ def test_the_pin_is_read_not_imported():
 
 # --- check_api ---------------------------------------------------------------
 
+
 def test_a_missing_symbol_is_an_answer_not_an_error():
     """`check_api("Query.from_self")` answering "no" IS the tool working.
     Collapsing that into an error would make an agent treat a removed API the
     same way it treats a broken lookup, which is the distinction the tool
     exists to draw."""
-    got = tools.check_api("sqlalchemy.orm.Query.from_self",
-                          runner=runner(json.dumps({"exists": False,
-                                                    "error": None})))
+    got = tools.check_api("sqlalchemy.orm.Query.from_self", runner=runner(json.dumps({"exists": False, "error": None})))
     assert got["exists"] is False and got["error"] is None
 
 
 def test_a_present_symbol_comes_back_with_its_signature():
-    got = tools.check_api("sqlalchemy.orm.Session.get", runner=runner(
-        json.dumps({"exists": True, "error": None,
-                    "signature": "get(self, entity, ident)"})))
+    got = tools.check_api(
+        "sqlalchemy.orm.Session.get",
+        runner=runner(json.dumps({"exists": True, "error": None, "signature": "get(self, entity, ident)"})),
+    )
     assert got["exists"] and got["signature"].startswith("get(")
 
 
@@ -69,14 +70,14 @@ def test_an_unknown_package_is_refused_before_any_subprocess():
     """Each package is a wheel resolved on every call, so the list is short on
     purpose. A typo must fail here rather than spend two minutes proving it."""
     called = []
-    got = tools.check_api("x", package="requests",
-                          runner=lambda cmd: called.append(cmd))
+    got = tools.check_api("x", package="requests", runner=lambda cmd: called.append(cmd))
     assert got["exists"] is False and "unknown package" in got["error"]
     assert called == [], "no subprocess for an unknown package"
 
 
 def test_a_timeout_costs_one_call_not_the_run():
     """The fourth module to need this. The first two learned it the expensive way."""
+
     def boom(cmd):
         raise subprocess.TimeoutExpired(cmd, tools.TIMEOUT)
 
@@ -90,8 +91,7 @@ def test_a_probe_that_prints_nothing_is_reported_rather_than_crashing():
 
 
 def test_a_failed_subprocess_surfaces_its_last_stderr_line():
-    got = tools.check_api("x", runner=runner(
-        returncode=1, stderr="Resolution failed\nNo solution found"))
+    got = tools.check_api("x", runner=runner(returncode=1, stderr="Resolution failed\nNo solution found"))
     assert got["exists"] is False and got["error"] == "No solution found"
 
 
@@ -108,8 +108,7 @@ def test_alembic_is_reachable_because_g065_needs_it():
     """`g065`'s fabrication was `op.create_view`, not a SQLAlchemy symbol. A
     tool that could only see SQLAlchemy could not have caught it."""
     run = runner(json.dumps({"exists": False, "error": None}))
-    tools.check_api("alembic.operations.Operations.create_view",
-                    package="alembic", runner=run)
+    tools.check_api("alembic.operations.Operations.create_view", package="alembic", runner=run)
     assert "alembic" in run.cmd
 
 
@@ -124,6 +123,7 @@ def test_the_g065_expectations_are_the_measured_ones():
 
 
 # --- get_function_source -----------------------------------------------------
+
 
 def test_source_is_a_separate_tool_not_a_flag():
     """The answers differ in size by three orders of magnitude. An agent that
@@ -140,6 +140,7 @@ def test_source_is_a_separate_tool_not_a_flag():
 
 # --- search_docs -------------------------------------------------------------
 
+
 def test_search_docs_uses_the_graded_retrieval_path():
     """NOT a private retriever. A second one would drift from the path Phase 2
     measured, and every recall figure here would quietly stop describing what
@@ -149,14 +150,11 @@ def test_search_docs_uses_the_graded_retrieval_path():
 
     def retrieve(query, limit=5):
         seen["query"], seen["limit"] = query, limit
-        return [types.SimpleNamespace(payload={"chunk_id": "c01567",
-                                               "source": "migration_20.rst",
-                                               "text": "body"})]
+        return [types.SimpleNamespace(payload={"chunk_id": "c01567", "source": "migration_20.rst", "text": "body"})]
 
     got = tools.search_docs("from_self", k=3, retrieve=retrieve)
     assert seen == {"query": "from_self", "limit": 3}
-    assert got == [{"chunk_id": "c01567", "source": "migration_20.rst",
-                    "text": "body"}]
+    assert got == [{"chunk_id": "c01567", "source": "migration_20.rst", "text": "body"}]
 
 
 # --- the probe itself, run for real ---------------------------------------------
@@ -172,27 +170,40 @@ def test_search_docs_uses_the_graded_retrieval_path():
 # network and no second environment. Name resolution is the same code on any
 # version; only the answers for removed APIs differ.
 
+
 def probe(symbol, package="sqlalchemy"):
     import subprocess
     import sys
+
     done = subprocess.run(
-        [sys.executable, "-c", tools._PROBE,
-         json.dumps({"symbol": symbol, "source": False, "package": package,
-                     "namespaces": tools.NAMESPACES[package]})],
-        capture_output=True, text=True, timeout=60)
+        [
+            sys.executable,
+            "-c",
+            tools._PROBE,
+            json.dumps(
+                {"symbol": symbol, "source": False, "package": package, "namespaces": tools.NAMESPACES[package]}
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
     assert done.returncode == 0, done.stderr
     return json.loads(done.stdout.strip().splitlines()[-1])
 
 
-@pytest.mark.parametrize("symbol", [
-    "Session.get",                     # the example in the tool's own description
-    "sqlalchemy.orm.Session.get",      # the same thing, fully qualified
-    "orm.Session.get",                 # a submodule named without the package
-    "orm.joinedload",
-    "Query.yield_per",
-    "select",                          # top level -- and also a stdlib module name
-    "Column",
-])
+@pytest.mark.parametrize(
+    "symbol",
+    [
+        "Session.get",  # the example in the tool's own description
+        "sqlalchemy.orm.Session.get",  # the same thing, fully qualified
+        "orm.Session.get",  # a submodule named without the package
+        "orm.joinedload",
+        "Query.yield_per",
+        "select",  # top level -- and also a stdlib module name
+        "Column",
+    ],
+)
 def test_a_symbol_that_exists_is_found_however_it_is_spelled(symbol):
     got = probe(symbol)
     assert got["exists"] is True, (symbol, got)
@@ -203,8 +214,9 @@ def test_short_and_full_names_resolve_to_the_same_object():
     assert probe("Session.get")["resolved"] == probe("sqlalchemy.orm.Session.get")["resolved"]
 
 
-@pytest.mark.parametrize("symbol", ["Session.no_such_method", "NoSuchClass", "orm.no_such_function",
-                                    "sqlalchemy.orm.Session.no_such_method"])
+@pytest.mark.parametrize(
+    "symbol", ["Session.no_such_method", "NoSuchClass", "orm.no_such_function", "sqlalchemy.orm.Session.no_such_method"]
+)
 def test_a_symbol_that_does_not_exist_is_a_clean_no(symbol):
     assert probe(symbol) == {"exists": False, "error": None}
 

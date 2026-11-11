@@ -159,10 +159,8 @@ def peak_memory(device: str) -> dict:
 
         rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # macOS reports bytes, Linux reports kibibytes.
-        out["process_peak_rss_mib"] = round(
-            (rss / 2**20 if sys.platform == "darwin" else rss / 1024), 1
-        )
-    except Exception:                                    # pragma: no cover
+        out["process_peak_rss_mib"] = round((rss / 2**20 if sys.platform == "darwin" else rss / 1024), 1)
+    except Exception:  # pragma: no cover
         pass
     return out
 
@@ -208,8 +206,7 @@ def main() -> None:
     tokenizer = model.tokenizer
     lengths = [len(tokenizer.encode(t, add_special_tokens=True)) for t in texts]
     truncated = sum(1 for n in lengths if n > MAX_SEQ_LENGTH)
-    print(f"tokens   max={max(lengths)}  mean={sum(lengths) // len(lengths)}  "
-          f"truncated={truncated}")
+    print(f"tokens   max={max(lengths)}  mean={sum(lengths) // len(lengths)}  truncated={truncated}")
 
     started = time.perf_counter()
     vectors = model.encode(
@@ -235,8 +232,7 @@ def main() -> None:
         "max_seq_length": MAX_SEQ_LENGTH,
         "dim": int(vectors.shape[1]),
         "n_vectors": int(vectors.shape[0]),
-        "tokens": {"max": max(lengths), "mean": sum(lengths) // len(lengths),
-                   "truncated": truncated},
+        "tokens": {"max": max(lengths), "mean": sum(lengths) // len(lengths), "truncated": truncated},
         "run": {
             "device": device,
             "batch_size": batch_size,
@@ -254,8 +250,9 @@ def main() -> None:
     else:
         print("\n--limit run: EMBED_STATS.json left alone", file=sys.stderr)
 
-    print(f"\nvectors  {vectors.shape[0]} x {vectors.shape[1]}  float32  "
-          f"-> {VECTORS_PATH.relative_to(corpus.REPO_ROOT)}")
+    print(
+        f"\nvectors  {vectors.shape[0]} x {vectors.shape[1]}  float32  -> {VECTORS_PATH.relative_to(corpus.REPO_ROOT)}"
+    )
     print(f"encode   {seconds:.1f}s   {len(chunks) / seconds:.1f} chunks/s")
     for key, value in stats["run"]["peak_memory"].items():
         print(f"memory   {key} = {value}")

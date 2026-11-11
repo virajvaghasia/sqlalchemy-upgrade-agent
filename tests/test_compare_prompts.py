@@ -37,7 +37,7 @@ def test_variants_differ_only_in_the_refusal_clause():
     last_resort = (
         "Prefer answering from what the sources do say, even if they address the question "
         "indirectly. Only if the sources are genuinely silent on the topic, reply: "
-        "\"The sources do not answer this.\" "
+        '"The sources do not answer this." '
     )
     assert a.replace(strict, "") == c
     assert b.replace(last_resort, "") == c
@@ -68,7 +68,7 @@ def test_unanswerable_question_is_a_real_corpus_hole():
     assert "signature" in question and "Session.execute" in question
 
     path = corpus.REPO_ROOT / "corpus" / "chunks.jsonl"
-    if not path.exists():          # corpus not built in this checkout
+    if not path.exists():  # corpus not built in this checkout
         return
     with open(path) as fh:
         hits = sum(1 for line in fh if ".. automethod:: Session.execute" in line)
@@ -100,15 +100,16 @@ def test_a_leading_space_no_longer_hides_a_refusal():
 
 def test_sweep_all_covers_every_probe_question():
     """
-    --all must run the whole probe set, not a subset.
+       --all must run the whole probe set, not a subset.
 
-    The original experiment chose a prompt on two questions and the full probe set found it refusing 8 of 19
- — a rate the original experiment was too small to see. A sweep that
-    quietly sampled would reproduce exactly that mistake.
+       The original experiment chose a prompt on two questions and the full probe set found it refusing 8 of 19
+    — a rate the original experiment was too small to see. A sweep that
+       quietly sampled would reproduce exactly that mistake.
     """
     import inspect as _inspect
 
     from rag import probe
+
     src = _inspect.getsource(cp.sweep_all)
     assert "probe.QUESTIONS" in src, "the sweep must iterate the full question set"
     assert "[:5]" not in src and "sample" not in src, "no subsetting"
@@ -144,6 +145,7 @@ def test_every_variant_shares_the_same_scaffolding():
 
 
 # --- Phase 4 variants (over-refusal and missing citations) ---------------------
+
 
 def test_phase4_variants_are_built_from_the_shipped_prompt_not_retyped():
     """If ask.SYSTEM changes, E/F/G must change with it. A retyped copy would
@@ -220,15 +222,23 @@ def test_all_variants_is_every_variant():
 # ended with zero output. These pin the fix, because the code paths only ever
 # execute on a night that has already gone wrong.
 
+
 def _failed(gid, answerable=True, in_prompt=True):
-    return {"id": gid, "failed": True, "answerable": answerable,
-            "answer_in_prompt": in_prompt}
+    return {"id": gid, "failed": True, "answerable": answerable, "answer_in_prompt": in_prompt}
 
 
 def _ok(gid, refused, answerable=True, in_prompt=True, uncited=False):
-    return {"id": gid, "failed": False, "answerable": answerable,
-            "answer_in_prompt": in_prompt, "refused": refused, "uncited": uncited,
-            "code_blocks": 0, "uncited_code_blocks": 0, "out_of_range": []}
+    return {
+        "id": gid,
+        "failed": False,
+        "answerable": answerable,
+        "answer_in_prompt": in_prompt,
+        "refused": refused,
+        "uncited": uncited,
+        "code_blocks": 0,
+        "uncited_code_blocks": 0,
+        "out_of_range": [],
+    }
 
 
 def test_a_failed_generation_is_neither_an_answer_nor_a_refusal(capsys):
@@ -279,12 +289,11 @@ def test_generate_retries_a_timeout_before_giving_up(monkeypatch):
 def test_a_timeout_is_not_mistaken_for_ollama_being_down(monkeypatch):
     """URLError means 'no server' and exits; a timeout means 'this one was slow'
     and must not. They arrived at the same handler until 2026-08-22."""
-    monkeypatch.setattr(cp.urllib.request, "urlopen",
-                        lambda *a, **k: (_ for _ in ()).throw(TimeoutError("slow")))
+    monkeypatch.setattr(cp.urllib.request, "urlopen", lambda *a, **k: (_ for _ in ()).throw(TimeoutError("slow")))
     try:
         cp.generate("sys", "prompt")
     except SystemExit:  # pragma: no cover
-        raise AssertionError("a slow generation must not be reported as Ollama being down")
+        raise AssertionError("a slow generation must not be reported as Ollama being down") from None
     except TimeoutError:
         pass
 
@@ -302,9 +311,11 @@ def test_uncited_counts_every_answer_the_user_sees_not_just_answerable_ones():
     trusting, and a user has no idea which of their questions was unanswerable.
     An answer on screen with no source is the defect the citation audit found, whatever the
     label on the question says."""
-    rows = [_ok("g001", refused=False, answerable=True, uncited=True),
-            _ok("g002", refused=False, answerable=False, uncited=True),
-            _ok("g003", refused=True, answerable=True)]
+    rows = [
+        _ok("g001", refused=False, answerable=True, uncited=True),
+        _ok("g002", refused=False, answerable=False, uncited=True),
+        _ok("g003", refused=True, answerable=True),
+    ]
     got = cp.cells(rows)
     assert got["answered"] == 2, "the fabricated answer is still an answer"
     assert got["uncited"] == 2
@@ -313,8 +324,7 @@ def test_uncited_counts_every_answer_the_user_sees_not_just_answerable_ones():
 def test_the_fabricated_answer_is_still_counted_as_a_fabrication():
     """The other column must not double-shift: including unanswerable answers
     in the citation denominator does not change what `fabr` means."""
-    rows = [_ok("g001", refused=False, answerable=True),
-            _ok("g002", refused=False, answerable=False)]
+    rows = [_ok("g001", refused=False, answerable=True), _ok("g002", refused=False, answerable=False)]
     got = cp.cells(rows)
     assert got["fabricated"] == 1
     assert got["n_ans"] == 1
@@ -322,9 +332,10 @@ def test_the_fabricated_answer_is_still_counted_as_a_fabrication():
 
 def test_a_failed_row_is_in_no_citation_denominator():
     """A row that never got a generation is not an answer."""
-    rows = [_ok("g001", refused=False, answerable=True, uncited=True),
-            {"id": "g002", "failed": True, "answerable": True,
-             "answer_in_prompt": True}]
+    rows = [
+        _ok("g001", refused=False, answerable=True, uncited=True),
+        {"id": "g002", "failed": True, "answerable": True, "answer_in_prompt": True},
+    ]
     assert cp.cells(rows)["answered"] == 1
 
 
@@ -340,8 +351,8 @@ def test_the_two_commands_report_the_same_uncited_number():
     import json
 
     from rag import judge
-    sweep = json.loads(
-        (judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
+
+    sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
     for variant in ("D", "H", "I"):
         mine = cp.cells(sweep[variant])
         theirs, _ = judge._sweep_citations(sweep[variant])
@@ -359,6 +370,7 @@ def test_cells_reproduces_the_published_generation_figures():
     import json
 
     from rag import judge
+
     sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
     assert cp.cells(sweep["D"])["end_to_end"] == 39
     assert cp.cells(sweep["H"])["end_to_end"] == 47
@@ -369,9 +381,10 @@ def test_both_arms_are_scored_against_the_same_denominator():
     """A paired comparison needs one ruler. A row that failed to generate leaves the
     numerator, never the denominator -- otherwise the arm that hit a timeout
     is graded out of a smaller total and looks better for having failed."""
-    rows = [_ok("g001", refused=False, answerable=True),
-            {"id": "g002", "failed": True, "answerable": True,
-             "answer_in_prompt": True}]
+    rows = [
+        _ok("g001", refused=False, answerable=True),
+        {"id": "g002", "failed": True, "answerable": True, "answer_in_prompt": True},
+    ]
     got = cp.cells(rows)
     assert got["n_ans"] == 2, "the failed item is still an answerable item"
     assert got["end_to_end"] == 1

@@ -18,9 +18,13 @@ Q = "query(User).get(1) warns LegacyAPIWarning, where did get move to"
 
 
 class Hit:
-    payload = {"sqlalchemy_version": "2.0.51", "source_path": "changelog/migration_20.rst",
-               "heading_path": ["Migration", "get"], "text": "Session.get replaces Query.get.",
-               "chunk_id": "c00001"}
+    payload = {
+        "sqlalchemy_version": "2.0.51",
+        "source_path": "changelog/migration_20.rst",
+        "heading_path": ["Migration", "get"],
+        "text": "Session.get replaces Query.get.",
+        "chunk_id": "c00001",
+    }
 
 
 def reply(text):
@@ -72,6 +76,7 @@ def test_a_rate_limited_visitor_gets_429_a_retry_after_and_still_the_sources(cli
 def test_a_failed_model_is_503_and_the_search_results_survive(client, monkeypatch):
     def boom(m, k):
         raise urllib.error.URLError("down")
+
     monkeypatch.setattr(server, "POST", boom)
     r = client.post("/api/ask", json={"question": Q, "session": "s1"})
     assert r.status_code == 503 and r.json()["code"] == "generator_unavailable"
@@ -86,8 +91,7 @@ def test_a_missing_key_is_503_not_configured(client, monkeypatch):
 
 def test_a_body_that_is_not_the_expected_shape_is_422_not_a_crash(client):
     assert client.post("/api/ask", json={"question": ["not", "a", "string"]}).status_code == 422
-    assert client.post("/api/ask", content=b"not json",
-                       headers={"content-type": "application/json"}).status_code == 422
+    assert client.post("/api/ask", content=b"not json", headers={"content-type": "application/json"}).status_code == 422
 
 
 def test_healthz_says_the_process_is_up_and_touches_nothing(client):
@@ -114,8 +118,7 @@ def test_readyz_is_503_until_the_corpus_and_the_generator_are_both_there(client,
 def test_every_request_is_one_json_log_line_without_the_question_text(client, caplog):
     with caplog.at_level(logging.INFO, logger="sqla_upgrade.request"):
         r = client.post("/api/ask", json={"question": Q, "session": "s1"})
-    lines = [json.loads(rec.getMessage()) for rec in caplog.records
-             if rec.name == "sqla_upgrade.request"]
+    lines = [json.loads(rec.getMessage()) for rec in caplog.records if rec.name == "sqla_upgrade.request"]
     assert len(lines) == 1
     line = lines[0]
     assert line["request_id"] == r.headers["x-request-id"]
@@ -140,9 +143,10 @@ def test_importing_the_server_does_not_switch_the_search_path(monkeypatch):
     import os
 
     from rag.index import DENSE_ENV
+
     monkeypatch.delenv(DENSE_ENV, raising=False)
     importlib.reload(server)
     assert DENSE_ENV not in os.environ
-    with TestClient(server.app):                  # starting the server is what sets it
+    with TestClient(server.app):  # starting the server is what sets it
         assert os.environ[DENSE_ENV] == "memory"
     monkeypatch.delenv(DENSE_ENV, raising=False)

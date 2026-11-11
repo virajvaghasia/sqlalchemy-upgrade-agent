@@ -17,18 +17,23 @@ import sys
 
 
 def _need(extra: str, exc: ImportError) -> None:
-    sys.exit(f"`sqla-upgrade {extra}` needs the `{extra}` extra ({exc.name} is not installed):\n"
-             f"    uv sync --extra {extra} --extra embed")
+    sys.exit(
+        f"`sqla-upgrade {extra}` needs the `{extra}` extra ({exc.name} is not installed):\n"
+        f"    uv sync --extra {extra} --extra embed"
+    )
 
 
 def _ask(args: argparse.Namespace) -> None:
     from rag import ask
-    ask.ask(args.question, k=args.k, version=args.version,
-            retrieval_only=args.retrieval_only, show_prompt=args.show_prompt)
+
+    ask.ask(
+        args.question, k=args.k, version=args.version, retrieval_only=args.retrieval_only, show_prompt=args.show_prompt
+    )
 
 
 def _serve(args: argparse.Namespace) -> None:
     import os
+
     try:
         import uvicorn
 
@@ -54,7 +59,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sqla-upgrade",
         description="Answers about upgrading SQLAlchemy 1.4 code to 2.0, written only from "
-                    "the SQLAlchemy documentation and cited.")
+        "the SQLAlchemy documentation and cited.",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     a = sub.add_parser("ask", help="ask one question at the terminal (needs Qdrant and Ollama)")

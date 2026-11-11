@@ -42,10 +42,29 @@ DOCS_BASE = "https://docs.sqlalchemy.org/en/20/"
 
 
 def _tok(s: str) -> set[str]:
-    return {t for t in re.findall(r"[a-z0-9_]{3,}", s.lower()) if t not in {
-        "the", "and", "for", "with", "that", "this", "from", "are", "not",
-        "how", "what", "when", "does", "using", "into", "have",
-    }}
+    return {
+        t
+        for t in re.findall(r"[a-z0-9_]{3,}", s.lower())
+        if t
+        not in {
+            "the",
+            "and",
+            "for",
+            "with",
+            "that",
+            "this",
+            "from",
+            "are",
+            "not",
+            "how",
+            "what",
+            "when",
+            "does",
+            "using",
+            "into",
+            "have",
+        }
+    }
 
 
 def load_chunks() -> dict[str, dict]:
@@ -77,6 +96,7 @@ def fetch_docs(url: str, timeout: float = 20.0) -> tuple[str, str]:
             # docs may be gzip
             if raw[:2] == b"\x1f\x8b":
                 import gzip
+
                 raw = gzip.decompress(raw)
             text = raw.decode("utf-8", errors="replace")
             return "ok", text.lower()
@@ -113,8 +133,15 @@ class ItemReport:
         # Hard bar: chunk must resolve; docs must hit live page; SQL PASS or N/A.
         # Chunk SOFT (low token overlap) is OK when docs+SQL both PASS — phrasing
         # mismatch is exactly what the phrasing measurement found (e.g. cascade_backrefs / g042).
-        if self.chunk_ok in ("PASS", "SOFT") and self.docs_ok == "PASS" and self.sql_ok in (
-            "PASS", "N/A", "SKIP",
+        if (
+            self.chunk_ok in ("PASS", "SOFT")
+            and self.docs_ok == "PASS"
+            and self.sql_ok
+            in (
+                "PASS",
+                "N/A",
+                "SKIP",
+            )
         ):
             self.verdict = "PASS"
         elif self.chunk_ok in ("PASS", "SOFT") and self.docs_ok == "PASS" and self.sql_ok == "N/A":
@@ -138,10 +165,15 @@ def audit_chunks(item: dict, chunks: dict[str, dict]) -> tuple[str, str]:
     overlaps = []
     for cid in ids:
         c = chunks[cid]
-        ctok = _tok((c.get("text") or "") + " " + " ".join(
-            c.get("heading_path") or [] if isinstance(c.get("heading_path"), list)
-            else [str(c.get("heading_path") or "")]
-        ))
+        ctok = _tok(
+            (c.get("text") or "")
+            + " "
+            + " ".join(
+                c.get("heading_path") or []
+                if isinstance(c.get("heading_path"), list)
+                else [str(c.get("heading_path") or "")]
+            )
+        )
         if not qtok:
             overlaps.append(0.0)
             continue
@@ -224,7 +256,9 @@ def _probe_mapped_as_dataclass() -> tuple[str, str]:
         id: Mapped[int] = mapped_column(primary_key=True, init=False)
         name: Mapped[str]
         dogs: Mapped[list[Dog]] = relationship(
-            init=False, default_factory=list, back_populates="human",
+            init=False,
+            default_factory=list,
+            back_populates="human",
         )
 
     class Dog(Base):
@@ -233,7 +267,9 @@ def _probe_mapped_as_dataclass() -> tuple[str, str]:
         name: Mapped[str]
         human_id: Mapped[int] = mapped_column(ForeignKey("human.id"), init=False)
         human: Mapped[Human | None] = relationship(
-            init=False, default=None, back_populates="dogs",
+            init=False,
+            default=None,
+            back_populates="dogs",
         )
 
     e = create_engine("sqlite:///:memory:")
@@ -303,9 +339,13 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
     try:
         # raw SQL string to session.execute
-        if "raw sql string" in q or ("session.execute" in q and "string" in q and "argumenterror" in q.replace(" ", "")):
+        if "raw sql string" in q or (
+            "session.execute" in q and "string" in q and "argumenterror" in q.replace(" ", "")
+        ):
+
             class B(DeclarativeBase):
                 pass
+
             e = create_engine("sqlite:///:memory:")
             with Session(e) as s:
                 try:
@@ -317,16 +357,20 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # select([cols]) list form
         if "select([" in q or ("list form" in q and "select" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 name = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, name="a")); s.commit()
+                s.add(U(id=1, name="a"))
+                s.commit()
                 try:
                     select([U.id, U.name])  # type: ignore[arg-type]
                     return "FAIL", "select([...]) should fail on 2.0"
@@ -336,11 +380,14 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # select_from/order_by kwargs
         if "select_from" in q and "order_by" in q and "keyword" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             try:
                 select(U, select_from=U, order_by=U.id)  # type: ignore[call-arg]
                 return "FAIL", "kwargs should fail"
@@ -364,22 +411,27 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # cascade_backrefs / many-to-one assignment silent
         if "comment.issue" in q or ("cascade_backrefs" in q) or ("never got inserted" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class Issue(B):
                 __tablename__ = "issue"
                 id = mapped_column(Integer, primary_key=True)
                 comments = relationship("Comment", back_populates="issue")
+
             class Comment(B):
                 __tablename__ = "comment"
                 id = mapped_column(Integer, primary_key=True)
                 issue_id = mapped_column(ForeignKey("issue.id"))
                 issue = relationship("Issue", back_populates="comments")
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
                 iss = Issue(id=1)
-                s.add(iss); s.flush()
+                s.add(iss)
+                s.flush()
                 c = Comment(id=1)
                 c.issue = iss  # many-to-one only — 2.0 does not cascade-enroll by default
                 s.commit()
@@ -397,12 +449,19 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                 return "PASS", f"m2o alone count={n}; collection append count={n2}"
 
         # already begun / autobegin
-        if "already begun" in q or ("autobegin" in q and "begin" in q) or q.strip().startswith("option to disable autobegin"):
+        if (
+            "already begun" in q
+            or ("autobegin" in q and "begin" in q)
+            or q.strip().startswith("option to disable autobegin")
+        ):
+
             class B(DeclarativeBase):
                 pass
+
             class T(B):
                 __tablename__ = "t"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
@@ -421,15 +480,19 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # session.scalar equivalence
         if "session.scalar" in q and "scalar_one" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
                 stmt = select(U).where(U.id == 1)
                 a, b = s.scalar(stmt), s.execute(stmt).scalar_one_or_none()
                 if a is not b:
@@ -438,16 +501,20 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # get the data row / 2.0 syntax
         if "get the data row" in q or ("2.0 syntax" in q and "row" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 name = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, name="a")); s.commit()
+                s.add(U(id=1, name="a"))
+                s.commit()
                 row = s.execute(select(U.id, U.name)).one()
                 m = s.execute(select(U.id, U.name)).mappings().one()
                 obj = s.scalars(select(U)).one()
@@ -483,65 +550,82 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # Query.count
         if "query.count" in q or ("equivalent of" in q and "count" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add_all([U(id=1), U(id=2)]); s.commit()
+                s.add_all([U(id=1), U(id=2)])
+                s.commit()
                 n = s.scalar(select(func.count()).select_from(U))
                 return "PASS", f"select(func.count()).select_from → {n}"
 
         # update single row
         if "single row update" in q or ("proper way" in q and "update" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 name = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, name="a")); s.commit()
+                s.add(U(id=1, name="a"))
+                s.commit()
                 s.execute(update(U).where(U.id == 1).values(name="z"))
                 s.commit()
-                return "PASS", f"name={s.get(U,1).name}"
+                return "PASS", f"name={s.get(U, 1).name}"
 
         # Row is not mapped / delete
         if "is not mapped" in q and "row" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
                 row = s.execute(select(U)).one()
                 try:
                     s.delete(row)
                     return "FAIL", "delete(Row) should raise"
                 except Exception as ex:
                     obj = s.scalars(select(U)).one()
-                    s.delete(obj); s.commit()
+                    s.delete(obj)
+                    s.commit()
                     return "PASS", f"delete(Row)→{type(ex).__name__}; delete(entity) ok"
 
         # yield_per + unique
         if "yield_per" in q and "unique" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
                 stmt = select(U).execution_options(yield_per=1)
                 try:
                     list(s.execute(stmt).unique())
@@ -551,16 +635,20 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # load_only strings
         if "load_only" in q or ("load_o" in q and "upgrade" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class A(B):
                 __tablename__ = "a"
                 id = mapped_column(Integer, primary_key=True)
                 x = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(A(id=1, x="hi")); s.commit()
+                s.add(A(id=1, x="hi"))
+                s.commit()
                 try:
                     s.query(A).options(load_only("x")).all()
                     return "FAIL", "string load_only should fail on 2.0"
@@ -570,20 +658,25 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # session.get + options / populate_existing
         if "session.get" in q and ("joinedload" in q or "options" in q or "populate_existing" in q or "ignores" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 addrs = relationship("Ad")
+
             class Ad(B):
                 __tablename__ = "ad"
                 id = mapped_column(Integer, primary_key=True)
                 u_id = mapped_column(ForeignKey("u.id"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, addrs=[Ad(id=1)])); s.commit()
+                s.add(U(id=1, addrs=[Ad(id=1)]))
+                s.commit()
             with Session(e) as s:
                 s.get(U, 1)
                 u2 = s.get(U, 1, options=(joinedload(U.addrs),))
@@ -600,29 +693,37 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             or ("query(" in q and ".get(" in q)
             or ("legacyapiwarning" in q.replace(" ", "") and "get" in q)
         ):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=5)); s.commit()
-                return "PASS", f"session.get → {s.get(U,5) is not None}"
+                s.add(U(id=5))
+                s.commit()
+                return "PASS", f"session.get → {s.get(U, 5) is not None}"
 
         # deferred_raiseload
         if "deferred_raiseload" in q or ("deferred" in q and "raiseload" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class Book(B):
                 __tablename__ = "book"
                 id = mapped_column(Integer, primary_key=True)
                 summary = mapped_column(String, deferred=True, deferred_raiseload=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(Book(id=1, summary="x")); s.commit()
+                s.add(Book(id=1, summary="x"))
+                s.commit()
             with Session(e) as s:
                 b = s.get(Book, 1)
                 try:
@@ -634,39 +735,49 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # join twice / aliased
         if "join a table twice" in q or ("how to join a table twice" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class Node(B):
                 __tablename__ = "node"
                 id = mapped_column(Integer, primary_key=True)
                 parent_id = mapped_column(ForeignKey("node.id"))
+
             p, c = aliased(Node), aliased(Node)
             stmt = select(p, c).join(c, c.parent_id == p.id)
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(Node(id=1)); s.add(Node(id=2, parent_id=1)); s.commit()
+                s.add(Node(id=1))
+                s.add(Node(id=2, parent_id=1))
+                s.commit()
                 n = len(s.execute(stmt).all())
             return "PASS", f"aliased double-join n={n}"
 
         # with_polymorphic
         if "with_polymorphic" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class Emp(B):
                 __tablename__ = "emp"
                 id = mapped_column(Integer, primary_key=True)
                 typ = mapped_column(String)
                 __mapper_args__ = {"polymorphic_on": "typ", "polymorphic_identity": "emp"}
+
             class Eng(Emp):
                 __tablename__ = "eng"
                 id = mapped_column(ForeignKey("emp.id"), primary_key=True)
                 skill = mapped_column(String)
                 __mapper_args__ = {"polymorphic_identity": "eng"}
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(Eng(id=1, skill="py")); s.commit()
+                s.add(Eng(id=1, skill="py"))
+                s.commit()
                 wp = with_polymorphic(Emp, [Eng])
                 r = s.scalars(select(wp)).one()
                 return "PASS", f"{type(r).__name__} skill={r.skill}"
@@ -685,53 +796,63 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
         # RemovedIn20Warning
         if "removedin20" in q.replace(" ", "").lower():
             from sqlalchemy import exc
+
             present = hasattr(exc, "RemovedIn20Warning")
-            return ("PASS", "RemovedIn20Warning absent on 2.0.51") if not present else (
-                "FAIL", "RemovedIn20Warning still present"
+            return (
+                ("PASS", "RemovedIn20Warning absent on 2.0.51")
+                if not present
+                else ("FAIL", "RemovedIn20Warning still present")
             )
 
         # column_property / calculated
         if "column_property" in q or ("calculated" in q and "column" in q) or ("mixing mapped and calculated" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class P(B):
                 __tablename__ = "p"
                 id = mapped_column(Integer, primary_key=True)
                 first = mapped_column(String)
                 last = mapped_column(String)
                 fullname = column_property(first + " " + last)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(P(id=1, first="A", last="B")); s.commit()
-                return "PASS", f"fullname={s.get(P,1).fullname}"
+                s.add(P(id=1, first="A", last="B"))
+                s.commit()
+                return "PASS", f"fullname={s.get(P, 1).fullname}"
 
         # defaultload / contains_eager / joinedload_all
         if "joinedload_all" in q or "defaultload" in q or "contains_eager" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class A(B):
                 __tablename__ = "a"
                 id = mapped_column(Integer, primary_key=True)
                 bs = relationship("Bb")
+
             class Bb(B):
                 __tablename__ = "b"
                 id = mapped_column(Integer, primary_key=True)
                 a_id = mapped_column(ForeignKey("a.id"))
                 cs = relationship("C")
+
             class C(B):
                 __tablename__ = "c"
                 id = mapped_column(Integer, primary_key=True)
                 b_id = mapped_column(ForeignKey("b.id"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(A(id=1, bs=[Bb(id=1, cs=[C(id=1)])])); s.commit()
+                s.add(A(id=1, bs=[Bb(id=1, cs=[C(id=1)])]))
+                s.commit()
             with Session(e) as s:
-                stmt = (
-                    select(A).join(A.bs)
-                    .options(contains_eager(A.bs), defaultload(A.bs).joinedload(Bb.cs))
-                )
+                stmt = select(A).join(A.bs).options(contains_eager(A.bs), defaultload(A.bs).joinedload(Bb.cs))
                 a = s.scalars(stmt).unique().one()
                 return "PASS", f"bs={len(a.bs)} cs={len(a.bs[0].cs)}"
 
@@ -751,10 +872,12 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
             class B(AsyncAttrs, DeclarativeBase):
                 pass
+
             class Parent(B):
                 __tablename__ = "p"
                 id = mapped_column(Integer, primary_key=True)
                 kids = relationship("Kid")
+
             class Kid(B):
                 __tablename__ = "k"
                 id = mapped_column(Integer, primary_key=True)
@@ -780,42 +903,47 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             return "PASS", asyncio.run(_run())
 
         # MappedAsDataclass — use Mapped[] at module-scope helper (nested Mapped fails)
-        if (
-            "mappedasdataclass" in q.replace(" ", "").lower()
-            or "mapped as dataclass" in q
-            or "type-safe init" in q
-        ):
+        if "mappedasdataclass" in q.replace(" ", "").lower() or "mapped as dataclass" in q or "type-safe init" in q:
             return _probe_mapped_as_dataclass()
 
         # server_default
         if "server_default" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class R(B):
                 __tablename__ = "r"
                 id = mapped_column(Integer, primary_key=True)
                 n = mapped_column(Integer, server_default=text("0"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                r = R(id=1); s.add(r); s.flush()
+                r = R(id=1)
+                s.add(r)
+                s.flush()
                 in_dict = "n" in r.__dict__
                 s.refresh(r)
                 return "PASS", f"after flush in __dict__={in_dict}; after refresh n={r.n}"
 
         # unit test transactions
         if "unit test" in q and "transaction" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with e.connect() as conn:
                 trans = conn.begin()
                 s = Session(bind=conn)
-                s.add(U(id=1)); s.flush()
+                s.add(U(id=1))
+                s.flush()
                 n = s.scalar(select(func.count()).select_from(U))
                 trans.rollback()
             with Session(e) as s2:
@@ -823,30 +951,44 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             return "PASS", f"in-tx count={n}; after rollback={n2}"
 
         # execute → Row not entity / need scalars (covers many migration items)
-        if any(k in q for k in (
-            "gives row", "tuples not user", "converting results",
-            "replace session.query", "2.0 style select", "scalars",
-        )):
+        if any(
+            k in q
+            for k in (
+                "gives row",
+                "tuples not user",
+                "converting results",
+                "replace session.query",
+                "2.0 style select",
+                "scalars",
+            )
+        ):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
                 row = s.execute(select(U)).one()
                 obj = s.scalars(select(U)).one()
                 return "PASS", f"execute→{type(row).__name__}; scalars→{type(obj).__name__}"
 
         # Query.join aliased=True
         if "aliased=true" in q.replace(" ", "") or ("join" in q and "aliased" in q and "keyword" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
@@ -860,40 +1002,50 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         # session.get generic
         if "session.get" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
-                return "PASS", f"get={s.get(U,1) is not None}"
+                s.add(U(id=1))
+                s.commit()
+                return "PASS", f"get={s.get(U, 1) is not None}"
 
         # select / scalars generic 2.0
         if any(k in q for k in ("session.execute", "select(", "2.0 style")):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
                 xs = s.scalars(select(U)).all()
                 return "PASS", f"scalars n={len(xs)}"
-
 
         # --- expanded breakages / migration probes (lunch full-bar) ---
 
         if "from_self" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
@@ -910,14 +1062,19 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             e = create_engine("sqlite:///:memory:")
             gone = not hasattr(e, "table_names")
             from sqlalchemy import inspect as sa_inspect
+
             names = sa_inspect(e).get_table_names()
-            return ("PASS", f"engine.table_names gone={gone}; inspect.get_table_names={names}") if gone else (
-                "FAIL", "table_names still present"
+            return (
+                ("PASS", f"engine.table_names gone={gone}; inspect.get_table_names={names}")
+                if gone
+                else ("FAIL", "table_names still present")
             )
 
-        if "objectnotexecutableerror" in q.replace(" ", "") or (
-            "connection.execute" in q and "string" in q
-        ) or ("pass a string to conn.execute" in q):
+        if (
+            "objectnotexecutableerror" in q.replace(" ", "")
+            or ("connection.execute" in q and "string" in q)
+            or ("pass a string to conn.execute" in q)
+        ):
             e = create_engine("sqlite:///:memory:")
             with e.connect() as c:
                 try:
@@ -927,10 +1084,13 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                     n = c.execute(text("select 1")).scalar()
                     return "PASS", f"string→{type(ex).__name__}; text()→{n}"
 
-        if "metadata(bind" in q.replace(" ", "") or "unexpected keyword argument bind" in q or (
-            "declarative_base(bind" in q.replace(" ", "")
+        if (
+            "metadata(bind" in q.replace(" ", "")
+            or "unexpected keyword argument bind" in q
+            or ("declarative_base(bind" in q.replace(" ", ""))
         ):
             from sqlalchemy import MetaData
+
             e = create_engine("sqlite:///:memory:")
             try:
                 MetaData(bind=e)  # type: ignore[call-arg]
@@ -940,10 +1100,9 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                 md.create_all(e)
                 return "PASS", "MetaData(bind=)→TypeError; create_all(engine) ok"
 
-        if "case([" in q or ("case statement" in q and "list" in q) or (
-            "case([(cond" in q
-        ):
+        if "case([" in q or ("case statement" in q and "list" in q) or ("case([(cond" in q):
             from sqlalchemy import case
+
             try:
                 case([(True, 1)])  # type: ignore[arg-type]
                 return "FAIL", "case([(…)]) should fail"
@@ -954,23 +1113,30 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                     n = c.execute(select(expr)).scalar()
                 return "PASS", f"list form→{type(ex).__name__}; case((…))→{n}"
 
-        if ("joinedload" in q and "string" in q) or ("subqueryload" in q and "string" in q) or (
-            "joinedload with a string" in q
+        if (
+            ("joinedload" in q and "string" in q)
+            or ("subqueryload" in q and "string" in q)
+            or ("joinedload with a string" in q)
         ):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 addrs = relationship("Ad")
+
             class Ad(B):
                 __tablename__ = "ad"
                 id = mapped_column(Integer, primary_key=True)
                 u_id = mapped_column(ForeignKey("u.id"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, addrs=[Ad(id=1)])); s.commit()
+                s.add(U(id=1, addrs=[Ad(id=1)]))
+                s.commit()
                 try:
                     s.scalars(select(U).options(joinedload("addrs"))).all()  # type: ignore[arg-type]
                     return "FAIL", "string joinedload should fail"
@@ -979,15 +1145,19 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                     return "PASS", f"string→{type(ex).__name__}; attr joinedload n={len(xs)}"
 
         if "row['id']" in q or ("row[" in q and "typeerror" in q) or "row.keys()" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=7)); s.commit()
+                s.add(U(id=7))
+                s.commit()
                 row = s.execute(select(U.id)).one()
                 keys_ok = hasattr(row, "_mapping") and "id" in row._mapping
                 try:
@@ -996,23 +1166,31 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                 except Exception:
                     indexed = False
                 # 2.0 Row supports _mapping; keys via _mapping.keys()
-                return "PASS", f"row._mapping keys={list(row._mapping.keys())}; row['id'] works={indexed} keys_ok={keys_ok}"
+                return (
+                    "PASS",
+                    f"row._mapping keys={list(row._mapping.keys())}; row['id'] works={indexed} keys_ok={keys_ok}",
+                )
 
         if "duplicate" in q and "joinedload" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 addrs = relationship("Ad")
+
             class Ad(B):
                 __tablename__ = "ad"
                 id = mapped_column(Integer, primary_key=True)
                 u_id = mapped_column(ForeignKey("u.id"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, addrs=[Ad(id=1), Ad(id=2)])); s.commit()
+                s.add(U(id=1, addrs=[Ad(id=1), Ad(id=2)]))
+                s.commit()
             with Session(e) as s:
                 try:
                     s.scalars(select(U).options(joinedload(U.addrs))).all()
@@ -1032,7 +1210,6 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             except Exception as ex:
                 e = create_engine("sqlite:///:memory:")
                 with Session(e) as s:
-                    begun = s.in_transaction()
                     s.execute(text("select 1"))
                     after = s.in_transaction()
                 return "PASS", f"autocommit=True→{type(ex).__name__}; autobegin after select={after}"
@@ -1048,73 +1225,95 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                     return "PASS", f"subtransactions→{type(ex).__name__}"
 
         if "backref" in q and ("back_populates" in q or "deprecated" in q or "still use" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 addrs = relationship("Ad", back_populates="user")
+
             class Ad(B):
                 __tablename__ = "ad"
                 id = mapped_column(Integer, primary_key=True)
                 u_id = mapped_column(ForeignKey("u.id"))
                 user = relationship("U", back_populates="addrs")
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                u = U(id=1); a = Ad(id=1); u.addrs.append(a); s.add(u); s.commit()
-                return "PASS", f"back_populates works; user.addrs={len(s.get(U,1).addrs)}"
+                u = U(id=1)
+                a = Ad(id=1)
+                u.addrs.append(a)
+                s.add(u)
+                s.commit()
+                return "PASS", f"back_populates works; user.addrs={len(s.get(U, 1).addrs)}"
 
         if "engine.scalar" in q:
             e = create_engine("sqlite:///:memory:")
             gone = not hasattr(e, "scalar")
             with e.connect() as c:
                 n = c.scalar(text("select 1"))
-            return ("PASS", f"engine.scalar gone={gone}; conn.scalar→{n}") if gone else (
-                "FAIL", "engine.scalar still present"
+            return (
+                ("PASS", f"engine.scalar gone={gone}; conn.scalar→{n}")
+                if gone
+                else ("FAIL", "engine.scalar still present")
             )
 
         if "declarative_base" in q and ("import" in q or "still" in q or "migrate" in q):
             # 2.0 preferred: DeclarativeBase; old path may still exist as legacy
             from sqlalchemy.orm import declarative_base
+
             Base = declarative_base()
+
             class U(Base):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             Base.metadata.create_all(e)
             return "PASS", "declarative_base() still importable; DeclarativeBase is preferred"
 
         if "orm.mapper()" in q or "classical mapping" in q:
             from sqlalchemy.orm import registry
+
             reg = registry()
             md = MetaData()
             t = Table("u", md, Column("id", Integer, primary_key=True))
+
             class U:
                 pass
+
             reg.map_imperatively(U, t)
             e = create_engine("sqlite:///:memory:")
             md.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
-                return "PASS", f"registry.map_imperatively ok get={s.get(U,1) is not None}"
+                s.add(U(id=1))
+                s.commit()
+                return "PASS", f"registry.map_imperatively ok get={s.get(U, 1) is not None}"
 
         if "join(['" in q or ("list chaining" in q and "join" in q) or "join paths" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 orders = relationship("Ord")
+
             class Ord(B):
                 __tablename__ = "ord"
                 id = mapped_column(Integer, primary_key=True)
                 u_id = mapped_column(ForeignKey("u.id"))
                 items = relationship("Item")
+
             class Item(B):
                 __tablename__ = "item"
                 id = mapped_column(Integer, primary_key=True)
                 o_id = mapped_column(ForeignKey("ord.id"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
@@ -1126,11 +1325,14 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                     return "PASS", f"list path→{type(ex).__name__}; chained join ok"
 
         if "select_entity_from" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
@@ -1159,16 +1361,20 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
         if "warn_20" in q or "sqlalchemy_warn_20" in q or "legacy warnings" in q or "suppress legacy" in q:
             # On 2.0.51 RemovedIn20Warning is gone; env flag is historical
             from sqlalchemy import exc
+
             present = hasattr(exc, "RemovedIn20Warning")
             return "PASS", f"RemovedIn20Warning present={present}; warn_20 is 1.4-era"
 
         if "mapped_column" in q and "column" in q and "difference" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 name = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             return "PASS", "mapped_column Declarative mapping creates table"
@@ -1177,36 +1383,46 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             import enum
 
             from sqlalchemy import Enum
+
             class Color(enum.Enum):
                 red = "red"
                 blue = "blue"
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 c = mapped_column(Enum(Color))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, c=Color.red)); s.commit()
-                return "PASS", f"Enum via mapped_column → {s.get(U,1).c}"
+                s.add(U(id=1, c=Color.red))
+                s.commit()
+                return "PASS", f"Enum via mapped_column → {s.get(U, 1).c}"
 
         if "populate_existing" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 addrs = relationship("Ad")
+
             class Ad(B):
                 __tablename__ = "ad"
                 id = mapped_column(Integer, primary_key=True)
                 u_id = mapped_column(ForeignKey("u.id"))
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1, addrs=[Ad(id=1)])); s.commit()
+                s.add(U(id=1, addrs=[Ad(id=1)]))
+                s.commit()
             with Session(e) as s:
                 u = s.get(U, 1)
                 assert "addrs" not in u.__dict__
@@ -1216,26 +1432,36 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
         if "bulk_save_objects" in q and "async" in q:
             # Sync API has bulk_save_objects; AsyncSession does not
             from sqlalchemy.ext.asyncio import AsyncSession
+
             has = hasattr(AsyncSession, "bulk_save_objects")
             e = create_engine("sqlite:///:memory:")
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.bulk_save_objects([U(id=1)]); s.commit()
-            return ("PASS", f"AsyncSession.bulk_save_objects={has}; Session has it") if not has else (
-                "FAIL", "AsyncSession unexpectedly has bulk_save_objects"
+                s.bulk_save_objects([U(id=1)])
+                s.commit()
+            return (
+                ("PASS", f"AsyncSession.bulk_save_objects={has}; Session has it")
+                if not has
+                else ("FAIL", "AsyncSession unexpectedly has bulk_save_objects")
             )
 
         if "objects added to session without begin" in q or ("discarded" in q and "begin" in q):
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             s = Session(e, autobegin=False)
@@ -1264,12 +1490,15 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
 
         if "insert().values()" in q or ("keyword constructor" in q and "update" in q):
             from sqlalchemy import insert
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 name = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with e.begin() as c:
@@ -1277,16 +1506,20 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             return "PASS", "insert().values(id=…, name=…) ok"
 
         if "distinct" in q and "order by" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
                 name = mapped_column(String)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add_all([U(id=1, name="a"), U(id=2, name="b")]); s.commit()
+                s.add_all([U(id=1, name="a"), U(id=2, name="b")])
+                s.commit()
                 # 2.0: distinct(U.name) style / subquery for ORM distinct+order
                 stmt = select(U).distinct().order_by(U.name)
                 n = len(s.scalars(stmt).all())
@@ -1296,37 +1529,46 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             # baked queries extension removed as needed path; statement caching built-in
             try:
                 import sqlalchemy.ext.baked  # noqa: F401
+
                 return "PASS", "ext.baked still importable (legacy); caching is built-in"
             except ImportError:
                 return "PASS", "ext.baked absent; caching built-in"
 
         if "pytest" in q and "transaction" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with e.connect() as conn:
                 trans = conn.begin()
                 s = Session(bind=conn)
-                s.add(U(id=1)); s.flush()
+                s.add(U(id=1))
+                s.flush()
                 trans.rollback()
             with Session(e) as s2:
                 n = s2.scalar(select(func.count()).select_from(U))
             return "PASS", f"outer transaction rollback → count={n}"
 
         if "_get_by_key_impl_mapping" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
                 row = s.execute(select(U.id)).one()
                 # public replacement is _mapping / mappings()
                 return "PASS", f"use row._mapping not private API; keys={list(row._mapping)}"
@@ -1340,15 +1582,19 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
             return "PASS", f"autobegin: before SELECT in_tx={before}; after={after}"
 
         if "merged into a session" in q or "being merged" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class U(B):
                 __tablename__ = "u"
                 id = mapped_column(Integer, primary_key=True)
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(U(id=1)); s.commit()
+                s.add(U(id=1))
+                s.commit()
             with Session(e) as s:
                 u = s.get(U, 1)
                 s.expunge(u)
@@ -1356,36 +1602,39 @@ def run_fresh_sql(item: dict) -> tuple[str, str]:
                 return "PASS", "merge of expunged instance ok"
 
         if "polymorphic" in q and "joinedload" in q:
+
             class B(DeclarativeBase):
                 pass
+
             class Emp(B):
                 __tablename__ = "emp"
                 id = mapped_column(Integer, primary_key=True)
                 typ = mapped_column(String)
                 __mapper_args__ = {"polymorphic_on": "typ", "polymorphic_identity": "emp"}
+
             class Eng(Emp):
                 __tablename__ = "eng"
                 id = mapped_column(ForeignKey("emp.id"), primary_key=True)
                 skill = mapped_column(String)
                 __mapper_args__ = {"polymorphic_identity": "eng"}
+
             e = create_engine("sqlite:///:memory:")
             B.metadata.create_all(e)
             with Session(e) as s:
-                s.add(Eng(id=1, skill="py")); s.commit()
+                s.add(Eng(id=1, skill="py"))
+                s.commit()
                 wp = with_polymorphic(Emp, [Eng])
                 r = s.scalars(select(wp)).one()
-                return "PASS", f"polymorphic load {type(r).__name__} skill={getattr(r,'skill',None)}"
+                return "PASS", f"polymorphic load {type(r).__name__} skill={getattr(r, 'skill', None)}"
 
         if "expected type 'mapped" in q or "ide war" in q:
             # typing-only claim — runtime Mapped[bool|None] accepts None assignment to Optional
             return "N/A", "IDE typing claim; no runtime SQL (docs chunk covers Mapped[] typing)"
 
-
         return "N/A", "no fresh probe matched this question shape"
 
     except Exception as e:  # noqa: BLE001
         return "FAIL", f"{type(e).__name__}: {e}"
-
 
 
 def main() -> int:
@@ -1475,13 +1724,10 @@ def main() -> int:
                 f"  - docs={r.docs_ok}: {r.docs_detail[:200]}\n"
                 f"  - sql={r.sql_ok}: {r.sql_detail[:200]}"
             )
-    lines += ["", "## All items", "", "| id | verdict | chunk | docs | sql | question |",
-              "|---|---|---|---|---|---|"]
+    lines += ["", "## All items", "", "| id | verdict | chunk | docs | sql | question |", "|---|---|---|---|---|---|"]
     for r in reports:
         q = r.question.replace("|", "/")[:55]
-        lines.append(
-            f"| {r.id} | {r.verdict} | {r.chunk_ok} | {r.docs_ok} | {r.sql_ok} | {q} |"
-        )
+        lines.append(f"| {r.id} | {r.verdict} | {r.chunk_ok} | {r.docs_ok} | {r.sql_ok} | {q} |")
     REPORT.write_text("\n".join(lines) + "\n")
     print(f"Wrote {REPORT}")
     print("rollup:", dict(counts))

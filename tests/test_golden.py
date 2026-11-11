@@ -33,6 +33,7 @@ def items(path):
 
 # --- human verification, enforced rather than documented ----------------------------------
 
+
 def test_added_items_are_never_marked_verified(bench):
     """The one thing this tool must not be able to do."""
     golden.add("why does session.query fail now?", "github", None, answerable=True)
@@ -60,6 +61,7 @@ def test_provenance_is_constrained_to_the_scorer_s_set(bench):
 
 # --- ids and shape ----------------------------------------------------------
 
+
 def test_ids_increment_and_do_not_collide(bench):
     for q in ("one", "two", "three"):
         golden.add(q, "github", None, answerable=True)
@@ -71,7 +73,7 @@ def test_ids_survive_a_gap_rather_than_reusing_a_number(bench):
     golden.add("one", "github", None, answerable=True)
     golden.add("two", "github", None, answerable=True)
     data = json.loads(bench.read_text())
-    data["items"] = [data["items"][1]]          # g001 deleted
+    data["items"] = [data["items"][1]]  # g001 deleted
     bench.write_text(json.dumps(data))
     golden.add("three", "github", None, answerable=True)
     assert [i["id"] for i in items(bench)] == ["g002", "g003"]

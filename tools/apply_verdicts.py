@@ -39,8 +39,7 @@ LINE = re.compile(r"^\*\*Verdict:\*\* .*$", re.M)
 
 def load() -> dict[str, list[str]]:
     """The verdict record, minus its README block."""
-    return {k: v for k, v in json.loads(RECORD.read_text()).items()
-            if not k.startswith("_")}
+    return {k: v for k, v in json.loads(RECORD.read_text()).items() if not k.startswith("_")}
 
 
 def render(text: str, verdicts: dict[str, list[str]]) -> tuple[str, int]:

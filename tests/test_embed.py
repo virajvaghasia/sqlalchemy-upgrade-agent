@@ -23,6 +23,7 @@ needs_stats = pytest.mark.skipif(STATS is None, reason="no EMBED_STATS.json — 
 
 # --- the settings that decide compatibility --------------------------------
 
+
 def test_model_revision_is_pinned():
     """A name is not a version. "BAAI/bge-m3" is a repository and repositories
     move; re-embedding half a corpus after it moves silently produces an index
@@ -51,13 +52,16 @@ def test_max_seq_length_covers_the_chunker_target():
 
 # --- what gets embedded ----------------------------------------------------
 
+
 def test_heading_path_is_prepended_to_the_text():
     """Headings ARE context. A chunk reading "this was removed in 2.0" embeds as
     an orphaned sentence unless the heading naming "this" travels with it."""
-    text = embed.embedding_input({
-        "heading_path": ["Using SELECT Statements", "Working with SQL Functions"],
-        "text": "This was removed in 2.0.",
-    })
+    text = embed.embedding_input(
+        {
+            "heading_path": ["Using SELECT Statements", "Working with SQL Functions"],
+            "text": "This was removed in 2.0.",
+        }
+    )
     assert text.startswith("Using SELECT Statements > Working with SQL Functions")
     assert text.endswith("This was removed in 2.0.")
 
@@ -69,6 +73,7 @@ def test_missing_heading_path_does_not_produce_a_leading_separator():
 
 # --- device selection ------------------------------------------------------
 
+
 @pytest.mark.parametrize("requested", ["cpu", "cuda", "mps"])
 def test_explicit_device_is_honoured_without_importing_torch(requested):
     """`--device` is the flag that lets the same code run on the Mac and the lab
@@ -78,6 +83,7 @@ def test_explicit_device_is_honoured_without_importing_torch(requested):
 
 
 # --- the run that actually happened ----------------------------------------
+
 
 @needs_stats
 def test_stats_record_the_settings_that_produced_them():

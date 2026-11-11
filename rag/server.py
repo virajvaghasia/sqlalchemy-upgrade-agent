@@ -57,8 +57,7 @@ from rag.index import DENSE_ENV
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 # In a checkout the page is at space/static; in the deploy bundle (space/build.py)
 # it sits beside the `rag` folder.
-STATIC = next((d for d in (ROOT / "static", ROOT / "space" / "static") if d.is_dir()),
-              ROOT / "space" / "static")
+STATIC = next((d for d in (ROOT / "static", ROOT / "space" / "static") if d.is_dir()), ROOT / "space" / "static")
 
 BACKEND = os.environ.get("DEMO_GENERATOR", "nvidia")
 # Limits exist because a hosted page spends API credits; a local Ollama run spends nothing.
@@ -90,8 +89,11 @@ EXAMPLES = [
     {"label": "backref deprecated?", "q": "backref= in relationship is deprecated what should I use instead"},
     {"label": "autocommit=True gone", "q": "Session(autocommit=True) is gone, what replaces autocommit mode"},
     {"label": "insert(values=) broke", "q": "insert().values() keyword constructor style for update/delete broke"},
-    {"label": "engine.execute gone", "q": "engine.execute select gone AttributeError use connection instead",
-     "declines": True},
+    {
+        "label": "engine.execute gone",
+        "q": "engine.execute select gone AttributeError use connection instead",
+        "declines": True,
+    },
 ]
 
 log = logging.getLogger("sqla_upgrade.request")
@@ -102,7 +104,6 @@ if not log.handlers:
     _handler.setFormatter(logging.Formatter("%(message)s"))
     log.addHandler(_handler)
     log.setLevel(logging.INFO)
-
 
 
 @contextlib.asynccontextmanager
@@ -120,6 +121,7 @@ app = FastAPI(title="sqlalchemy-upgrade-agent", docs_url=None, redoc_url=None, l
 class AskRequest(BaseModel):
     """The one request body. Length limits are enforced in `demo.answer`, which
     owns the sentence the page shows; this only rejects a body of the wrong type."""
+
     question: str = ""
     session: str | None = None
 
@@ -129,6 +131,7 @@ def _key():
         return os.environ[demo.KEY_VAR]
     try:
         from rag import faithful
+
         return faithful.env_key(demo.KEY_VAR)
     except Exception:
         return None
@@ -150,17 +153,21 @@ def healthz():
 
 @app.get("/readyz")
 def readyz():
-    checks = {"corpus": all(p.exists() for p in CORPUS_FILES),
-              "generator": _generator_configured()}
+    checks = {"corpus": all(p.exists() for p in CORPUS_FILES), "generator": _generator_configured()}
     ready = all(checks.values())
-    return JSONResponse({"status": "ready" if ready else "not ready", "checks": checks},
-                        status_code=200 if ready else 503)
+    return JSONResponse(
+        {"status": "ready" if ready else "not ready", "checks": checks}, status_code=200 if ready else 503
+    )
 
 
 @app.get("/api/config")
 def config():
-    return {"examples": EXAMPLES, "generator": "qwen2.5-coder:7b" if BACKEND == "ollama" else demo.MODEL,
-            "max_chars": demo.MAX_QUESTION_CHARS, "traced": TRACER is not None}
+    return {
+        "examples": EXAMPLES,
+        "generator": "qwen2.5-coder:7b" if BACKEND == "ollama" else demo.MODEL,
+        "max_chars": demo.MAX_QUESTION_CHARS,
+        "traced": TRACER is not None,
+    }
 
 
 @app.post("/api/ask")
@@ -170,8 +177,16 @@ async def ask(body: AskRequest):
     started = time.perf_counter()
     stand_ins = {name: fn for name, fn in (("retrieve", RETRIEVE), ("post", POST)) if fn}
     # The model call blocks for up to a minute; run it off the event loop.
-    result = await run_in_threadpool(demo.answer, body.question, key=_key(), session=session,
-                                     limiter=LIMITER, backend=BACKEND, tracer=TRACER, **stand_ins)
+    result = await run_in_threadpool(
+        demo.answer,
+        body.question,
+        key=_key(),
+        session=session,
+        limiter=LIMITER,
+        backend=BACKEND,
+        tracer=TRACER,
+        **stand_ins,
+    )
     seconds = time.perf_counter() - started
     payload = demo.payload(result, BACKEND, seconds)
     payload["request_id"] = request_id
@@ -181,19 +196,29 @@ async def ask(body: AskRequest):
         headers["Retry-After"] = str(result["retry_after"])
 
     timings = result.get("timings") or {}
-    log.info(json.dumps({
-        "event": "ask", "request_id": request_id, "status": status,
-        "outcome": payload["status"], "code": result.get("code"),
-        "model": payload["generator"], "sources": len(payload["sources"]),
-        "question_chars": len(body.question),
-        "retrieve_ms": timings.get("retrieve_ms"), "generate_ms": timings.get("generate_ms"),
-        "total_ms": round(seconds * 1000),
-    }))
+    log.info(
+        json.dumps(
+            {
+                "event": "ask",
+                "request_id": request_id,
+                "status": status,
+                "outcome": payload["status"],
+                "code": result.get("code"),
+                "model": payload["generator"],
+                "sources": len(payload["sources"]),
+                "question_chars": len(body.question),
+                "retrieve_ms": timings.get("retrieve_ms"),
+                "generate_ms": timings.get("generate_ms"),
+                "total_ms": round(seconds * 1000),
+            }
+        )
+    )
     return JSONResponse(payload, status_code=status, headers=headers)
 
 
 def main() -> None:
     import uvicorn
+
     uvicorn.run(app, host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "7860")))
 
 

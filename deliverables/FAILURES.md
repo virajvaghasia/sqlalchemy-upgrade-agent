@@ -44,11 +44,11 @@ second argument is the whole point.**
 
 ```python
 # what the answer says
-inner = aliased(Issue)              # ONE argument -> aliases the TABLE
+inner = aliased(Issue)  # ONE argument -> aliases the TABLE
 
 # the verified fix
-subq  = select(Issue).subquery()    # build an inner SELECT
-inner = aliased(Issue, subq)        # TWO arguments -> aliases the SUBQUERY
+subq = select(Issue).subquery()  # build an inner SELECT
+inner = aliased(Issue, subq)  # TWO arguments -> aliases the SUBQUERY
 ```
 
 `aliased(Issue)` says *"call the issues table something else"*. `aliased(Issue, subq)`

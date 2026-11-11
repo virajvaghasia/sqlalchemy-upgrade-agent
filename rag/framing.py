@@ -44,8 +44,7 @@ def sources_block(hits) -> str:
 
 def as_block(question: str, hits) -> list[dict]:
     """Arm A — one user turn, the shipped prompt verbatim."""
-    return [{"role": "system", "content": ask.SYSTEM},
-            {"role": "user", "content": ask.build_prompt(question, hits)}]
+    return [{"role": "system", "content": ask.SYSTEM}, {"role": "user", "content": ask.build_prompt(question, hits)}]
 
 
 def as_conversation(question: str, hits) -> list[dict]:
@@ -63,10 +62,8 @@ def as_conversation(question: str, hits) -> list[dict]:
     return [
         {"role": "system", "content": ask.SYSTEM},
         {"role": "user", "content": f"QUESTION: {question}"},
-        {"role": "assistant",
-         "content": "Let me look that up in the SQLAlchemy documentation."},
-        {"role": "user", "content": f"{sources_block(hits)}\n\n---\n\n"
-                                    f"QUESTION: {question}\n\nANSWER:"},
+        {"role": "assistant", "content": "Let me look that up in the SQLAlchemy documentation."},
+        {"role": "user", "content": f"{sources_block(hits)}\n\n---\n\nQUESTION: {question}\n\nANSWER:"},
     ]
 
 
@@ -77,13 +74,12 @@ def generate(messages: list[dict], model: str = ask.MODEL, post=None) -> str:
     """One call. Temperature and context pinned for the reason the local judge taught:
     Ollama truncates at `num_ctx` in silence, and these prompts are ~1600
     tokens before the answer."""
-    body = {"model": model, "messages": messages, "stream": False,
-            "options": {"temperature": 0.0, "num_ctx": 8192}}
+    body = {"model": model, "messages": messages, "stream": False, "options": {"temperature": 0.0, "num_ctx": 8192}}
     if post:
         return post(body)
     request = urllib.request.Request(
-        f"{HOST}/api/chat", data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json"})
+        f"{HOST}/api/chat", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"}
+    )
     with urllib.request.urlopen(request, timeout=300) as response:
         return json.loads(response.read())["message"]["content"]
 
@@ -106,12 +102,16 @@ def run(items, chunks=None, k=None, retrieve=None, gen=None, log=print) -> dict:
         in_prompt = score.rank_of_first_hit(ids, item, chunks) is not None
         for arm, build in ARMS.items():
             answer = (gen or generate)(build(item["question"], hits))
-            out[arm].append({"id": item["id"], "answer": answer,
-                             "answerable": bool(item.get("answerable")),
-                             "answer_in_prompt": bool(in_prompt),
-                             "n_sources": len(hits)})
-            log(f"  {arm} [{n}/{len(items)}] {item['id']} "
-                f"{'REFUSED' if ask.refused(answer) else 'answered'}")
+            out[arm].append(
+                {
+                    "id": item["id"],
+                    "answer": answer,
+                    "answerable": bool(item.get("answerable")),
+                    "answer_in_prompt": bool(in_prompt),
+                    "n_sources": len(hits),
+                }
+            )
+            log(f"  {arm} [{n}/{len(items)}] {item['id']} {'REFUSED' if ask.refused(answer) else 'answered'}")
     return out
 
 
@@ -161,11 +161,11 @@ def flips(control: list[dict], variant: list[dict]) -> dict:
         if ref_a == ref_b:
             continue
         if not ra["answerable"]:
-            row, good = "unanswerable", ref_b          # refusing is right
+            row, good = "unanswerable", ref_b  # refusing is right
         elif ra["answer_in_prompt"]:
-            row, good = "present", not ref_b           # answering is right
+            row, good = "present", not ref_b  # answering is right
         else:
-            row, good = "absent", ref_b                # declining is honest
+            row, good = "absent", ref_b  # declining is honest
         (out[row][0] if good else out[row][1]).append(i)
     return out
 
@@ -176,13 +176,14 @@ def report(out: dict) -> None:
     print("\n" + "=" * 70)
     print("SOURCE FRAMING — does the shape of the prompt move the refusals?")
     print("=" * 70)
-    print(f"{'':<16}{'page present':>13}{'over-refused':>13}"
-          f"{'page absent':>12}{'answered':>9}{'unans.':>7}{'fabr':>5}")
+    print(f"{'':<16}{'page present':>13}{'over-refused':>13}{'page absent':>12}{'answered':>9}{'unans.':>7}{'fabr':>5}")
     for arm, rows in out.items():
         c = cells(rows)
-        print(f"{arm:<16}{c['present']:>13}{len(c['over_refused']):>13}"
-              f"{c['absent']:>12}{len(c['absent_answered']):>9}"
-              f"{c['unanswerable']:>7}{len(c['fabricated']):>5}")
+        print(
+            f"{arm:<16}{c['present']:>13}{len(c['over_refused']):>13}"
+            f"{c['absent']:>12}{len(c['absent_answered']):>9}"
+            f"{c['unanswerable']:>7}{len(c['fabricated']):>5}"
+        )
     print("\nover-refused = the answer page WAS in the prompt and it declined")
     print("(the defect: 19 of 58 on the shipped path over the full 100)")
     print("answered (page absent) = answered WITHOUT the verified page; declining")
@@ -193,11 +194,12 @@ def report(out: dict) -> None:
     arms = list(out)
     if len(arms) == 2:
         f = flips(out[arms[0]], out[arms[1]])
-        print(f"\npaired, {arms[1]} against {arms[0]}"
-              f" (fixed = moved in that row's good direction):")
+        print(f"\npaired, {arms[1]} against {arms[0]} (fixed = moved in that row's good direction):")
         for row, (fixed, broken) in f.items():
-            print(f"  {row:<13} fixed {len(fixed):>2}  broken {len(broken):>2}"
-                  f"  p = {score.mcnemar_exact(len(fixed), len(broken)):.4f}")
+            print(
+                f"  {row:<13} fixed {len(fixed):>2}  broken {len(broken):>2}"
+                f"  p = {score.mcnemar_exact(len(fixed), len(broken)):.4f}"
+            )
             if fixed:
                 print(f"    fixed   {' '.join(fixed)}")
             if broken:
@@ -254,6 +256,7 @@ def main() -> None:
 
 def _machine() -> str:
     from rag import faithful
+
     return faithful.machine()
 
 

@@ -45,11 +45,14 @@ def main() -> None:
     for c in CORPUS:
         shutil.copy(ROOT / "corpus" / c, DIST / "corpus" / c)
     # Only matters if the bundle is pushed to a git host that caps file size (Hugging Face: 10 MB).
-    (DIST / ".gitattributes").write_text("*.npy filter=lfs diff=lfs merge=lfs -text\n"
-                                         "*.jsonl filter=lfs diff=lfs merge=lfs -text\n")
+    (DIST / ".gitattributes").write_text(
+        "*.npy filter=lfs diff=lfs merge=lfs -text\n*.jsonl filter=lfs diff=lfs merge=lfs -text\n"
+    )
     size = sum(p.stat().st_size for p in DIST.rglob("*") if p.is_file())
-    print(f"built {DIST.relative_to(ROOT)}: {sum(1 for p in DIST.rglob('*') if p.is_file())} files, "
-          f"{size / 2**20:.1f} MiB")
+    print(
+        f"built {DIST.relative_to(ROOT)}: {sum(1 for p in DIST.rglob('*') if p.is_file())} files, "
+        f"{size / 2**20:.1f} MiB"
+    )
 
 
 if __name__ == "__main__":

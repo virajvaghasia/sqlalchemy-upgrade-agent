@@ -14,8 +14,7 @@ from rag import usage
 
 def test_a_successful_call_is_recorded_with_its_three_counts(tmp_path):
     led = tmp_path / "u.jsonl"
-    usage.record("m/x", {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14},
-                 "test", path=led)
+    usage.record("m/x", {"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 14}, "test", path=led)
     row = json.loads(led.read_text().strip())
     assert (row["model"], row["caller"], row["status"]) == ("m/x", "test", 200)
     assert (row["prompt_tokens"], row["completion_tokens"], row["total_tokens"]) == (10, 4, 14)
@@ -38,8 +37,7 @@ def test_failures_are_recorded_too(tmp_path):
 def test_a_failed_call_contributes_no_tokens(tmp_path):
     led = tmp_path / "u.jsonl"
     usage.record("m/x", {"total_tokens": 99}, "test", status=500, path=led)
-    usage.record("m/x", {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3},
-                 "test", path=led)
+    usage.record("m/x", {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3}, "test", path=led)
     out = usage.report(usage.load(led))
     assert "total 3" in out, "a 500's tokens must not be counted as spend"
 
@@ -47,8 +45,7 @@ def test_a_failed_call_contributes_no_tokens(tmp_path):
 def test_totals_group_by_model_and_by_day(tmp_path):
     led = tmp_path / "u.jsonl"
     for model in ("a/1", "a/1", "b/2"):
-        usage.record(model, {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
-                     "test", path=led)
+        usage.record(model, {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10}, "test", path=led)
     out = usage.report(usage.load(led))
     assert "calls 3   ok 3   failed 0" in out
     assert "a/1" in out and "b/2" in out
@@ -83,10 +80,13 @@ def test_the_demo_records_every_hosted_call(monkeypatch, tmp_path):
 
     led = tmp_path / "u.jsonl"
     monkeypatch.setattr(usage, "LEDGER", led)
-    body = _json.dumps({"choices": [{"message": {"content": "hi"}}],
-                        "usage": {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10}})
-    monkeypatch.setattr(demo.urllib.request, "urlopen",
-                        lambda *a, **k: io.BytesIO(body.encode()))
+    body = _json.dumps(
+        {
+            "choices": [{"message": {"content": "hi"}}],
+            "usage": {"prompt_tokens": 7, "completion_tokens": 3, "total_tokens": 10},
+        }
+    )
+    monkeypatch.setattr(demo.urllib.request, "urlopen", lambda *a, **k: io.BytesIO(body.encode()))
     demo.nvidia_post([{"role": "user", "content": "q"}], "key")
     rows = usage.load(led)
     assert len(rows) == 1 and rows[0]["total_tokens"] == 10

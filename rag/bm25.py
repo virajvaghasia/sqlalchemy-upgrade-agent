@@ -120,9 +120,7 @@ def build(chunks: Iterable[dict] | None = None) -> Bm25Index:
     if chunks is None:
         path = embed.CHUNKS_PATH
         if not path.exists():
-            raise FileNotFoundError(
-                f"missing {path.relative_to(corpus.REPO_ROOT)} — run `uv run python -m rag.chunk`"
-            )
+            raise FileNotFoundError(f"missing {path.relative_to(corpus.REPO_ROOT)} — run `uv run python -m rag.chunk`")
         chunks = [json.loads(line) for line in path.read_text().splitlines() if line]
 
     chunk_ids: list[str] = []

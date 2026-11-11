@@ -56,8 +56,7 @@ def get_model():
 
         from rag import embed
 
-        _MODEL = CrossEncoder(MODEL_ID, revision=MODEL_REVISION,
-                              device=embed.pick_device(None))
+        _MODEL = CrossEncoder(MODEL_ID, revision=MODEL_REVISION, device=embed.pick_device(None))
     return _MODEL
 
 

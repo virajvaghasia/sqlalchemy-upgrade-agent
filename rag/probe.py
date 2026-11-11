@@ -67,8 +67,8 @@ def _verdicts() -> dict:
     if not VERDICTS_PATH.exists():
         return {}
     import json as _json
-    return {k: v for k, v in _json.loads(VERDICTS_PATH.read_text().replace("\r", ""))
-            .items() if not k.startswith("_")}
+
+    return {k: v for k, v in _json.loads(VERDICTS_PATH.read_text().replace("\r", "")).items() if not k.startswith("_")}
 
 
 VERDICTS = _verdicts()
@@ -92,31 +92,27 @@ QUESTIONS = [
     ("engine.has_table() no longer exists, what is the replacement?", "symbol", "has_table"),
     ("row.keys() raises in 2.0, how do I get the column names?", "symbol", "keys()"),
     ("orm.relation() is not available any more, what is it called now?", "symbol", "relation"),
-
     # --- version skew (the future=True case, measured in Step 1) ------------
     ("should I pass future=True to create_engine?", "skew", "future"),
     ("is Session.autocommit still supported?", "skew", "autocommit"),
     ("can I still use session.begin() with subtransactions?", "skew", "subtransaction"),
     ("does MetaData still accept a bind argument?", "skew", "bind"),
-
     # --- answers that span chunks ------------------------------------------
     ("how do I migrate select([col1, col2]) to the 2.0 form?", "spanning", "select("),
     ("what is the full set of steps to migrate a 1.4 app to 2.0?", "spanning", "migration"),
-    ("how do I get scalar values instead of Row objects from session.execute?",
-     "spanning", "scalars"),
+    ("how do I get scalar values instead of Row objects from session.execute?", "spanning", "scalars"),
     ("why do I need .unique() when using joinedload on a collection?", "spanning", "unique()"),
-
     # --- the corpus cannot answer these (the API reference is not in the docs source) ------
-    ("what is the exact signature and full argument list of Session.execute?", "absent",
-     None),
+    ("what is the exact signature and full argument list of Session.execute?", "absent", None),
     ("list every keyword argument accepted by relationship()", "absent", None),
     ("what does the SQLAlchemy 2.1 release change?", "absent", None),
-
     # --- the silent one (BREAKAGES #23) -------------------------------------
-    ("if I write comment.issue = issue instead of issue.comments.append(comment), "
-     "does the comment get saved?", "silent", "cascade_backrefs"),
-    ("why would an object assigned to a many-to-one relationship never be inserted?",
-     "silent", "backref"),
+    (
+        "if I write comment.issue = issue instead of issue.comments.append(comment), does the comment get saved?",
+        "silent",
+        "cascade_backrefs",
+    ),
+    ("why would an object assigned to a many-to-one relationship never be inserted?", "silent", "backref"),
 ]
 
 
@@ -163,9 +159,7 @@ def corpus_chunk_count(symbol: str) -> int:
     if _CORPUS_CHUNKS is None:
         from rag import embed
 
-        _CORPUS_CHUNKS = [
-            json.loads(line) for line in embed.CHUNKS_PATH.read_text().splitlines()
-        ]
+        _CORPUS_CHUNKS = [json.loads(line) for line in embed.CHUNKS_PATH.read_text().splitlines()]
     return sum(1 for c in _CORPUS_CHUNKS if _contains(c["text"], symbol))
 
 
@@ -178,7 +172,7 @@ def signals(question: str, symbol: str | None, hits, answer: str) -> dict:
     in_corpus = corpus_chunk_count(symbol) if symbol else None
 
     return {
-        "refused": ask.refused(answer),   # the one detector, beside the prompt clause
+        "refused": ask.refused(answer),  # the one detector, beside the prompt clause
         "uncited": not citations and len(answer.split()) > 15,
         "duplicate_slots": len(texts) - len(set(texts)),
         "version_mixed": len(versions) > 1,
@@ -202,32 +196,33 @@ def run(only: str | None = None, k: int = ask.DEFAULT_K) -> list[dict]:
         hits = index.retrieve(question, limit=k)
         started = time.perf_counter()
         answer, timings = ask.generate(ask.build_prompt(question, hits))
-        rows.append({
-            "question": question,
-            "category": category,
-            "symbol": symbol,
-            "answer": answer,
-            "seconds": round(time.perf_counter() - started, 1),
-            "tokens_per_second": timings["tokens_per_second"],
-            "signals": signals(question, symbol, hits, answer),
-            "hits": [
-                {
-                    "n": i,
-                    "score": round(h.score, 3),
-                    "version": h.payload["sqlalchemy_version"],
-                    "source": h.payload["source_path"],
-                    "heading": " > ".join(h.payload["heading_path"]) or "(none)",
-                    "text": h.payload["text"],
-                }
-                for i, h in enumerate(hits, 1)
-            ],
-        })
+        rows.append(
+            {
+                "question": question,
+                "category": category,
+                "symbol": symbol,
+                "answer": answer,
+                "seconds": round(time.perf_counter() - started, 1),
+                "tokens_per_second": timings["tokens_per_second"],
+                "signals": signals(question, symbol, hits, answer),
+                "hits": [
+                    {
+                        "n": i,
+                        "score": round(h.score, 3),
+                        "version": h.payload["sqlalchemy_version"],
+                        "source": h.payload["source_path"],
+                        "heading": " > ".join(h.payload["heading_path"]) or "(none)",
+                        "text": h.payload["text"],
+                    }
+                    for i, h in enumerate(hits, 1)
+                ],
+            }
+        )
     return rows
 
 
 def summarise(rows: list[dict]) -> dict:
-    keys = ("refused", "uncited", "version_mixed", "symbol_missing", "single_source",
-            "retrieval_failure", "ceiling")
+    keys = ("refused", "uncited", "version_mixed", "symbol_missing", "single_source", "retrieval_failure", "ceiling")
     out = {k: sum(1 for r in rows if r["signals"][k]) for k in keys}
     out["any_duplicate_slot"] = sum(1 for r in rows if r["signals"]["duplicate_slots"])
     out["total_duplicate_slots"] = sum(r["signals"]["duplicate_slots"] for r in rows)
@@ -242,8 +237,10 @@ def write_report(rows: list[dict]) -> None:
 
     add("# Phase 1 failures — where the deliberately dumb RAG breaks")
     add("")
-    add("**Generated by `rag/probe.py`.** Answers are the model's; verdicts are a "
-        "human's, recorded in `verdicts.json` and rendered here.")
+    add(
+        "**Generated by `rag/probe.py`.** Answers are the model's; verdicts are a "
+        "human's, recorded in `verdicts.json` and rendered here."
+    )
     add("")
     add("This file is the Phase 1 deliverable and the argument for everything in Phase 3. It is")
     add("generated, but it is *not finished* — the script records mechanical signals and never")
@@ -267,7 +264,7 @@ def write_report(rows: list[dict]) -> None:
     add("   know it meant.")
     add("2. **Run it** on the pinned version:")
     add("   `uv run --no-project --with 'sqlalchemy==2.0.51' python -c \"...\"`")
-    add("3. **Compare against the verified fix** — not just \"did it error\", but *what SQL did it")
+    add('3. **Compare against the verified fix** — not just "did it error", but *what SQL did it')
     add("   emit* and *did it do the same thing*.")
     add("")
     add("| outcome | verdict | why |")
@@ -294,10 +291,10 @@ def write_report(rows: list[dict]) -> None:
     add("inner = aliased(Issue, subq)        # TWO arguments -> aliases the SUBQUERY")
     add("```")
     add("")
-    add("`aliased(Issue)` says *\"call the issues table something else\"*. `aliased(Issue, subq)`")
-    add("says *\"treat the rows coming out of this subquery as Issue objects\"*. Only the second is")
-    add("what `from_self()` did, and the answer carries it only inside the borrowed phrase *\"in")
-    add("terms of any arbitrary selectable\"*.")
+    add('`aliased(Issue)` says *"call the issues table something else"*. `aliased(Issue, subq)`')
+    add('says *"treat the rows coming out of this subquery as Issue objects"*. Only the second is')
+    add('what `from_self()` did, and the answer carries it only inside the borrowed phrase *"in')
+    add('terms of any arbitrary selectable"*.')
     add("")
     add("**It is not cosmetic — the results differ**, measured on 2.0.51. Take the first three")
     add("issues, then keep only those titled `a` or `e`:")
@@ -316,7 +313,7 @@ def write_report(rows: list[dict]) -> None:
     add("")
     add("- **`absent` questions** — there is no code to run. The answer is `CORRECT` when the")
     add("  model **declined**, and `WRONG` when it produced something confident instead.")
-    add("- **Answers proposing no code** (\"what are the steps to migrate\") — judge whether every")
+    add('- **Answers proposing no code** ("what are the steps to migrate") — judge whether every')
     add("  claim is supported by a cited source, and whether a reader following it would be")
     add("  misled. `single_source` is worth weighing here.")
     add("")
@@ -332,17 +329,23 @@ def write_report(rows: list[dict]) -> None:
     add("| `uncited` | a substantial answer with no `[n]` citation | usually a failure — the claim is unverifiable |")
     add("| `duplicate_slots` | the same text held more than one top-k slot | wasted context, not automatically wrong |")
     add("| `version_mixed` | top-k holds both 1.4 and 2.0 passages | usually fine, occasionally the whole problem |")
-    add("| `symbol_missing` | no retrieved chunk contains the exact symbol asked about | see the two below — the reason decides the fix |")
-    add("| **`retrieval_failure`** | the symbol IS in the corpus and search did not find it | **yes — and Phase 3 can fix it** |")
-    add("| **`ceiling`** | the symbol is in **no** chunk at all | **yes — and no phase can fix it.** Only the corpus decision can (R1.4) |")
+    add(
+        "| `symbol_missing` | no retrieved chunk contains the exact symbol asked about | see the two below — the reason decides the fix |"
+    )
+    add(
+        "| **`retrieval_failure`** | the symbol IS in the corpus and search did not find it | **yes — and Phase 3 can fix it** |"
+    )
+    add(
+        "| **`ceiling`** | the symbol is in **no** chunk at all | **yes — and no phase can fix it.** Only the corpus decision can (R1.4) |"
+    )
     add("| `single_source` | several pages retrieved; only one `[n]` cited | warning, not a verdict — see below |")
     add("")
     add("**`single_source` in one sentence.** We handed the chatbot five pages. It showed its")
     add("work for only one of them. If that page is wrong, outdated, or easy to misread, the")
     add("answer collapses, because the citations do not mention the correcting pages sitting")
     add("in `[2]`–`[5]`. *Does not survive* means: there is no backup in the answer itself.")
-    add("Question 7 is the case: it cited only `[1]` (a 2.0 migration page saying *\"In 1.4,")
-    add("pass `future=True`\"*) while `[2]` already said the flag is legacy on 2.0.")
+    add('Question 7 is the case: it cited only `[1]` (a 2.0 migration page saying *"In 1.4,')
+    add('pass `future=True`"*) while `[2]` already said the flag is legacy on 2.0.')
     add("")
     add("`uncited` is worse: a long answer with **no** `[n]` at all, so nothing is checkable.")
     add("`single_source` cited *something* — just only one page while others were available.")
@@ -355,8 +358,10 @@ def write_report(rows: list[dict]) -> None:
     add(f"- `symbol_missing`: **{s['symbol_missing']}**")
     add(f"- `version_mixed`: **{s['version_mixed']}**")
     add(f"- `single_source`: **{s['single_source']}**")
-    add(f"- questions with at least one duplicate slot: **{s['any_duplicate_slot']}** "
-        f"({s['total_duplicate_slots']} slots wasted in total)")
+    add(
+        f"- questions with at least one duplicate slot: **{s['any_duplicate_slot']}** "
+        f"({s['total_duplicate_slots']} slots wasted in total)"
+    )
     add("")
     add("**The split that decides what Phase 3 is worth:**")
     add("")
@@ -376,17 +381,21 @@ def write_report(rows: list[dict]) -> None:
 
     for n, row in enumerate(rows, 1):
         sig = row["signals"]
-        flags = [k for k in ("refused", "uncited", "retrieval_failure", "ceiling",
-                             "single_source") if sig[k]] + \
-                (["duplicate_slots"] if sig["duplicate_slots"] else [])
+        flags = [k for k in ("refused", "uncited", "retrieval_failure", "ceiling", "single_source") if sig[k]] + (
+            ["duplicate_slots"] if sig["duplicate_slots"] else []
+        )
         add(f"## {n}. {row['question']}")
         add("")
         corpus_note = (
-            f" · symbol `{row['symbol']}` appears in **{sig['symbol_chunks_in_corpus']}** "
-            f"corpus chunks" if row["symbol"] else "")
-        add(f"`{row['category']}` · top score **{sig['top_score']}** · "
+            f" · symbol `{row['symbol']}` appears in **{sig['symbol_chunks_in_corpus']}** corpus chunks"
+            if row["symbol"]
+            else ""
+        )
+        add(
+            f"`{row['category']}` · top score **{sig['top_score']}** · "
             f"versions retrieved {', '.join(sig['versions'])} · "
-            f"cited {sig['cited'] or 'nothing'} · {row['seconds']}s{corpus_note}")
+            f"cited {sig['cited'] or 'nothing'} · {row['seconds']}s{corpus_note}"
+        )
         add("")
         add(f"**Signals:** {', '.join(f'`{f}`' for f in flags) if flags else '_none_'}")
         add("")
@@ -408,8 +417,7 @@ def write_report(rows: list[dict]) -> None:
         add("### What was retrieved")
         add("")
         for hit in row["hits"]:
-            add(f"**[{hit['n']}]** `{hit['score']}` · SQLAlchemy **{hit['version']}** · "
-                f"`{hit['source']}`  ")
+            add(f"**[{hit['n']}]** `{hit['score']}` · SQLAlchemy **{hit['version']}** · `{hit['source']}`  ")
             add(f"{hit['heading']}")
             add("")
             add("```rst")

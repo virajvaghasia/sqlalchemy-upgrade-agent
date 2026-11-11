@@ -81,5 +81,6 @@ def test_overfetch_scales_with_limit():
 
 def test_dedup_key_matches_score_module():
     from rag import score
+
     chunk = {"heading_path": ["X"], "text": "y"}
     assert dedup.dedup_key(chunk) == score.dedup_key(chunk)
