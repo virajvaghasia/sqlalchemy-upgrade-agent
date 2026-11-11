@@ -82,6 +82,21 @@ PACKAGES = {
     "alembic": "alembic",
 }
 
+# Where a bare name is looked for, in order. `Session`, `Query`, `Mapped` and
+# `joinedload` are in `sqlalchemy.orm`, not at the top level, so a probe that
+# only tried the package root answered "does not exist" for `Session.get` -- the
+# very example the tool's description gives the model. Found 2026-11-11 by
+# calling the tool for real; every test until then had stubbed the subprocess.
+# **The agent results in deliverables/ were measured before this fix.** In those
+# saved runs three existing APIs came back NOT FOUND (`Query.yield_per`,
+# `orm.joinedload`, `Mapped`).
+NAMESPACES = {
+    "sqlalchemy": ["sqlalchemy", "sqlalchemy.orm", "sqlalchemy.ext.asyncio", "sqlalchemy.engine",
+                   "sqlalchemy.sql", "sqlalchemy.schema", "sqlalchemy.exc",
+                   "sqlalchemy.ext.declarative"],
+    "alembic": ["alembic", "alembic.op", "alembic.operations"],
+}
+
 TIMEOUT = 120
 
 # Runs in the pinned interpreter, not this one. Kept as a string rather than a
@@ -93,35 +108,63 @@ import importlib, inspect, json, sys
 req = json.loads(sys.argv[1])
 symbol, want_source = req["symbol"], req["source"]
 
+package = req["package"]
 parts = symbol.split(".")
-obj, resolved, err = None, [], None
-# Walk the longest importable prefix, then getattr the rest. "Query.from_self"
-# and "sqlalchemy.orm.Query.from_self" must behave the same, so a bare leading
-# name is retried under the package root.
-for start in range(len(parts), 0, -1):
+MISS = object()
+
+
+def walk(obj, names):
+    for name in names:
+        obj = getattr(obj, name, MISS)
+        if obj is MISS:
+            return MISS
+    return obj
+
+
+def candidates():
+    """(module, remaining names, where it was found), most specific first.
+
+    "Session.get", "orm.Session.get" and "sqlalchemy.orm.Session.get" must all
+    reach the same object, so three spellings are tried:
+      1. a fully qualified name: the longest importable prefix INSIDE the package.
+         Only inside it: `json.dumps` imports fine and is not a SQLAlchemy API.
+      2. a name that starts at a submodule: "orm.joinedload" -> sqlalchemy.orm
+      3. a bare name: looked up in each public namespace of the package in turn,
+         because `Session` lives in sqlalchemy.orm, not in sqlalchemy.
+    """
+    if parts[0] == package:
+        for start in range(len(parts), 0, -1):
+            try:
+                yield importlib.import_module(".".join(parts[:start])), parts[start:], ".".join(parts[:start])
+                break
+            except ImportError:
+                continue
+        return
     try:
-        obj = importlib.import_module(".".join(parts[:start]))
-        resolved = parts[start:]
-        break
+        yield importlib.import_module(package + "." + parts[0]), parts[1:], package + "." + parts[0]
     except ImportError:
-        continue
-if obj is None:
-    try:
-        obj = importlib.import_module(req["package"])
-        resolved = parts
-    except ImportError as exc:
-        print(json.dumps({"exists": False, "error": f"no module: {exc}"}))
-        raise SystemExit
+        pass
+    for namespace in req["namespaces"]:
+        try:
+            yield importlib.import_module(namespace), parts, namespace
+        except ImportError:
+            continue
 
-for name in resolved:
-    obj = getattr(obj, name, None)
-    if obj is None:
-        # A miss is a RESULT, not an error. `check_api("Query.from_self")`
-        # answering "no" is the tool working.
-        print(json.dumps({"exists": False, "error": None}))
-        raise SystemExit
 
-out = {"exists": True, "error": None, "kind": type(obj).__name__}
+obj, where = MISS, None
+for module, names, found_in in candidates():
+    obj = walk(module, names)
+    if obj is not MISS:
+        where = ".".join([found_in] + names)
+        break
+
+if obj is MISS:
+    # A miss is a RESULT, not an error. `check_api("Query.from_self")`
+    # answering "no" is the tool working.
+    print(json.dumps({"exists": False, "error": None}))
+    raise SystemExit
+
+out = {"exists": True, "error": None, "kind": type(obj).__name__, "resolved": where}
 try:
     out["signature"] = symbol.split(".")[-1] + str(inspect.signature(obj))
 except (TypeError, ValueError):
@@ -149,8 +192,8 @@ def _run(symbol: str, package: str, source: bool, runner=None) -> dict:
         return {"exists": False,
                 "error": f"unknown package {package!r}; known: "
                          f"{', '.join(sorted(PACKAGES))}"}
-    argument = json.dumps({"symbol": symbol, "source": source,
-                           "package": package})
+    argument = json.dumps({"symbol": symbol, "source": source, "package": package,
+                           "namespaces": NAMESPACES[package]})
     command = ["uv", "run", "--no-project", "--with", PACKAGES[package],
                "python", "-c", _PROBE, argument]
     runner = runner or (lambda cmd: subprocess.run(

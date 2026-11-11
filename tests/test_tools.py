@@ -13,6 +13,8 @@ import json
 import subprocess
 import types
 
+import pytest
+
 from rag import tools
 
 
@@ -155,3 +157,60 @@ def test_search_docs_uses_the_graded_retrieval_path():
     assert seen == {"query": "from_self", "limit": 3}
     assert got == [{"chunk_id": "c01567", "source": "migration_20.rst",
                     "text": "body"}]
+
+
+# --- the probe itself, run for real ---------------------------------------------
+#
+# Every test above hands `check_api` a stand-in for the subprocess, so none of
+# them runs the probe's own name resolution. That is how this shipped: the tool's
+# description tells the model to write `Session.get`, and the probe answered
+# "does not exist" for it, because it only looked in the top-level `sqlalchemy`
+# module and `Session` lives in `sqlalchemy.orm`. The saved agent runs show it:
+# `Query.yield_per`, `orm.joinedload` and `Mapped` all came back NOT FOUND.
+#
+# These run the probe in THIS interpreter (SQLAlchemy 1.4.52), so they need no
+# network and no second environment. Name resolution is the same code on any
+# version; only the answers for removed APIs differ.
+
+def probe(symbol, package="sqlalchemy"):
+    import subprocess
+    import sys
+    done = subprocess.run(
+        [sys.executable, "-c", tools._PROBE,
+         json.dumps({"symbol": symbol, "source": False, "package": package,
+                     "namespaces": tools.NAMESPACES[package]})],
+        capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout.strip().splitlines()[-1])
+
+
+@pytest.mark.parametrize("symbol", [
+    "Session.get",                     # the example in the tool's own description
+    "sqlalchemy.orm.Session.get",      # the same thing, fully qualified
+    "orm.Session.get",                 # a submodule named without the package
+    "orm.joinedload",
+    "Query.yield_per",
+    "select",                          # top level -- and also a stdlib module name
+    "Column",
+])
+def test_a_symbol_that_exists_is_found_however_it_is_spelled(symbol):
+    got = probe(symbol)
+    assert got["exists"] is True, (symbol, got)
+    assert got["resolved"].startswith("sqlalchemy"), got
+
+
+def test_short_and_full_names_resolve_to_the_same_object():
+    assert probe("Session.get")["resolved"] == probe("sqlalchemy.orm.Session.get")["resolved"]
+
+
+@pytest.mark.parametrize("symbol", ["Session.no_such_method", "NoSuchClass", "orm.no_such_function",
+                                    "sqlalchemy.orm.Session.no_such_method"])
+def test_a_symbol_that_does_not_exist_is_a_clean_no(symbol):
+    assert probe(symbol) == {"exists": False, "error": None}
+
+
+def test_a_name_from_another_library_is_not_reported_as_existing():
+    """`json.dumps` imports fine. It is not a SQLAlchemy API, and saying it exists
+    would tell the model that any importable name is part of 2.0."""
+    assert probe("json.dumps")["exists"] is False
+    assert probe("os")["exists"] is False
