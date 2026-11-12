@@ -205,3 +205,28 @@ def test_the_system_prompt_did_not_change_when_H_shipped():
     machines measured."""
     assert "Before answering:" not in ask.SYSTEM
     assert ask.REMINDER not in ask.SYSTEM
+
+
+@pytest.mark.parametrize(
+    ("env", "expected"),
+    [
+        ({}, "http://127.0.0.1:11434"),
+        ({"OLLAMA_URL": "http://host.docker.internal:11434"}, "http://host.docker.internal:11434"),
+    ],
+)
+def test_ollama_url_defaults_to_localhost_and_follows_the_environment(env, expected):
+    """The container demo reaches the host's Ollama through OLLAMA_URL. Read in a
+    fresh interpreter, because the value is fixed when the module is imported."""
+    import os
+    import subprocess
+    import sys
+
+    clean = {k: v for k, v in os.environ.items() if k != "OLLAMA_URL"}
+    out = subprocess.run(
+        [sys.executable, "-c", "from rag import ask; print(ask.OLLAMA_URL)"],
+        env={**clean, **env},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert out.stdout.strip() == expected

@@ -52,6 +52,7 @@ calls the model.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -60,7 +61,10 @@ import urllib.request
 
 from rag import index
 
-OLLAMA_URL = "http://127.0.0.1:11434"
+# Overridable because inside a container 127.0.0.1 is the container itself; the
+# Compose demo points this at the host's Ollama. Not OLLAMA_HOST: Ollama's own
+# server reads that as the address to bind, and one variable cannot mean both.
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 
 # Pinned like everything else. `qwen2.5-coder:7b` was measured on the
 # Linux GPU box (RTX 3060) at 62.23 tok/s, and it is already local on the Mac — using the same tag
