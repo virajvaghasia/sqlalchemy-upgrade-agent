@@ -235,7 +235,7 @@ def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
     """
     from rag import usage as usage_mod
 
-    last = None
+    last: Exception | None = None
     for model in MODELS:
         body = {"model": model, "temperature": ask.TEMPERATURE, "max_tokens": 8192, "messages": messages}
         request = urllib.request.Request(

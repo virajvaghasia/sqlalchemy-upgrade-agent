@@ -59,6 +59,7 @@ import json
 import pathlib
 import statistics
 import sys
+from typing import Any
 
 from rag import corpus
 from rag.dedup import dedup_key
@@ -244,7 +245,7 @@ def score_items(
     if retrieve is None:
         from rag import index
 
-        overrides = {k: v for k, v in (("hybrid", hybrid), ("rerank", rerank)) if v is not None}
+        overrides: dict[str, Any] = {k: v for k, v in (("hybrid", hybrid), ("rerank", rerank)) if v is not None}
         retrieve = lambda q: [h.payload["chunk_id"] for h in index.retrieve(q, limit=DEPTH, **overrides)]
 
     rows = []
@@ -286,7 +287,7 @@ def report(rows: list[dict]) -> None:
     block("ALL ITEMS", rows)
     # The breakages-derived items are the leakiest and must be separable.
     block("EXCLUDING provenance=breakages", [r for r in rows if r["provenance"] != "breakages"])
-    by = {}
+    by: dict[str, list[dict]] = {}
     for r in rows:
         by.setdefault(r["provenance"], []).append(r)
     for prov in sorted(by):

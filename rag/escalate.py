@@ -36,6 +36,7 @@ import json
 import sys
 import time
 import urllib.error
+from typing import Any
 
 from rag import ask, faithful, judge, route, score
 
@@ -483,7 +484,7 @@ def qwen_judge_rows(qwen: list[dict], nemotron: list[dict]) -> list[dict]:
     ]
 
 
-def paired_support(nem: dict, qwen: dict, drop: set = frozenset()) -> dict:
+def paired_support(nem: dict, qwen: dict, drop: set | frozenset = frozenset()) -> dict:
     """SUPPORTED yes/no by id over questions both models answered and the judge
     read on both sides. Unreadable verdicts and page-flag mismatches are dropped
     from BOTH sides and named."""
@@ -672,7 +673,7 @@ def report_all(
     score.report_refusals(outs)
 
     print()
-    result = {"quoted": quoted}
+    result: dict[str, Any] = {"quoted": quoted}
     for label, old, rules in (
         ("Linux GPU box qwen2.5-coder:7b, 2026-09-10 (the rule)", qwen_lab, True),
         ("Mac qwen2.5-coder:7b, 2026-08-23 (context)", qwen_mac, False),

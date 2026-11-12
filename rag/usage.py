@@ -45,7 +45,9 @@ import sys
 LEDGER = pathlib.Path(__file__).resolve().parent.parent / "logs" / "nvidia-usage.jsonl"
 
 
-def record(model: str, usage: dict | None, caller: str, status: int = 200, path: pathlib.Path | None = None) -> dict:
+def record(
+    model: str, usage: dict | None, caller: str, status: int | None = 200, path: pathlib.Path | None = None
+) -> dict:
     """Append one call. Never raises: a broken ledger must not break a run."""
     usage = usage or {}
     row = {

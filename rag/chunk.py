@@ -196,13 +196,13 @@ def split_sections(lines: list[str]) -> list[tuple[list[str], int, int]]:
     if not heads:
         return [([], 0, len(lines))]
 
-    sections = []
+    sections: list[tuple[list[str], int, int]] = []
     if heads[0][0] > 0:
         sections.append(([], 0, heads[0][0]))  # preamble before the first heading
 
     for n, (line_no, title) in enumerate(heads):
         end = heads[n + 1][0] if n + 1 < len(heads) else len(lines)
-        path = []
+        path: list[str] = []
         for m in range(n + 1):
             if levels[m] < levels[n]:
                 path = path[: levels[m]] + [heads[m][1]]
@@ -466,7 +466,7 @@ def chunk_file(path: pathlib.Path, version: str, source_path: str) -> list[dict]
 
     for heading_path, start, end in split_sections(lines):
         body = lines[start:end]
-        if is_glossary and any(DIRECTIVE.match(l) and DIRECTIVE.match(l).group(1) == "glossary" for l in body):
+        if is_glossary and any((directive := DIRECTIVE.match(l)) and directive.group(1) == "glossary" for l in body):
             blocks = glossary_entries(body)
         else:
             blocks = split_blocks(body)

@@ -37,6 +37,7 @@ THE FOUR FAILURE PATHS, each with the defect it exists for:
 """
 
 import json
+from typing import Any
 
 from rag import ask, toolcall, tools
 
@@ -444,7 +445,7 @@ def e1(items: list[dict], chunks: dict | None = None, run_one=None, log=print) -
     from rag import judge, score
 
     chunks = chunks if chunks is not None else score.load_chunks()
-    out = {arm: [] for arm in E1_ARMS}
+    out: dict[str, list[dict]] = {arm: [] for arm in E1_ARMS}
     for n, item in enumerate(items, 1):
         for arm, prompt in E1_ARMS.items():
             seen: list[str] = []
@@ -511,7 +512,7 @@ E4_PROBE = [
     "Was connectionless execution removed in 2.0, and how do I execute now?",
 ]
 
-E2_ARMS = {
+E2_ARMS: dict[str, dict[str, Any]] = {
     "B_default": {},
     "C_forced": {"force_first_tool": True},
     "D_forced_nudge": {"force_first_tool": True, "nudge_not_found": True},
@@ -529,7 +530,7 @@ def e2(items: list[dict], chunks: dict | None = None, run_one=None, log=print) -
     from rag import judge, score
 
     chunks = chunks if chunks is not None else score.load_chunks()
-    out = {arm: [] for arm in E2_ARMS}
+    out: dict[str, list[dict]] = {arm: [] for arm in E2_ARMS}
     for n, item in enumerate(items, 1):
         for arm, kwargs in E2_ARMS.items():
             seen: list[str] = []
@@ -571,8 +572,11 @@ def e4(questions: list[str] | None = None, run_one=None, log=print) -> dict:
     a **stopping** one (it would continue if told). Those look identical from
     outside and have completely different fixes.
     """
-    arms = {"plain": {"force_first_tool": True}, "nudged": {"force_first_tool": True, "nudge_not_found": True}}
-    out = {arm: [] for arm in arms}
+    arms: dict[str, dict[str, Any]] = {
+        "plain": {"force_first_tool": True},
+        "nudged": {"force_first_tool": True, "nudge_not_found": True},
+    }
+    out: dict[str, list[dict]] = {arm: [] for arm in arms}
     for n, question in enumerate(questions or E4_PROBE, 1):
         for arm, kwargs in arms.items():
             got = (run_one or run)(question, **kwargs)
@@ -737,7 +741,7 @@ def main() -> None:
     # The two levers, off by default. Each is measured before it ships (the must-call prompt
     # is the precedent: the prompt became the default only after the lab
     # reproduced it, and the stopping-failure nudge stayed a Mac-only screen until the lab confirmed it).
-    run_kwargs = {}
+    run_kwargs: dict[str, Any] = {}
     if "--force" in argv:
         run_kwargs["force_first_tool"] = True
     if "--nudge" in argv:

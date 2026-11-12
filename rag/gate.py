@@ -68,7 +68,7 @@ def paired(baseline: list[dict], rows: list[dict]) -> dict:
     """
     base = {r["id"]: r for r in baseline}
     now = {r["id"]: r for r in rows}
-    out = {"fixed": [], "broken": [], "moved": [], "unpaired": [], "missing": [], "relabelled": []}
+    out: dict[str, list] = {"fixed": [], "broken": [], "moved": [], "unpaired": [], "missing": [], "relabelled": []}
     for i in sorted(base.keys() - now.keys()):
         if base[i]["answerable"]:
             out["missing"].append(i)

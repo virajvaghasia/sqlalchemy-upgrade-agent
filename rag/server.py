@@ -190,7 +190,7 @@ async def ask(body: AskRequest):
     seconds = time.perf_counter() - started
     payload = demo.payload(result, BACKEND, seconds)
     payload["request_id"] = request_id
-    status = STATUS_FOR.get(result.get("code"), 200)
+    status = STATUS_FOR.get(result.get("code") or "", 200)
     headers = {"X-Request-ID": request_id}
     if result.get("retry_after"):
         headers["Retry-After"] = str(result["retry_after"])

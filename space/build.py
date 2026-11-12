@@ -40,8 +40,8 @@ def main() -> None:
     for f in ("web.py", "requirements.txt", "README.md"):
         shutil.copy(ROOT / "space" / f, DIST / f)
     shutil.copytree(ROOT / "space" / "static", DIST / "static")
-    for f in (ROOT / "rag").glob("*.py"):
-        shutil.copy(f, DIST / "rag" / f.name)
+    for module in (ROOT / "rag").glob("*.py"):
+        shutil.copy(module, DIST / "rag" / module.name)
     for c in CORPUS:
         shutil.copy(ROOT / "corpus" / c, DIST / "corpus" / c)
     # Only matters if the bundle is pushed to a git host that caps file size (Hugging Face: 10 MB).

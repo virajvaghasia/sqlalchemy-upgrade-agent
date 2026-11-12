@@ -51,6 +51,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+from typing import Any
 
 from rag import corpus
 
@@ -222,7 +223,7 @@ def main() -> None:
     np.save(VECTORS_PATH, vectors)
     IDS_PATH.write_text(json.dumps([c["id"] for c in chunks]) + "\n")
 
-    stats = {
+    stats: dict[str, Any] = {
         "generated_by": "rag/embed.py",
         "model": MODEL_ID,
         "revision": MODEL_REVISION or resolved,

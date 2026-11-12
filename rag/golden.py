@@ -86,7 +86,7 @@ def add(question: str, provenance: str, url: str | None, answerable: bool) -> No
     if provenance not in score.PROVENANCE:
         sys.exit(f"provenance must be one of {sorted(score.PROVENANCE)}")
     data = _load()
-    item = {
+    item: dict[str, object] = {
         "id": _next_id(data["items"]),
         "question": question,
         "provenance": provenance,

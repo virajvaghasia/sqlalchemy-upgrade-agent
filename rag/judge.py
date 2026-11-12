@@ -267,7 +267,7 @@ def report(rows: list[dict], agg: dict) -> None:
     # this reports 31 of 48. The bands do not overlap, so they are not the same
     # rate measured twice -- and the obvious suspect is phrasing, which was
     # already shown to decide retrieval. This is the split that tests it.
-    provs = sorted({r.get("provenance") for r in rows if r.get("provenance")})
+    provs = sorted({r["provenance"] for r in rows if r.get("provenance")})
     if len(provs) > 1:
         print("\n  by provenance (answered items only)")
         print(f"    {'':<16}{'answered':>9}{'uncited':>9}{'rate':>7}")

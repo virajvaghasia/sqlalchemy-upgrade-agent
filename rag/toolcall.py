@@ -344,11 +344,12 @@ def main() -> None:
     model = MODEL
     if "--model" in argv:
         model = argv[argv.index("--model") + 1]
+    pairs: list[tuple[str | None, str]]
     if "--golden" in argv:
         pairs = [(None, q) for q in golden_questions()]
         label = "the 100 golden questions, real developer phrasing"
     else:
-        pairs = PROBE
+        pairs = list(PROBE)
         label = f"{len(PROBE)} synthetic questions, labelled by construction"
     report(run(pairs, model=model), model, label)
 

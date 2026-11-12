@@ -168,7 +168,7 @@ def signals(question: str, symbol: str | None, hits, answer: str) -> dict:
     texts = [h.payload["text"] for h in hits]
     versions = {h.payload["sqlalchemy_version"] for h in hits}
     citations = {n for n in range(1, len(hits) + 1) if f"[{n}]" in answer}
-    missing = bool(symbol) and not any(_contains(t, symbol) for t in texts)
+    missing = symbol is not None and symbol != "" and not any(_contains(t, symbol) for t in texts)
     in_corpus = corpus_chunk_count(symbol) if symbol else None
 
     return {

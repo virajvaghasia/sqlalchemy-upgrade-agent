@@ -213,6 +213,7 @@ def hosted_generate(system: str, prompt: str) -> str:
             return data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
             raise CallFailed(f"the reply carried no answer ({json.dumps(data)[:200]})") from exc
+    raise AssertionError("unreachable: every attempt returns or raises")
 
 
 def demo_model() -> str:

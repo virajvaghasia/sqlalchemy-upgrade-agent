@@ -52,6 +52,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 from rag import ask, index, probe
 
@@ -370,7 +371,7 @@ def golden_sweep(
     print(f"golden sweep — {len(items)} items x {len(variants)} variants, k={k}")
     print(f"variants: {', '.join(variants)}\n", flush=True)
 
-    prepared = []
+    prepared: list[dict[str, Any]] = []
     for it in items:
         hits = index.retrieve(it["question"], limit=k)
         prepared.append(

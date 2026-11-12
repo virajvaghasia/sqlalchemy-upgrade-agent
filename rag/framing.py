@@ -95,7 +95,7 @@ def run(items, chunks=None, k=None, retrieve=None, gen=None, log=print) -> dict:
 
     chunks = chunks if chunks is not None else score.load_chunks()
     retrieve = retrieve or (lambda q: index.retrieve(q, limit=k or ask.DEFAULT_K))
-    out = {arm: [] for arm in ARMS}
+    out: dict[str, list[dict]] = {arm: [] for arm in ARMS}
     for n, item in enumerate(items, 1):
         hits = retrieve(item["question"])
         ids = [h.payload["chunk_id"] for h in hits]
@@ -154,7 +154,7 @@ def flips(control: list[dict], variant: list[dict]) -> dict:
     """
     a = {r["id"]: r for r in control}
     b = {r["id"]: r for r in variant}
-    out = {"present": ([], []), "absent": ([], []), "unanswerable": ([], [])}
+    out: dict[str, tuple[list[str], list[str]]] = {"present": ([], []), "absent": ([], []), "unanswerable": ([], [])}
     for i in sorted(a.keys() & b.keys()):
         ra, rb = a[i], b[i]
         ref_a, ref_b = ask.refused(ra["answer"]), ask.refused(rb["answer"])
