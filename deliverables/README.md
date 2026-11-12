@@ -24,6 +24,7 @@ run belongs to; the key is in [`rag/__init__.py`](../rag/__init__.py).
 | `gate-baseline.json` | Ranks for the shipped retrieval on all 100 questions. The CI quality gate fails a pull request that loses any top-5 hit against this file. | `rag.score --save` |
 | `gate-demo-no-rerank.json` | The same run with the reranker removed: the rows behind the demonstration that the gate blocks a regression. | `rag.score --no-rerank --save` |
 | `route-signals-phase6.Darwin-arm64.json` | Per-question reranker scores, used to test whether a router could predict which questions the local model will fail. | `rag.route --signals` |
+| `latency.Darwin-arm64.memory.mps.json`, `latency.Darwin-arm64.memory.cpu.json` | How long each retrieval stage took per question, on the Mac's GPU (all 100) and its CPU (the first 20), with p50 and p95. The reranker is nearly all of it. | `rag.bench` |
 
 ## Answers: refusals, citations, faithfulness
 

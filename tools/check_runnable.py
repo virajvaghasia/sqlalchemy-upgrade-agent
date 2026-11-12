@@ -31,6 +31,16 @@ green run that means nothing. Each block is classified:
 Only `RUN` blocks are pass/fail. **The rest are reported and counted**, so the
 number of unverifiable blocks is itself visible rather than quietly growing.
 
+THE THREE BLOCK LABELS A READER SEES
+
+    # runnable      paste the named command and you get exactly this text.
+                    Folding, wrapping and annotations are the script's job,
+                    never a hand edit in the markdown. This tool checks them.
+    # summary of    real output from the named command, abridged by hand
+                    because the raw form is unreadable: the numbers were
+                    measured, the layout is not a paste
+    # illustration  a fragment or a sketch, not something to run
+
 KNOWN COVERAGE GAP
 
 Fenced blocks nested inside a blockquote (`> ```` `) are not scanned — the
