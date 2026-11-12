@@ -3,8 +3,11 @@
     RAG_DENSE=memory uv run python -m rag.bench               # dense search in memory, as the web server runs
     uv run python -m rag.bench                                # dense search in Qdrant (docker compose up -d qdrant)
     RAG_DENSE=memory uv run python -m rag.bench --device cpu  # both models on the CPU, as in the container
+    ... --first 20                                            # only the first 20 golden questions
+    uv run python -m rag.bench --show <saved file>            # print a saved run's table again
 
-Retrieval only: no answer model is called. Writes deliverables/latency.<machine>.<dense>.<device>.json.
+Retrieval only: no answer model is called. Writes deliverables/latency.<machine>.<dense>.<device>.json,
+with `n` in the file saying how many questions it covers.
 
 The stages are the shipped `index.retrieve` defaults, in the order it runs them:
 
@@ -144,8 +147,17 @@ def report(result: dict, header: str) -> None:
     print(f"\n  cold first question {result['cold_ms'] / 1000:.1f}s (model loading, not in the table)")
 
 
+def header(saved: dict) -> str:
+    return f"retrieval latency, {saved['machine']}, device={saved['device']}, dense={saved['dense']}, n={saved['n']}"
+
+
 def main() -> None:
     argv = sys.argv[1:]
+    if "--show" in argv:
+        saved = json.loads(open(argv[argv.index("--show") + 1]).read())
+        report(saved, header(saved))
+        return
+
     from rag import ask, embed, faithful, index, score
 
     if "--device" in argv:
@@ -160,29 +172,24 @@ def main() -> None:
     device = embed.pick_device(None)
     dense = os.environ.get(index.DENSE_ENV, "qdrant")
     items = score.load_golden()
+    if "--first" in argv:
+        items = items[: int(argv[argv.index("--first") + 1])]
     limit = ask.DEFAULT_K
 
     print(f"{len(items)} golden questions, top {limit}, dense={dense}, device={device}, {faithful.machine()}")
-    result = run(items, limit)
-    header = f"retrieval latency, {faithful.machine()}, device={device}, dense={dense}, n={len(items)}"
-    report(result, header)
+    saved = {
+        "generated_by": "rag/bench.py",
+        "machine": faithful.machine(),
+        "device": device,
+        "dense": dense,
+        "n": len(items),
+        "k": limit,
+        **run(items, limit),
+    }
+    report(saved, header(saved))
 
     out = DELIVERABLES / f"latency.{faithful.machine()}.{dense}.{device}.json"
-    out.write_text(
-        json.dumps(
-            {
-                "generated_by": "rag/bench.py",
-                "machine": faithful.machine(),
-                "device": device,
-                "dense": dense,
-                "n": len(items),
-                "k": limit,
-                **result,
-            },
-            indent=1,
-        )
-        + "\n"
-    )
+    out.write_text(json.dumps(saved, indent=1) + "\n")
     print(f"\n  saved {out.relative_to(corpus.REPO_ROOT)}")
 
 
