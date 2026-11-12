@@ -1,4 +1,5 @@
-# Two services on one network: the 1.4 practice app, and the Postgres it talks to.
+# The 1.4 practice app and the Postgres it talks to; Qdrant for the retrieval
+# scripts; and, behind the `demo` profile, the demo page.
 #
 # Run:   docker compose up --build
 # Stop:  docker compose down            (add -v to also delete the data volume)
@@ -144,6 +145,47 @@ services:
         # Wait for the healthcheck to pass, not merely for the container to exist.
         condition: service_healthy
 
+  # The demo page (rag/server.py). Behind a profile, so a plain `docker compose up`
+  # still starts only the practice app and its database:
+  #
+  #   docker compose --profile demo up --build demo
+  #   # then open http://127.0.0.1:7860
+  #
+  # Needs the corpus built on the host first (rag.corpus, rag.chunk, rag.embed),
+  # and an answer model: by default the host's Ollama with qwen2.5-coder:7b, or
+  # DEMO_GENERATOR=nvidia with NVIDIA_API_KEY set in .env.
+  demo:
+    profiles: ["demo"]
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    # Declared for the same reason as app's `image:` above: one name, whichever
+    # command built it.
+    image: sqlalchemy-upgrade-agent-demo:latest
+
+    environment:
+      DEMO_GENERATOR: ${DEMO_GENERATOR:-ollama}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      # 127.0.0.1 inside the container is the container. host.docker.internal is
+      # the host on Docker Desktop, and the extra_hosts line below makes the same
+      # name work on Linux.
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      # Read-only: the server reads the corpus and never writes it.
+      - ./corpus:/app/corpus:ro
+      # The embedding model and the reranker, downloaded on the first question.
+      # A volume, so the next start does not download them again.
+      - hfcache:/home/app/.cache/huggingface
+
+    # Bound to 127.0.0.1 for the reason given under qdrant: the short form binds
+    # every interface, and this page spends model calls for whoever reaches it.
+    ports:
+      - "127.0.0.1:7860:7860"
+
 # Named volumes. Docker manages the storage, and they survive `docker compose down`.
 # Only `docker compose down -v` removes them.
 #
@@ -154,3 +196,4 @@ services:
 volumes:
   pgdata:
   qdrantdata:
+  hfcache:
