@@ -1,0 +1,28 @@
+# The lint job's checks, before each commit. Install once with:
+#
+#   uv tool install pre-commit && pre-commit install
+#
+# Local hooks that call `uv run`, rather than the ruff and mypy hook repositories:
+# those pin their own tool versions in this file, which would drift from uv.lock.
+# This way the hook, `make lint` and CI all run the version the lockfile names.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --force-exclude
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --check --force-exclude
+        language: system
+        types: [python]
+      # mypy checks the whole configured file set, not just the staged files:
+      # a change in one module can break a caller in another.
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
