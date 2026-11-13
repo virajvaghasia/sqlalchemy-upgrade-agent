@@ -73,7 +73,10 @@ with sync_playwright() as p:
     print("\nSEND BUTTON")
     pg.fill("#q", "engine.execute is gone, how do I run a select in 2.0")
     pg.click("#ask")
-    pg.wait_for_timeout(300)
+    # The page holds the working state back 600 ms, so that a question the server
+    # rejects at once is reported in the box without the answer on screen blinking
+    # away. Looking at 300 ms would see the old answer still there.
+    pg.wait_for_timeout(900)
     mid = state(pg)
     check(
         "button disables and a working state shows while it runs",

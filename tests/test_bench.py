@@ -45,3 +45,18 @@ def test_run_summarizes_every_stage_and_the_total():
 def test_run_stops_when_the_staged_path_disagrees_with_index_retrieve():
     with pytest.raises(SystemExit, match="no longer mirrors index.retrieve"):
         bench.run(ITEMS, 5, timed=_timed, reference=lambda q, k: ["something else"], log=lambda *a: None)
+
+
+def test_saved_n_reads_how_many_questions_a_saved_run_covers(tmp_path):
+    """A shorter run shares its file name with the full one, and main() uses this
+    count to refuse replacing 100 questions with 6."""
+    full = tmp_path / "latency.json"
+    full.write_text('{"n": 100, "rows": []}')
+    assert bench.saved_n(full) == 100
+
+
+def test_saved_n_is_zero_when_there_is_nothing_usable_to_protect(tmp_path):
+    assert bench.saved_n(tmp_path / "absent.json") == 0
+    broken = tmp_path / "broken.json"
+    broken.write_text("not json")
+    assert bench.saved_n(broken) == 0
