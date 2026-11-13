@@ -52,6 +52,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 from rag import ask, index, probe
 
@@ -69,13 +70,12 @@ _TAIL = (
 # A is quoted verbatim from the original refusal-clause experiment. B is imported rather than retyped, so this
 # script cannot drift from what actually ships.
 REFUSAL_CLAUSES = {
-    "A": "If the sources do not contain the answer, say exactly: "
-         "\"The sources do not answer this.\" ",
+    "A": 'If the sources do not contain the answer, say exactly: "The sources do not answer this." ',
     # B was shipped until 2026-08-17; kept literal so the comparison survives
     # D becoming the default. The sentinel moved to D.
     "B": "Prefer answering from what the sources do say, even if they address the question "
-         "indirectly. Only if the sources are genuinely silent on the topic, reply: "
-         "\"The sources do not answer this.\" ",
+    "indirectly. Only if the sources are genuinely silent on the topic, reply: "
+    '"The sources do not answer this." ',
     "C": "",
     # D is not a tuning of B. A and B both ask the model to judge SUFFICIENCY —
     # "do these sources contain the answer?" — a binary gate it applies strictly
@@ -107,8 +107,7 @@ REFUSAL_CLAUSES = {
 # already fixed one cell by breaking another.
 
 # D's citation sentence, quoted so the diff is visible.
-_CITE_D = ("Base your answer on those sources and cite the source number in "
-           "brackets, like [2]. ")
+_CITE_D = "Base your answer on those sources and cite the source number in brackets, like [2]. "
 
 # E: citation becomes an obligation with a named consequence, and code is
 # called out because that is where the defect concentrates (26 of 28).
@@ -140,8 +139,7 @@ def _phase4(cite: str, relevance: str) -> str:
     """
     body = ask.SYSTEM.replace(_CITE_D, cite)
     if body == ask.SYSTEM and cite != _CITE_D:  # pragma: no cover - guard
-        raise AssertionError(
-            "ask.SYSTEM no longer contains D's citation sentence; _CITE_D is stale")
+        raise AssertionError("ask.SYSTEM no longer contains D's citation sentence; _CITE_D is stale")
     return body.replace("Answer with whatever", relevance + "Answer with whatever")
 
 
@@ -167,8 +165,8 @@ PHASE4_VARIANTS = {
     "E": lambda: _phase4(_CITE_E, ""),
     "F": lambda: _phase4(_CITE_D, _RELEVANCE_F),
     "G": lambda: _phase4(_CITE_E, _RELEVANCE_F),
-    "H": lambda: ask.SYSTEM,          # D's system prompt; the change is in the user turn
-    "I": lambda: _phase4(_CITE_D, _RELEVANCE_F),   # F's system prompt + H's reminder
+    "H": lambda: ask.SYSTEM,  # D's system prompt; the change is in the user turn
+    "I": lambda: _phase4(_CITE_D, _RELEVANCE_F),  # F's system prompt + H's reminder
 }
 
 # What each variant appends to the user message, just before "ANSWER:".
@@ -191,6 +189,7 @@ def user_prompt(variant: str, prompt: str) -> str:
         return prompt
     assert prompt.endswith("ANSWER:"), "build_prompt no longer ends with the ANSWER cue"
     return prompt[: -len("ANSWER:")] + suffix + "\n\nANSWER:"
+
 
 LABELS = {
     "A": "strict canned refusal",
@@ -224,17 +223,20 @@ ALL_VARIANTS = list(REFUSAL_CLAUSES) + list(PHASE4_VARIANTS)
 
 def generate(system: str, prompt: str) -> str:
     """One Ollama call with an overridden system message. Mirrors ask.generate()."""
-    body = json.dumps({
-        "model": ask.MODEL,
-        "stream": False,
-        "options": {"temperature": ask.TEMPERATURE},
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
-        ],
-    }).encode()
+    body = json.dumps(
+        {
+            "model": ask.MODEL,
+            "stream": False,
+            "options": {"temperature": ask.TEMPERATURE},
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+        }
+    ).encode()
     request = urllib.request.Request(
-        f"{ask.OLLAMA_URL}/api/chat", data=body,
+        f"{ask.OLLAMA_URL}/api/chat",
+        data=body,
         headers={"Content-Type": "application/json"},
     )
     # Two attempts, the second with a longer ceiling.
@@ -251,13 +253,11 @@ def generate(system: str, prompt: str) -> str:
                 return json.loads(response.read())["message"]["content"].strip()
         except urllib.error.URLError as exc:
             sys.exit(
-                f"cannot reach Ollama at {ask.OLLAMA_URL}: {exc}\n"
-                f"  start it, and check `ollama list` has {ask.MODEL}"
+                f"cannot reach Ollama at {ask.OLLAMA_URL}: {exc}\n  start it, and check `ollama list` has {ask.MODEL}"
             )
         except (TimeoutError, OSError) as exc:
             last = exc
-            print(f"    generation timed out at {limit}s"
-                  f"{'; retrying once' if attempt == 0 else ''}", flush=True)
+            print(f"    generation timed out at {limit}s{'; retrying once' if attempt == 0 else ''}", flush=True)
     raise TimeoutError(f"generation failed twice: {last}")
 
 
@@ -312,17 +312,17 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> N
 
     print()
     if repeat > 1:
-        print(f"per-question refusals out of {repeat} runs "
-              f"({' '.join(variants)} — * = not unanimous)")
+        print(f"per-question refusals out of {repeat} runs ({' '.join(variants)} — * = not unanimous)")
         for qi, (question, category, _s) in enumerate(probe.QUESTIONS):
             cells = " ".join(f"{v}={counts[v][qi]}" for v in variants)
             unstable = any(0 < counts[v][qi] < repeat for v in variants)
-            print(f"  {qi+1:2d} {category:9} {cells} {'*' if unstable else ' '} {question[:42]}")
+            print(f"  {qi + 1:2d} {category:9} {cells} {'*' if unstable else ' '} {question[:42]}")
         print()
 
-    tally = {v: {"refused": sum(counts[v]) / repeat,
-                 "answered": len(probe.QUESTIONS) - sum(counts[v]) / repeat} for v in variants}
-    per_q = []
+    tally = {
+        v: {"refused": sum(counts[v]) / repeat, "answered": len(probe.QUESTIONS) - sum(counts[v]) / repeat}
+        for v in variants
+    }
     print()
     print(f"{'prompt':<8} {'refused':>8} {'answered':>9}   of {len(probe.QUESTIONS)}")
     for v in variants:
@@ -333,8 +333,9 @@ def sweep_all(variants: list[str], k: int = ask.DEFAULT_K, repeat: int = 1) -> N
     print("so the floor is 3 — a variant refusing 3 is not under-refusing, it is right.")
 
 
-def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
-                 limit: int | None = None, save: str | None = None) -> None:
+def golden_sweep(
+    variants: list[str], k: int = ask.DEFAULT_K, limit: int | None = None, save: str | None = None
+) -> None:
     """Every golden item against each wording, scored on BOTH Phase 4 defects.
 
     Three things about the design, each of which is a decision:
@@ -370,19 +371,23 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
     print(f"golden sweep — {len(items)} items x {len(variants)} variants, k={k}")
     print(f"variants: {', '.join(variants)}\n", flush=True)
 
-    prepared = []
+    prepared: list[dict[str, Any]] = []
     for it in items:
         hits = index.retrieve(it["question"], limit=k)
-        prepared.append({
-            "item": it,
-            "prompt": ask.build_prompt(it["question"], hits, reminder=""),
-            "n_sources": len(hits),
-            # Same definition score.py --refusals uses, so the columns below are
-            # comparable with the table rather than merely similar to it.
-            "answer_in_prompt": (
-                score.rank_of_first_hit([h.payload["chunk_id"] for h in hits], it, chunks)
-                is not None if it.get("answerable") else False),
-        })
+        prepared.append(
+            {
+                "item": it,
+                "prompt": ask.build_prompt(it["question"], hits, reminder=""),
+                "n_sources": len(hits),
+                # Same definition score.py --refusals uses, so the columns below are
+                # comparable with the table rather than merely similar to it.
+                "answer_in_prompt": (
+                    score.rank_of_first_hit([h.payload["chunk_id"] for h in hits], it, chunks) is not None
+                    if it.get("answerable")
+                    else False
+                ),
+            }
+        )
     print(f"retrieved {len(prepared)} items once; generating\n", flush=True)
 
     import pathlib as _pathlib
@@ -404,9 +409,14 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
                 # Record and continue. One unanswerable-in-time item is a data
                 # point; aborting turns it into a lost night.
                 print(f"    {v}/{p['item']['id']}: FAILED — {exc}", flush=True)
-                rows.append({"id": p["item"]["id"], "failed": True,
-                             "answerable": bool(p["item"].get("answerable")),
-                             "answer_in_prompt": p["answer_in_prompt"]})
+                rows.append(
+                    {
+                        "id": p["item"]["id"],
+                        "failed": True,
+                        "answerable": bool(p["item"].get("answerable")),
+                        "answer_in_prompt": p["answer_in_prompt"],
+                    }
+                )
                 continue
             row = judge.citation_report(answer, p["n_sources"])
             row.update(
@@ -430,6 +440,7 @@ def golden_sweep(variants: list[str], k: int = ask.DEFAULT_K,
     _report_golden(results, variants)
     if save:
         import pathlib
+
         pathlib.Path(save).write_text(json.dumps(results, indent=1) + "\n")
         print(f"\nsaved {sum(map(len, results.values()))} rows to {save}")
 
@@ -496,7 +507,7 @@ def cells(rows: list[dict]) -> dict:
         "n_ans": n_answerable,
         "n_judged": len(ans),
         "ceiling": len(in_prompt),
-            # The over-refusal defect: the page was there and it declined anyway.
+        # The over-refusal defect: the page was there and it declined anyway.
         "over_with": sum(1 for r in in_prompt if declined(r)),
         "end_to_end": sum(1 for r in in_prompt if not declined(r)),
         "answered": len(answered),
@@ -514,15 +525,15 @@ def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
     print("\n" + "=" * 78)
     print("GOLDEN SWEEP — both Phase 4 defects, one sitting")
     print("=" * 78)
-    print(f"\n{'':<6}{'end/end':>9}{'ceiling':>9}{'over':>7}{'uncited':>9}"
-          f"{'code':>7}{'unc.code':>10}{'fabr':>6}")
+    print(f"\n{'':<6}{'end/end':>9}{'ceiling':>9}{'over':>7}{'uncited':>9}{'code':>7}{'unc.code':>10}{'fabr':>6}")
     for v in variants:
         c = t[v]
         e2e = f"{c['end_to_end']}/{n_ans}"
         unc = f"{c['uncited']}/{c['answered']}" if c["answered"] else "-"
         uc = f"{c['uncited_code']}/{c['with_code']}" if c["with_code"] else "-"
-        print(f"{v:<6}{e2e:>9}{c['ceiling']:>9}{c['over_with']:>7}{unc:>9}"
-              f"{c['with_code']:>7}{uc:>10}{c['fabricated']:>6}")
+        print(
+            f"{v:<6}{e2e:>9}{c['ceiling']:>9}{c['over_with']:>7}{unc:>9}{c['with_code']:>7}{uc:>10}{c['fabricated']:>6}"
+        )
 
     print("\n  end/end   answer in the prompt AND not refused — what a user gets")
     print("  ceiling   answer in the prompt at all — identical across variants by design")
@@ -538,14 +549,17 @@ def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
         # Pairing needs BOTH sides. An item that failed in either run is dropped
         # from the comparison rather than silently counted as a flip.
         cmp_rows = [r for r in results[v] if not r.get("failed") and r["id"] in by_id]
-        fixed = [r["id"] for r in cmp_rows
-                 if r["answerable"] and r["answer_in_prompt"]
-                 and not r["refused"] and by_id[r["id"]]["refused"]]
-        broke = [r["id"] for r in cmp_rows
-                 if r["answerable"] and r["answer_in_prompt"]
-                 and r["refused"] and not by_id[r["id"]]["refused"]]
-        newfab = [r["id"] for r in cmp_rows
-                  if not r["answerable"] and not r["refused"] and by_id[r["id"]]["refused"]]
+        fixed = [
+            r["id"]
+            for r in cmp_rows
+            if r["answerable"] and r["answer_in_prompt"] and not r["refused"] and by_id[r["id"]]["refused"]
+        ]
+        broke = [
+            r["id"]
+            for r in cmp_rows
+            if r["answerable"] and r["answer_in_prompt"] and r["refused"] and not by_id[r["id"]]["refused"]
+        ]
+        newfab = [r["id"] for r in cmp_rows if not r["answerable"] and not r["refused"] and by_id[r["id"]]["refused"]]
         p = score_mcnemar(len(fixed), len(broke))
         print(f"\n  {v}: answers now that {base} refused  {len(fixed):>3}  {', '.join(fixed) or '—'}")
         print(f"     refuses now that {base} answered  {len(broke):>3}  {', '.join(broke) or '—'}")
@@ -556,6 +570,7 @@ def _report_golden(results: dict[str, list[dict]], variants: list[str]) -> None:
 
 def score_mcnemar(fixed: int, broken: int) -> float:
     from rag import score
+
     return score.mcnemar_exact(fixed, broken)
 
 
@@ -569,9 +584,12 @@ def main() -> None:
     if "--golden" in argv:
         # D first and always: it is the control, and because refusals drift day to day it must be
         # re-run in the same sitting as anything compared against it.
-        vs = ([only] if only else
-              [v for v in argv[argv.index("--golden") + 1:]
-               if v.upper() in ALL_VARIANTS] or ["D", "E", "F", "H", "I"])
+        vs = (
+            [only]
+            if only
+            else [v for v in argv[argv.index("--golden") + 1 :] if v.upper() in ALL_VARIANTS]
+            or ["D", "E", "F", "H", "I"]
+        )
         if "D" not in vs:
             vs = ["D"] + vs
         kk = int(argv[argv.index("--k") + 1]) if "--k" in argv else ask.DEFAULT_K

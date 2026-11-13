@@ -38,6 +38,7 @@ def hit(n, version="2.0.51", heading=None, text=None):
 
 # --- the prompt ------------------------------------------------------------
 
+
 def test_sources_are_numbered_from_one():
     """The model is told to cite [2]. If numbering starts at 0, every citation
     it produces points at the wrong source and the answer looks verifiable
@@ -86,6 +87,7 @@ def test_a_missing_heading_does_not_render_as_empty():
 
 # --- the settings that make answers comparable -----------------------------
 
+
 def test_model_tag_is_pinned():
     """`:latest` would let two machines answer with different weights while
     reporting the same model — the same drift pinning the 2.0 version and embedding on one machine exist to stop."""
@@ -98,11 +100,14 @@ def test_temperature_is_zero():
     assert ask.TEMPERATURE == 0.0
 
 
-@pytest.mark.parametrize("instruction", [
-    "cite the source number",          # makes a claim checkable
-    "do not answer this",              # the refusal option must exist — see below
-    "version",                         # so a disagreement can be reported
-])
+@pytest.mark.parametrize(
+    "instruction",
+    [
+        "cite the source number",  # makes a claim checkable
+        "do not answer this",  # the refusal option must exist — see below
+        "version",  # so a disagreement can be reported
+    ],
+)
 def test_system_prompt_keeps_its_three_jobs(instruction):
     """The refusal clause is load-bearing and was measured, not assumed: without
     it the model invented a full method signature for Session.execute out of its
@@ -147,8 +152,7 @@ def test_stripping_citations_does_not_turn_the_prefix_test_into_a_search():
     produces "here is the part the sources cover, and here is the part they do
     not", which is an ANSWER. A substring test would score it as a refusal and
     inflate the number in the flattering direction."""
-    assert not ask.refused(
-        "Use Session.get() [1]. The sources do not answer the second half.")
+    assert not ask.refused("Use Session.get() [1]. The sources do not answer the second half.")
     assert not ask.refused("[1] Use Session.get(). The sources do not answer that.")
 
 
@@ -159,6 +163,7 @@ def test_stripping_citations_does_not_turn_the_prefix_test_into_a_search():
 # on the Mac and 43% -> 8% on the lab. It ships for that effect only, and
 # these tests pin the shape so the thing that shipped cannot drift from the thing
 # that was measured.
+
 
 def test_the_citation_reminder_is_in_the_shipped_prompt():
     """A citation audit measured 65% of answered questions citing nothing at all.
@@ -200,3 +205,28 @@ def test_the_system_prompt_did_not_change_when_H_shipped():
     machines measured."""
     assert "Before answering:" not in ask.SYSTEM
     assert ask.REMINDER not in ask.SYSTEM
+
+
+@pytest.mark.parametrize(
+    ("env", "expected"),
+    [
+        ({}, "http://127.0.0.1:11434"),
+        ({"OLLAMA_URL": "http://host.docker.internal:11434"}, "http://host.docker.internal:11434"),
+    ],
+)
+def test_ollama_url_defaults_to_localhost_and_follows_the_environment(env, expected):
+    """The container demo reaches the host's Ollama through OLLAMA_URL. Read in a
+    fresh interpreter, because the value is fixed when the module is imported."""
+    import os
+    import subprocess
+    import sys
+
+    clean = {k: v for k, v in os.environ.items() if k != "OLLAMA_URL"}
+    out = subprocess.run(
+        [sys.executable, "-c", "from rag import ask; print(ask.OLLAMA_URL)"],
+        env={**clean, **env},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert out.stdout.strip() == expected

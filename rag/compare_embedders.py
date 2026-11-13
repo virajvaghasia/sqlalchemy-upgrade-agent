@@ -78,8 +78,9 @@ def score(model_id: str, revision: str | None, chunks: list[dict]) -> dict:
 
     texts = [embed_mod.embedding_input(c) for c in chunks]
     started = time.perf_counter()
-    vectors = model.encode(texts, batch_size=8, normalize_embeddings=True,
-                           convert_to_numpy=True, show_progress_bar=False).astype("float32")
+    vectors = model.encode(
+        texts, batch_size=8, normalize_embeddings=True, convert_to_numpy=True, show_progress_bar=False
+    ).astype("float32")
     encode_seconds = time.perf_counter() - started
 
     questions = [(q, sym) for q, _, sym in probe.QUESTIONS if sym]
@@ -92,8 +93,7 @@ def score(model_id: str, revision: str | None, chunks: list[dict]) -> dict:
         if not containing:
             unfound += 1
             continue
-        qv = model.encode([question], normalize_embeddings=True,
-                          convert_to_numpy=True)[0].astype("float32")
+        qv = model.encode([question], normalize_embeddings=True, convert_to_numpy=True)[0].astype("float32")
         order = np.argsort(-(vectors @ qv))
         rank = next((r for r, i in enumerate(order, 1) if int(i) in containing), None)
         ranks.append(rank)
@@ -123,8 +123,7 @@ def main() -> None:
         models = [(m, None) for m in argv[argv.index("--models") + 1].split(",")]
 
     chunks = load_chunks()
-    print(f"{len(chunks)} chunks, "
-          f"{len([1 for _, _, s in probe.QUESTIONS if s])} questions with a known symbol\n")
+    print(f"{len(chunks)} chunks, {len([1 for _, _, s in probe.QUESTIONS if s])} questions with a known symbol\n")
 
     rows = []
     for model_id, revision in models:
@@ -132,14 +131,20 @@ def main() -> None:
         rows.append(score(model_id, revision, chunks))
 
     head = ("model", "dim", "params", "chunks/s", "R@5", "R@10", "MRR", "median", "worst")
-    print(f"{head[0]:<42} {head[1]:>5} {head[2]:>7} {head[3]:>9} "
-          f"{head[4]:>6} {head[5]:>6} {head[6]:>6} {head[7]:>7} {head[8]:>6}")
+    print(
+        f"{head[0]:<42} {head[1]:>5} {head[2]:>7} {head[3]:>9} "
+        f"{head[4]:>6} {head[5]:>6} {head[6]:>6} {head[7]:>7} {head[8]:>6}"
+    )
     for r in rows:
-        print(f"{r['model']:<42} {r['dim']:>5} {r['params_m']:>6}M {r['chunks_per_second']:>9} "
-              f"{r['recall_at_5']:>6} {r['recall_at_10']:>6} {r['mrr']:>6} "
-              f"{r['median_rank']:>7} {r['worst_rank']:>6}")
-    print(f"\n{rows[0]['unfound_ceiling']} question(s) excluded: no chunk in the corpus "
-          f"contains the symbol at all — the ceiling, which no model can move.")
+        print(
+            f"{r['model']:<42} {r['dim']:>5} {r['params_m']:>6}M {r['chunks_per_second']:>9} "
+            f"{r['recall_at_5']:>6} {r['recall_at_10']:>6} {r['mrr']:>6} "
+            f"{r['median_rank']:>7} {r['worst_rank']:>6}"
+        )
+    print(
+        f"\n{rows[0]['unfound_ceiling']} question(s) excluded: no chunk in the corpus "
+        f"contains the symbol at all — the ceiling, which no model can move."
+    )
 
 
 if __name__ == "__main__":

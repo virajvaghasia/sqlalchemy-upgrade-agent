@@ -80,8 +80,7 @@ def fenced_prompt(question: str, hits) -> str:
             f"{OPEN.format(label=label)}\n{escape(p['text'])}\n{CLOSE.format(label=label)}"
         )
     sources = "\n\n---\n\n".join(blocks)
-    q = (f"{OPEN.format(label='QUESTION')}\n{escape(question)}\n"
-         f"{CLOSE.format(label='QUESTION')}")
+    q = f"{OPEN.format(label='QUESTION')}\n{escape(question)}\n{CLOSE.format(label='QUESTION')}"
     return f"SOURCES\n\n{sources}\n\n---\n\nQUESTION: {q}\n\nANSWER:"
 
 
@@ -103,13 +102,13 @@ def legacy_d(question: str, hits) -> str:
 
 ARMS = {
     # name: (prompt builder, system prompt)
-    "shipped":    (ask.build_prompt, ask.SYSTEM),
+    "shipped": (ask.build_prompt, ask.SYSTEM),
     "fence_user": (fenced_prompt, ask.SYSTEM),
     "fence_both": (fenced_prompt, ask.SYSTEM + SYSTEM_SUFFIX),
     # Not a defense. The prompt from before H shipped, kept buildable so every Phase 7 figure
     # taken before 2026-09-20 stays reproducible (the injection check measured H as `prompt_h`;
     # H then shipped, so that arm is now `shipped` and this is the old control).
-    "legacy_d":   (legacy_d, ask.SYSTEM),
+    "legacy_d": (legacy_d, ask.SYSTEM),
 }
 
 

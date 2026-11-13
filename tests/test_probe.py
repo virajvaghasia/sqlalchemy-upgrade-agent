@@ -9,28 +9,32 @@ So these tests guard the boundary between *signal* and *verdict*, and the split
 that makes a failure actionable.
 """
 
-import json
 import re
 import sys
 import types
 
 import pytest
 
-from rag import corpus, probe
+from rag import probe
 
 
 def hit(text, version="2.0.51"):
     return types.SimpleNamespace(
         score=0.5,
         payload={
-            "chunk_id": "c00001", "sqlalchemy_version": version,
-            "source_path": "doc/build/core/x.rst", "heading_path": ["H"],
-            "text": text, "n_chars": len(text), "has_code": False,
+            "chunk_id": "c00001",
+            "sqlalchemy_version": version,
+            "source_path": "doc/build/core/x.rst",
+            "heading_path": ["H"],
+            "text": text,
+            "n_chars": len(text),
+            "has_code": False,
         },
     )
 
 
 # --- the boundary that must not move ---------------------------------------
+
 
 def test_no_expected_answers_are_stored():
     """Each question carries a question, a category, and a SYMBOL — a string
@@ -53,6 +57,7 @@ def test_signals_contain_no_verdict():
 
 
 # --- the retrieval-miss vs never-in-corpus split: the split that decides whether Phase 3 can help ------------------
+
 
 def test_symbol_present_in_corpus_but_not_retrieved_is_a_retrieval_failure(monkeypatch):
     monkeypatch.setattr(probe, "corpus_chunk_count", lambda s: 6)
@@ -83,6 +88,7 @@ def test_a_retrieved_symbol_is_neither(monkeypatch):
 
 # --- the other signals -----------------------------------------------------
 
+
 def test_refusal_is_detected_by_the_exact_phrase_the_prompt_asks_for():
     sig = probe.signals("q?", None, [hit("x")], "The sources do not answer this.")
     assert sig["refused"]
@@ -91,8 +97,7 @@ def test_refusal_is_detected_by_the_exact_phrase_the_prompt_asks_for():
 def test_duplicate_slots_counts_repeats_not_distinct_texts():
     """The same text at two versions occupies two of five slots."""
     same = "identical passage"
-    sig = probe.signals("q?", None, [hit(same, "1.4.52"), hit(same, "2.0.51"), hit("other")],
-                        "answer [1]")
+    sig = probe.signals("q?", None, [hit(same, "1.4.52"), hit(same, "2.0.51"), hit("other")], "answer [1]")
     assert sig["duplicate_slots"] == 1
     assert sig["version_mixed"]
 
@@ -205,6 +210,7 @@ def test_recorded_symbol_counts_match_the_matcher():
     if REPORT is None:
         pytest.skip("no FAILURES.md")
     from rag import embed as _embed
+
     if not _embed.CHUNKS_PATH.exists():
         pytest.skip("no corpus/chunks.jsonl — run rag.chunk")
     for _q, _c, sym in probe.QUESTIONS:

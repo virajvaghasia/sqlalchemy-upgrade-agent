@@ -7,7 +7,8 @@ data twice produces the same database. Nothing enforced that until now.
 
 from sqlalchemy import create_engine, func, select
 
-from experiments.sqlalchemy_1_4_vs_2_0 import models, seed as seed_mod
+from experiments.sqlalchemy_1_4_vs_2_0 import models
+from experiments.sqlalchemy_1_4_vs_2_0 import seed as seed_mod
 
 # The seeded counts. If a change to seed.py moves any of them, this test
 # says so before a reader finds out.
@@ -53,9 +54,12 @@ def test_seed_is_deterministic(tmp_path):
         seed_mod.seed(eng).close()
         with eng.connect() as conn:
             titles.append(
-                [r[0] for r in conn.execute(
-                    models.Issue.__table__.select().order_by(models.Issue.__table__.c.id)
-                ).fetchall()][:20]
+                [
+                    r[0]
+                    for r in conn.execute(
+                        models.Issue.__table__.select().order_by(models.Issue.__table__.c.id)
+                    ).fetchall()
+                ][:20]
             )
         eng.dispose()
     assert titles[0] == titles[1]

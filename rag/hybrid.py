@@ -24,8 +24,9 @@ recall with broken items is a worse McNemar story. `hybrid=False` on
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from types import SimpleNamespace
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 # Dense gets a stronger vote (smaller k → larger 1/(k+rank)). BM25 is the
 # rescue channel, not co-equal — measured: equal k=60 broke five items.

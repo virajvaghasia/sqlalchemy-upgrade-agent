@@ -52,6 +52,7 @@ calls the model.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -60,7 +61,10 @@ import urllib.request
 
 from rag import index
 
-OLLAMA_URL = "http://127.0.0.1:11434"
+# Overridable because inside a container 127.0.0.1 is the container itself; the
+# Compose demo points this at the host's Ollama. Not OLLAMA_HOST: Ollama's own
+# server reads that as the address to bind, and one variable cannot mean both.
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 
 # Pinned like everything else. `qwen2.5-coder:7b` was measured on the
 # Linux GPU box (RTX 3060) at 62.23 tok/s, and it is already local on the Mac — using the same tag
@@ -126,7 +130,7 @@ SYSTEM = (
     "Base your answer on those sources and cite the source number in brackets, like [2]. "
     "Answer with whatever the sources do support, even partially: if they cover part "
     "of the question, give that part and state plainly which part they do not cover. "
-    "Reply \"The sources do not answer this.\" only when none of the sources is about "
+    'Reply "The sources do not answer this." only when none of the sources is about '
     "the subject of the question at all, and when you do, name the specific thing you "
     "looked for and did not find. "
     "Each source is labelled with the SQLAlchemy version it documents — if versions "
@@ -207,10 +211,7 @@ def build_prompt(question: str, hits, reminder: str | None = None) -> str:
     for n, hit in enumerate(hits, 1):
         p = hit.payload
         heading = " > ".join(p["heading_path"]) or "(no heading)"
-        blocks.append(
-            f"[{n}] SQLAlchemy {p['sqlalchemy_version']} — {p['source_path']}\n"
-            f"     {heading}\n\n{p['text']}"
-        )
+        blocks.append(f"[{n}] SQLAlchemy {p['sqlalchemy_version']} — {p['source_path']}\n     {heading}\n\n{p['text']}")
     sources = "\n\n---\n\n".join(blocks)
     r = REMINDER if reminder is None else reminder
     tail = f"{r}\n\n" if r else ""
@@ -226,28 +227,25 @@ def generate(prompt: str) -> tuple[str, dict]:
     would include model load on a cold call and report a number that is not
     generation speed.
     """
-    body = json.dumps({
-        "model": MODEL,
-        "stream": False,
-        "options": {"temperature": TEMPERATURE},
-        "messages": [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": prompt},
-        ],
-    }).encode()
+    body = json.dumps(
+        {
+            "model": MODEL,
+            "stream": False,
+            "options": {"temperature": TEMPERATURE},
+            "messages": [
+                {"role": "system", "content": SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
+        }
+    ).encode()
 
-    request = urllib.request.Request(
-        f"{OLLAMA_URL}/api/chat", data=body, headers={"Content-Type": "application/json"}
-    )
+    request = urllib.request.Request(f"{OLLAMA_URL}/api/chat", data=body, headers={"Content-Type": "application/json"})
     started = time.perf_counter()
     try:
         with urllib.request.urlopen(request, timeout=300) as response:
             data = json.loads(response.read())
     except urllib.error.URLError as exc:
-        sys.exit(
-            f"cannot reach Ollama at {OLLAMA_URL}: {exc}\n"
-            f"  start it, and check `ollama list` has {MODEL}"
-        )
+        sys.exit(f"cannot reach Ollama at {OLLAMA_URL}: {exc}\n  start it, and check `ollama list` has {MODEL}")
     wall = time.perf_counter() - started
 
     eval_count = data.get("eval_count", 0)
@@ -261,8 +259,13 @@ def generate(prompt: str) -> tuple[str, dict]:
     return data["message"]["content"].strip(), timings
 
 
-def ask(question: str, k: int = DEFAULT_K, version: str | None = None,
-        retrieval_only: bool = False, show_prompt: bool = False) -> None:
+def ask(
+    question: str,
+    k: int = DEFAULT_K,
+    version: str | None = None,
+    retrieval_only: bool = False,
+    show_prompt: bool = False,
+) -> None:
     hits = index.retrieve(question, limit=k, version=version)
     if not hits:
         sys.exit("no hits — is the collection loaded? `uv run python -m rag.index`")
@@ -294,8 +297,10 @@ def ask(question: str, k: int = DEFAULT_K, version: str | None = None,
 def main() -> None:
     argv = sys.argv[1:]
     if not argv or argv[0].startswith("--"):
-        sys.exit('usage: uv run python -m rag.ask "your question" [--k N] [--version 2.0.51] '
-                 '[--retrieval-only] [--show-prompt]')
+        sys.exit(
+            'usage: uv run python -m rag.ask "your question" [--k N] [--version 2.0.51] '
+            "[--retrieval-only] [--show-prompt]"
+        )
 
     def flag(name, cast, default=None):
         return cast(argv[argv.index(name) + 1]) if name in argv else default

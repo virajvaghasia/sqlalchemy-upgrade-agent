@@ -1,0 +1,61 @@
+# The demo page as a container: rag/server.py over the in-memory index.
+#
+#   docker compose --profile demo up --build      # then http://127.0.0.1:7860
+#
+# A second image, not a second stage of the first. `Dockerfile` runs the 1.4
+# practice app on SQLAlchemy 1.4 and no torch; this one runs the retrieval and
+# answer path and needs ~1 GB of CPU torch. One image holding both would ship
+# each one's dependencies to the other.
+#
+# The image holds code only. The corpus (chunks, vectors, ids) is generated and
+# gitignored, so it is mounted at run time, read-only; the model weights land in a
+# named volume on first use. Without the corpus mounted the server still starts:
+# /healthz answers 200 and /readyz answers 503 naming what is missing, which is
+# exactly what CI checks.
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Same unprivileged user as `Dockerfile`, for the same reasons: a fixed high uid,
+# and /app owned by it so the process can create files there (rag/usage.py
+# appends a token ledger under logs/).
+RUN useradd --system --uid 10001 --create-home app \
+ && chown app:app /app
+
+# torch first, from the CPU wheel index. Left to sentence-transformers, pip pulls
+# the CUDA build: several GB of GPU libraries for a container that never sees a
+# GPU. The version matches space/requirements.txt, so the next install finds it
+# already satisfied (2.13.0+cpu satisfies ==2.13.0) and leaves it alone.
+RUN pip install --no-cache-dir torch==2.13.0 --index-url https://download.pytorch.org/whl/cpu
+
+# The pins the hosted page runs, so this container and the deployed one are the
+# same code on the same versions.
+COPY space/requirements.txt requirements-serve.txt
+RUN pip install --no-cache-dir -r requirements-serve.txt
+
+COPY --chown=app:app rag/ rag/
+COPY --chown=app:app space/static/ space/static/
+
+USER app
+
+# Created as `app` so that a named volume mounted here starts out owned by `app`:
+# Docker seeds an empty named volume from the image's directory, ownership included.
+# Mounted over a root-owned path, the first model download fails on permissions.
+RUN mkdir -p /home/app/.cache/huggingface
+
+ENV HOST=0.0.0.0 \
+    PORT=7860 \
+    RAG_DENSE=memory \
+    HF_HOME=/home/app/.cache/huggingface \
+    PYTHONUNBUFFERED=1
+
+EXPOSE 7860
+
+# /healthz touches nothing, so it answers in milliseconds even while the first
+# question is still loading models. python rather than curl: the slim image has
+# no curl, and installing one for a health check adds a package to keep patched.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/healthz', timeout=2)"]
+
+CMD ["python", "-m", "rag.server"]

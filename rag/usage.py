@@ -45,12 +45,13 @@ import sys
 LEDGER = pathlib.Path(__file__).resolve().parent.parent / "logs" / "nvidia-usage.jsonl"
 
 
-def record(model: str, usage: dict | None, caller: str, status: int = 200,
-           path: pathlib.Path | None = None) -> dict:
+def record(
+    model: str, usage: dict | None, caller: str, status: int | None = 200, path: pathlib.Path | None = None
+) -> dict:
     """Append one call. Never raises: a broken ledger must not break a run."""
     usage = usage or {}
     row = {
-        "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "ts": _dt.datetime.now(_dt.UTC).isoformat(timespec="seconds"),
         "model": model,
         "caller": caller,
         "status": status,
@@ -83,18 +84,19 @@ def load(path: pathlib.Path | None = None) -> list[dict]:
 def report(rows: list[dict]) -> str:
     """Counts first: calls, then tokens, then anything that failed."""
     if not rows:
-        return ("NVIDIA TOKEN LEDGER — empty\n"
-                "  no hosted calls recorded yet (this file only sees runs on this machine)")
+        return "NVIDIA TOKEN LEDGER — empty\n  no hosted calls recorded yet (this file only sees runs on this machine)"
     ok = [r for r in rows if r["status"] == 200]
     bad = [r for r in rows if r["status"] != 200]
-    lines = ["NVIDIA TOKEN LEDGER",
-             f"  calls {len(rows)}   ok {len(ok)}   failed {len(bad)}",
-             f"  tokens in {sum(r['prompt_tokens'] for r in ok)}   "
-             f"out {sum(r['completion_tokens'] for r in ok)}   "
-             f"total {sum(r['total_tokens'] for r in ok)}",
-             f"  first {rows[0]['ts']}   last {rows[-1]['ts']}",
-             "",
-             f"  {'model':46} {'calls':>5} {'tokens':>9}"]
+    lines = [
+        "NVIDIA TOKEN LEDGER",
+        f"  calls {len(rows)}   ok {len(ok)}   failed {len(bad)}",
+        f"  tokens in {sum(r['prompt_tokens'] for r in ok)}   "
+        f"out {sum(r['completion_tokens'] for r in ok)}   "
+        f"total {sum(r['total_tokens'] for r in ok)}",
+        f"  first {rows[0]['ts']}   last {rows[-1]['ts']}",
+        "",
+        f"  {'model':46} {'calls':>5} {'tokens':>9}",
+    ]
     models: dict[str, list[dict]] = {}
     for r in ok:
         models.setdefault(r["model"], []).append(r)

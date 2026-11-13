@@ -63,8 +63,8 @@ from rag import ask
 # behind an unchanged notice would be the measurement rule broken where a stranger reads.
 # All three answered on 2026-09-21; only the first has been measured on this project.
 MODELS = [
-    "nvidia/nemotron-3-ultra-550b-a55b",      # measured here: 0.58 end to end, 91% faithful
-    "nvidia/nemotron-3-super-120b-a12b",      # not measured
+    "nvidia/nemotron-3-ultra-550b-a55b",  # measured here: 0.58 end to end, 91% faithful
+    "nvidia/nemotron-3-super-120b-a12b",  # not measured
     "nvidia/nemotron-3.5-lightning-30b-a3b",  # not measured
 ]
 MODEL = MODELS[0]
@@ -72,9 +72,9 @@ PREVIOUS_MODEL = "deepseek-ai/deepseek-v4-flash-0731"
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 KEY_VAR = "NVIDIA_API_KEY"
 
-GLOBAL_PER_HOUR = 60        # chosen: every visitor together, per rolling hour
-SESSION_MIN_SECONDS = 20    # chosen: one visitor cannot fire questions back to back
-MAX_QUESTION_CHARS = 500    # the longest golden question is well under this
+GLOBAL_PER_HOUR = 60  # chosen: every visitor together, per rolling hour
+SESSION_MIN_SECONDS = 20  # chosen: one visitor cannot fire questions back to back
+MAX_QUESTION_CHARS = 500  # the longest golden question is well under this
 
 # Internal decision ids never appear in the notice a visitor reads. A visitor does
 # not know what they are and never will, so a notice that cites one is showing its
@@ -97,8 +97,9 @@ TERMS = re.compile(
     r"alembic|migrat|deprecat|warning|legacy|cursor|scalar|row|bind|metadata|schema|transaction|"
     r"yield_per|from_self|baked|hybrid|association|cascade|identity|detach|expire|pool|dialect|"
     r"psycopg|sqlite|postgres|mysql|python|import|attributeerror|typeerror|removedin|1\.4|2\.0",
-    re.I)
-MIN_SENTENCE = 40   # only 4 of the 100 golden questions are shorter, and all four name a term
+    re.I,
+)
+MIN_SENTENCE = 40  # only 4 of the 100 golden questions are shorter, and all four name a term
 
 
 def looks_like_a_lookup(question: str) -> bool:
@@ -175,12 +176,24 @@ def _observe(tracer, **kw):
     return tracer.start_as_current_observation(**kw) if tracer else contextlib.nullcontext(None)
 
 
+# What can go wrong, as a name a program can branch on. `answer()` puts one of
+# these in `code` beside the sentence in `error`; `rag/server.py` maps each to an
+# HTTP status. A declined answer is not here: declining is a correct result.
+ERROR_CODES = (
+    "empty_question",
+    "question_too_long",
+    "not_a_lookup",
+    "not_configured",
+    "rate_limited",
+    "generator_unavailable",
+)
+
+
 class RateLimiter:
     """A rolling-hour global cap plus a minimum gap per session. `clock` is
     injectable so the tests need no sleeping."""
 
-    def __init__(self, per_hour: int = GLOBAL_PER_HOUR, gap: float = SESSION_MIN_SECONDS,
-                 clock=time.monotonic):
+    def __init__(self, per_hour: int = GLOBAL_PER_HOUR, gap: float = SESSION_MIN_SECONDS, clock=time.monotonic):
         self.per_hour, self.gap, self.clock = per_hour, gap, clock
         self.calls: list[float] = []
         self.last: dict[str, float] = {}
@@ -188,19 +201,27 @@ class RateLimiter:
 
     def check(self, session: str) -> str | None:
         """None if allowed (and the call is recorded), else the reason it is not."""
+        return self.check_detail(session)[0]
+
+    def check_detail(self, session: str) -> tuple[str | None, int | None]:
+        """`(None, None)` if allowed (and the call is recorded), else the reason and
+        the whole seconds until asking again can succeed. The server sends that
+        number as `Retry-After`, so a client can wait instead of guessing."""
         with self.lock:
             now = self.clock()
             self.calls = [t for t in self.calls if now - t < 3600]
             if len(self.calls) >= self.per_hour:
-                return "The demo's hourly question limit is reached. Please try again later."
+                # The window reopens when its oldest call turns an hour old.
+                wait = math.ceil(3600 - (now - self.calls[0])) if self.calls else 3600
+                return ("The demo's hourly question limit is reached. Please try again later.", max(1, wait))
             last = self.last.get(session)
             if last is not None and now - last < self.gap:
                 # Round UP: rounding to nearest told a visitor with 0.4 s left to "wait 0 seconds".
                 wait = max(1, math.ceil(self.gap - (now - last)))
-                return f"Please wait {wait} second{'' if wait == 1 else 's'} before asking again."
+                return (f"Please wait {wait} second{'' if wait == 1 else 's'} before asking again.", wait)
             self.calls.append(now)
             self.last[session] = now
-            return None
+            return None, None
 
 
 def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
@@ -214,13 +235,14 @@ def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
     """
     from rag import usage as usage_mod
 
-    last = None
+    last: Exception | None = None
     for model in MODELS:
-        body = {"model": model, "temperature": ask.TEMPERATURE, "max_tokens": 8192,
-                "messages": messages}
+        body = {"model": model, "temperature": ask.TEMPERATURE, "max_tokens": 8192, "messages": messages}
         request = urllib.request.Request(
-            NVIDIA_URL, data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+            NVIDIA_URL,
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 data = json.loads(response.read())
@@ -250,68 +272,110 @@ def ollama_post(messages: list[dict], key: str | None) -> dict:
     return {"choices": [{"message": {"content": text}}]}
 
 
-def answer(question: str, *, key: str | None, session: str, limiter: RateLimiter,
-           retrieve=None, post=nvidia_post, backend: str = "nvidia", tracer=None) -> dict:
+def answer(
+    question: str,
+    *,
+    key: str | None,
+    session: str,
+    limiter: RateLimiter,
+    retrieve=None,
+    post=nvidia_post,
+    backend: str = "nvidia",
+    tracer=None,
+) -> dict:
     """Question in, {'answer', 'sources', 'refused', 'error'} out. Never raises
     for a visitor's input or a remote failure; the page shows `error` instead.
+
+    An error also carries `code`, one of `ERROR_CODES`: the sentence in `error`
+    is for a person, the code is for the server, which maps it to an HTTP status.
 
     With `tracer` (a Langfuse client, see `langfuse_client`) each question is one
     trace: `retrieve` (the five page ids) and `generate` (answer + token usage)."""
     question = (question or "").strip()
     if not question:
-        return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0."}
+        return {"error": "Ask a question about upgrading SQLAlchemy 1.4 code to 2.0.", "code": "empty_question"}
     if len(question) > MAX_QUESTION_CHARS:
-        return {"error": f"Please keep the question under {MAX_QUESTION_CHARS} characters."}
+        return {
+            "error": f"Please keep the question under {MAX_QUESTION_CHARS} characters.",
+            "code": "question_too_long",
+        }
     if not looks_like_a_lookup(question):
         # No retrieval, no model call, no decline note: none of those would be true here.
-        return {"error": NOT_A_LOOKUP}
+        return {"error": NOT_A_LOOKUP, "code": "not_a_lookup"}
     if backend == "ollama":
         post = ollama_post if post is nvidia_post else post
     elif not key:
-        return {"error": f"The demo is not configured: the {KEY_VAR} secret is missing."}
+        return {"error": f"The demo is not configured: the {KEY_VAR} secret is missing.", "code": "not_configured"}
     if retrieve is None:
         from rag import index
+
         retrieve = lambda q: index.retrieve(q, limit=ask.DEFAULT_K)
 
     model = "qwen2.5-coder:7b" if backend == "ollama" else MODEL
-    with _observe(tracer, as_type="span", name="demo.answer",
-                  input={"question": question, "backend": backend}) as root:
+    with _observe(tracer, as_type="span", name="demo.answer", input={"question": question, "backend": backend}) as root:
         result = _answer_traced(question, key, session, limiter, retrieve, post, tracer, root, model)
     if tracer:
-        tracer.flush()   # a Modal container can stop minutes later; do not lose the trace
+        tracer.flush()  # a Modal container can stop minutes later; do not lose the trace
     return result
 
 
 def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root, model) -> dict:
+    started = time.perf_counter()
     with _observe(tracer, as_type="retriever", name="retrieve", input=question) as r:
         hits = retrieve(question)
         if r:
             r.update(output=[h.payload.get("chunk_id") for h in hits])
-    sources = [{"n": n, "version": h.payload["sqlalchemy_version"],
-                "path": h.payload["source_path"],
-                "heading": " > ".join(h.payload["heading_path"]) or "(no heading)",
-                "text": h.payload["text"]} for n, h in enumerate(hits, 1)]
-    blocked = limiter.check(session)
+    # Per-stage wall time, so "the page is slow" can be split into search and model.
+    timings = {"retrieve_ms": round((time.perf_counter() - started) * 1000)}
+    sources = [
+        {
+            "n": n,
+            "version": h.payload["sqlalchemy_version"],
+            "path": h.payload["source_path"],
+            "heading": " > ".join(h.payload["heading_path"]) or "(no heading)",
+            "text": h.payload["text"],
+        }
+        for n, h in enumerate(hits, 1)
+    ]
+    blocked, retry_after = limiter.check_detail(session)
     if blocked:
         if root:
             root.update(output={"error": blocked}, level="WARNING")
-        return {"error": blocked, "sources": sources}
-    messages = [{"role": "system", "content": ask.SYSTEM},
-                {"role": "user", "content": ask.build_prompt(question, hits)}]
+        return {
+            "error": blocked,
+            "sources": sources,
+            "code": "rate_limited",
+            "retry_after": retry_after,
+            "timings": timings,
+        }
+    messages = [
+        {"role": "system", "content": ask.SYSTEM},
+        {"role": "user", "content": ask.build_prompt(question, hits)},
+    ]
+    started = time.perf_counter()
     try:
-        with _observe(tracer, as_type="generation", name="generate", model=model,
-                      input=messages[1]["content"]) as g:
+        with _observe(tracer, as_type="generation", name="generate", model=model, input=messages[1]["content"]) as g:
             data = post(messages, key)
             if g:
                 usage = data.get("usage") or {}
-                g.update(output=(data["choices"][0]["message"].get("content") or "").strip(),
-                         usage_details={k: v for k, v in usage.items()
-                                        if k in ("prompt_tokens", "completion_tokens") and isinstance(v, int)})
+                g.update(
+                    output=(data["choices"][0]["message"].get("content") or "").strip(),
+                    usage_details={
+                        k: v
+                        for k, v in usage.items()
+                        if k in ("prompt_tokens", "completion_tokens") and isinstance(v, int)
+                    },
+                )
     except SystemExit:
         # ask.generate exits when Ollama is unreachable -- right for a CLI,
         # wrong for a web page. SystemExit is not an Exception.
-        return {"error": "The local answer model (Ollama) is not running. The search still "
-                         "ran, and its sources are listed with this message.", "sources": sources}
+        return {
+            "error": "The local answer model (Ollama) is not running. The search still "
+            "ran, and its sources are listed with this message.",
+            "sources": sources,
+            "code": "generator_unavailable",
+            "timings": timings,
+        }
     except (urllib.error.URLError, TimeoutError) as exc:
         # Name the HTTP status when there is one. "HTTPError" alone cannot tell
         # 429 (rate limited, try later) from 404 (this account cannot call this
@@ -319,14 +383,25 @@ def _answer_traced(question, key, session, limiter, retrieve, post, tracer, root
         # the page said only "HTTPError" while the model had lost entitlement.
         code = getattr(exc, "code", None)
         detail = f"HTTP {code}" if code else type(exc).__name__
-        return {"error": f"The answer model did not respond ({detail}). "
-                         "The search still ran, and its sources are listed.", "sources": sources}
+        return {
+            "error": f"The answer model did not respond ({detail}). The search still ran, and its sources are listed.",
+            "sources": sources,
+            "code": "generator_unavailable",
+            "timings": timings,
+        }
+    timings["generate_ms"] = round((time.perf_counter() - started) * 1000)
     text = (data["choices"][0]["message"].get("content") or "").strip()
     if root:
         root.update(output={"refused": ask.refused(text), "answer": text})
     # `_model` is set by nvidia_post when a fallback answered; the page names it.
-    return {"answer": text, "sources": sources, "refused": ask.refused(text), "error": None,
-            "model": data.get("_model", model)}
+    return {
+        "answer": text,
+        "sources": sources,
+        "refused": ask.refused(text),
+        "error": None,
+        "model": data.get("_model", model),
+        "timings": timings,
+    }
 
 
 def render(result: dict, backend: str = "nvidia") -> str:
@@ -339,8 +414,10 @@ def render(result: dict, backend: str = "nvidia") -> str:
     if result.get("sources"):
         parts.append("---\n\n### Sources\n")
         for s in result["sources"]:
-            parts.append(f"<details><summary>[{s['n']}] SQLAlchemy {s['version']} — "
-                         f"{s['path']} — {s['heading']}</summary>\n\n```\n{s['text']}\n```\n\n</details>")
+            parts.append(
+                f"<details><summary>[{s['n']}] SQLAlchemy {s['version']} — "
+                f"{s['path']} — {s['heading']}</summary>\n\n```\n{s['text']}\n```\n\n</details>"
+            )
     notice = MEASURED_MODEL_NOTICE if backend == "ollama" else hosted_notice(result.get("model"))
     parts.append(f"\n---\n\n<sub>{notice}</sub>")
     return "\n\n".join(parts)
@@ -370,8 +447,8 @@ INLINE_CODE = re.compile(r"(`[^`\n]*`)")
 
 def sphinx_name(match: re.Match) -> str:
     tilde, target = match.group(1), match.group(2).strip()
-    target = re.sub(r"^_[a-z]+\.", "", target)          # _orm.Query -> Query
-    return target.split(".")[-1] if tilde else target      # ~a.b.C -> C
+    target = re.sub(r"^_[a-z]+\.", "", target)  # _orm.Query -> Query
+    return target.split(".")[-1] if tilde else target  # ~a.b.C -> C
 
 
 def readable(text: str) -> str:
@@ -389,8 +466,8 @@ def link_citations(answer: str, n_sources: int) -> str:
 
     def link(chunk: str) -> str:
         return judge.CITATION.sub(
-            lambda m: f"[[{m.group(1)}]](#src-{m.group(1)})" if 1 <= int(m.group(1)) <= n_sources
-            else m.group(0), chunk)
+            lambda m: f"[[{m.group(1)}]](#src-{m.group(1)})" if 1 <= int(m.group(1)) <= n_sources else m.group(0), chunk
+        )
 
     # Order matters, and the first version had it wrong: a role's own backticks
     # (:meth:`_orm.Query.get`) look like an inline code span, so splitting out
@@ -401,8 +478,9 @@ def link_citations(answer: str, n_sources: int) -> str:
         if FENCE.fullmatch(part):
             out.append(part)
             continue
-        out.append("".join(bit if INLINE_CODE.fullmatch(bit) else link(bit)
-                           for bit in INLINE_CODE.split(readable(part))))
+        out.append(
+            "".join(bit if INLINE_CODE.fullmatch(bit) else link(bit) for bit in INLINE_CODE.split(readable(part)))
+        )
     return "".join(out)
 
 
@@ -414,8 +492,10 @@ def status(result: dict) -> str:
 
 def render_answer(result: dict, backend: str = "nvidia") -> str:
     label, colour = STATUS[status(result)]
-    parts = [f'<span style="display:inline-block;padding:3px 12px;border-radius:999px;'
-             f'background:{colour};color:#fff;font-size:0.85em;font-weight:600">{label}</span>']
+    parts = [
+        f'<span style="display:inline-block;padding:3px 12px;border-radius:999px;'
+        f'background:{colour};color:#fff;font-size:0.85em;font-weight:600">{label}</span>'
+    ]
     if result.get("error"):
         parts.append(f"**{html.escape(result['error'])}**")
     if result.get("answer"):
@@ -427,6 +507,7 @@ def render_answer(result: dict, backend: str = "nvidia") -> str:
 
 def cited(result: dict) -> set[int]:
     from rag import judge
+
     return set(judge.citations(result.get("answer") or ""))
 
 
@@ -436,15 +517,23 @@ def render_sources(result: dict) -> str:
     placeholders) that would otherwise be parsed as markup on the page."""
     sources = result.get("sources") or []
     if not sources:
-        return ('<p style="opacity:.7;margin:.5em 0">The five documentation pages the answer is '
-                'given will appear here, each one expandable.</p>')
+        return (
+            '<p style="opacity:.7;margin:.5em 0">The five documentation pages the answer is '
+            "given will appear here, each one expandable.</p>"
+        )
     used = cited(result)
     cards = []
     for s in sources:
         v = html.escape(s["version"])
         badge = "#3b5bdb" if v.startswith("2.") else "#6c757d"
-        mark = ('<span style="background:#1f7a4d;color:#fff;border-radius:6px;padding:1px 7px;'
-                'font-size:.75em;margin-left:6px">cited</span>') if s["n"] in used else ""
+        mark = (
+            (
+                '<span style="background:#1f7a4d;color:#fff;border-radius:6px;padding:1px 7px;'
+                'font-size:.75em;margin-left:6px">cited</span>'
+            )
+            if s["n"] in used
+            else ""
+        )
         text = SPHINX_ROLE.sub(sphinx_name, s["text"])
         cards.append(
             f'<details id="src-{s["n"]}" style="border:1px solid rgba(128,128,128,.35);'
@@ -453,9 +542,10 @@ def render_sources(result: dict) -> str:
             f'<span style="background:{badge};color:#fff;border-radius:6px;padding:1px 7px;'
             f'font-size:.8em">SQLAlchemy {v}</span>{mark} {html.escape(s["heading"])}'
             f'<div style="opacity:.65;font-size:.85em;margin-top:2px">{html.escape(s["path"])}</div>'
-            '</summary>'
+            "</summary>"
             f'<pre style="white-space:pre-wrap;font-size:.85em;margin-top:10px">{html.escape(text)}</pre>'
-            '</details>')
+            "</details>"
+        )
     return "".join(cards)
 
 
@@ -473,10 +563,20 @@ def payload(result: dict, backend: str, seconds: float) -> dict:
         "status_label": STATUS[status(result)][0],
         "error": result.get("error"),
         "answer_md": link_citations(result["answer"], len(sources)) if result.get("answer") else "",
-        "sources": [{"n": s["n"], "version": s["version"], "path": s["path"], "heading": s["heading"],
-                     "text": SPHINX_ROLE.sub(sphinx_name, s["text"]), "cited": s["n"] in used}
-                    for s in sources],
+        "sources": [
+            {
+                "n": s["n"],
+                "version": s["version"],
+                "path": s["path"],
+                "heading": s["heading"],
+                "text": SPHINX_ROLE.sub(sphinx_name, s["text"]),
+                "cited": s["n"] in used,
+            }
+            for s in sources
+        ],
         "notice": MEASURED_MODEL_NOTICE if backend == "ollama" else hosted_notice(result.get("model")),
         "generator": "qwen2.5-coder:7b" if backend == "ollama" else (result.get("model") or MODEL),
         "seconds": round(seconds, 1),
+        "code": result.get("code"),
+        "timings": result.get("timings") or {},
     }

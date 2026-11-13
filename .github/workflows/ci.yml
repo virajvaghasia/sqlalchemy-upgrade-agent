@@ -1,8 +1,8 @@
 # Runs on every push to main and every pull request.
 #
-# Four jobs, deliberately separate rather than one long script: a red tick
+# Six jobs, deliberately separate rather than one long script: a red tick
 # should say WHICH thing broke without opening the log. They also run in
-# parallel, so four jobs are not four times the wall clock.
+# parallel, so six jobs are not six times the wall clock.
 
 name: CI
 
@@ -93,6 +93,16 @@ jobs:
           grep -q "22 of 24 patterns FAIL on 2.0.51" out.txt \
             || { echo "::error::BREAKAGES.md documents 22 of 24 on 2.0.51; this run disagrees."; exit 1; }
 
+      # deliverables/BREAKAGES.md tells its reader to diff against this generator.
+      # Nothing ran it, and it crashed on an undefined name for weeks. Run it, and
+      # require the same 23 entries the file has.
+      - name: the BREAKAGES.md generator still runs
+        run: |
+          uv run --no-project --with 'sqlalchemy==2.0.51' \
+            python -m experiments.sqlalchemy_1_4_vs_2_0.verify_2_0 --stubs > stubs.md
+          test "$(grep -c '^### ' stubs.md)" = "$(grep -c '^### ' deliverables/BREAKAGES.md)" \
+            || { echo "::error::the generator and BREAKAGES.md disagree on the number of entries."; exit 1; }
+
   image:
     # The Dockerfile is only exercised by someone running docker build. This is
     # also the first time it is built on amd64 — every local build so far has
@@ -111,3 +121,49 @@ jobs:
 
       - name: check it actually did the work
         run: grep -q "38 open issues" run.txt
+
+  service:
+    # The demo page's image (Dockerfile.service). No corpus is mounted here (it is
+    # generated, and building it means embedding 3,284 chunks), so this proves the
+    # server starts and reports its own state honestly: /healthz 200, and /readyz
+    # 503 naming the corpus as missing. A /readyz that said 200 here would be lying.
+    name: service image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f Dockerfile.service -t sqlalchemy-upgrade-agent-demo:ci .
+
+      - name: start it
+        run: docker run -d --name svc -p 127.0.0.1:7860:7860 sqlalchemy-upgrade-agent-demo:ci
+
+      - name: /healthz answers 200
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:7860/healthz && exit 0
+            sleep 1
+          done
+          docker logs svc
+          exit 1
+
+      - name: /readyz answers 503 and names the missing corpus
+        run: |
+          code=$(curl -s -o ready.json -w '%{http_code}' http://127.0.0.1:7860/readyz)
+          cat ready.json
+          test "$code" = 503
+          grep -q '"corpus":false' ready.json
+
+  lint:
+    # ruff (lint and format) and mypy, configured in pyproject.toml. The same
+    # commands run locally through `make lint` and the pre-commit hooks.
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy

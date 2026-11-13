@@ -113,23 +113,39 @@ MIN_CHARS = 120
 # files). Deliberately NOT listed: note, warning, versionadded, deprecated,
 # seealso, code-block — those are content, and often the most quotable content
 # in the file.
-NON_CONTENT_DIRECTIVES = frozenset({
-    "toctree", "currentmodule", "module", "index", "contents", "include",
-    "autoclass", "autofunction", "automethod", "autoattribute", "automodule",
-    "autodata", "autoexception", "highlight", "rst-class", "container",
-})
+NON_CONTENT_DIRECTIVES = frozenset(
+    {
+        "toctree",
+        "currentmodule",
+        "module",
+        "index",
+        "contents",
+        "include",
+        "autoclass",
+        "autofunction",
+        "automethod",
+        "autoattribute",
+        "automodule",
+        "autodata",
+        "autoexception",
+        "highlight",
+        "rst-class",
+        "container",
+    }
+)
 
 # An RST section adornment: a run of one punctuation character. Which character
 # means which level is not fixed by the spec — it is decided per document, by
 # order of first appearance. See _heading_levels.
 ADORNMENT = re.compile(r'^([=\-`:\'"~^_*+#<>!$%&(),./;?@\[\]\\{|}])\1{1,}\s*$')
-DIRECTIVE = re.compile(r'^\s*\.\.\s+([a-z-]+)::')
-LITERAL_INTRO = re.compile(r'::\s*$')
+DIRECTIVE = re.compile(r"^\s*\.\.\s+([a-z-]+)::")
+LITERAL_INTRO = re.compile(r"::\s*$")
 
 
 # ---------------------------------------------------------------------------
 # Structure
 # ---------------------------------------------------------------------------
+
 
 def split_sections(lines: list[str]) -> list[tuple[list[str], int, int]]:
     """
@@ -140,8 +156,8 @@ def split_sections(lines: list[str]) -> list[tuple[list[str], int, int]]:
     removed in 2.0" is useless without the heading naming what "this" is, and
     the path is what gets prepended to the chunk text.
     """
-    heads: list[tuple[int, str]] = []          # (line index of title, title text)
-    order: list[tuple[str, bool]] = []          # (char, overlined) styles, in order of first use
+    heads: list[tuple[int, str]] = []  # (line index of title, title text)
+    order: list[tuple[str, bool]] = []  # (char, overlined) styles, in order of first use
     levels: list[int] = []
 
     i = 0
@@ -180,18 +196,18 @@ def split_sections(lines: list[str]) -> list[tuple[list[str], int, int]]:
     if not heads:
         return [([], 0, len(lines))]
 
-    sections = []
+    sections: list[tuple[list[str], int, int]] = []
     if heads[0][0] > 0:
-        sections.append(([], 0, heads[0][0]))   # preamble before the first heading
+        sections.append(([], 0, heads[0][0]))  # preamble before the first heading
 
     for n, (line_no, title) in enumerate(heads):
         end = heads[n + 1][0] if n + 1 < len(heads) else len(lines)
-        path = []
+        path: list[str] = []
         for m in range(n + 1):
             if levels[m] < levels[n]:
-                path = path[:levels[m]] + [heads[m][1]]
+                path = path[: levels[m]] + [heads[m][1]]
             elif m == n:
-                path = path[:levels[n]] + [title]
+                path = path[: levels[n]] + [title]
         sections.append((path, line_no, end))
     return sections
 
@@ -230,9 +246,8 @@ def split_blocks(lines: list[str]) -> list[tuple[str, str, int, int]]:
             i += 1
             continue
 
-        is_code_intro = (
-            (directive and directive.group(1) in ("code-block", "sourcecode", "code"))
-            or (LITERAL_INTRO.search(line) and line.strip() != "::" or line.strip() == "::")
+        is_code_intro = (directive and directive.group(1) in ("code-block", "sourcecode", "code")) or (
+            LITERAL_INTRO.search(line) and line.strip() != "::" or line.strip() == "::"
         )
         if is_code_intro:
             # In RST the line introducing a literal block is the LAST LINE OF
@@ -266,8 +281,7 @@ def split_blocks(lines: list[str]) -> list[tuple[str, str, int, int]]:
             # inside a code block does not end it.
             while i < len(lines) and (not lines[i].strip() or lines[i].startswith((" ", "\t"))):
                 i += 1
-            blocks.append(("code", "\n".join(prefix + lines[start:i]).strip("\n"),
-                           block_start, i - 1))
+            blocks.append(("code", "\n".join(prefix + lines[start:i]).strip("\n"), block_start, i - 1))
             continue
 
         if not line.strip():
@@ -305,13 +319,13 @@ def is_content(text: str) -> bool:
         skip_indent = False
         if ADORNMENT.match(line):
             continue
-        if re.match(r'^\s*\.\.\s+_[^:]+:\s*$', line):      # .. _anchor:
+        if re.match(r"^\s*\.\.\s+_[^:]+:\s*$", line):  # .. _anchor:
             continue
         directive = DIRECTIVE.match(line)
         if directive and directive.group(1) in NON_CONTENT_DIRECTIVES:
             skip_indent = True
             continue
-        if re.match(r'^\s*:[\w-]+:\s*\S*\s*$', line):      # :maxdepth: 2
+        if re.match(r"^\s*:[\w-]+:\s*\S*\s*$", line):  # :maxdepth: 2
             continue
         kept.append(stripped)
     return len(" ".join(kept)) >= 40
@@ -392,8 +406,10 @@ def glossary_entries(lines: list[str]) -> list[tuple[str, str, int, int]]:
 # Packing
 # ---------------------------------------------------------------------------
 
-def pack(blocks: list[tuple[str, str, int, int]], target: int, hard_max: int,
-         overlap_max: int) -> list[tuple[str, int, int]]:
+
+def pack(
+    blocks: list[tuple[str, str, int, int]], target: int, hard_max: int, overlap_max: int
+) -> list[tuple[str, int, int]]:
     """
     Greedily fill chunks up to `target`, never splitting a block.
 
@@ -411,8 +427,7 @@ def pack(blocks: list[tuple[str, str, int, int]], target: int, hard_max: int,
     def emit():
         text = "\n\n".join(t for _, t, _, _ in current)
         if text.strip():
-            chunks.append((text, min(a for _, _, a, _ in current),
-                           max(b for _, _, _, b in current)))
+            chunks.append((text, min(a for _, _, a, _ in current), max(b for _, _, _, b in current)))
 
     for block in blocks:
         kind, text, _, _ = block
@@ -451,7 +466,7 @@ def chunk_file(path: pathlib.Path, version: str, source_path: str) -> list[dict]
 
     for heading_path, start, end in split_sections(lines):
         body = lines[start:end]
-        if is_glossary and any(DIRECTIVE.match(l) and DIRECTIVE.match(l).group(1) == "glossary" for l in body):
+        if is_glossary and any((directive := DIRECTIVE.match(l)) and directive.group(1) == "glossary" for l in body):
             blocks = glossary_entries(body)
         else:
             blocks = split_blocks(body)
@@ -465,22 +480,25 @@ def chunk_file(path: pathlib.Path, version: str, source_path: str) -> list[dict]
             # `start` shifts them back to the file.
             char_start = line_offset[min(start + first, len(lines))]
             char_end = line_offset[min(start + last + 1, len(lines))]
-            out.append({
-                "sqlalchemy_version": version,
-                "source_path": source_path,
-                "heading_path": heading_path,
-                "text": text_chunk,
-                "n_chars": len(text_chunk),
-                "char_start": char_start,
-                "char_end": char_end,
-                "has_code": "::" in text_chunk or ".. code-block::" in text_chunk,
-            })
+            out.append(
+                {
+                    "sqlalchemy_version": version,
+                    "source_path": source_path,
+                    "heading_path": heading_path,
+                    "text": text_chunk,
+                    "n_chars": len(text_chunk),
+                    "char_start": char_start,
+                    "char_end": char_end,
+                    "has_code": "::" in text_chunk or ".. code-block::" in text_chunk,
+                }
+            )
     return out
 
 
 # ---------------------------------------------------------------------------
 # Drive
 # ---------------------------------------------------------------------------
+
 
 def build() -> list[dict]:
     manifest = json.loads(corpus.MANIFEST_PATH.read_text())
@@ -513,8 +531,12 @@ def stats(chunks: list[dict]) -> dict:
         "with_code": sum(1 for c in chunks if c["has_code"]),
         "oversized": sum(1 for c in chunks if c["n_chars"] > HARD_MAX),
         "size": {
-            "min": sizes[0], "median": int(statistics.median(sizes)),
-            "p75": q(0.75), "p90": q(0.90), "p99": q(0.99), "max": sizes[-1],
+            "min": sizes[0],
+            "median": int(statistics.median(sizes)),
+            "p75": q(0.75),
+            "p90": q(0.90),
+            "p99": q(0.99),
+            "max": sizes[-1],
         },
         # Carried in the committed stats file so the audit numbers
         # can be checked in CI, where corpus/raw/ does not exist and build()
@@ -530,17 +552,20 @@ def report(s: dict, wrote: bool = True) -> None:
     # "chunks: corpus/chunks.jsonl" after saying "not written" reads as a
     # contradiction, and the reader is right to trust the line that looks
     # like a file path over the one in parentheses.
-    print(f"chunks: {CHUNKS_PATH.relative_to(corpus.REPO_ROOT)}" if wrote
-          else "read-only: nothing written. These are the numbers the current "
-               "corpus WOULD produce.")
+    print(
+        f"chunks: {CHUNKS_PATH.relative_to(corpus.REPO_ROOT)}"
+        if wrote
+        else "read-only: nothing written. These are the numbers the current corpus WOULD produce."
+    )
     print(f"  target={p['target']}  hard_max={p['hard_max']}  overlap_max={p['overlap_max']}")
     print(f"  {s['n_chunks']} chunks   {s['n_chars']} chars")
     for version, n in s["by_version"].items():
         print(f"    {version:<8} {n:>5} chunks")
     print(f"  with a code block: {s['with_code']}   over hard_max: {s['oversized']}")
     z = s["size"]
-    print(f"  size  min={z['min']}  median={z['median']}  p75={z['p75']}  "
-          f"p90={z['p90']}  p99={z['p99']}  max={z['max']}")
+    print(
+        f"  size  min={z['min']}  median={z['median']}  p75={z['p75']}  p90={z['p90']}  p99={z['p99']}  max={z['max']}"
+    )
 
 
 # A chunk fails "stands on its own" in one of two shapes, both found by reading
@@ -604,8 +629,7 @@ def opens_backward_shape(c: dict) -> bool:
 # boundaries; a token on EITHER side flags 37; nothing here reproduces 11.
 # Read one by one, 3 of the 5 are real severances (c00233, c01869, c01094) and 2
 # are cuts between complete statements (c02626, c02823).
-_CODE_TOKEN = re.compile(
-    r"(=|\(|\)|\bimport\b|\bdef\b|\bclass\b|\breturn\b|\bSELECT\b|>>>|\.\.\.)")
+_CODE_TOKEN = re.compile(r"(=|\(|\)|\bimport\b|\bdef\b|\bclass\b|\breturn\b|\bSELECT\b|>>>|\.\.\.)")
 
 
 def _is_code_line(line: str) -> bool:
@@ -638,7 +662,7 @@ def neighbours(chunks: list[dict]) -> tuple[dict[str, dict], dict[str, dict]]:
     prv: dict[str, dict] = {}
     for group in order.values():
         group.sort(key=lambda c: c["char_start"])
-        for a, b in zip(group, group[1:]):
+        for a, b in zip(group, group[1:], strict=False):  # pairs of neighbours; the last has none
             nxt[a["id"]], prv[b["id"]] = b, a
     return nxt, prv
 
@@ -682,16 +706,14 @@ def audit(chunks: list[dict]) -> dict:
         p = prv.get(c["id"])
         return p is None or c["char_start"] >= p["char_end"]
 
-    lost = ({c["id"] for c in ends_open if a_lost(c)}
-            | {c["id"] for c in opens_back if b_lost(c)})
+    lost = {c["id"] for c in ends_open if a_lost(c)} | {c["id"] for c in opens_back if b_lost(c)}
     return {
         "n_chunks": len(chunks),
         "ends_open": len(ends_open),
         "ends_open_lost": sum(map(a_lost, ends_open)),
         # A chunk ending on "::" would be a literal block introduced and then
         # cut away before its body. Reported because zero is a real result.
-        "ends_open_literal": sum(
-            1 for c in ends_open if _non_blank(c["text"])[-1].rstrip().endswith("::")),
+        "ends_open_literal": sum(1 for c in ends_open if _non_blank(c["text"])[-1].rstrip().endswith("::")),
         "opens_backward": len(opens_back),
         "opens_backward_lost": sum(map(b_lost, opens_back)),
         "either": len({c["id"] for c in ends_open} | {c["id"] for c in opens_back}),

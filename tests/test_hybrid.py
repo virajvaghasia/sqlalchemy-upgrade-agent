@@ -6,7 +6,7 @@ from rag import bm25, hybrid
 
 
 def test_tokenize_splits_dotted_api_names():
-    assert bm25.tokenize('engine.table_names() attribute error') == [
+    assert bm25.tokenize("engine.table_names() attribute error") == [
         "engine",
         "table_names",
         "attribute",

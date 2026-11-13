@@ -32,7 +32,7 @@ DIST = HERE / "dist"
 # build (the page never uses a GPU on Modal).
 DEPS = (
     "fastapi==0.141.1",
-    "langfuse==4.15.2",     # tracing; active only when the `langfuse` secret supplies keys
+    "langfuse==4.15.2",  # tracing; active only when the `langfuse` secret supplies keys
     "uvicorn==0.52.4",
     "sentence-transformers==5.7.0",
     "transformers==5.15.0",
@@ -73,9 +73,9 @@ app = modal.App("sqlalchemy-upgrade-agent")
     # ~4 GB for the two models + embeddings; headroom so the first load does not OOM.
     memory=8192,
     cpu=2.0,
-    timeout=600,          # NVIDIA answer can take ~1 min; first HF download longer
+    timeout=600,  # NVIDIA answer can take ~1 min; first HF download longer
     startup_timeout=600,  # first container may still be pulling HF weights into the volume
-    scaledown_window=300, # keep warm a few minutes between questions
+    scaledown_window=300,  # keep warm a few minutes between questions
     # ONE container, several requests at once. The rate limiter (rag/demo.py RateLimiter) lives in
     # the process's memory, and by default Modal starts a fresh container for each request that
     # arrives while another is running, each with an empty limiter. Measured live on 2026-09-23:

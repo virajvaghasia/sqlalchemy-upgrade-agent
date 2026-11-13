@@ -1,4 +1,5 @@
 """Phase 6 Step 3a — routing signals. No Qdrant, no model."""
+
 import types
 
 from rag import ask, route
@@ -38,8 +39,12 @@ def test_router_A_routes_the_lowest_max_ce_and_splits_what_it_catches():
 
 def test_cascade_B_escalates_refusals_only_and_separates_page_present():
     signals = {i: {"ce": [1.0]} for i in "abcd"}
-    outcomes = {"a": out(answer=REFUSE), "b": out(present=False, answer=REFUSE),
-                "c": out(present=False), "d": out(answerable=False, present=False, answer=REFUSE)}
+    outcomes = {
+        "a": out(answer=REFUSE),
+        "b": out(present=False, answer=REFUSE),
+        "c": out(present=False),
+        "d": out(answerable=False, present=False, answer=REFUSE),
+    }
     b = route.evaluate(signals, outcomes, budget=1)["B"]
     assert b["present"] == ["a"] and b["absent"] == ["b"] and b["unanswerable"] == ["d"]
     assert b["unseen_failures"] == ["c"], "answered without the page: the cascade never sees it"
@@ -57,6 +62,7 @@ def test_join_check_names_any_item_whose_page_flag_differs_between_machines():
 
 def test_compute_signals_keeps_the_five_shipped_pages_and_their_scores():
     pts = [types.SimpleNamespace(payload={"chunk_id": c}) for c in ("c1", "c2")]
-    rows = route.compute_signals([{"id": "g", "question": "q"}],
-                                 retrieve=lambda q: pts, ce=lambda q, p: [0.1234567, 2.0])
+    rows = route.compute_signals(
+        [{"id": "g", "question": "q"}], retrieve=lambda q: pts, ce=lambda q, p: [0.1234567, 2.0]
+    )
     assert rows == [{"id": "g", "hits": ["c1", "c2"], "ce": [0.123457, 2.0]}]

@@ -68,8 +68,7 @@ def paired(baseline: list[dict], rows: list[dict]) -> dict:
     """
     base = {r["id"]: r for r in baseline}
     now = {r["id"]: r for r in rows}
-    out = {"fixed": [], "broken": [], "moved": [], "unpaired": [],
-           "missing": [], "relabelled": []}
+    out: dict[str, list] = {"fixed": [], "broken": [], "moved": [], "unpaired": [], "missing": [], "relabelled": []}
     for i in sorted(base.keys() - now.keys()):
         if base[i]["answerable"]:
             out["missing"].append(i)
@@ -96,14 +95,11 @@ def blocked(result: dict) -> list[str]:
     """Reasons to fail. Empty means the gate passes."""
     reasons = []
     if result["broken"]:
-        reasons.append(f"{len(result['broken'])} golden answer(s) left the top {K}: "
-                       + " ".join(result["broken"]))
+        reasons.append(f"{len(result['broken'])} golden answer(s) left the top {K}: " + " ".join(result["broken"]))
     if result["missing"]:
-        reasons.append("ruler changed: answerable golden item(s) missing from this run: "
-                       + " ".join(result["missing"]))
+        reasons.append("ruler changed: answerable golden item(s) missing from this run: " + " ".join(result["missing"]))
     if result["relabelled"]:
-        reasons.append("ruler changed: answerable flag flipped on: "
-                       + " ".join(result["relabelled"]))
+        reasons.append("ruler changed: answerable flag flipped on: " + " ".join(result["relabelled"]))
     return reasons
 
 
@@ -131,8 +127,7 @@ def render(baseline: list[dict], rows: list[dict]) -> tuple[str, list[str]]:
         f"  exact McNemar p = {p:.3f}  (context only; the gate reads `broken`)",
         "",
     ]
-    lines += ([f"BLOCKED — {r}" for r in reasons] if reasons
-              else ["PASSED — no golden answer lost"])
+    lines += [f"BLOCKED — {r}" for r in reasons] if reasons else ["PASSED — no golden answer lost"]
     return "\n".join(lines), reasons
 
 
@@ -153,9 +148,11 @@ def provenance() -> dict:
     stats = json.loads(embed.STATS_PATH.read_text())
     return {
         "machine": faithful.machine(),
-        "embed_model": stats["model"], "embed_revision": stats["revision"],
+        "embed_model": stats["model"],
+        "embed_revision": stats["revision"],
         "embed_device": stats["run"]["device"],
-        "rerank_model": rerank.MODEL_ID, "rerank_revision": rerank.MODEL_REVISION,
+        "rerank_model": rerank.MODEL_ID,
+        "rerank_revision": rerank.MODEL_REVISION,
     }
 
 

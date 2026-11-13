@@ -67,6 +67,8 @@ Measure retrieval:
     probe.py       19 questions chosen to break the pipeline; writes
                    deliverables/FAILURES.md
     compare_embedders.py   two embedding models on the same questions
+    bench.py       how long each retrieval stage takes, p50 and p95 over the
+                   golden questions; checks it timed the path that ships
 
 Measure answers:
 
@@ -100,7 +102,11 @@ Security:
 Serving:
 
     demo.py        the hosted page's logic: rate limit, model fallback,
-                   rendering. `space/web.py` is the thin server around it
+                   rendering
+    server.py      the web server around it: status codes, health checks,
+                   one JSON log line per question
+    mcp_server.py  the three agent tools over the Model Context Protocol
+    cli.py         the `sqla-upgrade` command: ask, serve, mcp
 
 Each module's docstring holds its own reasoning.
 """
