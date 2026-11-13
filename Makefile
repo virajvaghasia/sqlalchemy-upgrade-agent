@@ -1,5 +1,7 @@
 # Short names for the commands CI runs. Each target is the same command a CI job
-# runs, so `make lint` passing locally means the lint job will pass too.
+# runs. One difference: with the `embed` extra installed, mypy checks numpy and
+# torch against their real types here, and CI, which has no such extra, treats
+# them as untyped. So local is the stricter of the two.
 #
 #   make test     the test suite (5 tests skip without Qdrant)
 #   make lint     ruff lint, ruff format check, mypy

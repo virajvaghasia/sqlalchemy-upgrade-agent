@@ -41,7 +41,8 @@ listed](docs/images/demo-declined.png)
 
 *"How long will SQLAlchemy 1.4 be supported?" is one of the nine test questions with no answer in
 these documents. The page declined and still listed what it read. The note under the status is
-honest about the cost: **19 of its 52 declines on the test set had the right page in hand.***
+honest about the cost: on the test set the local model declined 52 times, and **19 of those
+declines had the right page in hand.***
 
 ## Results
 
@@ -89,7 +90,7 @@ None of these were found by reading the code. Each was found by a measurement th
 
 | what was believed | what a measurement found | consequence |
 |---|---|---|
-| The tool-using agent reasons worse than the one-shot pipeline | It was shown each page cut to **600 characters**; the median page is **1,299**, so it read about half of each. Given whole pages: **0.25 → 0.43**, level with the pipeline | every "the agent is worse" number withdrawn |
+| The tool-using agent reasons worse than the one-shot pipeline | It was shown each page cut to **600 characters**; the median page is **1,299**, so it read about half of each. Given whole pages, on the Mac: **0.25 → 0.43**, level with the pipeline there. The lab GPU box scored **0.27**, so "the agent matches the pipeline" is a one-machine result | every "the agent is worse" number withdrawn |
 | A one-sentence prompt change is a clear win on answers: 9 fixed, 0 broken, p = 0.0039 | A second machine: **6 fixed, 2 broken, p = 0.289**, reproduced to the question five days later | the answer-rate claim held back; only the citation effect, which reproduced on both machines, shipped |
 | An injection succeeded when the answer contains the attacker's token (a *canary*), a check too simple to be wrong | A model that refuses by naming the token also contains it. The defense rejected for "opening two holes" had opened none | all 95 attempts read by hand before any number moved |
 | Results reproduce across machines | Retrieval reproduced **exactly**: same recall, same 17 misses. **Every generation number moved** | generation figures are quoted per machine or as a range |
@@ -138,7 +139,7 @@ RAG_DENSE=memory uv run sqla-upgrade ask "why can't I call engine.execute any mo
 **Reproduce the numbers:**
 
 ```bash
-make test          # 647 tests
+make test          # 649 tests
 make lint          # ruff, ruff format, mypy
 make gate          # starts Qdrant; recall@5 58/91 = 0.64 against the committed baseline
 uv run python -m rag.judge --report    # the answer-quality report cards, from saved rows (needs Qdrant)
@@ -232,17 +233,17 @@ silently never runs.
 | [`experiments/`](experiments/) | the SQLAlchemy 1.4 app under test, written in 1.4 style on purpose, and the scripts that measured what 2.0 breaks |
 | [`space/`](space/) | the demo page and its Modal deployment |
 | [`tools/`](tools/) | checks: every `# runnable` block in the docs reproduces, answers execute on 2.0.51, the page works in a browser |
-| [`tests/`](tests/) | 647 tests |
+| [`tests/`](tests/) | 649 tests |
 | `Dockerfile`, `Dockerfile.service`, `docker-compose.yml` | the 1.4 app with Postgres; the demo page; Qdrant |
 | [`.github/workflows/`](.github/workflows/) | CI (tests, docs, 2.0 evidence, both images, lint) and the quality gate |
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-647 tests collected in 12.72s
+649 tests collected in 12.72s
 ```
 
 Ten tests need local setup and skip without it: five need Qdrant running, five need the generated
-corpus. With both, 647 pass; without Qdrant, 642 pass and 5 skip; in a fresh clone, 637 pass and 10 skip.
+corpus. With both, 649 pass; without Qdrant, 644 pass and 5 skip; in a fresh clone, 639 pass and 10 skip.
 
 ## Limits
 

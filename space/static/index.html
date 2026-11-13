@@ -860,11 +860,13 @@ function coolDown(seconds) {
 }
 
 function renderAnswer(p) {
-  // The model's judgment, not a fact about the pages: on the 100-question test 19 of its 52
-  // declines had the right page in hand, and the "engine.execute gone"
-  // example is one of them. Wording is load-bearing; do not rewrite it.
+  // The model's judgment, not a fact about the pages: on the 100-question test 19 of the
+  // local model's 52 declines had the right page in hand, and the "engine.execute gone"
+  // example is one of them. The count is the local model's, and the note says so, because
+  // the hosted page is answered by a different one. Wording is load-bearing: it must never
+  // say the pages do not answer the question.
   const note = p.status === "declined"
-    ? `<p class="declined-note">The model judged that the five pages it was given don't answer this, and declined rather than guess. That judgment is sometimes wrong: on the project's 100-question test, 19 of its 52 declines had the right page in hand. The pages are listed with this answer; read them.</p>`
+    ? `<p class="declined-note">The model judged that the five pages it was given don't answer this, and declined rather than guess. That judgment is sometimes wrong: on the project's 100-question test, the local model declined 52 times, and 19 of those declines had the right page in hand. The pages are listed with this answer; read them.</p>`
     : "";
   clearInterval(ticker);
   let body = "";
