@@ -35,7 +35,6 @@ proves retrieval is failing.
 from __future__ import annotations
 
 import json
-import pathlib
 import sys
 
 from rag import corpus, score
@@ -59,10 +58,11 @@ def status() -> None:
     items = _load()["items"]
     verified = [i for i in items if i.get("verified_by") == "human"]
     unanswerable = [i for i in items if not i.get("answerable")]
-    print(f"golden set: {len(items)} items, {len(verified)} verified by a human, "
-          f"target 50")
-    print(f"  unanswerable: {len(unanswerable)}  (at least 3 wanted — they are the only way to "
-          f"measure whether the system declines when it should)")
+    print(f"golden set: {len(items)} items, {len(verified)} verified by a human, target 50")
+    print(
+        f"  unanswerable: {len(unanswerable)}  (at least 3 wanted — they are the only way to "
+        f"measure whether the system declines when it should)"
+    )
     by_prov: dict[str, int] = {}
     for i in items:
         by_prov[i.get("provenance", "?")] = by_prov.get(i.get("provenance", "?"), 0) + 1
@@ -86,7 +86,7 @@ def add(question: str, provenance: str, url: str | None, answerable: bool) -> No
     if provenance not in score.PROVENANCE:
         sys.exit(f"provenance must be one of {sorted(score.PROVENANCE)}")
     data = _load()
-    item = {
+    item: dict[str, object] = {
         "id": _next_id(data["items"]),
         "question": question,
         "provenance": provenance,
@@ -102,7 +102,7 @@ def add(question: str, provenance: str, url: str | None, answerable: bool) -> No
     _save(data)
     print(f"added {item['id']} as a DRAFT. Next:")
     print(f"  uv run python -m rag.golden --candidates {question!r}")
-    print(f"  then set answer_chunks, write answer_note, and set verified_by to \"human\".")
+    print('  then set answer_chunks, write answer_note, and set verified_by to "human".')
 
 
 def candidates(question: str, limit: int = 10) -> None:
@@ -158,8 +158,7 @@ def main() -> None:
     if "--status" in argv or not argv:
         status()
     elif "--add" in argv:
-        add(val("--add"), val("--provenance", "github"), val("--url"),
-            answerable="--unanswerable" not in argv)
+        add(val("--add"), val("--provenance", "github"), val("--url"), answerable="--unanswerable" not in argv)
     elif "--candidates" in argv:
         candidates(val("--candidates"), int(val("--limit", "10")))
     elif "--show" in argv:

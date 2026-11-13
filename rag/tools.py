@@ -45,8 +45,7 @@ import pathlib
 import re
 import subprocess
 
-_VERIFY = (pathlib.Path(__file__).resolve().parent.parent / "experiments"
-           / "sqlalchemy_1_4_vs_2_0" / "verify_2_0.py")
+_VERIFY = pathlib.Path(__file__).resolve().parent.parent / "experiments" / "sqlalchemy_1_4_vs_2_0" / "verify_2_0.py"
 
 
 def _pin() -> str:
@@ -66,7 +65,7 @@ def _pin() -> str:
     drift already found once when one metric had two implementations.
     """
     found = re.search(r'^PIN = "([^"]+)"', _VERIFY.read_text(), re.M)
-    if not found:                              # a rename must fail loudly
+    if not found:  # a rename must fail loudly
         raise RuntimeError(f"no PIN declared in {_VERIFY}")
     return found.group(1)
 
@@ -82,6 +81,28 @@ PACKAGES = {
     "alembic": "alembic",
 }
 
+# Where a bare name is looked for, in order. `Session`, `Query`, `Mapped` and
+# `joinedload` are in `sqlalchemy.orm`, not at the top level, so a probe that
+# only tried the package root answered "does not exist" for `Session.get` -- the
+# very example the tool's description gives the model. Found 2026-11-11 by
+# calling the tool for real; every test until then had stubbed the subprocess.
+# **The agent results in deliverables/ were measured before this fix.** In those
+# saved runs three existing APIs came back NOT FOUND (`Query.yield_per`,
+# `orm.joinedload`, `Mapped`).
+NAMESPACES = {
+    "sqlalchemy": [
+        "sqlalchemy",
+        "sqlalchemy.orm",
+        "sqlalchemy.ext.asyncio",
+        "sqlalchemy.engine",
+        "sqlalchemy.sql",
+        "sqlalchemy.schema",
+        "sqlalchemy.exc",
+        "sqlalchemy.ext.declarative",
+    ],
+    "alembic": ["alembic", "alembic.op", "alembic.operations"],
+}
+
 TIMEOUT = 120
 
 # Runs in the pinned interpreter, not this one. Kept as a string rather than a
@@ -93,35 +114,63 @@ import importlib, inspect, json, sys
 req = json.loads(sys.argv[1])
 symbol, want_source = req["symbol"], req["source"]
 
+package = req["package"]
 parts = symbol.split(".")
-obj, resolved, err = None, [], None
-# Walk the longest importable prefix, then getattr the rest. "Query.from_self"
-# and "sqlalchemy.orm.Query.from_self" must behave the same, so a bare leading
-# name is retried under the package root.
-for start in range(len(parts), 0, -1):
+MISS = object()
+
+
+def walk(obj, names):
+    for name in names:
+        obj = getattr(obj, name, MISS)
+        if obj is MISS:
+            return MISS
+    return obj
+
+
+def candidates():
+    """(module, remaining names, where it was found), most specific first.
+
+    "Session.get", "orm.Session.get" and "sqlalchemy.orm.Session.get" must all
+    reach the same object, so three spellings are tried:
+      1. a fully qualified name: the longest importable prefix INSIDE the package.
+         Only inside it: `json.dumps` imports fine and is not a SQLAlchemy API.
+      2. a name that starts at a submodule: "orm.joinedload" -> sqlalchemy.orm
+      3. a bare name: looked up in each public namespace of the package in turn,
+         because `Session` lives in sqlalchemy.orm, not in sqlalchemy.
+    """
+    if parts[0] == package:
+        for start in range(len(parts), 0, -1):
+            try:
+                yield importlib.import_module(".".join(parts[:start])), parts[start:], ".".join(parts[:start])
+                break
+            except ImportError:
+                continue
+        return
     try:
-        obj = importlib.import_module(".".join(parts[:start]))
-        resolved = parts[start:]
-        break
+        yield importlib.import_module(package + "." + parts[0]), parts[1:], package + "." + parts[0]
     except ImportError:
-        continue
-if obj is None:
-    try:
-        obj = importlib.import_module(req["package"])
-        resolved = parts
-    except ImportError as exc:
-        print(json.dumps({"exists": False, "error": f"no module: {exc}"}))
-        raise SystemExit
+        pass
+    for namespace in req["namespaces"]:
+        try:
+            yield importlib.import_module(namespace), parts, namespace
+        except ImportError:
+            continue
 
-for name in resolved:
-    obj = getattr(obj, name, None)
-    if obj is None:
-        # A miss is a RESULT, not an error. `check_api("Query.from_self")`
-        # answering "no" is the tool working.
-        print(json.dumps({"exists": False, "error": None}))
-        raise SystemExit
 
-out = {"exists": True, "error": None, "kind": type(obj).__name__}
+obj, where = MISS, None
+for module, names, found_in in candidates():
+    obj = walk(module, names)
+    if obj is not MISS:
+        where = ".".join([found_in] + names)
+        break
+
+if obj is MISS:
+    # A miss is a RESULT, not an error. `check_api("Query.from_self")`
+    # answering "no" is the tool working.
+    print(json.dumps({"exists": False, "error": None}))
+    raise SystemExit
+
+out = {"exists": True, "error": None, "kind": type(obj).__name__, "resolved": where}
 try:
     out["signature"] = symbol.split(".")[-1] + str(inspect.signature(obj))
 except (TypeError, ValueError):
@@ -146,15 +195,10 @@ def _run(symbol: str, package: str, source: bool, runner=None) -> dict:
     `faithful.generate` takes its transport.
     """
     if package not in PACKAGES:
-        return {"exists": False,
-                "error": f"unknown package {package!r}; known: "
-                         f"{', '.join(sorted(PACKAGES))}"}
-    argument = json.dumps({"symbol": symbol, "source": source,
-                           "package": package})
-    command = ["uv", "run", "--no-project", "--with", PACKAGES[package],
-               "python", "-c", _PROBE, argument]
-    runner = runner or (lambda cmd: subprocess.run(
-        cmd, capture_output=True, text=True, timeout=TIMEOUT))
+        return {"exists": False, "error": f"unknown package {package!r}; known: {', '.join(sorted(PACKAGES))}"}
+    argument = json.dumps({"symbol": symbol, "source": source, "package": package, "namespaces": NAMESPACES[package]})
+    command = ["uv", "run", "--no-project", "--with", PACKAGES[package], "python", "-c", _PROBE, argument]
+    runner = runner or (lambda cmd: subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT))
     try:
         done = runner(command)
     except subprocess.TimeoutExpired:
@@ -162,10 +206,12 @@ def _run(symbol: str, package: str, source: bool, runner=None) -> dict:
         # call costs one question, never the run.
         return {"exists": False, "error": f"timed out after {TIMEOUT}s"}
     if done.returncode != 0:
-        return {"exists": False,
-                "error": (done.stderr or "").strip().splitlines()[-1:] and
-                         (done.stderr or "").strip().splitlines()[-1] or
-                         "probe failed"}
+        return {
+            "exists": False,
+            "error": (done.stderr or "").strip().splitlines()[-1:]
+            and (done.stderr or "").strip().splitlines()[-1]
+            or "probe failed",
+        }
     try:
         return json.loads(done.stdout.strip().splitlines()[-1])
     except (json.JSONDecodeError, IndexError):
@@ -183,8 +229,7 @@ def check_api(symbol: str, package: str = "sqlalchemy", runner=None) -> dict:
     return _run(symbol, package, source=False, runner=runner)
 
 
-def get_function_source(symbol: str, package: str = "sqlalchemy",
-                        runner=None) -> dict:
+def get_function_source(symbol: str, package: str = "sqlalchemy", runner=None) -> dict:
     """The real source of a callable in the pinned version.
 
     Separate from `check_api` rather than a flag on it, because the answers
@@ -203,13 +248,14 @@ def search_docs(query: str, k: int = 5, retrieve=None) -> list[dict]:
     quietly stop describing what the agent actually sees -- the same defect
     found once when one metric had two implementations.
     """
-    if retrieve is None:                      # imported late: needs Qdrant up
+    if retrieve is None:  # imported late: needs Qdrant up
         from rag import index
+
         retrieve = index.retrieve
-    return [{"chunk_id": hit.payload.get("chunk_id", "?"),
-             "source": hit.payload.get("source"),
-             "text": hit.payload["text"]}
-            for hit in retrieve(query, limit=k)]
+    return [
+        {"chunk_id": hit.payload.get("chunk_id", "?"), "source": hit.payload.get("source"), "text": hit.payload["text"]}
+        for hit in retrieve(query, limit=k)
+    ]
 
 
 # The two calls that make `g065` a measurement rather than an anecdote. Prompt
@@ -217,33 +263,31 @@ def search_docs(query: str, k: int = 5, retrieve=None) -> list[dict]:
 # `op.create_table` is real and `op.create_view` does not exist -- two invented
 # calls sitting next to two working ones. A count of fabrications
 # cannot see that; this can, and an agent can call it before it writes.
-G065 = [("alembic.operations.Operations.create_table", "alembic", True),
-        ("alembic.operations.Operations.create_view", "alembic", False)]
+G065 = [
+    ("alembic.operations.Operations.create_table", "alembic", True),
+    ("alembic.operations.Operations.create_view", "alembic", False),
+]
 
 
 def main() -> None:
     import sys
+
     argv = sys.argv[1:]
-    package = argv[argv.index("--package") + 1] if "--package" in argv \
-        else "sqlalchemy"
+    package = argv[argv.index("--package") + 1] if "--package" in argv else "sqlalchemy"
 
     if "--g065" in argv:
-        print(f"g065 — the fabricated Alembic script, checked against real "
-              f"alembic")
+        print("g065 — the fabricated Alembic script, checked against real alembic")
         ok = True
         for symbol, pkg, expected in G065:
             got = check_api(symbol, package=pkg)
             mark = "OK " if got["exists"] == expected else "!! "
             ok &= got["exists"] == expected
-            print(f"  {mark}{symbol:<48} exists={str(got['exists']):<5} "
-                  f"(expected {expected})")
-        print("  Two invented calls beside two working ones — and the tool "
-              "separates them.")
+            print(f"  {mark}{symbol:<48} exists={str(got['exists']):<5} (expected {expected})")
+        print("  Two invented calls beside two working ones — and the tool separates them.")
         raise SystemExit(0 if ok else 1)
 
     if "--source" in argv:
-        got = get_function_source(argv[argv.index("--source") + 1],
-                                  package=package)
+        got = get_function_source(argv[argv.index("--source") + 1], package=package)
         print(got.get("source") or f"no source: {got.get('error')}")
         return
 
@@ -259,9 +303,11 @@ def main() -> None:
             print(f"  error      {got['error']}")
         return
 
-    print("usage: python -m rag.tools --check SYMBOL [--package alembic]\n"
-          "                           --source SYMBOL\n"
-          "                           --g065")
+    print(
+        "usage: python -m rag.tools --check SYMBOL [--package alembic]\n"
+        "                           --source SYMBOL\n"
+        "                           --g065"
+    )
 
 
 if __name__ == "__main__":

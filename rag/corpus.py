@@ -85,6 +85,7 @@ MIGRATION_GUIDE = "changelog/migration_20.rst"
 # here, so the corpus cannot document a release the rest of the repo isn't on.
 # ---------------------------------------------------------------------------
 
+
 def pin_1_4() -> str:
     """The 1.4 version, from pyproject's own dependency pin."""
     data = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
@@ -120,6 +121,7 @@ def tag_for(version: str) -> str:
 # Selection
 # ---------------------------------------------------------------------------
 
+
 def is_selected(rel_path: str, *, take_migration_guide: bool) -> bool:
     """
     `rel_path` is relative to doc/build/ — e.g. "orm/queryguide/select.rst".
@@ -140,6 +142,7 @@ def is_selected(rel_path: str, *, take_migration_guide: bool) -> bool:
 # ---------------------------------------------------------------------------
 # Fetch
 # ---------------------------------------------------------------------------
+
 
 def download(url: str) -> bytes:
     with urllib.request.urlopen(url) as response:
@@ -168,12 +171,12 @@ def extract(blob: bytes, version: str, *, take_migration_guide: bool) -> list[di
         for member in archive:
             if not member.isfile() or not member.name.startswith(prefix):
                 continue
-            rel_path = member.name[len(prefix):]
+            rel_path = member.name[len(prefix) :]
             if not is_selected(rel_path, take_migration_guide=take_migration_guide):
                 continue
 
             handle = archive.extractfile(member)
-            if handle is None:                      # pragma: no cover - defensive
+            if handle is None:  # pragma: no cover - defensive
                 continue
             content = handle.read()
 
@@ -181,13 +184,15 @@ def extract(blob: bytes, version: str, *, take_migration_guide: bool) -> list[di
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(content)
 
-            entries.append({
-                "path": str(dest.relative_to(REPO_ROOT)),
-                "sqlalchemy_version": version,
-                "source_path": f"{DOC_ROOT}/{rel_path}",
-                "bytes": len(content),
-                "sha256": sha256(content),
-            })
+            entries.append(
+                {
+                    "path": str(dest.relative_to(REPO_ROOT)),
+                    "sqlalchemy_version": version,
+                    "source_path": f"{DOC_ROOT}/{rel_path}",
+                    "bytes": len(content),
+                    "sha256": sha256(content),
+                }
+            )
 
     entries.sort(key=lambda e: e["path"])
     return entries
@@ -204,16 +209,18 @@ def build_manifest() -> dict:
         blob = download(url)
         entries = extract(blob, version, take_migration_guide=series == "2.0")
 
-        sources.append({
-            "series": series,
-            "sqlalchemy_version": version,
-            "tag": tag,
-            "url": url,
-            "tarball_bytes": len(blob),
-            "tarball_sha256": sha256(blob),
-            "file_count": len(entries),
-            "bytes": sum(e["bytes"] for e in entries),
-        })
+        sources.append(
+            {
+                "series": series,
+                "sqlalchemy_version": version,
+                "tag": tag,
+                "url": url,
+                "tarball_bytes": len(blob),
+                "tarball_sha256": sha256(blob),
+                "file_count": len(entries),
+                "bytes": sum(e["bytes"] for e in entries),
+            }
+        )
         files.extend(entries)
 
     return {
@@ -226,10 +233,7 @@ def build_manifest() -> dict:
             "migration_guide": {
                 "path": MIGRATION_GUIDE,
                 "versions": ["2.0"],
-                "note": (
-                    "named individually; the rest of changelog/ is excluded, so this "
-                    "is not an inconsistency"
-                ),
+                "note": ("named individually; the rest of changelog/ is excluded, so this is not an inconsistency"),
             },
             "excluded": {
                 "changelog/ (except migration_20.rst)": "~60% of bytes, per-release bug entries and 1.0-1.4 migration guides",
@@ -247,6 +251,7 @@ def build_manifest() -> dict:
 # ---------------------------------------------------------------------------
 # Verify and report
 # ---------------------------------------------------------------------------
+
 
 def check(manifest: dict) -> list[str]:
     """Every manifest entry, re-hashed off disk. Returns the problems found."""
@@ -267,10 +272,7 @@ def report(manifest: dict) -> None:
     """
     print(f"corpus manifest: {MANIFEST_PATH.relative_to(REPO_ROOT)}")
     for source in manifest["sources"]:
-        print(
-            f"  {source['tag']:<11} {source['file_count']:>4} files  "
-            f"{source['bytes']:>8} bytes   {source['url']}"
-        )
+        print(f"  {source['tag']:<11} {source['file_count']:>4} files  {source['bytes']:>8} bytes   {source['url']}")
 
     files = manifest["files"]
     print(f"  {'TOTAL':<11} {len(files):>4} files  {sum(f['bytes'] for f in files):>8} bytes")
@@ -279,7 +281,7 @@ def report(manifest: dict) -> None:
     # selection rules — if the two disagree, the selection rules are wrong.
     groups: dict[str, dict[str, int]] = {}
     for entry in files:
-        rel = entry["source_path"][len(DOC_ROOT) + 1:]
+        rel = entry["source_path"][len(DOC_ROOT) + 1 :]
         group = rel.split("/")[0] if "/" in rel else "(root)"
         bucket = groups.setdefault(group, {"files": 0, "bytes": 0})
         bucket["files"] += 1

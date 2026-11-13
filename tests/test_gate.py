@@ -1,4 +1,5 @@
 """Phase 6 — the CI quality gate. Pure logic: no Qdrant, no model."""
+
 import json
 
 import pytest
@@ -7,12 +8,11 @@ from rag import gate
 
 
 def row(i, rank, answerable=True, hits=None):
-    return {"id": i, "rank": rank, "answerable": answerable,
-            "hits": hits or [f"{i}-c{n}" for n in range(20)]}
+    return {"id": i, "rank": rank, "answerable": answerable, "hits": hits or [f"{i}-c{n}" for n in range(20)]}
 
 
 def test_one_broken_item_blocks_even_when_the_change_is_a_net_gain():
-    """Round 14's rule and the reason: five fixes do not buy one lost answer
+    """The gate's rule and the reason: five fixes do not buy one lost answer
     without a human saying so."""
     base = [row("g1", 3)] + [row(f"f{n}", None) for n in range(5)]
     now = [row("g1", 9)] + [row(f"f{n}", 1) for n in range(5)]
@@ -71,8 +71,9 @@ def test_main_exits_nonzero_and_writes_the_job_summary(tmp_path, monkeypatch, ca
     (tmp_path / "pr.json").write_text(json.dumps({"rows": [row("g", 7)]}))
     summary = tmp_path / "summary.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
-    monkeypatch.setattr("sys.argv", ["gate", "--baseline", str(tmp_path / "base.json"),
-                                     "--rows", str(tmp_path / "pr.json")])
+    monkeypatch.setattr(
+        "sys.argv", ["gate", "--baseline", str(tmp_path / "base.json"), "--rows", str(tmp_path / "pr.json")]
+    )
     with pytest.raises(SystemExit) as exit_:
         gate.main()
     assert exit_.value.code == 1
@@ -82,8 +83,9 @@ def test_main_exits_nonzero_and_writes_the_job_summary(tmp_path, monkeypatch, ca
 
 def test_main_exits_zero_when_nothing_is_lost(tmp_path, monkeypatch):
     (tmp_path / "b.json").write_text(json.dumps({"rows": [row("g", 1)]}))
-    monkeypatch.setattr("sys.argv", ["gate", "--baseline", str(tmp_path / "b.json"),
-                                     "--rows", str(tmp_path / "b.json")])
+    monkeypatch.setattr(
+        "sys.argv", ["gate", "--baseline", str(tmp_path / "b.json"), "--rows", str(tmp_path / "b.json")]
+    )
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
     with pytest.raises(SystemExit) as exit_:
         gate.main()

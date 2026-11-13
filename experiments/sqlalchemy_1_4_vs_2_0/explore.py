@@ -108,7 +108,7 @@ issue2, issue3, issue7, issue9 = issues[1], issues[2], issues[6], issues[8]
 # keeps. The many-to-one side used further down (c2.issue = issue1,
 # a1.user = alice, and issue1.project = apollo on line 88) relies on the
 # backref leg, which 2.0 drops SILENTLY: those objects would never be
-# inserted and nothing would be raised. Measured in migration.py §8.
+# inserted and nothing would be raised. Measured in migration.py section 8.
 print("issue1 in session?", issue1 in session)
 print("issue9 in session?", issue9 in session)
 print("objects staged for INSERT:", len(session.new))

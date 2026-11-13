@@ -17,7 +17,7 @@ WHY A FILE RATHER THAN WRITING STRAIGHT INTO QDRANT
 Embed in one run, on one machine, to a portable file. Embedding is the expensive step; loading is not. A
 file decouples them, which buys three things:
 
-  - **Portability.** The lab PC and this Mac cannot route to each other. A file
+  - **Portability.** The two machines this ran on cannot route to each other. A file
     can be copied by hand; a running Qdrant on the wrong machine cannot.
   - **Resumability.** A failure halfway through costs the remaining chunks, not
     the whole run.
@@ -40,19 +40,18 @@ instead of assumed compatible.
 WHAT IS DELIBERATELY NOT DONE
 
 BGE-M3 can emit dense, sparse and ColBERT representations. This uses
-**sentence-transformers, which gives dense only** — and that is the point. Phase
-1 is meaning-search only; sparse vectors are half of hybrid search, which
-is a Phase 3 fix for a problem Step 5 has not yet demonstrated. Choosing the
-library that cannot do it is cheaper than choosing the one that can and
-remembering not to.
+**sentence-transformers, which gives dense only**. Keyword search was added
+later as its own BM25 channel (`bm25.py`, fused in `hybrid.py`) once the probe
+showed dense search missing exact identifiers, rather than as BGE-M3's sparse
+vectors.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
+from typing import Any
 
 from rag import corpus
 
@@ -161,10 +160,8 @@ def peak_memory(device: str) -> dict:
 
         rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # macOS reports bytes, Linux reports kibibytes.
-        out["process_peak_rss_mib"] = round(
-            (rss / 2**20 if sys.platform == "darwin" else rss / 1024), 1
-        )
-    except Exception:                                    # pragma: no cover
+        out["process_peak_rss_mib"] = round((rss / 2**20 if sys.platform == "darwin" else rss / 1024), 1)
+    except Exception:  # pragma: no cover
         pass
     return out
 
@@ -210,8 +207,7 @@ def main() -> None:
     tokenizer = model.tokenizer
     lengths = [len(tokenizer.encode(t, add_special_tokens=True)) for t in texts]
     truncated = sum(1 for n in lengths if n > MAX_SEQ_LENGTH)
-    print(f"tokens   max={max(lengths)}  mean={sum(lengths) // len(lengths)}  "
-          f"truncated={truncated}")
+    print(f"tokens   max={max(lengths)}  mean={sum(lengths) // len(lengths)}  truncated={truncated}")
 
     started = time.perf_counter()
     vectors = model.encode(
@@ -227,7 +223,7 @@ def main() -> None:
     np.save(VECTORS_PATH, vectors)
     IDS_PATH.write_text(json.dumps([c["id"] for c in chunks]) + "\n")
 
-    stats = {
+    stats: dict[str, Any] = {
         "generated_by": "rag/embed.py",
         "model": MODEL_ID,
         "revision": MODEL_REVISION or resolved,
@@ -237,8 +233,7 @@ def main() -> None:
         "max_seq_length": MAX_SEQ_LENGTH,
         "dim": int(vectors.shape[1]),
         "n_vectors": int(vectors.shape[0]),
-        "tokens": {"max": max(lengths), "mean": sum(lengths) // len(lengths),
-                   "truncated": truncated},
+        "tokens": {"max": max(lengths), "mean": sum(lengths) // len(lengths), "truncated": truncated},
         "run": {
             "device": device,
             "batch_size": batch_size,
@@ -256,8 +251,9 @@ def main() -> None:
     else:
         print("\n--limit run: EMBED_STATS.json left alone", file=sys.stderr)
 
-    print(f"\nvectors  {vectors.shape[0]} x {vectors.shape[1]}  float32  "
-          f"-> {VECTORS_PATH.relative_to(corpus.REPO_ROOT)}")
+    print(
+        f"\nvectors  {vectors.shape[0]} x {vectors.shape[1]}  float32  -> {VECTORS_PATH.relative_to(corpus.REPO_ROOT)}"
+    )
     print(f"encode   {seconds:.1f}s   {len(chunks) / seconds:.1f} chunks/s")
     for key, value in stats["run"]["peak_memory"].items():
         print(f"memory   {key} = {value}")

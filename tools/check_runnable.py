@@ -9,7 +9,7 @@ The rule: *if a doc shows output, a `# runnable` command must reproduce it
 verbatim.* Until this script existed **that rule was enforced by remembering to
 check**, which is not enforcement.
 
-It was already broken. A planning doc quoted `p90=1738` from a run taken before
+It was already broken. A doc quoted `p90=1738` from a run taken before
 `LEAD_IN_MAX` was added; the real value is 1740. One stale digit, inside the
 block whose entire purpose is being verbatim, sitting there through four
 commits.
@@ -20,7 +20,7 @@ Not every block is machine-checkable, and pretending otherwise would produce a
 green run that means nothing. Each block is classified:
 
     RUN        a plain command against this repo — executed and compared
-    ENV        needs something not present here: the lab PC, a GPU, sudo,
+    ENV        needs something not present here: another machine, a GPU, sudo,
                a container that is not running, network to a third party
     MUTATION   "change X, then run Y" — describes output AFTER an edit that
                is deliberately not in the repo
@@ -30,6 +30,16 @@ green run that means nothing. Each block is classified:
 
 Only `RUN` blocks are pass/fail. **The rest are reported and counted**, so the
 number of unverifiable blocks is itself visible rather than quietly growing.
+
+THE THREE BLOCK LABELS A READER SEES
+
+    # runnable      paste the named command and you get exactly this text.
+                    Folding, wrapping and annotations are the script's job,
+                    never a hand edit in the markdown. This tool checks them.
+    # summary of    real output from the named command, abridged by hand
+                    because the raw form is unreadable: the numbers were
+                    measured, the layout is not a paste
+    # illustration  a fragment or a sketch, not something to run
 
 KNOWN COVERAGE GAP
 
@@ -76,16 +86,16 @@ ENV_MARKERS = {
     "/var/lib/docker": "the Docker VM's filesystem, not the host's",
     "docker compose up": "starts containers; slow and stateful",
     "docker compose -f": "starts containers with an override file",
-    "nvidia-smi": "lab PC only",
+    "nvidia-smi": "needs the GPU machine",
     "ollama": "needs the model server and is nondeterministic",
-    "systemctl": "lab PC only",
+    "systemctl": "needs a Linux host",
     "sudo": "needs a password",
-    "tailscale": "lab PC only",
-    "ssh": "no route to the lab PC",
-    "nc -z": "no route to the lab PC",
-    "ip -4": "lab PC only",
-    "lsb_release": "lab PC only",
-    "free -h": "lab PC only",
+    "tailscale": "needs a private network",
+    "ssh": "needs a remote machine",
+    "nc -z": "needs a remote machine",
+    "ip -4": "machine-specific",
+    "lsb_release": "needs a Linux host",
+    "free -h": "needs a Linux host",
     "uname -a": "machine-specific",
     "sysctl": "machine-specific",
     "gh ": "hits the GitHub API",
@@ -104,8 +114,7 @@ ENV_MARKERS = {
     "rag.judge": "~100 Ollama generations against a gitignored corpus; ~30 min and nondeterministic",
     "rag.faithful": "needs a judge model (a key, or Ollama) plus Qdrant and the gitignored corpus; ~110 calls",
     "rag.toolcall": "needs the Ollama model server; 20-120 generations",
-    "rag.tools": "resolves and downloads a pinned wheel into a throwaway "
-                 "interpreter; CI has no guaranteed network",
+    "rag.tools": "resolves and downloads a pinned wheel into a throwaway interpreter; CI has no guaranteed network",
     "psql": "needs a running database",
 }
 
@@ -132,8 +141,7 @@ TIMING_SUFFIX = re.compile(r" \(\d+:\d{2}:\d{2}\)$", re.M)
 
 
 class Block:
-    def __init__(self, path: pathlib.Path, line_no: int, command: str, expected: str,
-                 note: str = ""):
+    def __init__(self, path: pathlib.Path, line_no: int, command: str, expected: str, note: str = ""):
         self.path = path
         self.line_no = line_no
         self.command = command
@@ -162,7 +170,9 @@ class Block:
             if marker in c:
                 return "ENV", why
         # A "command" with no shell-ish token is an English description.
-        if not re.search(r"(^|\s)(uv|python|grep|find|for|cat|wc|ls|awk|sed|printf|curl|test|git|docker|tar|head|tail|diff)\b", c):
+        if not re.search(
+            r"(^|\s)(uv|python|grep|find|for|cat|wc|ls|awk|sed|printf|curl|test|git|docker|tar|head|tail|diff)\b", c
+        ):
             return "PROSE", "an English description rather than a command"
         return "RUN", ""
 
@@ -208,7 +218,7 @@ def parse(path: pathlib.Path) -> list[Block]:
                     # `(DATABASE_URL comes from .env)` are both this shape.
                     annotation = re.search(r"\s{2,}\(([^)]*)\)\s*$", command.split("\n")[0])
                     if annotation:
-                        first = command.split("\n")[0][:annotation.start()].rstrip()
+                        first = command.split("\n")[0][: annotation.start()].rstrip()
                         rest = command.split("\n")[1:]
                         command = "\n".join([first] + rest)
                         note = annotation.group(1)
@@ -253,10 +263,14 @@ def execute(block: Block) -> bool:
     Substring is still a real check: it catches any drift inside the section.
     """
     result = subprocess.run(
-        block.command, shell=True, cwd=REPO_ROOT,
-        capture_output=True, text=True, timeout=300,
+        block.command,
+        shell=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=300,
     )
-    block.actual = (result.stdout + result.stderr)
+    block.actual = result.stdout + result.stderr
     actual, expected = normalise(block.actual), normalise(block.expected)
     if "§" in block.note:
         block.mode = "section"
@@ -268,10 +282,13 @@ def main() -> None:
     argv = sys.argv[1:]
     only_file = argv[argv.index("--file") + 1] if "--file" in argv else None
 
+    # Tracked files only: an untracked note in a working copy is not part of what
+    # the repo claims, and scanning it would make a local run disagree with CI.
+    tracked = subprocess.run(
+        ["git", "ls-files", "*.md"], cwd=REPO_ROOT, capture_output=True, text=True, check=True
+    ).stdout.splitlines()
     paths = sorted(
-        p for p in REPO_ROOT.rglob("*.md")
-        if not any(part in p.parts for part in (".git", "node_modules", ".venv"))
-        and (only_file is None or str(p.relative_to(REPO_ROOT)) == only_file)
+        REPO_ROOT / name for name in tracked if (REPO_ROOT / name).exists() and (only_file is None or name == only_file)
     )
     blocks = [b for p in paths for b in parse(p)]
 

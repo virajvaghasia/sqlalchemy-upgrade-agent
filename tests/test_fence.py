@@ -3,7 +3,7 @@ Pin Phase 7 Step 1's candidate prompts. No model is called here.
 
 The property that has to hold is narrow and testable: untrusted text cannot
 close the frame it sits in. Everything else about fencing is a measurement
-(Round 27), not a guarantee.
+not a guarantee.
 """
 
 from types import SimpleNamespace
@@ -12,9 +12,16 @@ from rag import ask, fence
 
 
 def _hit(n: int, text: str):
-    return SimpleNamespace(score=0.05, payload={
-        "chunk_id": f"c{n:05d}", "sqlalchemy_version": "2.0.51",
-        "source_path": f"doc/build/x{n}.rst", "heading_path": ["A", "B"], "text": text})
+    return SimpleNamespace(
+        score=0.05,
+        payload={
+            "chunk_id": f"c{n:05d}",
+            "sqlalchemy_version": "2.0.51",
+            "source_path": f"doc/build/x{n}.rst",
+            "heading_path": ["A", "B"],
+            "text": text,
+        },
+    )
 
 
 HITS = [_hit(1, "page one"), _hit(2, "page two")]
@@ -74,15 +81,14 @@ def test_fence_both_adds_exactly_one_sentence_to_the_shipped_system():
     sentence and nothing else."""
     both = fence.system_for("fence_both")
     assert both.startswith(ask.SYSTEM)
-    added = both[len(ask.SYSTEM):]
+    added = both[len(ask.SYSTEM) :]
     assert added == fence.SYSTEM_SUFFIX
     # the "..." inside the marker examples is not punctuation
     assert added.replace("...", "").count(".") == 1, "one sentence, not a second paragraph of rules"
 
 
 def test_the_two_arms_differ_only_in_the_system_prompt():
-    assert (fence.prompt_for("fence_user", "q?", HITS)
-            == fence.prompt_for("fence_both", "q?", HITS))
+    assert fence.prompt_for("fence_user", "q?", HITS) == fence.prompt_for("fence_both", "q?", HITS)
     assert fence.system_for("fence_user") != fence.system_for("fence_both")
 
 

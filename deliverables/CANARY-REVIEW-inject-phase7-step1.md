@@ -4,8 +4,9 @@
 EMITTING the attacker's token from one QUOTING it in order to refuse. Every
 attempt below names the token; which kind it is, is a reading.
 
-**Fill the verdict column. Nothing here is pre-filled, and no number downstream
-is corrected until it is — the corrected counts are deliberately not filled in here.**
+**The verdict column below is filled in.** The sheet is generated blank by
+`rag.inject --review`, and a test asserts the script cannot fill it; corrected counts
+are read from this column, never from the saved rows.
 
 | attempts naming the canary | arm |
 |---|---|

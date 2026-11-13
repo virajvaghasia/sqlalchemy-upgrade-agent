@@ -6,6 +6,10 @@
 <meta name="color-scheme" content="light dark">
 <title>SQLAlchemy 1.4 to 2.0 upgrade answers</title>
 <meta name="description" content="Ask what broke between SQLAlchemy 1.4 and 2.0. Every answer cites the documentation page it came from, or says there isn't one.">
+<meta property="og:title" content="SQLAlchemy 1.4 to 2.0 upgrade answers">
+<meta property="og:description" content="Every answer cites the documentation page it came from, or says there isn't one.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2318202f'/%3E%3Cpath d='M8 16h13m-5-6 6 6-6 6' fill='none' stroke='%23fb8a4b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <!-- Geist and Geist Mono from Google's CDN, not the container, so they add nothing to the cold
      start; `display=swap` renders text in the system face first. marked + DOMPurify render and
      sanitize the model's markdown; highlight.js colours the code panels. -->
@@ -229,6 +233,8 @@
      were pushed ~150px down to meet the first cited paragraph and left a hole under "Sources". */
   #results { padding: 36px 0 0; row-gap: 0; }
   .answer-head { grid-column: 1 / -1; }
+  /* The bar above is fixed: without this the question's title lands underneath it. */
+  #results { scroll-margin-top: 76px; }
   #results[hidden] { display: none !important; }
   .panel { min-width: 0; }
   .example-label { margin: 0 0 10px; font: 400 12.5px var(--mono); color: var(--text-3); display: flex; gap: 10px; flex-wrap: wrap; }
@@ -239,7 +245,34 @@
   .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
   .pill.answered { color: var(--ok); }
   .pill.answered::before { background: var(--ok); }
-  .meta { font: 12.5px var(--mono); color: var(--text-3); }
+  .meta { font: 12.5px var(--mono); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  /* A failure names its kind. The dot takes the accent; the words stay calm. */
+  .pill.error { color: var(--text); }
+  .pill.error::before { background: var(--accent); }
+  .pill.working::before { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  /* Where the time went: finding the pages against writing the answer, to scale. */
+  .timing { flex: 0 0 100%; margin-top: 10px; }
+  .t-bar { display: flex; gap: 2px; height: 4px; max-width: 460px; }
+  .t-seg { min-width: 4px; border-radius: 2px; background: var(--border-2); }
+  .t-seg.write { background: var(--text-3); }
+  .t-labs { display: flex; flex-wrap: wrap; gap: 2px 18px; margin-top: 7px; font: 12.5px var(--mono); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .t-labs i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 6px; background: var(--border-2); }
+  .t-labs .write i { background: var(--text-3); }
+  .t-labs b { font-weight: 500; color: var(--text-2); }
+  .fail { margin: 0; font-size: 16px; line-height: 1.6; color: var(--text); max-width: 62ch; }
+  .fail-next { margin: 10px 0 0; color: var(--text-2); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .retry { margin-top: 16px; border: 1px solid var(--border-2); background: var(--surface); color: var(--text); border-radius: 7px;
+    font: 500 14px/1 var(--sans); padding: .6rem 1rem; cursor: pointer; transition: background .15s, border-color .15s; }
+  .retry:hover { background: var(--surface-2); border-color: var(--text-3); }
+  .retry:active { transform: translateY(1px); }
+  /* A question the page will not look up is a problem with the box, so it is reported in the box. */
+  .form-msg { margin: 10px -12px -10px -14px; padding: 10px 14px; border-top: 1px solid var(--border); border-radius: 0 0 9px 9px;
+    background: var(--accent-bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  .form-msg[hidden] { display: none; }
+  .skip { position: absolute; left: 12px; top: -48px; z-index: 50; background: var(--text); color: var(--bg); padding: 8px 12px; border-radius: 6px;
+    font: 500 14px var(--sans); text-decoration: none; }
+  .skip:focus { top: 10px; }
   .quoted { margin: 0; color: var(--text-2); font-size: 16px; }
   /* Declining is honest behaviour, shown as information: no red, no warning icon. */
   .declined-note { margin: 0 0 18px; padding: 2px 0 2px 16px; border-left: 2px solid var(--border-2); color: var(--text-2); font-size: 15px; line-height: 1.6; }
@@ -416,6 +449,7 @@
 </style>
 </head>
 <body>
+<a class="skip" href="#q">Skip to the question box</a>
 
 <header class="topbar">
   <div class="topbar-inner">
@@ -471,6 +505,7 @@
             <button class="send" id="ask" type="submit"><span class="spin" aria-hidden="true"></span><span class="label">Ask</span></button>
           </span>
         </div>
+        <p class="form-msg" id="form-msg" role="alert" hidden></p>
       </form>
 
       <div class="try"><span class="try-label">Or try an example</span>
@@ -496,7 +531,8 @@
 
   <section id="results" class="cols" hidden>
     <header class="answer-head" id="answer-head"></header>
-    <article class="panel" id="answer" aria-live="polite"></article>
+    <article class="panel" id="answer"></article>
+    <p class="sr-only" id="live" role="status"></p>
     <aside class="sources">
       <div class="sources-head"><h2>Sources</h2><span class="n" id="src-count"></span></div>
       <div id="sources"></div>
@@ -590,6 +626,19 @@ const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const SCROLL = { behavior: REDUCED ? "auto" : "smooth", block: "start" };
 
 let session = "", busy = false, maxChars = 500;
+// Seconds left before the server will take another question (from its Retry-After), and the
+// last thing drawn, so a rejected question can put it back instead of wiping it.
+let cooling = 0, last = null, ticker = 0;
+
+// What each failure is called. The server's `code` says which; anything unnamed keeps the
+// server's own label.
+const FAILURES = { rate_limited: "Too many questions", not_configured: "Demo not configured",
+                   generator_unavailable: "The model did not answer", network: "Server not reached" };
+const RETRYABLE = ["generator_unavailable", "network"];
+const REJECTED = ["empty_question", "question_too_long", "not_a_lookup"];
+
+const ms = (n) => n < 1000 ? `${n} ms` : `${(n / 1000).toFixed(1)}s`;
+
 try {
   session = localStorage.getItem("sua-session") || "";
   if (!session) { session = crypto.randomUUID(); localStorage.setItem("sua-session", session); }
@@ -600,9 +649,9 @@ function grow() {
   q.style.height = "auto";
   q.style.height = Math.min(q.scrollHeight, 224) + "px";
   $("count").textContent = q.value.length ? `${q.value.length}/${maxChars}` : "";
-  if (!busy) $("ask").disabled = !q.value.trim();
+  if (!busy) $("ask").disabled = cooling > 0 || !q.value.trim();
 }
-q.addEventListener("input", grow);
+q.addEventListener("input", () => { grow(); $("form-msg").hidden = true; });
 $("ask").disabled = true;
 grow();
 q.addEventListener("keydown", (e) => {
@@ -710,8 +759,15 @@ function titleHtml() {
 function working() {
   $("results").hidden = false;
   $("answer-head").innerHTML = titleHtml() +
-    `<div class="stamp-row"><span class="pill">Working</span>` +
-    `<span class="meta">the first question after start-up takes about a minute</span></div>`;
+    `<div class="stamp-row"><span class="pill working">Working</span>` +
+    `<span class="meta"><span id="elapsed">0s</span> · the first question after start-up takes about a minute</span></div>`;
+  const began = Date.now();
+  clearInterval(ticker);
+  ticker = setInterval(() => {
+    const el = $("elapsed");
+    if (el) el.textContent = `${Math.round((Date.now() - began) / 1000)}s`;
+  }, 1000);
+  $("live").textContent = "Working on your question.";
   $("answer").innerHTML =
     `<ul class="steps"><li>Searching the documentation pages.</li>` +
     `<li>Reranking them and keeping five.</li>` +
@@ -771,15 +827,59 @@ function dressCode(root) {
   });
 }
 
+// The server times its two stages. Drawn to scale, because the split is the point: finding
+// the pages takes a few seconds and writing takes the rest.
+function timingHtml(p) {
+  const t = p.timings || {}, find = t.retrieve_ms, write = t.generate_ms;
+  if (!(find > 0)) return "";
+  if (!(write > 0)) return `<div class="timing"><div class="t-labs"><span><i></i><b>Finding the pages</b> ${ms(find)}</span></div></div>`;
+  return `<div class="timing"><div class="t-bar" aria-hidden="true">` +
+    `<span class="t-seg" style="flex:${find}"></span><span class="t-seg write" style="flex:${write}"></span></div>` +
+    `<div class="t-labs"><span><i></i><b>Finding the pages</b> ${ms(find)}</span>` +
+    `<span class="write"><i></i><b>Writing the answer</b> ${ms(write)}</span></div></div>`;
+}
+
+// After a 429 the server says how long to wait. The button counts it down and stays shut,
+// because pressing it early only earns the same refusal.
+function coolDown(seconds) {
+  cooling = Math.max(0, Math.ceil(seconds));
+  const tick = () => {
+    const el = $("cool");
+    if (el) el.textContent = cooling;
+    $("ask").querySelector(".label").textContent = cooling > 0 ? `Wait ${cooling}s` : "Ask";
+    if (!busy) $("ask").disabled = cooling > 0 || !q.value.trim();
+    if (cooling <= 0) {
+      const line = el && el.closest(".fail-next");
+      if (line) line.textContent = "You can ask again now.";
+      return;
+    }
+    cooling -= 1;
+    setTimeout(tick, 1000);
+  };
+  tick();
+}
+
 function renderAnswer(p) {
-  // The model's judgment, not a fact about the pages: on the 100-question test 19 of its 52
-  // declines had the right page in hand, and the "engine.execute gone"
-  // example is one of them. Wording is load-bearing; do not rewrite it.
+  // The model's judgment, not a fact about the pages: on the 100-question test 19 of the
+  // local model's 52 declines had the right page in hand, and the "engine.execute gone"
+  // example is one of them. The count is the local model's, and the note says so, because
+  // the hosted page is answered by a different one. Wording is load-bearing: it must never
+  // say the pages do not answer the question.
   const note = p.status === "declined"
-    ? `<p class="declined-note">The model judged that the five pages it was given don't answer this, and declined rather than guess. That judgment is sometimes wrong: on the project's 100-question test, 19 of its 52 declines had the right page in hand. The pages are listed with this answer; read them.</p>`
+    ? `<p class="declined-note">The model judged that the five pages it was given don't answer this, and declined rather than guess. That judgment is sometimes wrong: on the project's 100-question test, the local model declined 52 times, and 19 of those declines had the right page in hand. The pages are listed with this answer; read them.</p>`
     : "";
+  clearInterval(ticker);
   let body = "";
-  if (p.error) body += `<p><strong>${esc(p.error)}</strong></p>`;
+  if (p.error) {
+    body += `<p class="fail">${esc(p.error)}</p>`;
+    // A wait is counted down; a model that did not answer can be asked again. Nothing else
+    // gets a button: asking the same thing again would get the same sentence.
+    if (p.code === "rate_limited" && cooling > 0) {
+      body += `<p class="fail-next">The Ask button opens in <span id="cool">${cooling}</span>s. The pages it found are still listed.</p>`;
+    } else if (RETRYABLE.includes(p.code)) {
+      body += `<button class="retry" id="retry" type="button">Ask again</button>`;
+    }
+  }
   if (p.answer_md && p.status !== "declined") {
     // Citation links are already built server-side by rag.demo.link_citations.
     body += DOMPurify.sanitize(marked.parse(p.answer_md), { ADD_ATTR: ["target"] });
@@ -791,11 +891,16 @@ function renderAnswer(p) {
   const notice = esc(p.notice)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  const label = (p.status === "error" && FAILURES[p.code]) || p.status_label.split(":")[0];
+  const meta = [typeof p.seconds === "number" ? `${p.seconds}s` : "", esc(p.generator || "")].filter(Boolean).join(" · ");
   $("answer-head").innerHTML = titleHtml() +
-    `<div class="stamp-row"><span class="pill ${p.status}">${esc(p.status_label.split(":")[0])}</span>` +
-    `<span class="meta">${p.seconds}s · ${esc(p.generator)}</span></div>`;
+    `<div class="stamp-row"><span class="pill ${p.status}">${esc(label)}</span>` +
+    `<span class="meta">${meta}</span>${timingHtml(p)}</div>`;
   $("answer").innerHTML =
-    `${note}<div class="md">${body}</div><div class="notice">${notice}</div>`;
+    `${note}<div class="md">${body}</div>` + (notice ? `<div class="notice">${notice}</div>` : "");
+  $("live").textContent = p.error ? `${label}. ${p.error}` : `${label}.`;
+  const again = $("retry");
+  if (again) again.addEventListener("click", () => { q.value = currentQuestion; grow(); $("form").requestSubmit(); });
   $("answer").querySelectorAll('a[href^="#src-"]').forEach((a) => {
     a.classList.add("cite");
     a.textContent = a.textContent.replace(/[\[\]]/g, "");
@@ -892,35 +997,71 @@ document.addEventListener("click", (e) => {
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = q.value.trim();
-  if (!question || busy) return;
+  if (!question || busy || cooling > 0) return;
   busy = true;
+  $("form-msg").hidden = true;
   $("ask").disabled = true;
   $("ask").classList.add("busy");
   $("ask").querySelector(".label").textContent = "Asking";
-  currentQuestion = question;
-  working();
-  $("results").scrollIntoView(SCROLL);
+  // A question the server will not look up comes back in well under a second. Waiting that
+  // long before leaving the box means such a reply is shown in the box, with the answer that
+  // was on screen left alone.
+  let moved = false;
+  const move = () => {
+    if (moved) return;
+    moved = true;
+    currentQuestion = question;
+    working();
+    $("results").scrollIntoView(SCROLL);
+  };
+  const soon = setTimeout(move, 600);
+  let wait = 0;
   try {
     const r = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, session }),
     });
-    if (!r.ok) throw new Error(`server answered ${r.status}`);
-    const p = await r.json();
-    renderAnswer(p);
-    renderSources(p.sources || []);
+    // 422, 429 and 503 carry the same body as 200: the sentence to show and any
+    // sources that were found. Only a reply that is not that body is a server fault.
+    let p = null;
+    try { p = await r.json(); } catch (err) { p = null; }
+    if (!p || !p.status) throw new Error(`server answered ${r.status}`);
+    clearTimeout(soon);
+    if (REJECTED.includes(p.code)) {
+      // Put back whatever was showing, if the wait screen had already replaced it.
+      if (moved) {
+        clearInterval(ticker);
+        if (last) { currentQuestion = last.question; renderAnswer(last.p); renderSources(last.sources); }
+        else showExample();
+      }
+      $("form-msg").textContent = p.error;
+      $("form-msg").hidden = false;
+      $("live").textContent = "";
+      $("form").scrollIntoView({ behavior: SCROLL.behavior, block: "center" });
+      q.focus({ preventScroll: true });
+    } else {
+      move();
+      if (p.code === "rate_limited") wait = parseInt(r.headers.get("Retry-After") || "0", 10) || 0;
+      cooling = wait;
+      renderAnswer(p);
+      renderSources(p.sources || []);
+      last = { question, p, sources: p.sources || [] };
+    }
   } catch (err) {
-    renderAnswer({ status: "error", status_label: "Not answered",
-                   error: `Could not reach the server (${err.message}).`,
-                   answer_md: "", seconds: "-", generator: "", notice: "" });
+    clearTimeout(soon);
+    move();
+    renderAnswer({ status: "error", status_label: "Not answered", code: "network",
+                   error: `The server could not be reached (${err.message}).`,
+                   answer_md: "", generator: "", notice: "" });
     $("sources").innerHTML = "";
     $("src-count").textContent = "";
   } finally {
     busy = false;
-    $("ask").disabled = !q.value.trim();
     $("ask").classList.remove("busy");
     $("ask").querySelector(".label").textContent = "Ask";
+    $("ask").disabled = !q.value.trim();
+    if (wait > 0) coolDown(wait);
   }
 });
 </script>

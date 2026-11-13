@@ -12,7 +12,7 @@ text (0 of 53 identical to the saved escalations).
 
 HOW EACH CHECK WAS WRITTEN (Phase 6 Step 4f, rules written first)
 
-- Claude read each answer and wrote its central checkable claim as the `CLAIM`
+- An AI assistant read each answer and wrote its central checkable claim as the `CLAIM`
   string, BEFORE this file was ever run, and committed it before the first run.
 - A check tests the old behaviour the answer says is gone AND the new behaviour
   it recommends. Exceptions are narrow.
@@ -21,7 +21,7 @@ HOW EACH CHECK WAS WRITTEN (Phase 6 Step 4f, rules written first)
 - `NOT_CHECKABLE` (typing, advice, "the sources do not cover X") never counts as
   correct. A crash inside a check is `ERROR`, never a verdict on the answer.
 - Claims about 1.4 behaviour run in a pinned 1.4.52 subprocess, like Step 3e's g058.
-- **Claude wrote these checks. This is not a human verdict.**
+- **An AI assistant wrote these checks. This is not a human verdict.**
 """
 
 import asyncio
@@ -42,7 +42,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, rela
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PIN = "2.0.51"
 NOT_CHECKABLE = "NOT_CHECKABLE"
-BAR = 0.80   # Phase 6 Step 4f: >= 80% of checkable answers pass
+BAR = 0.80  # Phase 6 Step 4f: >= 80% of checkable answers pass
 
 
 def raises(fn, *types) -> bool:
@@ -76,8 +76,13 @@ def models():
 
 
 def table():
-    return sa.Table("t", sa.MetaData(), sa.Column("id", sa.Integer, primary_key=True),
-                    sa.Column("x", sa.Integer), sa.Column("y", sa.Integer))
+    return sa.Table(
+        "t",
+        sa.MetaData(),
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("x", sa.Integer),
+        sa.Column("y", sa.Integer),
+    )
 
 
 def savepoint_engine():
@@ -92,6 +97,7 @@ def savepoint_engine():
     @event.listens_for(engine, "begin")
     def _begin(conn):
         conn.exec_driver_sql("BEGIN")
+
     return engine
 
 
@@ -100,8 +106,12 @@ def on_14(code: str, warn20: bool) -> str:
     env = {k: v for k, v in os.environ.items() if k != "SQLALCHEMY_WARN_20"}
     if warn20:
         env["SQLALCHEMY_WARN_20"] = "1"
-    out = subprocess.run(["uv", "run", "--no-project", "--with", "sqlalchemy==1.4.52", "python", "-c", code],
-                         capture_output=True, text=True, env=env)
+    out = subprocess.run(
+        ["uv", "run", "--no-project", "--with", "sqlalchemy==1.4.52", "python", "-c", code],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     return out.stdout.strip()
 
 
@@ -122,14 +132,18 @@ REMOVED_IN_20_COUNT = (
 # unset suppresses them") is about ANY such warning and keeps the count above, unchanged.
 SPECIFIC_REMOVED_IN_20_COUNT = REMOVED_IN_20_COUNT.replace(
     "x.category.__name__ == 'RemovedIn20Warning'",
-    "x.category.__name__ == 'RemovedIn20Warning' and not str(x.message).startswith('Deprecated API features detected')")
+    "x.category.__name__ == 'RemovedIn20Warning' and not str(x.message).startswith('Deprecated API features detected')",
+)
 
 
 # --- the 53 --------------------------------------------------------------------
 
+
 def g002():
-    CLAIM = ("Query.from_self() is gone in 2.0; select(...).subquery() + aliased(User, subq) / "
-             "aliased(Address, subq) selects both entities from the subquery")
+    CLAIM = (
+        "Query.from_self() is gone in 2.0; select(...).subquery() + aliased(User, subq) / "
+        "aliased(Address, subq) selects both entities from the subquery"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         s.add(User(name="u", addresses=[Address(email="b"), Address(email="a")]))
@@ -142,23 +156,33 @@ def g002():
             subq = sa.select(User, Address.email).join(User.addresses).subquery()
             ua, aa = orm.aliased(User, subq), orm.aliased(Address, subq)
             rows = s.execute(sa.select(ua, aa).order_by(aa.email)).all()
-            new = (len(rows) == 2 and all(isinstance(r[0], User) for r in rows)
-                   and [r[1].email for r in rows] == ["a", "b"])
+            new = (
+                len(rows) == 2
+                and all(isinstance(r[0], User) for r in rows)
+                and [r[1].email for r in rows] == ["a", "b"]
+            )
         except (exc.SQLAlchemyError, AttributeError):
             new = False
         return CLAIM, old and new
 
 
 def g004():
-    CLAIM = ("Engine has no execute(); Connection.execute runs statements; a plain string is rejected, "
-             "text() and exec_driver_sql() work; **kwargs parameters are rejected, a dict works")
+    CLAIM = (
+        "Engine has no execute(); Connection.execute runs statements; a plain string is rejected, "
+        "text() and exec_driver_sql() work; **kwargs parameters are rejected, a dict works"
+    )
     engine = sa.create_engine("sqlite://")
     with engine.connect() as c:
-        old = (not hasattr(engine, "execute")
-               and raises(lambda: c.execute("select 1"), exc.ObjectNotExecutableError)
-               and raises(lambda: c.execute(text("select :x"), x=1), TypeError))
-        new = (c.execute(text("select 1")).scalar() == 1 and c.exec_driver_sql("select 1").scalar() == 1
-               and c.execute(text("select :x"), {"x": 5}).scalar() == 5)
+        old = (
+            not hasattr(engine, "execute")
+            and raises(lambda: c.execute("select 1"), exc.ObjectNotExecutableError)
+            and raises(lambda: c.execute(text("select :x"), x=1), TypeError)
+        )
+        new = (
+            c.execute(text("select 1")).scalar() == 1
+            and c.exec_driver_sql("select 1").scalar() == 1
+            and c.execute(text("select :x"), {"x": 5}).scalar() == 5
+        )
     return CLAIM, old and new
 
 
@@ -191,14 +215,17 @@ def g015():
     with engine.connect() as c:
         row = c.execute(text("select 7 as id")).first()
         old = raises(lambda: row["id"], TypeError, KeyError, IndexError)
-        new = (row._mapping["id"] == 7 and row.id == 7
-               and c.execute(text("select 7 as id")).mappings().first()["id"] == 7)
+        new = (
+            row._mapping["id"] == 7 and row.id == 7 and c.execute(text("select 7 as id")).mappings().first()["id"] == 7
+        )
     return CLAIM, old and new
 
 
 def g017():
-    CLAIM = ("in 2.0, select(User).options(joinedload(User.addresses)) through session.execute "
-             "raises unless .unique() is called; with .unique() the parents are not duplicated")
+    CLAIM = (
+        "in 2.0, select(User).options(joinedload(User.addresses)) through session.execute "
+        "raises unless .unique() is called; with .unique() the parents are not duplicated"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         s.add(User(name="u", addresses=[Address(email="a"), Address(email="b")]))
@@ -226,8 +253,10 @@ def g018():
 
 
 def g019():
-    CLAIM = ("session.begin(subtransactions=True) is rejected in 2.0; the in_transaction() context-manager "
-             "recipe nests without error and the outer block commits once")
+    CLAIM = (
+        "session.begin(subtransactions=True) is rejected in 2.0; the in_transaction() context-manager "
+        "recipe nests without error and the outer block commits once"
+    )
     _, User, _, engine = models()
 
     @contextlib.contextmanager
@@ -251,6 +280,7 @@ def g019():
 
 def g021():
     CLAIM = "relationship(backref=...) still works in 2.0 (legacy); back_populates works"
+
     class Base(DeclarativeBase):
         pass
 
@@ -284,8 +314,10 @@ def g024():
 
 
 def g025():
-    CLAIM = ("in 2.0 future= on create_engine is optional: future=True is accepted, future=False is "
-             "rejected, and omitting it gives the same Engine")
+    CLAIM = (
+        "in 2.0 future= on create_engine is optional: future=True is accepted, future=False is "
+        "rejected, and omitting it gives the same Engine"
+    )
     ok_true = isinstance(sa.create_engine("sqlite://", future=True), sa.Engine)
     rejected = raises(lambda: sa.create_engine("sqlite://", future=False), exc.ArgumentError)
     same = type(sa.create_engine("sqlite://")) is type(sa.create_engine("sqlite://", future=True))
@@ -293,8 +325,10 @@ def g025():
 
 
 def g026():
-    CLAIM = ("on 1.4, Session(future=True) removes subtransactions (begin(subtransactions=True) raises); "
-             "in 2.0 future=True is accepted and future=False rejected")
+    CLAIM = (
+        "on 1.4, Session(future=True) removes subtransactions (begin(subtransactions=True) raises); "
+        "in 2.0 future=True is accepted and future=False rejected"
+    )
     code = (
         "import sqlalchemy as sa\nfrom sqlalchemy.orm import Session\n"
         "e = sa.create_engine('sqlite://')\n"
@@ -304,8 +338,9 @@ def g026():
     )
     on14 = on_14(code, warn20=False)
     engine = sa.create_engine("sqlite://")
-    in20 = (raises(lambda: Session(engine, future=False), exc.ArgumentError)
-            and isinstance(Session(engine, future=True), Session))
+    in20 = raises(lambda: Session(engine, future=False), exc.ArgumentError) and isinstance(
+        Session(engine, future=True), Session
+    )
     return CLAIM + f"   [1.4.52 said: {on14}]", on14 not in ("no-raise", "") and in20
 
 
@@ -316,32 +351,42 @@ def g027():
 
 
 def g029():
-    CLAIM = ("insert(t, values=...) and t.delete(whereclause) are rejected; insert().values().inline(), "
-             ".returning(), delete().where(), update().ordered_values() work")
+    CLAIM = (
+        "insert(t, values=...) and t.delete(whereclause) are rejected; insert().values().inline(), "
+        ".returning(), delete().where(), update().ordered_values() work"
+    )
     t = table()
-    old = (raises(lambda: sa.insert(t, values={"x": 10}), TypeError, exc.ArgumentError)
-           and raises(lambda: t.delete(t.c.x > 15), TypeError, exc.ArgumentError))
-    new = all(str(s) for s in (
-        sa.insert(t).values(x=10, y=15).inline(),
-        sa.insert(t).values({"x": 10, "y": 15}).returning(t.c.x),
-        t.delete().where(t.c.x > 15),
-        t.update().where(t.c.x < 15).ordered_values((t.c.y, 20), (t.c.x, t.c.y + 10)),
-    ))
+    old = raises(lambda: sa.insert(t, values={"x": 10}), TypeError, exc.ArgumentError) and raises(
+        lambda: t.delete(t.c.x > 15), TypeError, exc.ArgumentError
+    )
+    new = all(
+        str(s)
+        for s in (
+            sa.insert(t).values(x=10, y=15).inline(),
+            sa.insert(t).values({"x": 10, "y": 15}).returning(t.c.x),
+            t.delete().where(t.c.x > 15),
+            t.update().where(t.c.x < 15).ordered_values((t.c.y, 20), (t.c.x, t.c.y + 10)),
+        )
+    )
     return CLAIM, old and new
 
 
 def g030():
-    CLAIM = ("from sqlalchemy.orm import declarative_base works; the sqlalchemy.ext.declarative import "
-             "still works but warns it moved; DeclarativeBase works")
+    CLAIM = (
+        "from sqlalchemy.orm import declarative_base works; the sqlalchemy.ext.declarative import "
+        "still works but warns it moved; DeclarativeBase works"
+    )
     base = orm.declarative_base()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         from sqlalchemy.ext.declarative import declarative_base as old_db
+
         old_db()
     moved = any(issubclass(x.category, exc.MovedIn20Warning) for x in w)
 
     class B(DeclarativeBase):
         pass
+
     return CLAIM, moved and base is not None and hasattr(B, "metadata")
 
 
@@ -355,11 +400,15 @@ def g031():
 
     class Old:
         pass
-    old = raises(lambda: mapper(Old, sa.Table("old", sa.MetaData(), sa.Column("id", sa.Integer, primary_key=True))),
-                 exc.InvalidRequestError)
+
+    old = raises(
+        lambda: mapper(Old, sa.Table("old", sa.MetaData(), sa.Column("id", sa.Integer, primary_key=True))),
+        exc.InvalidRequestError,
+    )
 
     class Thing:
         pass
+
     reg = orm.registry()
     t = sa.Table("thing", reg.metadata, sa.Column("id", sa.Integer, primary_key=True))
     reg.map_imperatively(Thing, t)
@@ -368,6 +417,7 @@ def g031():
 
 def g032():
     CLAIM = "query(User).join('orders', 'items') chained strings are rejected; individual join() calls work"
+
     class Base(DeclarativeBase):
         pass
 
@@ -395,8 +445,10 @@ def g032():
 
 
 def g033():
-    CLAIM = ("select(User, Address.email).join().distinct().order_by(Address.email) then "
-             "session.execute(stmt).columns(User).all() returns only User per row")
+    CLAIM = (
+        "select(User, Address.email).join().distinct().order_by(Address.email) then "
+        "session.execute(stmt).columns(User).all() returns only User per row"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         s.add(User(name="u", addresses=[Address(email="a"), Address(email="b")]))
@@ -427,12 +479,15 @@ def g035():
     with engine.connect() as c:
         c.execute(sa.select(t).where(t.c.x == 1))
         r = c.execute(sa.select(t).where(t.c.x == 2))
-        from sqlalchemy.engine import default   # CACHE_HIT is module-level (looked up before the first run)
+        from sqlalchemy.engine import default  # CACHE_HIT is module-level (looked up before the first run)
+
         return CLAIM, r.context.cache_hit is default.CACHE_HIT
 
 
 def g038():
-    CLAIM = "session.execute(select(User)).scalars().all() and session.scalars(select(User)).all() both give User objects"
+    CLAIM = (
+        "session.execute(select(User)).scalars().all() and session.scalars(select(User)).all() both give User objects"
+    )
     _, User, _, engine = models()
     with Session(engine) as s:
         s.add_all([User(name="a"), User(name="b")])
@@ -444,11 +499,13 @@ def g038():
 
 def g041():
     CLAIM = "backref still works in 2.0; back_populates on both sides of a many-to-many works"
+
     class Base(DeclarativeBase):
         pass
 
-    assoc = sa.Table("assoc", Base.metadata, sa.Column("p", sa.ForeignKey("parent.id")),
-                     sa.Column("c", sa.ForeignKey("child.id")))
+    assoc = sa.Table(
+        "assoc", Base.metadata, sa.Column("p", sa.ForeignKey("parent.id")), sa.Column("c", sa.ForeignKey("child.id"))
+    )
 
     class Parent(Base):
         __tablename__ = "parent"
@@ -470,8 +527,9 @@ def g041():
 def g043():
     CLAIM = "select(..., select_from=, order_by=) keyword arguments are rejected; .select_from().order_by() works"
     t = table()
-    old = (raises(lambda: sa.select([1], select_from=t, order_by=t.c.id), exc.ArgumentError, TypeError)
-           and raises(lambda: sa.select(t.c.x, order_by=t.c.id), TypeError, exc.ArgumentError))
+    old = raises(lambda: sa.select([1], select_from=t, order_by=t.c.id), exc.ArgumentError, TypeError) and raises(
+        lambda: sa.select(t.c.x, order_by=t.c.id), TypeError, exc.ArgumentError
+    )
     new = "ORDER BY t.id" in str(sa.select(1).select_from(t).order_by(t.c.id))
     return CLAIM, old and new
 
@@ -486,8 +544,11 @@ def g044():
         via_conn = [col.name for col in sa.Table("t", sa.MetaData(), autoload_with=c).columns] == ["a", "b"]
     md = sa.MetaData()
     md.reflect(engine)
-    new = ([col.name for col in sa.Table("t", sa.MetaData(), autoload_with=engine).columns] == ["a", "b"]
-           and via_conn and "t" in md.tables)
+    new = (
+        [col.name for col in sa.Table("t", sa.MetaData(), autoload_with=engine).columns] == ["a", "b"]
+        and via_conn
+        and "t" in md.tables
+    )
     return CLAIM, old and new
 
 
@@ -504,8 +565,10 @@ def g045():
 
 
 def g046():
-    CLAIM = ("Session(autocommit=True) is rejected; a Session autobegins on first database access; "
-             "with session.begin(): commits")
+    CLAIM = (
+        "Session(autocommit=True) is rejected; a Session autobegins on first database access; "
+        "with session.begin(): commits"
+    )
     _, User, _, engine = models()
     old = raises(lambda: Session(engine, autocommit=True), TypeError, exc.ArgumentError)
     with Session(engine) as s:
@@ -521,8 +584,10 @@ def g046():
 
 
 def g047():
-    CLAIM = ("subtransactions are gone; the in_transaction() recipe nests; begin_nested() is a SAVEPOINT: "
-             "rolling it back discards u3 and keeps u1, u2, which commit at the end of sessionmaker.begin()")
+    CLAIM = (
+        "subtransactions are gone; the in_transaction() recipe nests; begin_nested() is a SAVEPOINT: "
+        "rolling it back discards u3 and keeps u1, u2, which commit at the end of sessionmaker.begin()"
+    )
     engine = savepoint_engine()
     Base, User, _, _ = models()
     Base.metadata.create_all(engine)
@@ -548,16 +613,20 @@ def g048():
 
 
 def g049():
-    CLAIM = ("case() no longer accepts a list of WHENs in 2.0; case((cond, val), ...) positionally works. "
-             "SECONDARY SLIP, not the verdict: the answer says the list form 'emits a deprecation warning', "
-             "which is 1.4's behaviour; on 2.0 it is rejected")
+    CLAIM = (
+        "case() no longer accepts a list of WHENs in 2.0; case((cond, val), ...) positionally works. "
+        "SECONDARY SLIP, not the verdict: the answer says the list form 'emits a deprecation warning', "
+        "which is 1.4's behaviour; on 2.0 it is rejected"
+    )
     t = table()
     old = raises(lambda: sa.case([(t.c.x == 5, "five")], else_="n"), exc.ArgumentError, TypeError)
     return CLAIM, old and "CASE" in str(sa.case((t.c.x == 5, "five"), (t.c.x == 7, "seven"), else_="n"))
 
 
 def g050():
-    CLAIM = "Engine has no execute(), a Select has no execute(); with engine.connect() as conn: conn.execute(stmt) works"
+    CLAIM = (
+        "Engine has no execute(), a Select has no execute(); with engine.connect() as conn: conn.execute(stmt) works"
+    )
     engine = sa.create_engine("sqlite://")
     with engine.connect() as c:
         new = c.execute(sa.select(sa.literal(1))).scalar() == 1
@@ -565,17 +634,21 @@ def g050():
 
 
 def g051():
-    CLAIM = ("execute(select(User)).scalars().all() gives User objects; execute(select(User.name, User.id)).all() "
-             "gives Row tuples; session.scalars() returns a ScalarResult")
+    CLAIM = (
+        "execute(select(User)).scalars().all() gives User objects; execute(select(User.name, User.id)).all() "
+        "gives Row tuples; session.scalars() returns a ScalarResult"
+    )
     _, User, _, engine = models()
     with Session(engine) as s:
         s.add_all([User(name="a"), User(name="b")])
         s.commit()
         scal = s.execute(sa.select(User)).scalars().all()
         rows = s.execute(sa.select(User.name, User.id)).all()
-        return CLAIM, (all(isinstance(u, User) for u in scal)
-                       and all(isinstance(r, sa.Row) and len(r) == 2 for r in rows)
-                       and isinstance(s.scalars(sa.select(User)), sa.ScalarResult))
+        return CLAIM, (
+            all(isinstance(u, User) for u in scal)
+            and all(isinstance(r, sa.Row) and len(r) == 2 for r in rows)
+            and isinstance(s.scalars(sa.select(User)), sa.ScalarResult)
+        )
 
 
 def g055():
@@ -585,9 +658,11 @@ def g055():
 
 
 def g062():
-    CLAIM = ("Mapped[Literal[...]] with type_annotation_map {Literal: Enum(enum.Enum)} gives an Enum column "
-             "with the literal's values; mapped_column(Enum(..., name='status_enum')) works explicitly. "
-             "SECONDARY SLIP, not the verdict: approach 1's code uses enum.Enum without importing enum")
+    CLAIM = (
+        "Mapped[Literal[...]] with type_annotation_map {Literal: Enum(enum.Enum)} gives an Enum column "
+        "with the literal's values; mapped_column(Enum(..., name='status_enum')) works explicitly. "
+        "SECONDARY SLIP, not the verdict: approach 1's code uses enum.Enum without importing enum"
+    )
     Status = typing.Literal["pending", "received", "completed"]
 
     class Base1(DeclarativeBase):
@@ -607,24 +682,35 @@ def g062():
         status: Mapped[Status] = mapped_column(sa.Enum("pending", "received", "completed", name="status_enum"))
 
     ta, tb = A.__table__.c.status.type, B.__table__.c.status.type
-    return CLAIM, (isinstance(ta, sa.Enum) and list(ta.enums) == ["pending", "received", "completed"]
-                   and isinstance(tb, sa.Enum) and tb.name == "status_enum")
+    return CLAIM, (
+        isinstance(ta, sa.Enum)
+        and list(ta.enums) == ["pending", "received", "completed"]
+        and isinstance(tb, sa.Enum)
+        and tb.name == "status_enum"
+    )
 
 
 def g078():
-    CLAIM = "on 1.4, RemovedIn20Warning is emitted only when SQLALCHEMY_WARN_20 is set, so leaving it unset suppresses them"
+    CLAIM = (
+        "on 1.4, RemovedIn20Warning is emitted only when SQLALCHEMY_WARN_20 is set, so leaving it unset suppresses them"
+    )
     with_var, without = on_14(REMOVED_IN_20_COUNT, True), on_14(REMOVED_IN_20_COUNT, False)
     return CLAIM + f"   [counts: with {with_var}, without {without}]", with_var not in ("", "0") and without == "0"
 
 
 def g079():
-    return ("the answer's point is that the sources do not cover options with Session.get; "
-            "a claim that is only 'the sources do not cover X' is not executable"), NOT_CHECKABLE
+    return (
+        "the answer's point is that the sources do not cover options with Session.get; "
+        "a claim that is only 'the sources do not cover X' is not executable"
+    ), NOT_CHECKABLE
 
 
 def g080():
-    CLAIM = ("select(Book).options(load_only(Book.title, Book.summary)) selects id, title, summary only; "
-             "one load_only per entity; selectinload(User.books).load_only(Book.title) and defaultload(...) compile")
+    CLAIM = (
+        "select(Book).options(load_only(Book.title, Book.summary)) selects id, title, summary only; "
+        "one load_only per entity; selectinload(User.books).load_only(Book.title) and defaultload(...) compile"
+    )
+
     class Base(DeclarativeBase):
         pass
 
@@ -644,12 +730,13 @@ def g080():
         cover: Mapped[str]
 
     one = str(sa.select(Book).options(orm.load_only(Book.title, Book.summary)))
-    two = str(sa.select(User, Book).join_from(User, Book)
-              .options(orm.load_only(User.name), orm.load_only(Book.title)))
-    single = ("book.title" in one and "book.summary" in one and "book.id" in one and "cover" not in one)
+    two = str(sa.select(User, Book).join_from(User, Book).options(orm.load_only(User.name), orm.load_only(Book.title)))
+    single = "book.title" in one and "book.summary" in one and "book.id" in one and "cover" not in one
     multi = "fullname" not in two and "summary" not in two
-    loaders = all(str(sa.select(User).options(o)) for o in (
-        orm.selectinload(User.books).load_only(Book.title), orm.defaultload(User.books).load_only(Book.title)))
+    loaders = all(
+        str(sa.select(User).options(o))
+        for o in (orm.selectinload(User.books).load_only(Book.title), orm.defaultload(User.books).load_only(Book.title))
+    )
     return CLAIM, single and multi and loaders
 
 
@@ -667,8 +754,10 @@ def g081():
 
 
 def g083():
-    CLAIM = ("there is no engine.execute() in 2.0; engine.begin() commits on exit, and "
-             "engine.connect() + conn.commit() commits")
+    CLAIM = (
+        "there is no engine.execute() in 2.0; engine.begin() commits on exit, and "
+        "engine.connect() + conn.commit() commits"
+    )
     engine = sa.create_engine("sqlite://")
     t = table()
     t.metadata.create_all(engine)
@@ -683,8 +772,11 @@ def g083():
 
 
 def g087():
-    CLAIM = ("a server_default column is NOT in __dict__ right after flush by default (expired, loaded on access); "
-             "eager_defaults=True makes it present after flush")
+    CLAIM = (
+        "a server_default column is NOT in __dict__ right after flush by default (expired, loaded on access); "
+        "eager_defaults=True makes it present after flush"
+    )
+
     class Base(DeclarativeBase):
         pass
 
@@ -712,8 +804,10 @@ def g087():
 
 
 def g088():
-    CLAIM = ("Session(bind=connection, join_transaction_mode='create_savepoint') inside connection.begin(): "
-             "session.commit() and session.rollback() touch only savepoints, and the outer rollback removes everything")
+    CLAIM = (
+        "Session(bind=connection, join_transaction_mode='create_savepoint') inside connection.begin(): "
+        "session.commit() and session.rollback() touch only savepoints, and the outer rollback removes everything"
+    )
     engine = savepoint_engine()
     Base, User, _, _ = models()
     Base.metadata.create_all(engine)
@@ -739,8 +833,10 @@ def g090():
 
 
 def g095():
-    CLAIM = ("populate_existing fully refreshes loaded instances, erasing pending changes; "
-             "with selectinload it replaces the loaded collection")
+    CLAIM = (
+        "populate_existing fully refreshes loaded instances, erasing pending changes; "
+        "with selectinload it replaces the loaded collection"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         s.add(User(id=1, name="a", addresses=[Address(email="x")]))
@@ -750,16 +846,21 @@ def g095():
         u.name = "changed"
         with engine.begin() as c:
             c.execute(sa.insert(Address.__table__).values(email="y", user_id=1))
-        s.execute(sa.select(User).options(orm.selectinload(User.addresses))
-                  .execution_options(populate_existing=True, autoflush=False)).scalars().all()
+        s.execute(
+            sa.select(User)
+            .options(orm.selectinload(User.addresses))
+            .execution_options(populate_existing=True, autoflush=False)
+        ).scalars().all()
         return CLAIM, u.name == "a" and sorted(a.email for a in u.addresses) == ["x", "y"]
 
 
 def g098():
-    CLAIM = ("in 2.0 the backref cascade is gone: with u1 persistent, a1.user = u1 does not put a1 in the "
-             "session, so it must be added explicitly; relationship(cascade_backrefs=False) is still accepted. "
-             "NOTE: one bullet reads the direction backwards ('assigning a parent to a child in a session -> "
-             "parent not added'); the forward many-to-one cascade does add it. Not the central claim")
+    CLAIM = (
+        "in 2.0 the backref cascade is gone: with u1 persistent, a1.user = u1 does not put a1 in the "
+        "session, so it must be added explicitly; relationship(cascade_backrefs=False) is still accepted. "
+        "NOTE: one bullet reads the direction backwards ('assigning a parent to a child in a session -> "
+        "parent not added'); the forward many-to-one cascade does add it. Not the central claim"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         u1 = User(name="u1")
@@ -788,8 +889,10 @@ def g098():
 
 
 def g099():
-    CLAIM = ("under MappedAsDataclass: default= must be a constant (a callable is rejected); default_factory= "
-             "supplies callables; default= and insert_default= are mutually exclusive")
+    CLAIM = (
+        "under MappedAsDataclass: default= must be a constant (a callable is rejected); default_factory= "
+        "supplies callables; default= and insert_default= are mutually exclusive"
+    )
 
     def define(**kw):
         class Base(orm.MappedAsDataclass, DeclarativeBase):
@@ -799,6 +902,7 @@ def g099():
             __tablename__ = "d"
             id: Mapped[int] = mapped_column(primary_key=True, init=False)
             v: Mapped[int] = mapped_column(**kw)
+
         return D
 
     callable_rejected = raises(lambda: define(default=lambda: 1), exc.ArgumentError, TypeError, ValueError)
@@ -810,6 +914,7 @@ def g099():
 def g100():
     CLAIM = "AsyncSession.run_sync can run synchronous bulk_save_objects inside async code"
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
     # CORRECTED AFTER THE FIRST RUN: the first version discarded the Address
     # class (`Base, User, _, _ = models()`). Alone it passed; in the full run it crashed with
     # "expression 'Address' failed to locate a name" -- the unreferenced class can be garbage-
@@ -826,12 +931,16 @@ def g100():
             n = (await s.execute(sa.select(sa.func.count()).select_from(User))).scalar()
         await engine.dispose()
         return n == 2
+
     return CLAIM, asyncio.run(main())
 
 
 def g106():
-    CLAIM = ("joinedload on a relationship to a polymorphic base does not load subclass-table columns; "
-             "joinedload(Owner.pets.of_type(with_polymorphic(Pet, [Dog], flat=True))) does")
+    CLAIM = (
+        "joinedload on a relationship to a polymorphic base does not load subclass-table columns; "
+        "joinedload(Owner.pets.of_type(with_polymorphic(Pet, [Dog], flat=True))) does"
+    )
+
     class Base(DeclarativeBase):
         pass
 
@@ -879,19 +988,27 @@ def g109():
 
 
 def g110():
-    CLAIM = ("in 2.0 create_engine's future= must be True if given (False is rejected); the Connection has "
-             "commit()/rollback(); strings need text(); the Engine has no execute()")
+    CLAIM = (
+        "in 2.0 create_engine's future= must be True if given (False is rejected); the Connection has "
+        "commit()/rollback(); strings need text(); the Engine has no execute()"
+    )
     engine = sa.create_engine("sqlite://", future=True)
     with engine.connect() as c:
         conn_api = hasattr(c, "commit") and hasattr(c, "rollback")
         strings = raises(lambda: c.execute("select 1"), exc.ObjectNotExecutableError)
-    return CLAIM, (raises(lambda: sa.create_engine("sqlite://", future=False), exc.ArgumentError)
-                   and conn_api and strings and not hasattr(engine, "execute"))
+    return CLAIM, (
+        raises(lambda: sa.create_engine("sqlite://", future=False), exc.ArgumentError)
+        and conn_api
+        and strings
+        and not hasattr(engine, "execute")
+    )
 
 
 def g111():
-    CLAIM = ("with engine.connect() does not commit by itself (work is rolled back at close); "
-             "engine.begin(), conn.begin() and conn.commit() all commit")
+    CLAIM = (
+        "with engine.connect() does not commit by itself (work is rolled back at close); "
+        "engine.begin(), conn.begin() and conn.commit() all commit"
+    )
     engine = sa.create_engine("sqlite:///file:g111?mode=memory&cache=shared&uri=true")
     t = table()
     t.metadata.create_all(engine)
@@ -915,8 +1032,10 @@ def g111():
 
 
 def g115():
-    CLAIM = ("2.0 connections: a plain string is rejected and text() works; engine.begin() commits; "
-             "engine.connect() needs an explicit commit(); parameters go as a dict, not **kwargs")
+    CLAIM = (
+        "2.0 connections: a plain string is rejected and text() works; engine.begin() commits; "
+        "engine.connect() needs an explicit commit(); parameters go as a dict, not **kwargs"
+    )
     engine = sa.create_engine("sqlite:///file:g115?mode=memory&cache=shared&uri=true")
     with engine.begin() as c:
         c.execute(text("create table t (x integer)"))
@@ -940,17 +1059,25 @@ def g118():
     with Session(engine) as s:
         s.add(User(name="jack", addresses=[Address(email="jack@google.com"), Address(email="j25@yahoo.com")]))
         s.commit()
-        q = (s.query(User.name, a1.email, a2.email)
-             .join(User.addresses.of_type(a1)).join(User.addresses.of_type(a2))
-             .filter(a1.email == "jack@google.com").filter(a2.email == "j25@yahoo.com"))
+        q = (
+            s.query(User.name, a1.email, a2.email)
+            .join(User.addresses.of_type(a1))
+            .join(User.addresses.of_type(a2))
+            .filter(a1.email == "jack@google.com")
+            .filter(a2.email == "j25@yahoo.com")
+        )
         sql = str(q)
-        return CLAIM, "addresses_1" in sql and "addresses_2" in sql and q.all() == [("jack", "jack@google.com", "j25@yahoo.com")]
+        return CLAIM, "addresses_1" in sql and "addresses_2" in sql and q.all() == [
+            ("jack", "jack@google.com", "j25@yahoo.com")
+        ]
 
 
 def g121():
-    CLAIM = ("2.0 rows: execute(select(User)).scalars().all() gives objects; Row supports row[0], row.name and "
-             "row._mapping['name']; result.mappings() keys ORM entities by class name. SECONDARY SLIP, not the "
-             "verdict: it calls row['name'] 'deprecated'; on 2.0 it fails")
+    CLAIM = (
+        "2.0 rows: execute(select(User)).scalars().all() gives objects; Row supports row[0], row.name and "
+        "row._mapping['name']; result.mappings() keys ORM entities by class name. SECONDARY SLIP, not the "
+        "verdict: it calls row['name'] 'deprecated'; on 2.0 it fails"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         s.add(User(name="ed", addresses=[Address(email="e")]))
@@ -958,9 +1085,14 @@ def g121():
         users = s.execute(sa.select(User).filter_by(name="ed")).scalars().all()
         row = s.execute(sa.select(User.name, User.id)).first()
         m = s.execute(sa.select(User, Address).join(User.addresses)).mappings().first()
-        return CLAIM, (isinstance(users[0], User) and row[0] == "ed" and row.name == "ed"
-                       and row._mapping["name"] == "ed" and isinstance(m["User"], User)
-                       and isinstance(m["Address"], Address))
+        return CLAIM, (
+            isinstance(users[0], User)
+            and row[0] == "ed"
+            and row.name == "ed"
+            and row._mapping["name"] == "ed"
+            and isinstance(m["User"], User)
+            and isinstance(m["Address"], Address)
+        )
 
 
 CHECKS = {name: fn for name, fn in globals().items() if name.startswith("g") and name[1:].isdigit()}
@@ -986,15 +1118,17 @@ def main() -> None:
         try:
             claim, ok = CHECKS[i]()
             verdict = NOT_CHECKABLE if ok == NOT_CHECKABLE else ("PASS" if ok else "FAIL")
-        except Exception as e:      # a bug in the check, not a verdict on the answer
+        except Exception as e:  # a bug in the check, not a verdict on the answer
             claim, verdict = f"{type(e).__name__}: {str(e)[:90]}", "ERROR"
         tally[verdict].append(i)
         print(f"  {i}  {verdict:<14} {claim}")
     extra = sorted(set(CHECKS) - set(ids))
     checkable = len(tally["PASS"]) + len(tally["FAIL"])
     rate = len(tally["PASS"]) / checkable if checkable else 0
-    print(f"\n  PASS {len(tally['PASS'])}  FAIL {len(tally['FAIL'])}  NOT_CHECKABLE {len(tally[NOT_CHECKABLE])}  "
-          f"ERROR {len(tally['ERROR'])}   pass rate {rate:.0%} of checkable")
+    print(
+        f"\n  PASS {len(tally['PASS'])}  FAIL {len(tally['FAIL'])}  NOT_CHECKABLE {len(tally[NOT_CHECKABLE])}  "
+        f"ERROR {len(tally['ERROR'])}   pass rate {rate:.0%} of checkable"
+    )
     for k in ("FAIL", "ERROR", NOT_CHECKABLE):
         if tally[k]:
             print(f"  {k:<14} {' '.join(tally[k])}")
@@ -1003,9 +1137,14 @@ def main() -> None:
     if tally["ERROR"]:
         print("\nrule: no verdict while any check is ERROR (a bug in a check is not a verdict on an answer)")
     elif checkable:
-        print(f"\nrule (>= {BAR:.0%} of checkable pass): {rate:.0%} -> "
-              + ("the 0.58 stands as 'delivered and, where checkable, correct'" if rate >= BAR
-                 else "the 0.58 is overstated; quote the executed-correct count beside it"))
+        print(
+            f"\nrule (>= {BAR:.0%} of checkable pass): {rate:.0%} -> "
+            + (
+                "the 0.58 stands as 'delivered and, where checkable, correct'"
+                if rate >= BAR
+                else "the 0.58 is overstated; quote the executed-correct count beside it"
+            )
+        )
 
 
 if __name__ == "__main__":

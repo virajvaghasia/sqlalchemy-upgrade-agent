@@ -11,7 +11,7 @@ This file runs every escalated answer's central claim on the real library.
 
 HOW EACH CHECK WAS WRITTEN (Phase 6 Step 3e, rules written first)
 
-- Claude read each answer and wrote down its central checkable claim, as the
+- An AI assistant read each answer and wrote down its central checkable claim, as the
   `CLAIM` string beside each check, before this file was ever run. The file was
   committed before its first run, so the history shows the checks predate the
   results.
@@ -23,7 +23,7 @@ HOW EACH CHECK WAS WRITTEN (Phase 6 Step 3e, rules written first)
   It is never counted as correct.
 - An unexpected crash inside a check is `ERROR`: a bug in the check, reported
   apart, never silently counted as the answer being wrong.
-- **Claude wrote these checks. This is not a human verdict.** Every claim
+- **An AI assistant wrote these checks. This is not a human verdict.** Every claim
   is in the file, so anyone can read exactly what was tested and dispute it.
 
 Reads only JSON from `deliverables/`, so it runs in a bare environment with
@@ -44,7 +44,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, rela
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PIN = "2.0.51"
 NOT_CHECKABLE = "NOT_CHECKABLE"
-BAR = 0.80   # Phase 6 Step 3e: >= 80% of checkable 3b answers pass
+BAR = 0.80  # Phase 6 Step 3e: >= 80% of checkable 3b answers pass
 
 
 def raises(fn, *types) -> bool:
@@ -84,6 +84,7 @@ def table():
 
 # --- 3b: the page-present escalations ----------------------------------------
 
+
 def g006():
     CLAIM = "Connection.execute() rejects a plain SQL string; text() and exec_driver_sql() work"
     engine = sa.create_engine("sqlite://")
@@ -111,6 +112,7 @@ def g013():
 
 def g021():
     CLAIM = "relationship(backref=...) is legacy but still works in 2.0; back_populates works"
+
     class Base(DeclarativeBase):
         pass
 
@@ -130,16 +132,22 @@ def g021():
 
 
 def g029():
-    CLAIM = ("insert(t, values=...) and t.delete(whereclause) are rejected; "
-             "insert(t).values().inline(), delete().where(), update().ordered_values() work")
+    CLAIM = (
+        "insert(t, values=...) and t.delete(whereclause) are rejected; "
+        "insert(t).values().inline(), delete().where(), update().ordered_values() work"
+    )
     t = table()
-    old = (raises(lambda: sa.insert(t, values={"x": 10}), TypeError, exc.ArgumentError)
-           and raises(lambda: t.delete(t.c.x > 15), TypeError, exc.ArgumentError))
-    new = all(str(s) for s in (
-        sa.insert(t).values(x=10, y=15).inline(),
-        t.delete().where(t.c.x > 15),
-        t.update().where(t.c.x < 15).ordered_values((t.c.y, 20), (t.c.x, t.c.y + 10)),
-    ))
+    old = raises(lambda: sa.insert(t, values={"x": 10}), TypeError, exc.ArgumentError) and raises(
+        lambda: t.delete(t.c.x > 15), TypeError, exc.ArgumentError
+    )
+    new = all(
+        str(s)
+        for s in (
+            sa.insert(t).values(x=10, y=15).inline(),
+            t.delete().where(t.c.x > 15),
+            t.update().where(t.c.x < 15).ordered_values((t.c.y, 20), (t.c.x, t.c.y + 10)),
+        )
+    )
     return CLAIM, old and new
 
 
@@ -178,8 +186,10 @@ def g050():
 
 
 def g051():
-    CLAIM = ("execute(select(User)).scalars().all() gives User objects; .all() gives Row tuples; "
-             "session.scalars(...).first() gives a User")
+    CLAIM = (
+        "execute(select(User)).scalars().all() gives User objects; .all() gives Row tuples; "
+        "session.scalars(...).first() gives a User"
+    )
     _, User, _, engine = models()
     with Session(engine) as s:
         s.add_all([User(name="a"), User(name="b")])
@@ -187,14 +197,20 @@ def g051():
         scal = s.execute(sa.select(User)).scalars().all()
         rows = s.execute(sa.select(User)).all()
         first = s.scalars(sa.select(User)).first()
-        return CLAIM, (all(isinstance(u, User) for u in scal) and len(scal) == 2
-                       and all(isinstance(r, sa.Row) and len(r) == 1 for r in rows)
-                       and isinstance(first, User))
+        return CLAIM, (
+            all(isinstance(u, User) for u in scal)
+            and len(scal) == 2
+            and all(isinstance(r, sa.Row) and len(r) == 1 for r in rows)
+            and isinstance(first, User)
+        )
 
 
 def g087():
-    CLAIM = ("a server_default column is NOT in __dict__ right after flush by default (expired); "
-             "eager_defaults=True makes it present after flush")
+    CLAIM = (
+        "a server_default column is NOT in __dict__ right after flush by default (expired); "
+        "eager_defaults=True makes it present after flush"
+    )
+
     class Base(DeclarativeBase):
         pass
 
@@ -219,8 +235,10 @@ def g087():
 
 
 def g090():
-    return ("the answer's point is that the sources do not cover load_only's typing: "
-            "a typing question is not executable here"), NOT_CHECKABLE
+    return (
+        "the answer's point is that the sources do not cover load_only's typing: "
+        "a typing question is not executable here"
+    ), NOT_CHECKABLE
 
 
 def g095():
@@ -236,8 +254,10 @@ def g095():
 
 
 def g099():
-    CLAIM = ("under MappedAsDataclass: default= must be a constant (a callable is not allowed); "
-             "default_factory= supplies callables; default= and insert_default= are mutually exclusive")
+    CLAIM = (
+        "under MappedAsDataclass: default= must be a constant (a callable is not allowed); "
+        "default_factory= supplies callables; default= and insert_default= are mutually exclusive"
+    )
 
     def define(**kw):
         class Base(orm.MappedAsDataclass, DeclarativeBase):
@@ -247,6 +267,7 @@ def g099():
             __tablename__ = "d"
             id: Mapped[int] = mapped_column(primary_key=True, init=False)
             v: Mapped[int] = mapped_column(**kw)
+
         return D
 
     callable_rejected = raises(lambda: define(default=lambda: 1), exc.ArgumentError, TypeError, ValueError)
@@ -258,6 +279,7 @@ def g099():
 def g100():
     CLAIM = "AsyncSession.run_sync lets synchronous bulk_save_objects run inside async code"
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
     Base, User, _, _ = models()
 
     async def main():
@@ -270,12 +292,16 @@ def g100():
             n = (await s.execute(sa.select(sa.func.count()).select_from(User))).scalar()
         await engine.dispose()
         return n == 2
+
     return CLAIM, asyncio.run(main())
 
 
 def g106():
-    CLAIM = ("joinedload on a relationship to a polymorphic base does not load subclass-table "
-             "columns unless with_polymorphic is used")
+    CLAIM = (
+        "joinedload on a relationship to a polymorphic base does not load subclass-table "
+        "columns unless with_polymorphic is used"
+    )
+
     class Base(DeclarativeBase):
         pass
 
@@ -310,6 +336,7 @@ def g106():
 
 # --- 3c: the page-absent escalations ------------------------------------------
 
+
 def g007():
     CLAIM = "MetaData(bind=engine) raises TypeError in 2.0; MetaData() then create_all(engine) works"
     engine = sa.create_engine("sqlite://")
@@ -321,14 +348,14 @@ def g007():
 
 
 def g011():
-    CLAIM = ("Query.join(..., aliased=True) is gone; join(User.addresses.of_type(a1)) and "
-             "join(a1, User.addresses) work")
+    CLAIM = "Query.join(..., aliased=True) is gone; join(User.addresses.of_type(a1)) and join(a1, User.addresses) work"
     _, User, Address, engine = models()
     a1 = orm.aliased(Address)
     with Session(engine) as s:
         old = raises(lambda: s.query(User).join(User.addresses, aliased=True), TypeError)
-    new = (bool(str(sa.select(User).join(User.addresses.of_type(a1)).where(a1.email == "x")))
-           and bool(str(sa.select(User).join(a1, User.addresses))))
+    new = bool(str(sa.select(User).join(User.addresses.of_type(a1)).where(a1.email == "x"))) and bool(
+        str(sa.select(User).join(a1, User.addresses))
+    )
     return CLAIM, old and new
 
 
@@ -341,8 +368,10 @@ def g016():
 
 
 def g020():
-    CLAIM = ("the cascade_backrefs behaviour is gone: assigning address.user = user (user in the "
-             "session) does not add the address, so it is not INSERTed unless added explicitly")
+    CLAIM = (
+        "the cascade_backrefs behaviour is gone: assigning address.user = user (user in the "
+        "session) does not add the address, so it is not INSERTed unless added explicitly"
+    )
     _, User, Address, engine = models()
     with Session(engine) as s:
         u = User(name="u")
@@ -362,8 +391,10 @@ def g022():
 
 
 def g028():
-    CLAIM = ("driver-level autocommit works via execution_options(isolation_level='AUTOCOMMIT'), "
-             "and Connection.execution_options() modifies the connection in place, returning it")
+    CLAIM = (
+        "driver-level autocommit works via execution_options(isolation_level='AUTOCOMMIT'), "
+        "and Connection.execution_options() modifies the connection in place, returning it"
+    )
     engine = sa.create_engine("sqlite://")
     with engine.connect() as c:
         same = c.execution_options(isolation_level="AUTOCOMMIT") is c
@@ -403,8 +434,7 @@ def g039():
         s.commit()
         rows = s.execute(sa.select(User)).all()
         users = s.execute(sa.select(User)).scalars().all()
-        return CLAIM, (isinstance(rows[0], sa.Row) and isinstance(rows[0][0], User)
-                       and isinstance(users[0], User))
+        return CLAIM, (isinstance(rows[0], sa.Row) and isinstance(rows[0][0], User) and isinstance(users[0], User))
 
 
 def g040():
@@ -419,8 +449,10 @@ def g040():
 
 
 def g058():
-    CLAIM = ("on 1.4 with 2.0 warnings on, conn.execute('insert ...') on engine.connect() emits "
-             "RemovedIn20Warning for implicit autocommit and for passing a string")
+    CLAIM = (
+        "on 1.4 with 2.0 warnings on, conn.execute('insert ...') on engine.connect() emits "
+        "RemovedIn20Warning for implicit autocommit and for passing a string"
+    )
     code = (
         "import warnings, sqlalchemy as sa\n"
         "e = sa.create_engine('sqlite://')\n"
@@ -434,7 +466,9 @@ def g058():
     )
     out = subprocess.run(
         ["uv", "run", "--no-project", "--with", "sqlalchemy==1.4.52", "python", "-c", code],
-        capture_output=True, text=True, env={**__import__("os").environ, "SQLALCHEMY_WARN_20": "1"},
+        capture_output=True,
+        text=True,
+        env={**__import__("os").environ, "SQLALCHEMY_WARN_20": "1"},
     )
     return CLAIM, out.stdout.strip() == "True"
 
@@ -443,7 +477,7 @@ def g085():
     CLAIM = "calling session.begin() while a transaction is already in progress raises in 2.0"
     engine = sa.create_engine("sqlite://")
     with Session(engine) as s:
-        s.execute(text("select 1"))       # autobegin
+        s.execute(text("select 1"))  # autobegin
         return CLAIM, raises(s.begin, exc.InvalidRequestError)
 
 
@@ -466,8 +500,9 @@ def escalated() -> dict[str, list[str]]:
     out = {}
     for label, path in (("3b page present", "escalate-phase6.json"), ("3c page absent", "escalate-rest-phase6.json")):
         rows = json.loads((ROOT / "deliverables" / path).read_text())["rows"]
-        out[label] = sorted(r["id"] for r in rows
-                            if not r["refused"] and not r.get("empty") and golden[r["id"]].get("answerable"))
+        out[label] = sorted(
+            r["id"] for r in rows if not r["refused"] and not r.get("empty") and golden[r["id"]].get("answerable")
+        )
     return out
 
 
@@ -488,22 +523,29 @@ def main() -> None:
             try:
                 claim, ok = CHECKS[i]()
                 verdict = NOT_CHECKABLE if ok == NOT_CHECKABLE else ("PASS" if ok else "FAIL")
-            except Exception as e:      # a bug in the check, not a verdict on the answer
+            except Exception as e:  # a bug in the check, not a verdict on the answer
                 claim, verdict = f"{type(e).__name__}: {str(e)[:70]}", "ERROR"
             tally[verdict].append(i)
             print(f"  {i}  {verdict:<14} {claim}")
         summary[label] = tally
         checkable = len(tally["PASS"]) + len(tally["FAIL"])
         rate = len(tally["PASS"]) / checkable if checkable else 0
-        print(f"  -> PASS {len(tally['PASS'])}  FAIL {len(tally['FAIL'])}  NOT_CHECKABLE "
-              f"{len(tally[NOT_CHECKABLE])}  ERROR {len(tally['ERROR'])}   pass rate {rate:.0%} of checkable")
+        print(
+            f"  -> PASS {len(tally['PASS'])}  FAIL {len(tally['FAIL'])}  NOT_CHECKABLE "
+            f"{len(tally[NOT_CHECKABLE])}  ERROR {len(tally['ERROR'])}   pass rate {rate:.0%} of checkable"
+        )
     b = summary["3b page present"]
     checkable = len(b["PASS"]) + len(b["FAIL"])
     if checkable:
         rate = len(b["PASS"]) / checkable
-        print(f"\nrule (3b, >= {BAR:.0%} of checkable pass): {rate:.0%} -> "
-              + ("the 0.53 upper bound stands as stated" if rate >= BAR
-                 else "overstated; recompute the upper bound from executed passes"))
+        print(
+            f"\nrule (3b, >= {BAR:.0%} of checkable pass): {rate:.0%} -> "
+            + (
+                "the 0.53 upper bound stands as stated"
+                if rate >= BAR
+                else "overstated; recompute the upper bound from executed passes"
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -105,10 +105,7 @@ TOOLS = [
                 "properties": {
                     "symbol": {
                         "type": "string",
-                        "description": (
-                            "A dotted symbol, e.g. 'Query.from_self' or "
-                            "'Session.get'."
-                        ),
+                        "description": ("A dotted symbol, e.g. 'Query.from_self' or 'Session.get'."),
                     },
                 },
                 "required": ["symbol"],
@@ -175,19 +172,20 @@ def ask(question: str, model: str = MODEL, transport=post) -> dict:
     against handcrafted replies with no server running -- the same reason
     `faithful.generate` takes its transport as an argument.
     """
-    return transport({
-        "model": model,
-        "messages": [{"role": "system", "content": SYSTEM},
-                     {"role": "user", "content": question}],
-        "tools": TOOLS,
-        "stream": False,
-        "options": {"temperature": TEMPERATURE, "num_ctx": LOCAL_CONTEXT},
-    })
+    return transport(
+        {
+            "model": model,
+            "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}],
+            "tools": TOOLS,
+            "stream": False,
+            "options": {"temperature": TEMPERATURE, "num_ctx": LOCAL_CONTEXT},
+        }
+    )
 
 
 def _validate(name, args, channel: str) -> dict:
     """Same checks whichever channel the call arrived on."""
-    if isinstance(args, str):                 # some servers stringify it
+    if isinstance(args, str):  # some servers stringify it
         try:
             args = json.loads(args)
         except json.JSONDecodeError:
@@ -200,21 +198,22 @@ def _validate(name, args, channel: str) -> dict:
     return {"outcome": channel, "tool": name, "arg": value.strip()}
 
 
-def ask_messages(messages: list[dict], model: str = MODEL,
-                 transport=post) -> dict:
+def ask_messages(messages: list[dict], model: str = MODEL, transport=post) -> dict:
     """A whole conversation, tools offered — what the agent loop needs.
 
     `ask()` is the single-question probe Step 0 used; this is the same request
     with the caller's message list, so the two cannot drift on tool schemas,
     temperature or the offered tools.
     """
-    return transport({
-        "model": model,
-        "messages": messages,
-        "tools": TOOLS,
-        "stream": False,
-        "options": {"temperature": TEMPERATURE, "num_ctx": LOCAL_CONTEXT},
-    })
+    return transport(
+        {
+            "model": model,
+            "messages": messages,
+            "tools": TOOLS,
+            "stream": False,
+            "options": {"temperature": TEMPERATURE, "num_ctx": LOCAL_CONTEXT},
+        }
+    )
 
 
 def classify(reply: dict) -> dict:
@@ -271,7 +270,7 @@ def classify(reply: dict) -> dict:
         if not isinstance(blob, dict) or "name" not in blob:
             return {"outcome": "prose", "tool": None, "arg": None}
         return _validate(blob.get("name"), blob.get("arguments"), "content_json")
-    call = (calls[0].get("function") or {})
+    call = calls[0].get("function") or {}
     name = call.get("name")
     args = call.get("arguments")
     return _validate(name, args, "tool_calls")
@@ -284,8 +283,7 @@ def golden_questions(path: pathlib.Path = GOLDEN) -> list[str]:
 USABLE = ("tool_calls", "content_json")
 
 
-def run(pairs: list[tuple[str | None, str]], model: str = MODEL,
-        ask_one=None, log=print) -> dict:
+def run(pairs: list[tuple[str | None, str]], model: str = MODEL, ask_one=None, log=print) -> dict:
     """Probe every question and count outcomes. `want` may be None (unlabelled).
 
     Returns the counts the report prints, so a test can drive this with a fake
@@ -299,8 +297,7 @@ def run(pairs: list[tuple[str | None, str]], model: str = MODEL,
         except (urllib.error.URLError, TimeoutError) as exc:
             # The third module to need this rule: one unreachable call costs one
             # question, never the run.
-            got = {"outcome": f"failed:{type(exc).__name__}",
-                   "tool": None, "arg": None}
+            got = {"outcome": f"failed:{type(exc).__name__}", "tool": None, "arg": None}
         rows.append({"want": want, "question": question, **got})
     usable = [r for r in rows if r["outcome"] in USABLE]
     labelled = [r for r in usable if r["want"]]
@@ -317,33 +314,42 @@ def run(pairs: list[tuple[str | None, str]], model: str = MODEL,
 
 def report(got: dict, model: str, label: str) -> None:
     print(f"\nTOOL CALLS — {label}, {model}, temperature {TEMPERATURE}")
-    print(f"  usable call      {got['usable']}/{got['n']}"
-          f" = {got['usable'] / got['n']:.0%}" if got["n"] else "  no questions")
+    print(
+        f"  usable call      {got['usable']}/{got['n']} = {got['usable'] / got['n']:.0%}"
+        if got["n"]
+        else "  no questions"
+    )
     if got["labelled"]:
-        print(f"  right tool       {got['right']}/{got['labelled']}"
-              f" = {got['right'] / got['labelled']:.0%}  (labelled by construction)")
+        print(
+            f"  right tool       {got['right']}/{got['labelled']}"
+            f" = {got['right'] / got['labelled']:.0%}  (labelled by construction)"
+        )
     print(f"  ...on `tool_calls` (the MCP channel)   {got['native']}")
     print(f"  ...on `message.content` as JSON text   {got['content']}")
     bad = [r for r in got["rows"] if r["outcome"] not in USABLE]
     for r in bad:
         print(f"    {r['outcome']:<18} {r['question'][:64]}")
     if got["content"] and not got["native"]:
-        print("  NOTE: every call arrived as content text. An agent built on "
-              "this model parses\n        JSON itself; it cannot assume the "
-              "MCP tool-call channel.")
+        print(
+            "  NOTE: every call arrived as content text. An agent built on "
+            "this model parses\n        JSON itself; it cannot assume the "
+            "MCP tool-call channel."
+        )
 
 
 def main() -> None:
     import sys
+
     argv = sys.argv[1:]
     model = MODEL
     if "--model" in argv:
         model = argv[argv.index("--model") + 1]
+    pairs: list[tuple[str | None, str]]
     if "--golden" in argv:
         pairs = [(None, q) for q in golden_questions()]
         label = "the 100 golden questions, real developer phrasing"
     else:
-        pairs = PROBE
+        pairs = list(PROBE)
         label = f"{len(PROBE)} synthetic questions, labelled by construction"
     report(run(pairs, model=model), model, label)
 

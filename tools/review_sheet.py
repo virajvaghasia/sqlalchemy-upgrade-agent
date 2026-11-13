@@ -47,13 +47,23 @@ RECORD = ROOT / "deliverables" / "verdicts.json"
 
 # Stated in probe.py's own comments — not inferred.
 EXPLICIT = {
-    "from_self": 12, "aliased": 13, "table_names": 5, "has_table": 6,
-    "keys()": 18, "relation": 10, "cascade_backrefs": 23, "backref": 23,
+    "from_self": 12,
+    "aliased": 13,
+    "table_names": 5,
+    "has_table": 6,
+    "keys()": 18,
+    "relation": 10,
+    "cascade_backrefs": 23,
+    "backref": 23,
 }
 # Matched by symbol to the breakage heading. Inference, and labelled as such.
 INFERRED = {
-    "autocommit": 20, "subtransaction": 21, "bind": 7, "select(": 8,
-    "scalars": 16, "unique()": 19,
+    "autocommit": 20,
+    "subtransaction": 21,
+    "bind": 7,
+    "select(": 8,
+    "scalars": 16,
+    "unique()": 19,
 }
 
 WHY = {
@@ -89,7 +99,8 @@ def fix_of(n: int, entries) -> dict:
     m = re.search(r"\*\*Fix\*\* — _(.*?)_\s*\n\n```python\n(.*?)\n```", body, flags=re.S)
     err = re.search(r"\*\*2\.0 error\*\* — `(.+?)`", body)
     return {
-        "n": n, "heading": heading,
+        "n": n,
+        "heading": heading,
         "status": m.group(1) if m else "(no fix block)",
         "code": m.group(2).strip() if m else "",
         "error": err.group(1) if err else "",
@@ -101,8 +112,7 @@ def build(full: bool = False) -> str:
     """The whole sheet, as markdown."""
     drafts = {}
     if RECORD.exists():
-        drafts = {k: v for k, v in json.loads(RECORD.read_text()).items()
-                  if not k.startswith("_")}
+        drafts = {k: v for k, v in json.loads(RECORD.read_text()).items() if not k.startswith("_")}
     known = breakages()
     keys = {}
     for question, _cat, sym in probe.QUESTIONS:
@@ -130,7 +140,7 @@ def build(full: bool = False) -> str:
         "*unrelated* chunks average in this corpus: a hit at "
         "0.61 is 0.07 above noise, not 61% confident.",
         "",
-        "**Verdicts were drafted by Claude and accepted by Viraj on 2026-08-17**, by comparing "
+        "**Verdicts were drafted by an AI assistant and accepted by the maintainer on 2026-08-17**, by comparing "
         "each answer against its BREAKAGES.md key and, where the answer proposed code, running "
         "both on real 2.0.51. `verdicts.json` is the record; this file and `FAILURES.md` render "
         "from it. The mechanical signals locate problems; they never decided one.",
@@ -154,17 +164,21 @@ def build(full: bool = False) -> str:
         # the full retrieved passage under each source, kept only in --full
         texts = re.findall(r"```rst\n(.*?)\n```", body, flags=re.S)
 
-        out += [f"## {num}. {question}", "",
-                f"**`{cat}`** — {WHY.get(cat, '')}",
-                f"`{meta.group(2) if meta else ''}`",
-                f"**Signals:** {sigm.group(1).strip() if sigm else '_none_'}", "",
-                "**It answered:**", ""]
+        out += [
+            f"## {num}. {question}",
+            "",
+            f"**`{cat}`** — {WHY.get(cat, '')}",
+            f"`{meta.group(2) if meta else ''}`",
+            f"**Signals:** {sigm.group(1).strip() if sigm else '_none_'}",
+            "",
+            "**It answered:**",
+            "",
+        ]
         out += ["> " + line for line in ans.splitlines()]
         out += ["", "**From:**", ""]
         for i, (n, score, ver, path, heading) in enumerate(srcs):
             over = float(score) - 0.540
-            out.append(f"- `[{n}]` **{score}** (+{over:.3f} over noise) · {ver} · "
-                       f"`{path.split('doc/build/')[-1]}`  ")
+            out.append(f"- `[{n}]` **{score}** (+{over:.3f} over noise) · {ver} · `{path.split('doc/build/')[-1]}`  ")
             out.append(f"  {heading.strip() or '(no heading)'}")
             if full and i < len(texts):
                 out += ["", "  ```rst", *("  " + ln for ln in texts[i].splitlines()), "  ```", ""]
@@ -172,16 +186,27 @@ def build(full: bool = False) -> str:
 
         k = keys.get(question)
         if k:
-            out += [f"**VERIFIED ANSWER** — BREAKAGES #{k['n']} · {k['heading']}  ",
-                    f"_{k['status']}_ · 2.0 raises `{k['error']}` · _{k['how']}_", ""]
+            out += [
+                f"**VERIFIED ANSWER** — BREAKAGES #{k['n']} · {k['heading']}  ",
+                f"_{k['status']}_ · 2.0 raises `{k['error']}` · _{k['how']}_",
+                "",
+            ]
             if full and k.get("body"):
-                out += ["<details><summary>the whole BREAKAGES entry</summary>", "",
-                        k["body"].strip(), "", "</details>", ""]
+                out += [
+                    "<details><summary>the whole BREAKAGES entry</summary>",
+                    "",
+                    k["body"].strip(),
+                    "",
+                    "</details>",
+                    "",
+                ]
             else:
                 out += ["```python", k["code"], "```"]
         else:
-            out.append("**No single answer key** — this question does not map to one "
-                       "BREAKAGES entry; the answer is a judgement rather than a lookup.")
+            out.append(
+                "**No single answer key** — this question does not map to one "
+                "BREAKAGES entry; the answer is a judgement rather than a lookup."
+            )
         d = drafts.get(str(num))
         if d:
             out += ["", f"**Verdict: `{d[0]}`** — {d[1]}"]

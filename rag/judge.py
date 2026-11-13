@@ -1,22 +1,18 @@
 """
-Phase 4 — grade the ANSWER, not the search.
+Grade the ANSWER, not the search.
 
     uv run python -m rag.judge --citations              # deterministic; no model, no key
     uv run python -m rag.judge --citations --limit 20
     uv run python -m rag.judge --citations --save f.json # keep the rows; a run costs ~100 calls
-    uv run python -m rag.judge --report                 # the Phase 4 gate, one command
+    uv run python -m rag.judge --report                 # every generation report card, one command
 
-Phase 3 closed retrieval at recall@5 = 0.64. End to end the system answers
-0.43, so twenty-one points are lost AFTER the right page is already in
-the prompt. Every Phase 3 retrieval number sits above that gap. This module
-is where the gap gets measured.
+Retrieval puts the answer page in the prompt for 64% of answerable questions.
+End to end the system answers 43%, so twenty-one points are lost AFTER the
+right page is already in the prompt. This module measures that gap.
 
-The first full run said something sharper than "generation is lossy":
-of the 48 items that got an answer at all, **31 cite nothing**, and **26 of
-the 28 answers containing code** put executable code on screen with no source
-attached. Mean coverage is 0.07 -- five pages retrieved, and the answer points
-at roughly a third of one. Phase 1's ask.py opens with "SOURCES ARE NOT
-DECORATION"; measured, they mostly are.
+The first full run found that of the 48 items that got an answer, **31 cited
+nothing**, and **26 of the 28 answers containing code** put executable code on
+screen with no source attached.
 
 TWO HALVES, AND ONLY ONE OF THEM NEEDS A MODEL
 
@@ -28,10 +24,6 @@ TWO HALVES, AND ONLY ONE OF THEM NEEDS A MODEL
     that passage" is a reading task. Behind its own flag for the same reason
     `--refusals` is: it costs generations, and a number that expensive
     should not be produced as a side effect of asking for a cheap one.
-
-Build the deterministic half first and completely. It is the half that can be
-run today, by anyone, with no key -- and it already catches the defect that
-motivated the phase.
 
 THE DEFECT THIS WAS BUILT FROM
 
@@ -58,9 +50,8 @@ model that did not cite, `out_of_range` is a model that cited a source it was
 never given. The second is strictly worse and much rarer, which is exactly why
 it needs its own count rather than being absorbed.
 
-This module does NOT duplicate probe.py's detectors. It imports `ask.refused`
-like probe.py does, for the same reason: probe.py once held a second copy of a
-symbol test and it silenced the very signal it existed for.
+This module does not duplicate probe.py's detectors; it imports `ask.refused`,
+so there is one definition of a refusal.
 """
 
 from __future__ import annotations
@@ -128,7 +119,7 @@ def uncited_code_blocks(answer: str) -> int:
         # puts a blank line before a fence, so "the previous line" is usually
         # empty. Taking it literally credited nothing and counted every properly
         # cited block as uncited.
-        before = [l for l in answer[:m.start()].split("\n") if l.strip()]
+        before = [l for l in answer[: m.start()].split("\n") if l.strip()]
         head = before[-1] if before else ""
         if not CITATION.search(block) and not CITATION.search(head):
             n += 1
@@ -148,8 +139,7 @@ def api_calls(answer: str) -> list[str]:
     the thing the question asked about, while code CALLING it is a claim that
     this is how you do it.
     """
-    return sorted({m.group(1) for block in code_blocks(answer)
-                   for m in API_CALL.finditer(block)})
+    return sorted({m.group(1) for block in code_blocks(answer) for m in API_CALL.finditer(block)})
 
 
 def ungrounded_calls(answer: str, source_texts: list[str], question: str = "") -> list[str]:
@@ -245,7 +235,7 @@ def aggregate(rows: list[dict]) -> dict:
 
 
 def report(rows: list[dict], agg: dict) -> None:
-    print(f"\nCITATION INTEGRITY  —  deterministic, no judge model (Phase 4)")
+    print("\nCITATION INTEGRITY  —  deterministic, no judge model (Phase 4)")
     print(f"  items asked                    {agg['n']:>4}")
     print(f"    refused, nothing to cite     {agg['n_refused']:>4}")
     print(f"    answered                     {agg['n_answered']:>4}   <- every rate below is over these")
@@ -260,20 +250,24 @@ def report(rows: list[dict], agg: dict) -> None:
         # Rate over answers WITH code, not over all answers: "3 of 4 code
         # blocks are uncited" and "3 of 91 answers" are different claims, and
         # the second one hides the defect.
-        print(f"    of those, code with no citation   {agg['uncited_code']:>4}"
-              f"  {agg['uncited_code'] / agg['with_code']:6.1%}")
+        print(
+            f"    of those, code with no citation   {agg['uncited_code']:>4}"
+            f"  {agg['uncited_code'] / agg['with_code']:6.1%}"
+        )
     k = rows[0]["n_sources"] if rows else 0
     if any("ungrounded" in r for r in rows):
         print(f"  calls an API in none of its sources {agg['ungrounded']:>4}  {pct('ungrounded')}")
-    print(f"\n  mean source coverage                {agg['mean_coverage']:.2f}"
-          f"   (fraction of the {k} prompt sources an answer cites)")
+    print(
+        f"\n  mean source coverage                {agg['mean_coverage']:.2f}"
+        f"   (fraction of the {k} prompt sources an answer cites)"
+    )
 
     # Split by provenance, because the first run left a mechanism open.
     # Phase 1's probe reported `uncited` on 3 of its 11 answered questions;
     # this reports 31 of 48. The bands do not overlap, so they are not the same
     # rate measured twice -- and the obvious suspect is phrasing, which was
     # already shown to decide retrieval. This is the split that tests it.
-    provs = sorted({r.get("provenance") for r in rows if r.get("provenance")})
+    provs = sorted({r["provenance"] for r in rows if r.get("provenance")})
     if len(provs) > 1:
         print("\n  by provenance (answered items only)")
         print(f"    {'':<16}{'answered':>9}{'uncited':>9}{'rate':>7}")
@@ -284,8 +278,9 @@ def report(rows: list[dict], agg: dict) -> None:
             u = sum(1 for r in sub if r["uncited"])
             print(f"    {prov:<16}{len(sub):>9}{u:>9}{u / len(sub):>7.0%}")
 
-    bad = [r for r in rows if not r["refused"]
-           and (r["out_of_range"] or r["uncited_code_blocks"] or r.get("ungrounded"))]
+    bad = [
+        r for r in rows if not r["refused"] and (r["out_of_range"] or r["uncited_code_blocks"] or r.get("ungrounded"))
+    ]
     if bad:
         print("\n  the two that need a person, named:")
         for r in bad:
@@ -320,9 +315,14 @@ def judge_rows(items: list[dict], k: int | None = None, generate=None) -> list[d
         # ask.generate returns (answer, timings); injected fakes may return
         # just the text. Accept both rather than making every test build a tuple.
         answer = out[0] if isinstance(out, tuple) else out
-        rows.append(dict(citation_report(answer, len(hits)), id=it["id"],
-                         provenance=it.get("provenance"),
-                         ungrounded=ungrounded_calls(answer, source_texts, it["question"])))
+        rows.append(
+            dict(
+                citation_report(answer, len(hits)),
+                id=it["id"],
+                provenance=it.get("provenance"),
+                ungrounded=ungrounded_calls(answer, source_texts, it["question"]),
+            )
+        )
     return rows
 
 
@@ -343,8 +343,8 @@ def judge_rows(items: list[dict], k: int | None = None, generate=None) -> list[d
 #                              scorers count it as harmless
 #
 # A human decides which, and no script may. This renders the sheet;
-# it does not rule on it. The precedent is the golden signature, closed on a
-# risk-weighted read of ten (§H CLOSED, 2026-08-21).
+# it does not rule on it. The precedent is the golden set, signed off on a
+# risk-weighted read of ten (2026-08-21).
 #
 # Why it matters for the prompt decision specifically: prompt H answers 62
 # items to D's 48, and the open cell grows 7 -> 13 with it. Whether that is H
@@ -355,7 +355,8 @@ def judge_rows(items: list[dict], k: int | None = None, generate=None) -> list[d
 def open_cell(rows: list[dict]) -> list[dict]:
     """Answered, answerable, and the verified page never reached the prompt."""
     return [
-        r for r in rows
+        r
+        for r in rows
         if not r.get("failed")
         and r.get("answerable")
         and not r.get("answer_in_prompt")
@@ -373,8 +374,8 @@ def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
     lines = [
         "# The open cell — answers with no verified page in the prompt",
         "",
-        "Generated by `rag.judge --open-cell`. **Claude renders this sheet and does",
-        "not rule on it**. For each answer below, the question is only:",
+        "Generated by `rag.judge --open-cell`. **The sheet is generated and carries no",
+        "ruling of its own**. For each answer below, the question is only:",
         "",
         "> Read against real SQLAlchemy 2.0.51 — **is this answer correct?**",
         "",
@@ -394,12 +395,11 @@ def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
         lines += [
             "## Read these first",
             "",
-            f"Shared with the control (`{control}`) and therefore not a reason to "
-            "prefer one prompt over another:",
+            f"Shared with the control (`{control}`) and therefore not a reason to prefer one prompt over another:",
             "",
         ]
         shared = set.intersection(*cells.values())
-        lines += [f"- {', '.join('`%s`' % i for i in sorted(shared)) or '(none)'}", ""]
+        lines += [f"- {', '.join(f'`{i}`' for i in sorted(shared)) or '(none)'}", ""]
         for v, ids in cells.items():
             if v == control:
                 continue
@@ -407,7 +407,7 @@ def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
             lines += [
                 f"**`{v}` adds {len(added)}** — these are answers the control "
                 f"refused, so they exist only because `{v}` was more willing: "
-                f"{', '.join('`%s`' % i for i in added) or '(none)'}",
+                f"{', '.join(f'`{i}`' for i in added) or '(none)'}",
                 "",
             ]
         lines += ["---", ""]
@@ -425,7 +425,7 @@ def open_cell_sheet(saved: dict, items: list[dict], out: pathlib.Path) -> int:
                 f"**Question.** {it.get('question', '(not in golden.json)')}",
                 "",
                 f"**Golden says the answer is in:** "
-                f"{', '.join('`%s`' % c for c in it.get('answer_chunks', [])) or '(none listed)'}"
+                f"{', '.join(f'`{c}`' for c in it.get('answer_chunks', [])) or '(none listed)'}"
                 f" — none of which reached the prompt.",
                 "",
                 f"**Cited:** {r.get('cited') or 'nothing'}"
@@ -461,9 +461,7 @@ def _judgeable(rows: list[dict]) -> list[dict]:
     one expression rather than a second copy of the rule -- if the two drift,
     the completeness check silently stops meaning anything.
     """
-    return [r for r in rows
-            if not r.get("failed") and r.get("answer")
-            and not ask.refused(r["answer"])]
+    return [r for r in rows if not r.get("failed") and r.get("answer") and not ask.refused(r["answer"])]
 
 
 def load_faith_files(directory: pathlib.Path) -> list[dict]:
@@ -538,8 +536,7 @@ def _sweep_generation(rows: list[dict]) -> dict:
     # simply not in the numerator, and the count is printed separately so it
     # cannot hide there.
     answerable = [r for r in rows if r.get("answerable")]
-    unanswerable = [r for r in rows
-                    if not r.get("answerable") and not r.get("failed")]
+    unanswerable = [r for r in rows if not r.get("answerable") and not r.get("failed")]
     # `not r.get("failed")` is load-bearing in BOTH lists, and leaving it out
     # of the first one is a bug this file actually had. A row that failed to generate
     # carries no "answer" key at all, so `ask.refused("")` is False and the row
@@ -550,12 +547,14 @@ def _sweep_generation(rows: list[dict]) -> dict:
     # of the thing being promoted. A failure is not an answer and it is not a
     # refusal; it is a missing measurement, and it belongs in neither
     # numerator while staying in the denominator so the arms share one ruler.
-    delivered = [r for r in answerable
-                 if r.get("answer_in_prompt") and not r.get("failed")
-                 and not ask.refused(r.get("answer", ""))]
-    over = [r for r in answerable
-            if r.get("answer_in_prompt") and not r.get("failed")
-            and ask.refused(r.get("answer", ""))]
+    delivered = [
+        r
+        for r in answerable
+        if r.get("answer_in_prompt") and not r.get("failed") and not ask.refused(r.get("answer", ""))
+    ]
+    over = [
+        r for r in answerable if r.get("answer_in_prompt") and not r.get("failed") and ask.refused(r.get("answer", ""))
+    ]
     return {
         "n_answerable": len(answerable),
         "delivered": len(delivered),
@@ -566,9 +565,7 @@ def _sweep_generation(rows: list[dict]) -> dict:
         # wording measured, and the groundedness check shows why the count alone is not enough:
         # D invents an Alembic recipe, H paraphrases a page it cites, and both
         # land here.
-        "fabricated": sum(1 for r in unanswerable
-                          if not r.get("failed")
-                          and not ask.refused(r.get("answer", ""))),
+        "fabricated": sum(1 for r in unanswerable if not r.get("failed") and not ask.refused(r.get("answer", ""))),
         "failed": sum(1 for r in rows if r.get("failed")),
     }
 
@@ -580,18 +577,22 @@ def _sweep_citations(rows: list[dict]) -> tuple[dict, list[str]]:
         if r.get("failed"):
             continue
         got = citation_report(r.get("answer", ""), r.get("n_sources", 0))
-        if any(got[k] != r[k] for k in ("uncited", "out_of_range",
-                                        "uncited_code_blocks")
-               if k in r):
+        if any(got[k] != r[k] for k in ("uncited", "out_of_range", "uncited_code_blocks") if k in r):
             stale.append(r["id"])
         fresh.append(dict(got, id=r["id"], provenance=r.get("provenance")))
     return aggregate(fresh), stale
 
 
-def scorecard(items: list[dict], sweep: dict, variants: list[str],
-              faith: dict | None, agreement: dict,
-              retrieval: dict | None, sweep_machine: str | None = None,
-              faiths: list[dict] | None = None) -> None:
+def scorecard(
+    items: list[dict],
+    sweep: dict,
+    variants: list[str],
+    faith: dict | None,
+    agreement: dict,
+    retrieval: dict | None,
+    sweep_machine: str | None = None,
+    faiths: list[dict] | None = None,
+) -> None:
     # Imported here, not at module level: rag.faithful imports THIS module,
     # so a top-level import back would make neither of them importable.
     from rag import faithful, score
@@ -599,84 +600,87 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
     faith_machine = (faith or {}).get("machine")
     n_answerable = sum(1 for i in items if i.get("answerable"))
     print("\nPHASE 4 SCORECARD  —  the whole system, one command")
-    print(f"  golden set: {len(items)} items, {n_answerable} answerable, "
-          f"{len(items) - n_answerable} not — all human-verified")
+    print(
+        f"  golden set: {len(items)} items, {n_answerable} answerable, "
+        f"{len(items) - n_answerable} not — all human-verified"
+    )
 
     # Generation figures do not reproduce across machines, so a section
     # read from a file that does not name its machine is under-labelled. This
     # is not hypothetical — the lab's judge rows landed beside the Mac's
     # answers and nothing in either file said so.
-    unstamped = [name for name, stamped in
-                 ((SWEEP_NAME, sweep_machine), (FAITH_NAME, faith_machine))
-                 if stamped is None]
+    unstamped = [
+        name for name, stamped in ((SWEEP_NAME, sweep_machine), (FAITH_NAME, faith_machine)) if stamped is None
+    ]
     if unstamped:
-        print(f"  !! {' and '.join(unstamped)} do not record which machine "
-              f"produced them.")
-        print(f"     Generation figures do NOT reproduce across machines "
-              f"(end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
-              f"sections below")
-        print(f"     may come from different ones. Files written after "
-              f"2026-09-05 carry a machine stamp.")
+        print(f"  !! {' and '.join(unstamped)} do not record which machine produced them.")
+        print(
+            "     Generation figures do NOT reproduce across machines "
+            "(end to end 0.43 Mac / 0.42 lab, D uncited 65% / 43%), so "
+            "sections below"
+        )
+        print("     may come from different ones. Files written after 2026-09-05 carry a machine stamp.")
 
     print("\n1  RETRIEVAL — did the right page reach the prompt?   [measured live]")
     if retrieval is None:
         print("     skipped (--no-retrieval)")
     else:
-        print(f"     recall@5  {retrieval['recall'][5]:.2f} ±"
-              f"{score.wilson_half_width(retrieval['recall'][5], retrieval['n_answerable']):.3f}"
-              f"     absent from top 20  {retrieval['not_found_at_depth']}"
-              f"     duplicate seats  {retrieval['slots_lost_to_duplicates']}")
-        print("     This is a CEILING, not a score: it says the page arrived, "
-              "not that the user got it.")
+        print(
+            f"     recall@5  {retrieval['recall'][5]:.2f} ±"
+            f"{score.wilson_half_width(retrieval['recall'][5], retrieval['n_answerable']):.3f}"
+            f"     absent from top 20  {retrieval['not_found_at_depth']}"
+            f"     duplicate seats  {retrieval['slots_lost_to_duplicates']}"
+        )
+        print("     This is a CEILING, not a score: it says the page arrived, not that the user got it.")
 
-    print(f"\n2  GENERATION — did the user get an answer?           "
-          f"[read: {SWEEP_NAME}]")
-    print(f"     {'prompt':<14}{'end to end':>16}{'over-refused':>15}"
-          f"{'fabricated':>13}{'failed':>9}")
+    print(f"\n2  GENERATION — did the user get an answer?           [read: {SWEEP_NAME}]")
+    print(f"     {'prompt':<14}{'end to end':>16}{'over-refused':>15}{'fabricated':>13}{'failed':>9}")
     gen = {}
     for v in variants:
         g = gen[v] = _sweep_generation(sweep[v])
         label = f"{v} (ships)" if v == variants[0] else v
-        print(f"     {label:<14}{g['delivered']:>7}/{g['n_answerable']} = "
-              f"{g['end_to_end']:.2f}{g['over_refused']:>15}"
-              f"{g['fabricated']:>13}{g['failed']:>9}")
+        print(
+            f"     {label:<14}{g['delivered']:>7}/{g['n_answerable']} = "
+            f"{g['end_to_end']:.2f}{g['over_refused']:>15}"
+            f"{g['fabricated']:>13}{g['failed']:>9}"
+        )
     if retrieval is not None:
         gap = retrieval["recall"][5] - gen[variants[0]]["end_to_end"]
-        print(f"     THE GAP: retrieval {retrieval['recall'][5]:.2f} → delivered "
-              f"{gen[variants[0]]['end_to_end']:.2f} = {gap:.2f} lost after the "
-              f"right page was already in the prompt.")
+        print(
+            f"     THE GAP: retrieval {retrieval['recall'][5]:.2f} → delivered "
+            f"{gen[variants[0]]['end_to_end']:.2f} = {gap:.2f} lost after the "
+            f"right page was already in the prompt."
+        )
 
-    print(f"\n3  CITATIONS — can the answer be checked?             "
-          f"[read: {SWEEP_NAME}, re-scored with today's rules]")
-    print(f"     {'prompt':<14}{'answered':>10}{'uncited':>16}"
-          f"{'code w/o source':>19}{'out of range':>14}{'coverage':>10}")
+    print(f"\n3  CITATIONS — can the answer be checked?             [read: {SWEEP_NAME}, re-scored with today's rules]")
+    print(
+        f"     {'prompt':<14}{'answered':>10}{'uncited':>16}{'code w/o source':>19}{'out of range':>14}{'coverage':>10}"
+    )
     for v in variants:
         c, stale = _sweep_citations(sweep[v])
         answered = c["n_answered"]
-        print(f"     {v:<14}{answered:>10}"
-              f"{c['uncited']:>9} = {c['uncited'] / answered if answered else 0:>4.0%}"
-              f"{c['uncited_code']:>11}/{c['with_code']} = "
-              f"{c['uncited_code'] / c['with_code'] if c['with_code'] else 0:>4.0%}"
-              f"{c['out_of_range']:>14}{c['mean_coverage']:>10.2f}")
+        print(
+            f"     {v:<14}{answered:>10}"
+            f"{c['uncited']:>9} = {c['uncited'] / answered if answered else 0:>4.0%}"
+            f"{c['uncited_code']:>11}/{c['with_code']} = "
+            f"{c['uncited_code'] / c['with_code'] if c['with_code'] else 0:>4.0%}"
+            f"{c['out_of_range']:>14}{c['mean_coverage']:>10.2f}"
+        )
         if stale:
-            print(f"       (stored fields disagree with today's rules on "
-                  f"{len(stale)}: {', '.join(stale[:8])})")
+            print(f"       (stored fields disagree with today's rules on {len(stale)}: {', '.join(stale[:8])})")
 
     print("\n4  FAITHFULNESS — is the prose supported by those pages?")
     if not faith:
-        print(f"     NOT MEASURED. `uv run python -m rag.faithful --sweep` "
-              f"writes {FAITH_NAME}.")
-        print("     Not zero and not a pass — unmeasured. Code grounding is "
-              "measured and separate.")
+        print(f"     NOT MEASURED. `uv run python -m rag.faithful --sweep` writes {FAITH_NAME}.")
+        print("     Not zero and not a pass — unmeasured. Code grounding is measured and separate.")
     else:
         # The machine is printed beside the judge because the verdicts move
         # with it: D measured 85% supported on Darwin-arm64 and 77% on
         # Linux-x86_64, same judge, same answers, temperature 0. A file
         # written before machines were stamped says so rather than guessing.
-        for one in (faiths or [faith]):
+        for one in faiths or [faith]:
             where = one.get("machine") or "machine not recorded (written before rows were stamped)"
-            print(f"     [read: {one.get('_path', FAITH_NAME)}, judge "
-                  f"{one.get('judge_model', '?')} on {where}]")
+            print(f"     [read: {one.get('_path', FAITH_NAME)}, judge {one.get('judge_model', '?')} on {where}]")
             # A judge run that stopped early looks EXACTLY like a result: seen
             # live 2026-09-10, a 15-row Mac file printed "100% supported" in
             # the same table as the lab's finished 47. The expected count is
@@ -689,39 +693,51 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
                 want = len(_judgeable(sweep[variant]))
                 got = sum(1 for r in rows if r.get("verdict") != "FAILED")
                 if got < want:
-                    print(f"     !! {variant} is INCOMPLETE — {got} of {want} "
-                          f"answers judged. Rates below are over what ran, not "
-                          f"over the run.")
-            print(f"     {'prompt':<14}{'judged':>8}{'SUPPORTED':>11}"
-                  f"{'PARTIAL':>9}{'UNSUPPORTED':>13}{'supported':>11}")
+                    print(
+                        f"     !! {variant} is INCOMPLETE — {got} of {want} "
+                        f"answers judged. Rates below are over what ran, not "
+                        f"over the run."
+                    )
+            print(
+                f"     {'prompt':<14}{'judged':>8}{'SUPPORTED':>11}{'PARTIAL':>9}{'UNSUPPORTED':>13}{'supported':>11}"
+            )
             for v, rows in one["variants"].items():
                 a = faithful.aggregate(rows)
-                print(f"     {v:<14}{a['judged']:>8}{a['SUPPORTED']:>11}"
-                      f"{a['PARTIAL']:>9}{a['UNSUPPORTED']:>13}"
-                      f"{a['supported_rate']:>10.0%}")
+                print(
+                    f"     {v:<14}{a['judged']:>8}{a['SUPPORTED']:>11}"
+                    f"{a['PARTIAL']:>9}{a['UNSUPPORTED']:>13}"
+                    f"{a['supported_rate']:>10.0%}"
+                )
             print()
         if faiths and len(faiths) > 1:
             # More than one machine is the GOOD case — the cross-machine finding was
             # measured from exactly that. The COUNT is computed: it read the literal word
             # "Two" while three blocks were printed above it, which is the
             # same defect as a hand-typed number in a doc.
-            print(f"     {len(faiths)} runs above. Compare them item by item, "
-                  f"not by the percentages: the finding is that these move.")
+            print(
+                f"     {len(faiths)} runs above. Compare them item by item, "
+                f"not by the percentages: the finding is that these move."
+            )
 
     print("\n5  THE JUDGE'S OWN CEILING — does it agree with a human?")
     if agreement["n"] == 0:
-        print(f"     NO SHEET. `uv run python -m rag.faithful --agreement` "
-              f"writes {AGREEMENT_NAME}.")
+        print(f"     NO SHEET. `uv run python -m rag.faithful --agreement` writes {AGREEMENT_NAME}.")
     elif not agreement["filled"]:
-        print(f"     {agreement['n']} verdicts in {AGREEMENT_NAME}, "
-              f"0 answered — a human has not read them yet.")
-        print("     An unmeasured judge is a precise instrument of unknown "
-              "accuracy. This line is the assumption the gate refuses.")
+        print(f"     {agreement['n']} verdicts in {AGREEMENT_NAME}, 0 answered — a human has not read them yet.")
+        print(
+            "     An unmeasured judge is a precise instrument of unknown "
+            "accuracy. This line is the assumption the gate refuses."
+        )
     else:
-        print(f"     {agreement['agree']} of {agreement['filled']} answered = "
-              f"{agreement['rate']:.0%} agreement"
-              + (f"   ({agreement['n'] - agreement['filled']} still blank)"
-                 if agreement["filled"] < agreement["n"] else ""))
+        print(
+            f"     {agreement['agree']} of {agreement['filled']} answered = "
+            f"{agreement['rate']:.0%} agreement"
+            + (
+                f"   ({agreement['n'] - agreement['filled']} still blank)"
+                if agreement["filled"] < agreement["n"]
+                else ""
+            )
+        )
         # The rate ALONE is the least useful true sentence available here, for
         # two reasons that both make it read worse than it is.
         #
@@ -735,19 +751,22 @@ def scorecard(items: list[dict], sweep: dict, variants: list[str],
         # 2026-09-11: all three disagreements said PARTIAL, so the judge was
         # not wrong at random, it was too extreme in both directions. That is
         # actionable and "70%" is not.
-        print("     Risk-weighted sample — every UNSUPPORTED and PARTIAL "
-              "first — so this is the rate on the")
+        print("     Risk-weighted sample — every UNSUPPORTED and PARTIAL first — so this is the rate on the")
         print("     HARDEST rows, not the judge's accuracy over the set.")
         fixes = agreement.get("corrections") or []
         if fixes:
             shape = sorted({c["should_be"] for c in fixes if c["should_be"]})
             for c in fixes:
-                print(f"       {c['id'] or '?'}: judge said "
-                      f"{c['judge_said'] or '?'}, human says "
-                      f"{c['should_be'] or '(not stated)'}")
+                print(
+                    f"       {c['id'] or '?'}: judge said "
+                    f"{c['judge_said'] or '?'}, human says "
+                    f"{c['should_be'] or '(not stated)'}"
+                )
             if len(shape) == 1:
-                print(f"     Every correction is {shape[0]}: the judge's error "
-                      f"is being too EXTREME, not being wrong at random.")
+                print(
+                    f"     Every correction is {shape[0]}: the judge's error "
+                    f"is being too EXTREME, not being wrong at random."
+                )
 
 
 def _arg(argv: list[str], flag: str, default=None):
@@ -771,10 +790,13 @@ def main() -> None:
         # Reads a saved sweep (rag.compare_prompts --golden --save) rather than
         # generating: the sheet must describe the run it is filed against.
         src = pathlib.Path(argv[argv.index("--open-cell") + 1])
-        out = pathlib.Path(argv[argv.index("--out") + 1]) if "--out" in argv else \
-            pathlib.Path("deliverables/OPEN-CELL-REVIEW.md")
+        out = (
+            pathlib.Path(argv[argv.index("--out") + 1])
+            if "--out" in argv
+            else pathlib.Path("deliverables/OPEN-CELL-REVIEW.md")
+        )
         saved = json.loads(src.read_text())
-        if "rows" in saved:                      # a judge --save file, one variant
+        if "rows" in saved:  # a judge --save file, one variant
             saved = {"(saved run)": saved["rows"]}
         n = open_cell_sheet(saved, items, out)
         print(f"{n} open-cell answers across {len(saved)} variant(s) -> {out}")
@@ -790,14 +812,12 @@ def main() -> None:
 
         sweep_path = DELIVERABLES / SWEEP_NAME
         if not sweep_path.exists():
-            sys.exit(f"{sweep_path} is missing — it is the saved prompt sweep "
-                     f"every answer-side figure is read from.")
+            sys.exit(f"{sweep_path} is missing — it is the saved prompt sweep every answer-side figure is read from.")
         sweep = json.loads(sweep_path.read_text())
         variants = _arg(argv, "--variants", "D,H").split(",")
         missing = [v for v in variants if v not in sweep]
         if missing:
-            sys.exit(f"{SWEEP_NAME} has no variant(s) {missing}; it holds "
-                     f"{sorted(sweep)}")
+            sys.exit(f"{SWEEP_NAME} has no variant(s) {missing}; it holds {sorted(sweep)}")
 
         retrieval = None
         if "--no-retrieval" not in argv:
@@ -809,13 +829,13 @@ def main() -> None:
         faiths = load_faith_files(DELIVERABLES)
         faith = faiths[0] if faiths else None
         agreement = faithful.read_agreement(DELIVERABLES / AGREEMENT_NAME)
-        scorecard(items, sweep, variants, faith, agreement, retrieval,
-                  sweep_machine=sweep.get("machine"), faiths=faiths)
+        scorecard(
+            items, sweep, variants, faith, agreement, retrieval, sweep_machine=sweep.get("machine"), faiths=faiths
+        )
         return
 
     if "--citations" not in argv:
-        sys.exit(__doc__.strip().splitlines()[0]
-                 + "\n\n  pass --citations, --report or --open-cell")
+        sys.exit(__doc__.strip().splitlines()[0] + "\n\n  pass --citations, --report or --open-cell")
 
     rows = judge_rows(items)
     report(rows, aggregate(rows))

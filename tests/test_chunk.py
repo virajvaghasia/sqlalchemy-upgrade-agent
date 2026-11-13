@@ -79,6 +79,7 @@ def test_table_rule_is_not_read_as_a_heading():
 
 # --- code blocks -----------------------------------------------------------
 
+
 def test_code_block_is_one_atom():
     blocks = chunk.split_blocks(SAMPLE.split("\n"))
     code = [b[1] for b in blocks if b[0] == "code"]
@@ -104,8 +105,7 @@ def test_pack_never_splits_a_block():
 def test_overlap_carries_whole_blocks_only():
     """The first version carried `tail[-200:]` and produced a chunk opening
     with the word "sed on". Overlap is whole prose blocks or nothing."""
-    blocks = [("prose", "A" * 300, 0, 1), ("prose", "B" * 1700, 2, 3),
-              ("prose", "C" * 1700, 4, 5)]
+    blocks = [("prose", "A" * 300, 0, 1), ("prose", "B" * 1700, 2, 3), ("prose", "C" * 1700, 4, 5)]
     out = chunk.pack(blocks, chunk.TARGET, chunk.HARD_MAX, chunk.OVERLAP_MAX)
     for text, _, _ in out:
         for part in text.split("\n\n"):
@@ -121,24 +121,31 @@ def test_code_is_never_carried_forward():
 
 # --- what counts as content ------------------------------------------------
 
-@pytest.mark.parametrize("markup", [
-    "===============",
-    ".. _connections_toplevel:",
-    ".. currentmodule:: sqlalchemy.types",
-    ".. toctree::\n    :maxdepth: 2\n\n    engines\n    connections",
-    ".. autoclass:: Index\n    :members:",
-])
+
+@pytest.mark.parametrize(
+    "markup",
+    [
+        "===============",
+        ".. _connections_toplevel:",
+        ".. currentmodule:: sqlalchemy.types",
+        ".. toctree::\n    :maxdepth: 2\n\n    engines\n    connections",
+        ".. autoclass:: Index\n    :members:",
+    ],
+)
 def test_markup_only_atoms_are_dropped(markup):
     """These retrieve nothing but can still win a short query, so they are
     worse than absent. 415 of the first run's 3860 chunks were this."""
     assert not chunk.is_content(markup)
 
 
-@pytest.mark.parametrize("real", [
-    ".. note::\n\n    The Session is not thread-safe, which matters when sharing one.",
-    ".. versionadded:: 2.0  The insertmanyvalues feature was added in this release.",
-    "A plain paragraph of documentation prose that genuinely explains a thing.",
-])
+@pytest.mark.parametrize(
+    "real",
+    [
+        ".. note::\n\n    The Session is not thread-safe, which matters when sharing one.",
+        ".. versionadded:: 2.0  The insertmanyvalues feature was added in this release.",
+        "A plain paragraph of documentation prose that genuinely explains a thing.",
+    ],
+)
 def test_real_content_survives(real):
     """note / versionadded / seealso are content, and often the most quotable
     content in the file. The filter is a named list, so unknown markup is kept."""
@@ -172,25 +179,32 @@ def test_glossary_splits_per_term():
 
 # SAMPLE above is deliberately tiny and every chunk from it falls under
 # MIN_CHARS, so it is dropped. These tests need paragraphs that survive.
-RANGE_SAMPLE = """\
+RANGE_SAMPLE = (
+    """\
 ================
 Engine and Rows
 ================
 
-""" + "\n\n".join(
-    f"Paragraph {n} explains a distinct part of the engine and connection API in "
-    f"enough words that the chunker keeps it rather than folding it away as markup."
-    for n in range(1, 8)
-) + """
+"""
+    + "\n\n".join(
+        f"Paragraph {n} explains a distinct part of the engine and connection API in "
+        f"enough words that the chunker keeps it rather than folding it away as markup."
+        for n in range(1, 8)
+    )
+    + """
 
 Using SELECT
 ============
 
-""" + "\n\n".join(
-    f"Section paragraph {n} describes selecting rows and how the 2.0 form differs "
-    f"from the 1.4 one, at a length the minimum-size floor will not discard."
-    for n in range(1, 6)
-) + "\n"
+"""
+    + "\n\n".join(
+        f"Section paragraph {n} describes selecting rows and how the 2.0 form differs "
+        f"from the 1.4 one, at a length the minimum-size floor will not discard."
+        for n in range(1, 6)
+    )
+    + "\n"
+)
+
 
 def test_a_chunk_reports_where_in_the_source_it_came_from(tmp_path):
     """Step 2's "Done when" asks for source file, heading path AND character
@@ -211,7 +225,7 @@ def test_the_range_actually_brackets_the_chunk(tmp_path):
     src = tmp_path / "sample.rst"
     src.write_text(RANGE_SAMPLE)
     for c in chunk.chunk_file(src, "2.0.51", "doc/build/sample.rst"):
-        span = RANGE_SAMPLE[c["char_start"]:c["char_end"]]
+        span = RANGE_SAMPLE[c["char_start"] : c["char_end"]]
         body = [l.strip() for l in c["text"].split("\n") if l.strip()]
         assert body[0] in span, f"chunk starts outside its own range: {body[0]!r}"
         assert body[-1] in span, f"chunk ends outside its own range: {body[-1]!r}"
@@ -220,6 +234,7 @@ def test_the_range_actually_brackets_the_chunk(tmp_path):
 def test_every_chunk_in_the_corpus_has_a_sane_range():
     """chunks.jsonl is generated and gitignored, so this skips in CI."""
     import json
+
     if not chunk.CHUNKS_PATH.exists():
         pytest.skip("no chunks.jsonl — run rag.chunk")
     chunks = [json.loads(l) for l in chunk.CHUNKS_PATH.read_text().splitlines()]
@@ -238,6 +253,7 @@ def test_sample_does_not_write_anything(tmp_path, monkeypatch):
     whose vectors point at the wrong text, with no error anywhere.
     """
     import sys
+
     if not chunk.CHUNKS_PATH.exists():
         pytest.skip("no chunks.jsonl — run rag.chunk")
     before = (chunk.CHUNKS_PATH.stat().st_mtime_ns, chunk.STATS_PATH.stat().st_mtime_ns)
@@ -248,6 +264,7 @@ def test_sample_does_not_write_anything(tmp_path, monkeypatch):
 
 
 # --- the corpus that actually got chunked ----------------------------------
+
 
 def test_stats_parameters_match_the_module():
     """The committed stats describe the code as it stands, not a past run."""
@@ -285,10 +302,19 @@ def test_both_versions_are_represented():
 # corpus/raw/ is absent. The corpus-wide numbers are pinned separately, off the
 # committed stats file.
 
+
 def _c(cid, text, start, end, path="doc/build/x.rst", version="2.0.51"):
-    return {"id": cid, "text": text, "char_start": start, "char_end": end,
-            "source_path": path, "sqlalchemy_version": version, "n_chars": len(text),
-            "has_code": False, "heading_path": []}
+    return {
+        "id": cid,
+        "text": text,
+        "char_start": start,
+        "char_end": end,
+        "source_path": path,
+        "sqlalchemy_version": version,
+        "n_chars": len(text),
+        "has_code": False,
+        "heading_path": [],
+    }
 
 
 def test_backward_opener_fires_on_a_real_dangling_reference():
@@ -298,8 +324,7 @@ def test_backward_opener_fires_on_a_real_dangling_reference():
     Note it does not pin any single branch of the pattern: two alternatives
     match this string, so breaking one leaves the test green. That is the
     detector being robust, not the test being strong -- checked by mutation."""
-    assert chunk.OPENS_BACKWARD.search(
-        "While the above example is against the built-in :class:`.AddConstraint`")
+    assert chunk.OPENS_BACKWARD.search("While the above example is against the built-in :class:`.AddConstraint`")
 
 
 def test_backward_opener_ignores_a_chunk_that_repairs_itself():
@@ -307,8 +332,7 @@ def test_backward_opener_ignores_a_chunk_that_repairs_itself():
     what was constructed in the same sentence, so it stands alone. This is the
     control: without it the audit only measures how eagerly the regex fires,
     and every number it prints would be meaningless."""
-    assert not chunk.OPENS_BACKWARD.search(
-        "We've constructed a fairly elaborate object hierarchy to represent")
+    assert not chunk.OPENS_BACKWARD.search("We've constructed a fairly elaborate object hierarchy to represent")
 
 
 def test_audit_counts_a_chunk_ending_on_a_promise():

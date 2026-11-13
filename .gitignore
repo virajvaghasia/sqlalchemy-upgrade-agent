@@ -52,7 +52,5 @@ deliverables/VERDICTS-FULL.md
 # Phase 6 Step 4: the assembled Hugging Face Space bundle (space/build.py). A deployment, not source.
 space/dist/
 
-# Local tooling, not part of the project
-.claude/
-.agents/
-graphify-out/
+# Runtime ledgers (rag/usage.py writes logs/nvidia-usage.jsonl)
+logs/

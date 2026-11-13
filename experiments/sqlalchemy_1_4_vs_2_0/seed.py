@@ -3,15 +3,15 @@ seed.py — build a database big enough for the problems to show up.
 
 `explore.py` seeds 21 rows you can hold in your head. This seeds ~200 issues, which
 is the point: an N+1 over 9 rows is a curiosity, an N+1 over 200 is a bug you can
-measure. Step 5 counts the queries against this data, and Step 9 compares.
+measure. migration.py counts the queries against this data.
 
-Writes a real SQLite **file** (not in-memory), because `app.py` in Step 4 needs to
+Writes a real SQLite **file** (not in-memory), because `app.py` needs to
 open the same database in a separate process.
 
 Run:  uv run python -m experiments.sqlalchemy_1_4_vs_2_0.seed
 
 Re-running drops and rebuilds — the row counts stay identical because RANDOM_SEED is
-fixed, so the query counts you write down in Step 5 remain reproducible.
+fixed, so the measured query counts remain reproducible.
 """
 
 import os
@@ -33,10 +33,10 @@ DB_URL = f"sqlite:///{DB_PATH}"
 DB_URL = os.getenv("DATABASE_URL", DB_URL)
 
 # Fixed so the counts never move between runs. If this changed run to run, the
-# before/after comparison in Step 9 would be meaningless. The "before" is
+# before/after comparison of an eager-loading fix would be meaningless. The "before" is
 # counted, not estimated: issue_report() fires 204 queries against this data
 # (200 for .comments, 3 for .project, 1 for the issues themselves) — see
-# migration.py §7.
+# migration.py section 7.
 RANDOM_SEED = 20260803
 
 N_ISSUES = 200
@@ -124,7 +124,7 @@ def wait_for_db(engine, attempts=30, delay=1.0):
 
 
 def make_engine(echo=False, wait=True):
-    """Single source of truth for the DB location, imported by app.py in Step 4.
+    """Single source of truth for the DB location, imported by app.py.
 
     `wait=True` makes this block until the database answers. SQLite answers
     instantly, so this costs nothing locally; against Postgres it is what makes
@@ -181,14 +181,14 @@ def seed(engine):
             title=f"{rng.choice(AREAS)} {rng.choice(PROBLEMS)}",
             description=rng.choice(BODIES),
             # weighted so most issues are open — a realistic backlog, and it makes
-            # the "list open issues" query in Step 4 return something interesting
+            # the "list open issues" query in app.py return something interesting
             status=rng.choices(
                 ["open", "in_progress", "closed"], weights=[6, 2, 3]
             )[0],
             created_at=created,
         )
         # Attach to a project via the relationship, never by writing project_id.
-        # The save-update cascade pulls the issue into the session too (CONCEPTS §14).
+        # The save-update cascade pulls the issue into the session too.
         rng.choice(projects).issues.append(issue)
         issues.append(issue)
 

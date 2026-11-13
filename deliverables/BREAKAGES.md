@@ -6,7 +6,7 @@ The Phase 0 Part A deliverable, and the seed of the Phase 2 golden dataset. Part
 Measured on 2.0.51, against `models.py` in this repo. Each entry is 1.4 code
 that ran clean on 1.4.52 and fails on 2.0.
 
-**Status: DRAFT — verified to run, not verified to be right.**
+**Status: every fix shown was executed on 2.0 and runs.**
 
 | field | where it comes from |
 |---|---|
@@ -16,15 +16,15 @@ that ran clean on 1.4.52 and fails on 2.0.
 | Docs | 1.4's own deprecation text, verbatim |
 | Tier | `candidates.py`, measured on 1.4, passed via `tiers.json` |
 
-A draft fix runs. That is not the same as it being the *right* fix. 6 entries carry
+A fix that runs is not automatically the *right* fix. 6 entries carry
 an **Also defensible** block listing the other answers that work — because presenting
 one option where several exist hides the decision instead of making it. Every option
 shown is executed here too, so the choice is between things that all provably run.
-Choosing between them is a judgement; edit them into your own words.
+Choosing between them is a judgement.
 
-> **Do not regenerate over this file once you have edited it.** The generator
-> prints fresh drafts; redirecting it onto `deliverables/BREAKAGES.md` would erase every word
-> you wrote over them. Diff instead:
+> **This file is generated as a skeleton and then edited by hand.** Redirecting the
+> generator onto `deliverables/BREAKAGES.md` would erase the hand-written explanations.
+> Diff instead:
 >
 > ```bash
 > uv run --no-project --with 'sqlalchemy==2.0.51' \
@@ -228,8 +228,8 @@ session.execute(text("SELECT 1"))
 **Same rule on Session.**
 
 ```python
-session.execute("SELECT 1")           # 2.0 ArgumentError
-session.execute(text("SELECT 1"))     # OK
+session.execute("SELECT 1")  # 2.0 ArgumentError
+session.execute(text("SELECT 1"))  # OK
 ```
 
 The error text even tells you the fix. **Tier note:** `future=True` on 1.4 still says
@@ -298,7 +298,8 @@ inspect(engine).get_table_names()
 
 ```python
 from sqlalchemy import inspect
-inspect(engine).get_table_names()   # ["users", "issues", ...]
+
+inspect(engine).get_table_names()  # ["users", "issues", ...]
 ```
 
 Those are **not two errors for the same run**. Same call, three environments:
@@ -363,7 +364,7 @@ MetaData.__init__() got an unexpected keyword argument 'bind'
 
 ```python
 # 2.0
-MetaData()   # then pass the engine explicitly:
+MetaData()  # then pass the engine explicitly:
 metadata.create_all(engine)
 ```
 
@@ -377,8 +378,8 @@ create_all()          → uses the secret engine
 **What 2.0 does:** `bind=` is not a valid argument (`TypeError`).
 
 ```python
-metadata = MetaData()           # no engine
-metadata.create_all(engine)     # engine at the call site
+metadata = MetaData()  # no engine
+metadata.create_all(engine)  # engine at the call site
 ```
 
 **Why:** you can read which DB a call hits. Implicit bind was the same "hidden connection"
@@ -432,9 +433,9 @@ select(Issue.id)
 literally says "Did you mean `select(<that column>)`?"
 
 ```python
-select([Issue.id])                 # 1.4: one list
-select(Issue.id)                   # 2.0: the column itself
-select(Issue.id, Issue.title)      # more columns = more arguments, not a bigger list
+select([Issue.id])  # 1.4: one list
+select(Issue.id)  # 2.0: the column itself
+select(Issue.id, Issue.title)  # more columns = more arguments, not a bigger list
 ```
 
 
@@ -473,8 +474,8 @@ case((Issue.id == 1, "a"), else_="b")
 Drop the outer list; each `(condition, result)` is an argument:
 
 ```python
-case([(Issue.id == 1, "a")], else_="b")     # 1.4
-case((Issue.id == 1, "a"), else_="b")       # 2.0
+case([(Issue.id == 1, "a")], else_="b")  # 1.4
+case((Issue.id == 1, "a"), else_="b")  # 2.0
 case(
     (Issue.status == "open", "OPEN"),
     (Issue.status == "closed", "DONE"),
@@ -560,8 +561,8 @@ query(Issue).filter(Issue.status == "open")
 (typo-checked). Escape hatch: still raw SQL, but marked with `text()`.
 
 ```python
-query(Issue).filter(Issue.status == "open")           # preferred — typo-checked
-query(Issue).filter(text("status='open'"))            # still raw SQL, but marked
+query(Issue).filter(Issue.status == "open")  # preferred — typo-checked
+query(Issue).filter(text("status='open'"))  # still raw SQL, but marked
 ```
 
 **Also defensible is real:** if the WHERE is assembled elsewhere or uses dialect SQL,
@@ -858,9 +859,9 @@ take integer indices → `TypeError`.
 
 ```python
 row = conn.execute(text("SELECT id FROM issues")).fetchone()
-row["id"]            # 1.4 OK; 2.0 TypeError
-row._mapping["id"]   # dict view
-row.id               # namedtuple, if the name is a valid identifier
+row["id"]  # 1.4 OK; 2.0 TypeError
+row._mapping["id"]  # dict view
+row.id  # namedtuple, if the name is a valid identifier
 ```
 
 **Why `_mapping`:** the dict-like view moved off the Row itself.
@@ -906,8 +907,8 @@ On 2.0, `row.keys` is treated as "give me the column named `keys`," not "dict `.
 Hence: `Could not locate column in row for column 'keys'`.
 
 ```python
-row._mapping.keys()   # dict-like names
-row._fields           # namedtuple field names
+row._mapping.keys()  # dict-like names
+row._fields  # namedtuple field names
 ```
 
 
@@ -965,9 +966,9 @@ Issue1+c1, Issue1+c2, Issue2+c3, ...   (more SQL rows than Issues)
 ```
 
 ```python
-session.execute(stmt).all()                      # raises
-session.execute(stmt).scalars().all()            # still raises — .unique() is on Result
-session.execute(stmt).unique().scalars().all()   # OK
+session.execute(stmt).all()  # raises
+session.execute(stmt).scalars().all()  # still raises — .unique() is on Result
+session.execute(stmt).unique().scalars().all()  # OK
 
 # often better: no JOIN multiplication
 select(Issue).options(selectinload(Issue.comments))
@@ -1013,9 +1014,9 @@ autocommit=True is no longer supported
 
 ```python
 # 2.0
-Session(bind=engine)      # autobegin: the transaction opens on first use
+Session(bind=engine)  # autobegin: the transaction opens on first use
 ...
-session.commit()          # and you end it explicitly
+session.commit()  # and you end it explicitly
 ```
 
 **No replacement flag.** 1.4 `autocommit=True` ≈ Session tries not to hold a transaction.
@@ -1028,9 +1029,9 @@ you commit/rollback → you end it
 ```
 
 ```python
-Session(bind=engine)   # no autocommit=True
+Session(bind=engine)  # no autocommit=True
 ...
-session.commit()       # even for read-only: end the txn (vacuum / expiry)
+session.commit()  # even for read-only: end the txn (vacuum / expiry)
 ```
 
 Same story as "read-only session still needs commit": on Postgres a long-open read blocks
@@ -1067,7 +1068,7 @@ Session.begin() got an unexpected keyword argument 'subtransactions'
 
 ```python
 # 2.0
-session.begin_nested()    # a real SAVEPOINT
+session.begin_nested()  # a real SAVEPOINT
 ```
 
 **Subtransaction (1.4):** fake nesting in Python. **No SQL.** Outer rollback still undoes
@@ -1115,13 +1116,13 @@ session.transaction
 
 ```python
 # 2.0
-session.get_transaction()        # or session.in_transaction()
+session.get_transaction()  # or session.in_transaction()
 ```
 
 ```python
-session.transaction          # gone
-session.get_transaction()    # the txn object, or None
-session.in_transaction()     # True/False
+session.transaction  # gone
+session.get_transaction()  # the txn object, or None
+session.in_transaction()  # True/False
 ```
 
 2.0: "is there a txn?" is a **question** (`in_transaction()`), not an attribute you poke.
@@ -1147,8 +1148,10 @@ _sweep only - flag misses it_ (measured on 1.4 by `candidates.py`)
 
 ```python
 # 1.4 — worked: the backref cascade enrolled `issue` with no session.add()
-project = Project(name='apollo'); session.add(project)
-issue = Issue(title='...'); issue.project = project
+project = Project(name="apollo")
+session.add(project)
+issue = Issue(title="...")
+issue.project = project
 session.flush()
 ```
 
@@ -1166,9 +1169,9 @@ A passing test suite does not see this unless it asserts on row counts.
 
 ```python
 # 2.0
-issue = Issue(title='...')
+issue = Issue(title="...")
 issue.project = project
-session.add(issue)          # <- the line 1.4 let you leave out
+session.add(issue)  # <- the line 1.4 let you leave out
 ```
 
 The one line 1.4 let you omit. Explicit, local, and works on both versions.
@@ -1190,7 +1193,7 @@ asserts on row counts.
 **Also defensible** — _all three work; they differ in what they cost you._
 
 ```python
-project.issues.append(issue)     # write the COLLECTION side instead
+project.issues.append(issue)  # write the COLLECTION side instead
 ```
 
 The save-update cascade proper survives 2.0, so this needs no `session.add()` at all.
@@ -1199,7 +1202,7 @@ as identical to the broken form on 1.4, so it does not help you FIND the other s
 
 ```python
 # in models.py, while still on 1.4
-issues = relationship('Issue', backref=backref('project', cascade_backrefs=False))
+issues = relationship("Issue", backref=backref("project", cascade_backrefs=False))
 ```
 
 Adopts the 2.0 behaviour before upgrading, which turns a silent 2.0 data loss into a

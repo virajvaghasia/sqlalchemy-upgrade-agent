@@ -1,103 +1,61 @@
 """
-Phase 4 — faithfulness: is this claim actually supported by the page it cites?
+Faithfulness: is this claim actually supported by the page it cites?
 
     uv run python -m rag.faithful --check            # one call; proves the key works
     uv run python -m rag.faithful --models           # what this key can actually pin to
     uv run python -m rag.faithful --sweep --local    # judge the saved D/H answers
     uv run python -m rag.faithful --sweep --local --resume   # pick up a killed run
     uv run python -m rag.faithful --claims g056      # one item, sentence by sentence
-    uv run python -m rag.faithful --agreement        # Step 5's ten, for a human
+    uv run python -m rag.faithful --agreement        # ten verdicts for a human to check
     uv run python -m rag.faithful --cross-check gemini-3.8-flash   # a 2nd model on those ten
 
-THE HALF THAT NEEDS A MODEL, AND WHY IT WAITED
+WHAT THIS ADDS TO rag/judge.py
 
 `rag/judge.py` measures everything about an answer that can be counted:
 citations that point at sources which exist, code blocks with no source
 attached, and dotted API calls that appear in none of the retrieved pages.
-All deterministic, no key, no free tier, exact.
+All deterministic, no key, exact.
 
 What none of it reaches is a claim made in **prose**. `g056` is the standing
 example: it fabricates in sentences rather than in a code block, so the
-groundedness detector is structurally blind to it. "Is this sentence supported by that passage" is a reading task, and
-reading needs a reader.
+groundedness detector cannot see it. "Is this sentence supported by that
+passage" is a reading task, and reading needs a reader. This module is the
+reader: a judge model given the answer and the passages the answer was built
+from, returning SUPPORTED, PARTIAL or UNSUPPORTED with a reason.
 
-WHAT "PINNED" IS ACTUALLY BUYING, WHICH IS LESS THAN IT FIRST SEEMED
+THE TWO PROPERTIES A JUDGE RUN MUST HAVE
 
-The first plan argued the judge must be pinned "the same way swapping the
-golden set would" invalidate rows. **That analogy imported the
-conclusion without the cost structure.** Re-cutting the golden ruler is ~25
-hours of human verification; re-running this judge is ~60 calls and a few
-minutes. Pinning is a convenience here, not a correctness requirement.
+  * **Same judge, both arms, one sitting.** Model output drifts from day to
+    day even at temperature 0, so two prompts are only comparable when the same
+    judge reads both in one run. A sweep uses one model id for both arms or it
+    is not a comparison; switching model mid-run is refused.
+  * **Agreement with a human, measured.** `--agreement` renders ten verdicts
+    for a hand check. A judge with unmeasured agreement is a precise instrument
+    of unknown accuracy.
 
-Two properties ARE tight, and neither is the snapshot id:
+Pinning the judge's model id is a convenience, not a correctness requirement:
+re-running the judge costs about 110 calls. So `MODEL` is recorded rather than
+defended, and `stamp()` writes the model and the machine onto every row, so a
+later run that disagrees has something to compare against.
 
-  * **Same judge, both arms, one sitting.** Refusal cells drift from day to day,
-    so arms are compared within one sitting; the same holds for the judge.
-    Judge D on Monday and H on Friday and the comparison is
-    worthless no matter how carefully the model was pinned. Free to honour.
-  * **Agreement with a human, measured.** Step 5 asks for a hand-check of ten.
-    A pinned judge with unmeasured agreement is a precise instrument of unknown
-    accuracy, and `g065` is the proof that the unmeasurable label is exactly
-    where this repo has been wrong before.
+WHY THE JUDGE IS LOCAL
 
-So `MODEL` below is recorded rather than defended, and every row this module
-writes carries the model that produced it. A future run that disagrees then has
-something to blame instead of a mystery.
+The hosted free tier allows 20 requests per day per model (the 429 body names
+the quota), and one sweep of both arms needs about 110. Spreading a run over
+six days would break the one-sitting property, so `--local` judges with
+`gemma4:e4b` on Ollama. The generator is `qwen2.5-coder:7b`, a different model
+family, so nothing grades its own output.
 
-WHY THE MODEL ID IS NOT HARDCODED FROM MEMORY
+CHOOSING A HOSTED MODEL ID
 
-Model ids churn and a stale one 404s. `--models` asks the key what it can
-actually reach and prints the ids, so the pin is chosen from what exists rather
-than from what someone remembered. Put the chosen id in `MODEL` and it travels
-into every row.
+Model ids churn: an id written from memory returned 404, and an id pinned three
+days earlier answered 503 while its neighbours answered. `--models` lists what
+the key can reach, and the listing can include ids that fail when called, so
+`--check` (exactly one call) is the authority. `--model` overrides `MODEL`
+without a code edit.
 
-**Measured on 2026-08-31, first contact with a real key.** `gemini-2.5-flash`
--- written here from memory -- returned:
-
-    HTTP 404: This model models/gemini-2.5-flash is no longer available to new
-    users. Please update your code to use models/gemini-3.6-flash
-
-and the key itself was fine: a 404 on the model, not a 401 on the credential.
-That is the whole argument for `--models` in one response.
-
-**AND THE CATALOG IS NOT THE TRUTH.** `--models` lists `gemini-2.5-flash` --
-the same id that had just 404'd. The listing is what the API advertises; what a
-call does is what a call does. **`--check` is the authority, not `--models`.**
-So `--models` is for discovering candidates and `--check` is for confirming
-one, and neither substitutes for the other.
-
-No dated snapshot exists for the stable flash line -- the dated ids in the
-catalog are all previews -- so the best available pin is a version-numbered id,
-not `gemini-flash-latest`, which floats by design and is exactly what a pin exists
-to avoid.
-
-**AND THEN THE PIN ITSELF WENT AWAY. Measured 2026-09-03**, which is
-the day the argument stopped being theoretical:
-
-    gemini-3.6-flash     FAIL HTTP 503 from gemini-3.6-flash
-    gemini-3.5-flash     OK   SUPPORTED
-    gemini-3.7-flash     OK   SUPPORTED
-    gemini-3.8-flash     OK   SUPPORTED
-
-One call each, same key, same minute. `gemini-3.6-flash` -- the id pinned three
-days earlier and written into this constant -- answered 503 "experiencing high
-demand" through four retries, while three neighbours answered on the first
-attempt. **A pinned id is a promise about a name, not about a service.**
-
-The judge decision already said the snapshot is a convenience and the tight properties are
-*same judge, both arms, one sitting* and *agreement measured against a human*.
-Both survive this intact: `MODEL` moves to `gemini-3.7-flash`, `stamp()` puts
-that id on every row it produces, and `--model` overrides it without a code
-edit the next time a flash model is busy. What is NOT allowed is switching
-model **mid-run** -- that breaks the one property that actually matters, so a
-sweep uses one id for both arms or it is not a comparison.
-
-ZERO PAID API CALLS (unchanged, and this module cannot enforce it)
-
-The free tier is the constraint. This module does not and cannot check whether
-billing is attached to the key -- that is a property of the Google Cloud
-project, not of the request. `--check` makes exactly ONE call so that finding
-out the key is wrong costs one call rather than a hundred.
+This module cannot check whether billing is attached to a key; that is a
+property of the cloud project, not of the request.
 """
 
 from __future__ import annotations
@@ -186,15 +144,12 @@ def _post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
 
 
 def _get(path: str, key: str, timeout: int = 30) -> dict:
-    request = urllib.request.Request(
-        f"{API_ROOT}/{path}", headers={"x-goog-api-key": key}
-    )
+    request = urllib.request.Request(f"{API_ROOT}/{path}", headers={"x-goog-api-key": key})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read())
 
 
-def generate(prompt: str, *, key: str, model: str = MODEL,
-             post=_post) -> str:
+def generate(prompt: str, *, key: str, model: str = MODEL, post=_post) -> str:
     """One non-streaming call to the judge. `post` is injectable so every test
     in this module runs without a key and without a network."""
     data = post(
@@ -231,18 +186,17 @@ def parse_verdict(text: str) -> tuple[str, str]:
         return "UNPARSED", text.strip()
     # The reason may sit on the verdict's own line (`SUPPORTED: because ...`)
     # or on the next one. Keep both rather than dropping whichever is second.
-    tail = head[head.upper().index(verdict) + len(verdict):].lstrip("*_`:-— ")
+    tail = head[head.upper().index(verdict) + len(verdict) :].lstrip("*_`:-— ")
     return verdict, "\n".join(x for x in (tail.strip(), rest.strip()) if x)
 
 
-def judge_claim(claim: str, passages: list[str], *, key: str,
-                model: str = MODEL, post=_post) -> dict:
-    numbered = "\n\n".join(
-        f"[{n}] {p}" for n, p in enumerate(passages, start=1)
-    )
+def judge_claim(claim: str, passages: list[str], *, key: str, model: str = MODEL, post=_post) -> dict:
+    numbered = "\n\n".join(f"[{n}] {p}" for n, p in enumerate(passages, start=1))
     raw = generate(
         JUDGE_PROMPT.format(claim=claim, passages=numbered),
-        key=key, model=model, post=post,
+        key=key,
+        model=model,
+        post=post,
     )
     verdict, reason = parse_verdict(raw)
     return stamp({"claim": claim, "verdict": verdict, "reason": reason}, model)
@@ -264,8 +218,8 @@ def stamp(row: dict, model: str = MODEL) -> dict:
     The judge stamp keeps the property that matters: not that the model never changes, but that a
     row never loses track of which model read it.
 
-    **The machine stamp was added 2026-09-05, because the lab measured what
-    Round 15 had written down as the second possible outcome.** Same judge
+    **The machine stamp was added 2026-09-05, because a second machine measured
+    the outcome the run's own plan had named as possible.** Same judge
     (`gemma4:e4b`), same saved answers, same corpus, temperature 0 — and prompt
     D's supported rate came back **85% on the Mac and 77% on the 3060**. The
     verdicts are not machine-independent, so a row that records only its judge
@@ -274,7 +228,7 @@ def stamp(row: dict, model: str = MODEL) -> dict:
     lab's while `prompt-sweep-phase4.json` stayed the Mac's, and nothing in
     either file said so.
 
-    Round 15's own pre-decided reading called for this before the data arrived:
+    The reading written down before that run called for this:
     *"then every faithfulness figure has to carry its machine the way rows
     already carry their judge model."*
     """
@@ -335,8 +289,7 @@ RETRY_ATTEMPTS = 4
 PACE_SECONDS = 6.0
 
 
-def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
-             sleep=time.sleep):
+def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0, sleep=time.sleep):
     """Wrap a transport so overload and rate limits are survived, not fatal.
 
     A transport decorator rather than a branch inside `generate()`, so every
@@ -348,6 +301,7 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
     `socket.timeout` IS a `TimeoutError` and is NOT a `URLError`, so a handler
     written for one silently does not cover the other.
     """
+
     def wrapped(path, body, key, timeout=120):
         for attempt in range(1, attempts + 1):
             try:
@@ -376,14 +330,15 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
                 if attempt == attempts:
                     raise
                 sleep(backoff * attempt)
-        raise RuntimeError("unreachable")          # pragma: no cover
+        raise RuntimeError("unreachable")  # pragma: no cover
+
     return wrapped
 
 
 # --- the local judge, and why it is not a downgrade -------------------------
 #
-# MEASURED 2026-09-03, and it contradicts the original judge decision in as many words. That decision sized the
-# judging workload and concluded:
+# MEASURED 2026-09-03, and it contradicts the assumption this judge was first designed on,
+# which sized the judging workload and concluded:
 #
 #     "Rate limits are not the constraint on any free tier, which removes the
 #      reason most people pick one."
@@ -395,11 +350,11 @@ def retrying(post=_post, attempts: int = RETRY_ATTEMPTS, backoff: float = 15.0,
 #
 # **Twenty requests per day, per model.** D + H over the saved sweep is about
 # 110 calls, so the API judge cannot finish this comparison today, tomorrow, or
-# in any single sitting -- and the decision's own tight property is that both arms are
+# in any single sitting -- and the one property that matters is that both arms are
 # judged by the same judge in ONE sitting. Spreading a run across six days to
 # fit the quota does not satisfy it; it destroys it.
 #
-# The escape is not a bigger quota. It is that the original decision already named the fallback
+# The escape is not a bigger quota. It is that the original design already named the fallback
 # and gave the reason it is a good one:
 #
 #     "A local judge is in fact MORE pinnable than any API -- you hold the
@@ -441,7 +396,7 @@ LOCAL_CONTEXT = 8192
 def local_digests(timeout: int = 10) -> dict:
     """`{model name: content digest}` from Ollama, or `{}` if it is not there.
 
-    Needed because a name is not an identity. Measured 2026-09-03 on this Mac:
+    Needed because a name is not an identity. Measured 2026-09-03 on an M4 Mac:
 
         NAME                ID              SIZE
         gpt-5.5:latest      c6eb396dbd59    9.6 GB
@@ -488,22 +443,24 @@ def local_post(path: str, body: dict, key: str, timeout: int = 300) -> dict:
     """
     model = path.removeprefix("models/").removesuffix(":generateContent")
     prompt = body["contents"][0]["parts"][0]["text"]
-    payload = json.dumps({
-        "model": model,
-        "stream": False,
-        # Same reason ask.py pins it: a judge that answers differently on
-        # re-read cannot be compared with itself.
-        "options": {"temperature": 0.0, "num_ctx": LOCAL_CONTEXT},
-        "messages": [{"role": "user", "content": prompt}],
-    }).encode()
+    payload = json.dumps(
+        {
+            "model": model,
+            "stream": False,
+            # Same reason ask.py pins it: a judge that answers differently on
+            # re-read cannot be compared with itself.
+            "options": {"temperature": 0.0, "num_ctx": LOCAL_CONTEXT},
+            "messages": [{"role": "user", "content": prompt}],
+        }
+    ).encode()
     request = urllib.request.Request(
-        f"{OLLAMA_URL}/api/chat", data=payload,
+        f"{OLLAMA_URL}/api/chat",
+        data=payload,
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         data = json.loads(response.read())
-    return {"candidates": [{"content": {"parts": [
-        {"text": data["message"]["content"]}]}}]}
+    return {"candidates": [{"content": {"parts": [{"text": data["message"]["content"]}]}}]}
 
 
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
@@ -535,14 +492,18 @@ def nvidia_post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
     others -- a 429 here is the free-credit rate limit.
     """
     model = path.removeprefix("models/").removesuffix(":generateContent")
-    payload = json.dumps({
-        # Reasoning model: the budget covers thinking before the one-word verdict.
-        "model": model, "temperature": 0.0, "max_tokens": 4096,
-        "messages": [{"role": "user", "content": body["contents"][0]["parts"][0]["text"]}],
-    }).encode()
+    payload = json.dumps(
+        {
+            # Reasoning model: the budget covers thinking before the one-word verdict.
+            "model": model,
+            "temperature": 0.0,
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": body["contents"][0]["parts"][0]["text"]}],
+        }
+    ).encode()
     request = urllib.request.Request(
-        NVIDIA_URL, data=payload,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+        NVIDIA_URL, data=payload, headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
+    )
     from rag import usage as usage_mod
 
     try:
@@ -552,8 +513,7 @@ def nvidia_post(path: str, body: dict, key: str, timeout: int = 120) -> dict:
         usage_mod.record(model, None, "faithful.nvidia_post", status=exc.code)
         raise
     usage_mod.record(model, data.get("usage"), "faithful.nvidia_post")
-    return {"candidates": [{"content": {"parts": [
-        {"text": data["choices"][0]["message"].get("content") or ""}]}}]}
+    return {"candidates": [{"content": {"parts": [{"text": data["choices"][0]["message"].get("content") or ""}]}}]}
 
 
 # --- judging a whole answer -------------------------------------------------
@@ -614,8 +574,7 @@ def sentences(text: str) -> list[str]:
     return [p.strip() for p in parts if len(p.split()) >= MIN_WORDS_TO_JUDGE]
 
 
-def judge_answer(answer: str, passages: list[str], *, key: str,
-                 model: str = MODEL, post=_post) -> dict:
+def judge_answer(answer: str, passages: list[str], *, key: str, model: str = MODEL, post=_post) -> dict:
     """One verdict for one answer, against the pages that answer was given.
 
     An answer whose prose is too short to carry a claim is recorded `NO_PROSE`
@@ -626,9 +585,9 @@ def judge_answer(answer: str, passages: list[str], *, key: str,
     """
     claim = prose(answer)
     if len(claim.split()) < MIN_WORDS_TO_JUDGE:
-        return stamp({"claim": claim, "verdict": "NO_PROSE",
-                      "reason": "no prose to judge; code is judge.py's half"},
-                     model)
+        return stamp(
+            {"claim": claim, "verdict": "NO_PROSE", "reason": "no prose to judge; code is judge.py's half"}, model
+        )
     return judge_claim(claim, passages, key=key, model=model, post=post)
 
 
@@ -670,10 +629,10 @@ CHECKPOINT_EVERY = 10
 # default stays text-only so the committed runs remain reproducible; `headings`
 # is the re-measurement. A test holds this byte-equal to build_prompt's block.
 
+
 def passage_as_shown(payload: dict) -> str:
     heading = " > ".join(payload["heading_path"]) or "(no heading)"
-    return (f"SQLAlchemy {payload['sqlalchemy_version']} — {payload['source_path']}\n"
-            f"     {heading}\n\n{payload['text']}")
+    return f"SQLAlchemy {payload['sqlalchemy_version']} — {payload['source_path']}\n     {heading}\n\n{payload['text']}"
 
 
 def passages_for(hits, headings: bool) -> list[str]:
@@ -684,6 +643,7 @@ def compare_headings(text: dict, head: dict) -> dict:
     """Per arm: SUPPORTED yes/no flips from the text-only run to the headings run,
     over items readable in both. Then D vs H paired, both judged with headings."""
     from rag import score
+
     readable = lambda v: v in VERDICTS
     out = {}
     for arm in sorted(text.keys() & head.keys()):
@@ -692,25 +652,35 @@ def compare_headings(text: dict, head: dict) -> dict:
         both = sorted(i for i in a.keys() & b.keys() if readable(a[i]) and readable(b[i]))
         up = [i for i in both if a[i] != "SUPPORTED" and b[i] == "SUPPORTED"]
         down = [i for i in both if a[i] == "SUPPORTED" and b[i] != "SUPPORTED"]
-        rate = lambda d: (sum(d[i] == "SUPPORTED" for i in d if readable(d[i])),
-                          sum(readable(d[i]) for i in d))
-        out[arm] = {"n": len(both), "up": up, "down": down,
-                    "p": score.mcnemar_exact(len(up), len(down)), "text": rate(a), "headings": rate(b)}
+        rate = lambda d: (sum(d[i] == "SUPPORTED" for i in d if readable(d[i])), sum(readable(d[i]) for i in d))
+        out[arm] = {
+            "n": len(both),
+            "up": up,
+            "down": down,
+            "p": score.mcnemar_exact(len(up), len(down)),
+            "text": rate(a),
+            "headings": rate(b),
+        }
     if "D" in head and "H" in head:
         d = {r["id"]: r["verdict"] for r in head["D"]}
         h = {r["id"]: r["verdict"] for r in head["H"]}
         both = sorted(i for i in d.keys() & h.keys() if readable(d[i]) and readable(h[i]))
         h_only = [i for i in both if h[i] == "SUPPORTED" and d[i] != "SUPPORTED"]
         d_only = [i for i in both if d[i] == "SUPPORTED" and h[i] != "SUPPORTED"]
-        out["paired"] = {"n": len(both), "h_only": h_only, "d_only": d_only,
-                         "p": score.mcnemar_exact(len(h_only), len(d_only))}
+        out["paired"] = {
+            "n": len(both),
+            "h_only": h_only,
+            "d_only": d_only,
+            "p": score.mcnemar_exact(len(h_only), len(d_only)),
+        }
     return out
 
 
 def headings_verdict(compared: dict) -> str:
-    """Round 22's rule, the same as Step 4g's: an arm moves if >= 3 answers become
+    """The rule, written before either headings run: an arm moves if >= 3 answers become
     SUPPORTED, more than move the other way, at exact McNemar p < 0.05."""
     from rag import score
+
     for arm, c in compared.items():
         if arm == "paired":
             continue
@@ -720,11 +690,24 @@ def headings_verdict(compared: dict) -> str:
     return "headings do NOT matter"
 
 
-def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
-               key: str, model: str = MODEL, post=_post, k: int | None = None,
-               retrieve=None, log=print, checkpoint=None,
-               pace: float = 0.0, sleep=time.sleep,
-               resume: dict | None = None, workers: int = 1, headings: bool = False) -> dict:
+def sweep_rows(
+    saved: dict,
+    items: list[dict],
+    variants: list[str],
+    *,
+    key: str,
+    model: str = MODEL,
+    post=_post,
+    k: int | None = None,
+    retrieve=None,
+    log=print,
+    checkpoint=None,
+    pace: float = 0.0,
+    sleep=time.sleep,
+    resume: dict | None = None,
+    workers: int = 1,
+    headings: bool = False,
+) -> dict:
     """Judge each variant's answers against the pages that variant was given.
 
     Returns `{variant: [row, ...]}`. Refused, failed and unanswered rows are
@@ -734,8 +717,9 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
     """
     from rag import ask
 
-    if retrieve is None:                      # imported late: needs Qdrant up
+    if retrieve is None:  # imported late: needs Qdrant up
         from rag import index
+
         k = k or ask.DEFAULT_K
 
         def retrieve(question):
@@ -751,39 +735,34 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
     # treating it as a verdict would make `--resume` skip the one item the
     # previous run could not judge -- a permanently absent row inside a file
     # that looks complete.
-    done = {v: {r["id"]: r for r in (resume or {}).get(v, [])
-                if r.get("verdict") != "FAILED"}
-            for v in variants}
+    done = {v: {r["id"]: r for r in (resume or {}).get(v, []) if r.get("verdict") != "FAILED"} for v in variants}
 
     # Every id that at least one arm answered. An item nobody answered costs
     # nothing to skip and would retrieve for no reader.
     def answerable_row(row):
-        return (row is not None and not row.get("failed")
-                and row.get("answer") and not ask.refused(row["answer"]))
+        return row is not None and not row.get("failed") and row.get("answer") and not ask.refused(row["answer"])
 
-    ids = [i["id"] for i in items
-           if any(answerable_row(saved_rows[v].get(i["id"])) for v in variants)]
+    ids = [i["id"] for i in items if any(answerable_row(saved_rows[v].get(i["id"])) for v in variants)]
 
     out = {v: [row for row in done[v].values()] for v in variants}
     calls: list[str] = []
     for n, item_id in enumerate(ids, 1):
-        if all(item_id in done[v] or not answerable_row(saved_rows[v].get(item_id))
-               for v in variants):
+        if all(item_id in done[v] or not answerable_row(saved_rows[v].get(item_id)) for v in variants):
             log(f"  [{n}/{len(ids)}] {item_id}  (already judged, skipped)")
             continue
         # Retrieved ONCE and handed to every arm. Two retrievals of the same
         # query would almost certainly agree, and "almost certainly" is how a
         # difference between prompts becomes a difference between lookups.
         passages = retrieve(by_id[item_id]["question"])
-        todo = [v for v in variants
-                if answerable_row(saved_rows[v].get(item_id))
-                and item_id not in done[v]]
+        todo = [v for v in variants if answerable_row(saved_rows[v].get(item_id)) and item_id not in done[v]]
 
-        def judge_one(v):
+        # The item and its passages are bound as defaults: a closure would read the
+        # loop's variables when CALLED, which is only correct while every call
+        # finishes before the loop moves on.
+        def judge_one(v, item_id=item_id, passages=passages):
             row = saved_rows[v][item_id]
             try:
-                return v, judge_answer(row["answer"], passages,
-                                       key=key, model=model, post=post)
+                return v, judge_answer(row["answer"], passages, key=key, model=model, post=post)
             except (urllib.error.URLError, TimeoutError) as exc:
                 # MEASURED 2026-09-10: without this the sweep died at item 63
                 # of 64 and three hours of judging survived only because
@@ -800,9 +779,10 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
                 #
                 # Recorded, not swallowed: a FAILED row is excluded from
                 # `judged`, printed by `report()`, and retried by `--resume`.
-                return v, stamp({"claim": "", "verdict": "FAILED",
-                                 "reason": f"{type(exc).__name__}: {exc}",
-                                 "failed": True}, model=model)
+                return v, stamp(
+                    {"claim": "", "verdict": "FAILED", "reason": f"{type(exc).__name__}: {exc}", "failed": True},
+                    model=model,
+                )
 
         # The arms of ONE item, optionally judged at the same time. Safe when
         # used: independent calls at temperature 0 against identical passages,
@@ -858,35 +838,36 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
             verdict = verdicts[v]
             row = saved_rows[v][item_id]
             seen[v] = verdict["verdict"]
-            out[v].append({
-                "id": item_id,
-                "provenance": row.get("provenance"),
-                "answerable": row.get("answerable"),
-                "answer_in_prompt": row.get("answer_in_prompt"),
-                "verdict": verdict["verdict"],
-                "reason": verdict["reason"],
-                "judge_model": verdict["judge_model"],
-                # Copied from the stamp rather than recomputed. Missing here
-                # for one release: `stamp()` set it and this dict, which is
-                # built field by field, silently dropped it -- so every saved
-                # row lacked a machine and `report()` printed `judge ... on ?`
-                # over a run whose machine was perfectly well known.
-                #
-                # The test that was supposed to prevent that called `stamp()`
-                # directly, so it passed while the pipeline threw the field
-                # away. **A test that pins a function instead of the path the
-                # data actually takes pins nothing.** The replacement goes
-                # through `sweep_rows`.
-                "machine": verdict.get("machine", machine()),
-                # Same trap as `machine` directly above, and it bit twice: this
-                # dict is built field by field, so anything `stamp()` sets and
-                # this list omits is silently thrown away. A FAILED row that
-                # loses its flag is a failure that reads as a verdict.
-                **({"failed": True} if verdict.get("failed") else {}),
-                "claim": verdict["claim"],
-            })
-        log(f"  [{n}/{len(ids)}] {item_id}  "
-            + "  ".join(f"{v}={seen.get(v, '-')}" for v in variants))
+            out[v].append(
+                {
+                    "id": item_id,
+                    "provenance": row.get("provenance"),
+                    "answerable": row.get("answerable"),
+                    "answer_in_prompt": row.get("answer_in_prompt"),
+                    "verdict": verdict["verdict"],
+                    "reason": verdict["reason"],
+                    "judge_model": verdict["judge_model"],
+                    # Copied from the stamp rather than recomputed. Missing here
+                    # for one release: `stamp()` set it and this dict, which is
+                    # built field by field, silently dropped it -- so every saved
+                    # row lacked a machine and `report()` printed `judge ... on ?`
+                    # over a run whose machine was perfectly well known.
+                    #
+                    # The test that was supposed to prevent that called `stamp()`
+                    # directly, so it passed while the pipeline threw the field
+                    # away. **A test that pins a function instead of the path the
+                    # data actually takes pins nothing.** The replacement goes
+                    # through `sweep_rows`.
+                    "machine": verdict.get("machine", machine()),
+                    # Same trap as `machine` directly above, and it bit twice: this
+                    # dict is built field by field, so anything `stamp()` sets and
+                    # this list omits is silently thrown away. A FAILED row that
+                    # loses its flag is a failure that reads as a verdict.
+                    **({"failed": True} if verdict.get("failed") else {}),
+                    "claim": verdict["claim"],
+                }
+            )
+        log(f"  [{n}/{len(ids)}] {item_id}  " + "  ".join(f"{v}={seen.get(v, '-')}" for v in variants))
         # This happened once: the first full prompt sweep died at generation 150 of
         # 300 with ZERO rows saved, and the whole night was spent again. Rows
         # cost money and minutes here too; write them down as they arrive.
@@ -896,8 +877,7 @@ def sweep_rows(saved: dict, items: list[dict], variants: list[str], *,
 
 
 def aggregate(rows: list[dict]) -> dict:
-    counts = {verdict: 0
-              for verdict in (*VERDICTS, "UNPARSED", "NO_PROSE", "FAILED")}
+    counts = {verdict: 0 for verdict in (*VERDICTS, "UNPARSED", "NO_PROSE", "FAILED")}
     for row in rows:
         counts[row["verdict"]] = counts.get(row["verdict"], 0) + 1
     judged = sum(counts[v] for v in VERDICTS)
@@ -919,20 +899,19 @@ def report(by_variant: dict) -> None:
     # announced `gemini-3.7-flash` over a run judged by `gemma4:e4b` -- a
     # report that misnames its own instrument, which is the exact failure
     # stamp() was made mandatory to prevent.
-    models = sorted({r["judge_model"] for rows in by_variant.values()
-                     for r in rows})
-    machines = sorted({r["machine"] for rows in by_variant.values()
-                       for r in rows if r.get("machine")})
+    models = sorted({r["judge_model"] for rows in by_variant.values() for r in rows})
+    machines = sorted({r["machine"] for rows in by_variant.values() for r in rows if r.get("machine")})
     print("\nFAITHFULNESS  —  prose only; code is judge.py's half")
-    print(f"  judge: {', '.join(models) or '(no rows)'} on "
-          f"{', '.join(machines) or 'a machine these rows do not record'}, "
-          f"one sitting, both arms, identical passages")
+    print(
+        f"  judge: {', '.join(models) or '(no rows)'} on "
+        f"{', '.join(machines) or 'a machine these rows do not record'}, "
+        f"one sitting, both arms, identical passages"
+    )
     if len(machines) > 1:
         # Not fatal like two judges, but it must be visible: D's supported rate
         # measured 85% on Darwin-arm64 and 77% on Linux-x86_64 with everything
         # else held fixed.
-        print("  !! ROWS FROM MORE THAN ONE MACHINE — these verdicts do not "
-              "reproduce across machines")
+        print("  !! ROWS FROM MORE THAN ONE MACHINE — these verdicts do not reproduce across machines")
     if len(models) > 1:
         # Not a warning, a disqualification. The tight property is one judge
         # across both arms; two ids here means the comparison is void.
@@ -943,9 +922,11 @@ def report(by_variant: dict) -> None:
     print("  " + "-" * (len(head) - 2))
     for variant, rows in by_variant.items():
         a = aggregate(rows)
-        print(f"  {variant:<10}{a['answers']:>9}{a['judged']:>8}{a['SUPPORTED']:>7}"
-              f"{a['PARTIAL']:>7}{a['UNSUPPORTED']:>7}{a['UNPARSED']:>10}"
-              f"{a['NO_PROSE']:>10}{a['supported_rate']:>10.0%}")
+        print(
+            f"  {variant:<10}{a['answers']:>9}{a['judged']:>8}{a['SUPPORTED']:>7}"
+            f"{a['PARTIAL']:>7}{a['UNSUPPORTED']:>7}{a['UNPARSED']:>10}"
+            f"{a['NO_PROSE']:>10}{a['supported_rate']:>10.0%}"
+        )
     for variant, rows in by_variant.items():
         bad = [r for r in rows if r["verdict"] in ("UNSUPPORTED", "PARTIAL")]
         print(f"\n  {variant}: {len(bad)} answers not fully supported by their own sources")
@@ -959,8 +940,7 @@ def report(by_variant: dict) -> None:
         # it must be visible rather than inferred from a smaller denominator.
         failed = [r["id"] for r in rows if r["verdict"] == "FAILED"]
         if failed:
-            print(f"    FAILED (transport, never judged — `--resume` retries "
-                  f"these): {', '.join(failed)}")
+            print(f"    FAILED (transport, never judged — `--resume` retries these): {', '.join(failed)}")
 
 
 # --- Step 5: the judge's own ceiling ----------------------------------------
@@ -971,13 +951,13 @@ def report(by_variant: dict) -> None:
 # gate says the agreement rate has to be IN the report rather than assumed.
 #
 # The sample is risk-weighted rather than random, which is the same call the
-# golden signature made on 2026-08-21 (§H CLOSED): a uniform sample of ten from
+# golden set's spot-check made on 2026-08-21: a uniform sample of ten from
 # a set that is mostly SUPPORTED measures agreement where it is easiest and
 # says nothing about the verdicts a decision would actually rest on. So every
 # UNSUPPORTED and PARTIAL goes in first, and SUPPORTED rows fill the rest --
 # without those the sheet can only find false accusations and never a miss.
 #
-# Claude renders this sheet. Claude does not fill it in.
+# The sheet is generated blank. Only a human fills it in.
 
 
 # How many SUPPORTED rows are RESERVED in the sample of ten.
@@ -996,14 +976,12 @@ def report(by_variant: dict) -> None:
 CONTROLS = 3
 
 
-def agreement_sample(by_variant: dict, n: int = 10,
-                     controls: int = CONTROLS) -> list[dict]:
+def agreement_sample(by_variant: dict, n: int = 10, controls: int = CONTROLS) -> list[dict]:
     ranked = []
     for variant, rows in by_variant.items():
         for row in rows:
             ranked.append({**row, "variant": variant})
-    order = {"UNSUPPORTED": 0, "PARTIAL": 1, "UNPARSED": 2, "SUPPORTED": 3,
-             "NO_PROSE": 4}
+    order = {"UNSUPPORTED": 0, "PARTIAL": 1, "UNPARSED": 2, "SUPPORTED": 3, "NO_PROSE": 4}
     ranked.sort(key=lambda r: (order.get(r["verdict"], 9), r["variant"], r["id"]))
 
     # The controls are NOT arbitrary SUPPORTED rows, and that is the whole
@@ -1033,8 +1011,9 @@ def agreement_sample(by_variant: dict, n: int = 10,
             return 1
         return 2
 
-    supported = sorted((r for r in ranked if r["verdict"] == "SUPPORTED"),
-                       key=lambda r: (suspicion(r), r["variant"], r["id"]))
+    supported = sorted(
+        (r for r in ranked if r["verdict"] == "SUPPORTED"), key=lambda r: (suspicion(r), r["variant"], r["id"])
+    )
     risky = [r for r in ranked if r["verdict"] != "SUPPORTED"]
     # Never more than half the sheet. The reservation exists so controls are
     # not crowded OUT; letting it crowd the risky rows out is the same mistake
@@ -1050,8 +1029,7 @@ def agreement_sample(by_variant: dict, n: int = 10,
 
 
 HUMAN_VERDICT = "**Human verdict** (write AGREE or DISAGREE):"
-SHOULD_HAVE_BEEN = ("**If DISAGREE, it should have been** "
-                    "(SUPPORTED / PARTIAL / UNSUPPORTED):")
+SHOULD_HAVE_BEEN = "**If DISAGREE, it should have been** (SUPPORTED / PARTIAL / UNSUPPORTED):"
 
 
 def read_agreement(path: pathlib.Path) -> dict:
@@ -1081,7 +1059,7 @@ def read_agreement(path: pathlib.Path) -> dict:
         if verdict:
             said = verdict.group(1)
         if line.startswith(SHOULD_HAVE_BEEN) and pending is not None:
-            answer = line[len(SHOULD_HAVE_BEEN):].strip().strip("`_ ").upper()
+            answer = line[len(SHOULD_HAVE_BEEN) :].strip().strip("`_ ").upper()
             pending["should_be"] = answer or None
             corrections.append(pending)
             pending = None
@@ -1089,7 +1067,7 @@ def read_agreement(path: pathlib.Path) -> dict:
         if not line.startswith(HUMAN_VERDICT):
             continue
         n += 1
-        answer = line[len(HUMAN_VERDICT):].strip().strip("`_ ").upper()
+        answer = line[len(HUMAN_VERDICT) :].strip().strip("`_ ").upper()
         # DISAGREE contains AGREE. Order matters and a test pins it.
         if "DISAGREE" in answer:
             filled += 1
@@ -1097,33 +1075,42 @@ def read_agreement(path: pathlib.Path) -> dict:
         elif "AGREE" in answer:
             filled += 1
             agree += 1
-    if pending is not None:                      # no correction line followed
+    if pending is not None:  # no correction line followed
         corrections.append(pending)
-    return {"n": n, "filled": filled, "agree": agree,
-            "rate": (agree / filled) if filled else None,
-            "corrections": corrections}
+    return {
+        "n": n,
+        "filled": filled,
+        "agree": agree,
+        "rate": (agree / filled) if filled else None,
+        "corrections": corrections,
+    }
 
 
-def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
-                    retrieve=None, k: int | None = None,
-                    second: dict | None = None) -> int:
+def agreement_sheet(
+    sample: list[dict],
+    items: list[dict],
+    out: pathlib.Path,
+    retrieve=None,
+    k: int | None = None,
+    second: dict | None = None,
+) -> int:
     """Render the judge's verdicts for a human to agree or disagree with."""
     from rag import ask
 
     if retrieve is None:
         from rag import index
+
         k = k or ask.DEFAULT_K
 
         def retrieve(question):
-            return [(h.payload.get("chunk_id", "?"), h.payload["text"])
-                    for h in index.retrieve(question, limit=k)]
+            return [(h.payload.get("chunk_id", "?"), h.payload["text"]) for h in index.retrieve(question, limit=k)]
 
     by_id = {i["id"]: i for i in items}
     lines = [
         "# The judge's ceiling — ten verdicts for a human to check",
         "",
-        "Generated by `rag.faithful --agreement`. **Claude renders this sheet and",
-        "does not fill it in**. The Phase 4 gate asks for the judge's",
+        "Generated by `rag.faithful --agreement`. **The sheet is generated blank and",
+        "only a human fills it in**. The Phase 4 gate asks for the judge's",
         "agreement with a human as a number in the report rather than an",
         "assumption, and this is the ten it is computed from.",
         "",
@@ -1150,8 +1137,7 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
         item = by_id.get(row["id"], {})
         passages = retrieve(item.get("question", "")) if item else []
         lines += [
-            f"## {n}. `{row['id']}`  (variant `{row['variant']}`, "
-            f"{row.get('provenance', '?')})",
+            f"## {n}. `{row['id']}`  (variant `{row['variant']}`, {row.get('provenance', '?')})",
             "",
             f"**Question.** {item.get('question', '(not in golden.json)')}",
             "",
@@ -1162,11 +1148,9 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
         ]
         other = (second or {}).get(f"{row['variant']}:{row['id']}")
         if other:
-            flag = ("**they DISAGREE**" if other["verdict"] != row["verdict"]
-                    else "they agree")
+            flag = "**they DISAGREE**" if other["verdict"] != row["verdict"] else "they agree"
             lines += [
-                f"**A second model says:** `{other['verdict']}` — "
-                f"{other['reason']}",
+                f"**A second model says:** `{other['verdict']}` — {other['reason']}",
                 "",
                 f"_second model: `{other['judge_model']}` — {flag}. Two models "
                 f"agreeing can still both be wrong; your reading is the one "
@@ -1190,9 +1174,12 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
                 f"<details><summary>[{m}] <code>{chunk_id}</code></summary>",
                 "",
                 "```",
-                clipped + ("\n… truncated; full text: "
-                           f"uv run python -m rag.golden --show {chunk_id}"
-                           if len(body) > len(clipped) else ""),
+                clipped
+                + (
+                    f"\n… truncated; full text: uv run python -m rag.golden --show {chunk_id}"
+                    if len(body) > len(clipped)
+                    else ""
+                ),
                 "```",
                 "",
                 "</details>",
@@ -1217,12 +1204,12 @@ def agreement_sheet(sample: list[dict], items: list[dict], out: pathlib.Path,
 
 # --- CLI --------------------------------------------------------------------
 
+
 def check(key: str, model: str = MODEL, post=_post) -> tuple[bool, str]:
     """Exactly one call. Proves the key authenticates and the pinned model
     answers, before anything spends a hundred of them."""
     try:
-        out = generate("Reply with the single word: SUPPORTED", key=key,
-                       model=model, post=post)
+        out = generate("Reply with the single word: SUPPORTED", key=key, model=model, post=post)
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode(errors="replace")[:400]
         return False, f"HTTP {exc.code} from {model}\n{detail}"
@@ -1248,9 +1235,10 @@ ROWS_DEFAULT = REPO / "deliverables" / f"faithfulness-phase4.{machine()}.json"
 
 def judged_rows_path(headings: bool = False) -> pathlib.Path:
     """A headings run gets its own file, so it can never overwrite the text-only
-    rows it is compared against (Round 22)."""
-    return (REPO / "deliverables" / f"faithfulness-phase4-headings.{machine()}.json"
-            if headings else ROWS_DEFAULT)
+    rows it is compared against."""
+    return REPO / "deliverables" / f"faithfulness-phase4-headings.{machine()}.json" if headings else ROWS_DEFAULT
+
+
 ROWS_LEGACY = REPO / "deliverables" / "faithfulness-phase4.json"
 SHEET_DEFAULT = REPO / "deliverables" / "JUDGE-AGREEMENT.md"
 CROSSCHECK_DEFAULT = REPO / "deliverables" / "JUDGE-CROSSCHECK.json"
@@ -1302,8 +1290,8 @@ def main() -> None:
         for n in sorted(names):
             print(f"  {n}{'   <- MODEL' if n == MODEL else ''}")
         print(
-            f"\nPin one of these in rag/faithful.py MODEL. Prefer a dated snapshot\n"
-            f"over a floating alias -- the alias moves under you, the snapshot does not."
+            "\nPin one of these in rag/faithful.py MODEL. Prefer a dated snapshot\n"
+            "over a floating alias -- the alias moves under you, the snapshot does not."
         )
         return
 
@@ -1319,27 +1307,33 @@ def main() -> None:
         return
 
     if "--headings-report" in argv:
-        # Round 22: the committed text-only rows against the headings rows, same machine.
+        # The committed text-only rows against the headings rows, same machine.
         text_path = pathlib.Path(_arg(argv, "--text", str(ROWS_DEFAULT)))
         head_path = pathlib.Path(_arg(argv, "--head", str(judged_rows_path(True))))
         text = json.loads(text_path.read_text())
         head = json.loads(head_path.read_text())
         c = compare_headings(text["variants"], head["variants"])
-        print(f"PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — {head.get('judge_model')} on {head.get('machine')}")
+        print(
+            f"PHASE 4 JUDGE, TEXT ONLY vs PAGES AS THE MODEL SAW THEM — {head.get('judge_model')} on {head.get('machine')}"
+        )
         print(f"  text-only rows  {text_path.name}  ({text.get('machine')})")
         print(f"  headings rows   {head_path.name}")
         for arm in ("D", "H"):
             if arm in c:
                 a = c[arm]
-                print(f"  {arm}  SUPPORTED text-only {a['text'][0]}/{a['text'][1]}  with headings "
-                      f"{a['headings'][0]}/{a['headings'][1]}   up {len(a['up'])}  down {len(a['down'])}"
-                      f"  p = {a['p']:.4f}")
+                print(
+                    f"  {arm}  SUPPORTED text-only {a['text'][0]}/{a['text'][1]}  with headings "
+                    f"{a['headings'][0]}/{a['headings'][1]}   up {len(a['up'])}  down {len(a['down'])}"
+                    f"  p = {a['p']:.4f}"
+                )
                 print(f"     up    {' '.join(a['up']) or '-'}")
                 print(f"     down  {' '.join(a['down']) or '-'}")
         if "paired" in c:
             q = c["paired"]
-            print(f"  D vs H with headings, paired over {q['n']}: H-only SUPPORTED {len(q['h_only'])}  "
-                  f"D-only {len(q['d_only'])}  p = {q['p']:.4f}")
+            print(
+                f"  D vs H with headings, paired over {q['n']}: H-only SUPPORTED {len(q['h_only'])}  "
+                f"D-only {len(q['d_only'])}  p = {q['p']:.4f}"
+            )
         print(f"  rule -> {headings_verdict(c)}")
         return
 
@@ -1349,13 +1343,12 @@ def main() -> None:
         # the published figures were computed from is worse than no row at all.
         src_path = pathlib.Path(_arg(argv, "--sweep", str(SWEEP_DEFAULT)))
         saved = json.loads(src_path.read_text())
-        if "rows" in saved:                       # a judge --save file
+        if "rows" in saved:  # a judge --save file
             saved = {"(saved run)": saved["rows"]}
         variants = _arg(argv, "--variants", "D,H").split(",")
         missing = [v for v in variants if v not in saved]
         if missing:
-            sys.exit(f"{src_path} has no variant(s) {missing}; it holds "
-                     f"{sorted(saved)}")
+            sys.exit(f"{src_path} has no variant(s) {missing}; it holds {sorted(saved)}")
         items = _golden_items()
         if "--limit" in argv:
             items = items[: int(_arg(argv, "--limit"))]
@@ -1374,13 +1367,14 @@ def main() -> None:
         if "--resume" in argv and _rows_path.exists():
             prior = json.loads(_rows_path.read_text())
             if prior.get("judge_model") != model:
-                sys.exit(f"cannot resume: those rows were judged by "
-                         f"{prior.get('judge_model')}, this run uses {model}.\n"
-                         f"  Two judges in one comparison is not a comparison "
-                         f". Delete the file, or pass --model {prior.get('judge_model')}.")
+                sys.exit(
+                    f"cannot resume: those rows were judged by "
+                    f"{prior.get('judge_model')}, this run uses {model}.\n"
+                    f"  Two judges in one comparison is not a comparison "
+                    f". Delete the file, or pass --model {prior.get('judge_model')}."
+                )
             resume = prior.get("variants", {})
-            print(f"resuming: {sum(len(r) for r in resume.values())} rows "
-                  f"already judged by {model}", flush=True)
+            print(f"resuming: {sum(len(r) for r in resume.values())} rows already judged by {model}", flush=True)
         # No quota locally, so no pacing: the 6-second gap exists only to stay
         # under a per-minute API ceiling and would add 11 minutes for nothing.
         post = retrying(local_post) if local else retrying()
@@ -1394,37 +1388,60 @@ def main() -> None:
                     f"{machine()}.\n"
                     f"  Overwriting would destroy the other machine's evidence, "
                     f"and comparing the two is the point.\n"
-                    f"  Default path for this host: {ROWS_DEFAULT.name}")
+                    f"  Default path for this host: {ROWS_DEFAULT.name}"
+                )
 
         def save(rows):
-            out.write_text(json.dumps({"judge_model": model,
-                                       "machine": machine(),
-                                       "passages": "as the model saw them" if headings else "text only",
-                                       "source": src_path.name,
-                                       "variants": rows}, indent=1) + "\n")
+            out.write_text(
+                json.dumps(
+                    {
+                        "judge_model": model,
+                        "machine": machine(),
+                        "passages": "as the model saw them" if headings else "text only",
+                        "source": src_path.name,
+                        "variants": rows,
+                    },
+                    indent=1,
+                )
+                + "\n"
+            )
 
-        print(f"judging {', '.join(variants)} from {src_path.name} with "
-              f"{model} - one sitting, both arms, identical passages")
+        print(
+            f"judging {', '.join(variants)} from {src_path.name} with "
+            f"{model} - one sitting, both arms, identical passages"
+        )
         try:
-            rows = sweep_rows(saved, items, variants, key=key or "", model=model,
-                              post=post, checkpoint=save, pace=pace,
-                              resume=resume,
-                              workers=int(_arg(argv, "--workers", "1")), headings=headings,
-                              log=lambda line: print(line, flush=True))
+            rows = sweep_rows(
+                saved,
+                items,
+                variants,
+                key=key or "",
+                model=model,
+                post=post,
+                checkpoint=save,
+                pace=pace,
+                resume=resume,
+                workers=int(_arg(argv, "--workers", "1")),
+                headings=headings,
+                log=lambda line: print(line, flush=True),
+            )
         except urllib.error.HTTPError as exc:
             # A sweep that dies with nothing written is the expensive
             # failure. Say what died, and say what survived.
-            hint = ("  the free tier is 20 requests PER DAY PER MODEL "
-                    "(measured 2026-09-03); this run needs ~110.\n"
-                    "  --local judges with Ollama instead: no quota, and it was "
-                    "named as the fallback from the start.\n"
-                    if exc.code == 429 else
-                    "  --models lists what this key can reach; --model picks "
-                    "another without a code edit.\n")
-            sys.exit(f"\njudge {model} failed with HTTP {exc.code} and did not "
-                     f"recover after {RETRY_ATTEMPTS} attempts.\n"
-                     f"{hint}"
-                     f"  rows written so far: {out}")
+            hint = (
+                "  the free tier is 20 requests PER DAY PER MODEL "
+                "(measured 2026-09-03); this run needs ~110.\n"
+                "  --local judges with Ollama instead: no quota, and it was "
+                "named as the fallback from the start.\n"
+                if exc.code == 429
+                else "  --models lists what this key can reach; --model picks another without a code edit.\n"
+            )
+            sys.exit(
+                f"\njudge {model} failed with HTTP {exc.code} and did not "
+                f"recover after {RETRY_ATTEMPTS} attempts.\n"
+                f"{hint}"
+                f"  rows written so far: {out}"
+            )
         report(rows)
         save(rows)
         print(f"\nsaved {sum(len(r) for r in rows.values())} rows to {out}")
@@ -1436,23 +1453,19 @@ def main() -> None:
         # answers.
         item_id = _arg(argv, "--claims")
         variant = _arg(argv, "--variant", "D")
-        saved = json.loads(pathlib.Path(
-            _arg(argv, "--sweep-file", str(SWEEP_DEFAULT))).read_text())
+        saved = json.loads(pathlib.Path(_arg(argv, "--sweep-file", str(SWEEP_DEFAULT))).read_text())
         row = next((r for r in saved[variant] if r["id"] == item_id), None)
         if row is None:
             sys.exit(f"{item_id} is not in variant {variant}")
         item = next(i for i in _golden_items() if i["id"] == item_id)
         from rag import ask, index
-        passages = [h.payload["text"]
-                    for h in index.retrieve(item["question"],
-                                            limit=ask.DEFAULT_K)]
+
+        passages = [h.payload["text"] for h in index.retrieve(item["question"], limit=ask.DEFAULT_K)]
         post = retrying(local_post) if local else retrying()
         model = _arg(argv, "--model", LOCAL_MODEL if local else MODEL)
-        print(f"{item_id} under prompt {variant}, sentence by sentence "
-              f"({model}):\n")
+        print(f"{item_id} under prompt {variant}, sentence by sentence ({model}):\n")
         for n, claim in enumerate(sentences(prose(row["answer"])), 1):
-            verdict = judge_claim(claim, passages, key=key or "", model=model,
-                                  post=post)
+            verdict = judge_claim(claim, passages, key=key or "", model=model, post=post)
             print(f"  [{n}] {verdict['verdict']}")
             print(f"      claim : {claim[:150]}")
             print(f"      reason: {verdict['reason'][:150]}\n")
@@ -1475,46 +1488,49 @@ def main() -> None:
         sample = agreement_sample(saved["variants"], int(_arg(argv, "--n", "10")))
         second = _arg(argv, "--cross-check", MODEL)
         if same_model(second, saved.get("judge_model", "")):
-            sys.exit(f"--cross-check {second} is the SAME MODEL that produced "
-                     f"these rows ({saved.get('judge_model')}); a model "
-                     f"agreeing with itself measures nothing.\n"
-                     f"  Names differing is not enough — on this machine "
-                     f"gpt-5.5:latest and gemma4:e4b share one digest.")
+            sys.exit(
+                f"--cross-check {second} is the SAME MODEL that produced "
+                f"these rows ({saved.get('judge_model')}); a model "
+                f"agreeing with itself measures nothing.\n"
+                f"  Names differing is not enough — on this machine "
+                f"gpt-5.5:latest and gemma4:e4b share one digest."
+            )
         from rag import ask, index
+
         items = {i["id"]: i for i in _golden_items()}
         post = retrying()
-        print(f"cross-checking {len(sample)} verdicts: "
-              f"{saved.get('judge_model')} (rows) vs {second} (second opinion)\n")
+        print(
+            f"cross-checking {len(sample)} verdicts: {saved.get('judge_model')} (rows) vs {second} (second opinion)\n"
+        )
         agree = asked = asked_failed = 0
         seconds = {}
         for row in sample:
-            passages = [h.payload["text"] for h in
-                        index.retrieve(items[row["id"]]["question"],
-                                       limit=ask.DEFAULT_K)]
+            passages = [h.payload["text"] for h in index.retrieve(items[row["id"]]["question"], limit=ask.DEFAULT_K)]
             # A second opinion is best-effort by definition, so one bad call
             # must not throw away the ones already collected. Measured
             # 2026-09-03: this died on item 6 of 10 with a 503 and printed
             # nothing but a traceback -- the shape for the third time in one
             # day, in the one place I had already written the lesson down.
             try:
-                got = judge_claim(row["claim"], passages, key=key,
-                                  model=second, post=post)
-            except (urllib.error.HTTPError, urllib.error.URLError,
-                    TimeoutError) as exc:
+                got = judge_claim(row["claim"], passages, key=key, model=second, post=post)
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
                 code = getattr(exc, "code", exc)
-                print(f"  {row['id']:<6} {row['variant']:<2} "
-                      f"{row['verdict']:<12} -> (no answer: {code})")
+                print(f"  {row['id']:<6} {row['variant']:<2} {row['verdict']:<12} -> (no answer: {code})")
                 asked_failed += 1
                 continue
             same = got["verdict"] == row["verdict"]
             agree += same
             asked += 1
             seconds[f"{row['variant']}:{row['id']}"] = {
-                "verdict": got["verdict"], "reason": got["reason"],
-                "judge_model": got["judge_model"]}
-            print(f"  {row['id']:<6} {row['variant']:<2} "
-                  f"{row['verdict']:<12} -> {got['verdict']:<12} "
-                  f"{'agree' if same else 'DIFFER'}")
+                "verdict": got["verdict"],
+                "reason": got["reason"],
+                "judge_model": got["judge_model"],
+            }
+            print(
+                f"  {row['id']:<6} {row['variant']:<2} "
+                f"{row['verdict']:<12} -> {got['verdict']:<12} "
+                f"{'agree' if same else 'DIFFER'}"
+            )
             if not same:
                 print(f"         {second}: {got['reason'][:110]}")
         # The denominator is what was actually answered, and the unanswered
@@ -1522,17 +1538,19 @@ def main() -> None:
         # failures quietly dropped is the flattering shape this repo keeps
         # catching.
         out = pathlib.Path(_arg(argv, "--save", str(CROSSCHECK_DEFAULT)))
-        out.write_text(json.dumps({"second_model": second,
-                                   "rows_judge": saved.get("judge_model"),
-                                   "verdicts": seconds}, indent=1) + "\n")
-        print(f"\n  {agree}/{asked} = {agree/asked:.0%} model-to-model agreement"
-              if asked else "\n  no verdicts came back")
+        out.write_text(
+            json.dumps({"second_model": second, "rows_judge": saved.get("judge_model"), "verdicts": seconds}, indent=1)
+            + "\n"
+        )
+        print(
+            f"\n  {agree}/{asked} = {agree / asked:.0%} model-to-model agreement"
+            if asked
+            else "\n  no verdicts came back"
+        )
         print(f"  saved to {out} — --agreement puts both opinions on the sheet")
         if asked_failed:
-            print(f"  {asked_failed} of {len(sample)} got no answer from "
-                  f"{second} — free tier is 20/day/model")
-        print("  This is NOT the Step 5 number. Two models can be wrong the "
-              "same way; only a human closes it.")
+            print(f"  {asked_failed} of {len(sample)} got no answer from {second} — free tier is 20/day/model")
+        print("  This is NOT the Step 5 number. Two models can be wrong the same way; only a human closes it.")
         return
 
     if "--agreement" in argv:
@@ -1540,12 +1558,10 @@ def main() -> None:
         if not rows_path.exists():
             sys.exit(f"{rows_path} does not exist - run --sweep first")
         saved = json.loads(rows_path.read_text())
-        sample = agreement_sample(saved["variants"],
-                                  int(_arg(argv, "--n", "10")))
+        sample = agreement_sample(saved["variants"], int(_arg(argv, "--n", "10")))
         out = pathlib.Path(_arg(argv, "--out", str(SHEET_DEFAULT)))
         cross = CROSSCHECK_DEFAULT
-        second = (json.loads(cross.read_text()).get("verdicts")
-                  if cross.exists() else None)
+        second = json.loads(cross.read_text()).get("verdicts") if cross.exists() else None
         n = agreement_sheet(sample, _golden_items(), out, second=second)
         counts = {}
         for row in sample:
@@ -1555,9 +1571,7 @@ def main() -> None:
         print("A human agrees or disagrees. This script does not.")
         return
 
-    sys.exit(__doc__.strip().splitlines()[0]
-             + "\n\n  pass --check, --models, --sweep, --claims or "
-               "--agreement")
+    sys.exit(__doc__.strip().splitlines()[0] + "\n\n  pass --check, --models, --sweep, --claims or --agreement")
 
 
 if __name__ == "__main__":

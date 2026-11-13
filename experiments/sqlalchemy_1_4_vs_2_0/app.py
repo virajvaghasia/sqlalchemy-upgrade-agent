@@ -2,7 +2,7 @@
 app.py — the query layer, written badly on purpose.
 
 Every function here works under SQLAlchemy 1.4.52 and every one is a 2.0 problem
-of some kind. This is the baseline you destroy in Step 8.
+of some kind. This is the baseline the 2.0 upgrade breaks.
 
 Do not "improve" anything here. Code that doesn't break produces no breakage.
 
@@ -74,7 +74,7 @@ def count_issues_raw(engine):
       1. engine.execute(...)  — "connectionless execution", removed in 2.0
       2. a bare SQL string    — 2.0 requires text()
 
-    This is what Step 8 will actually crash on.
+    This is what the 2.0 upgrade actually crashes on.
     """
     result = engine.execute("SELECT COUNT(*) FROM issues")
     return result.scalar()
@@ -91,9 +91,9 @@ def issue_report(session):
                                  identity map answers after the first miss per
                                  project — and there are 3 projects in the seed.
 
-    204 total, counted (migration.py §7), not the 401 the obvious arithmetic
-    suggests. Left deliberately unoptimised — Step 5 counts what this costs, Step 9
-    fixes it and compares. See CONCEPTS §15 and MIGRATION-2.0 §21.
+    204 total, counted (migration.py section 7), not the 401 the obvious arithmetic
+    suggests. Left deliberately unoptimised: this is the measured "before" that an
+    eager-loading fix is compared against.
     """
     lines = []
     for issue in session.query(models.Issue).all():
@@ -110,7 +110,7 @@ def fetch_issue_then_close(engine, issue_id):
     the time the caller gets the object.
 
     `.title` still works — it was loaded before the close. `.comments` was never
-    loaded, and there is no session left to load it with. See CONCEPTS §14.
+    loaded, and there is no session left to load it with.
     """
     session = sessionmaker(bind=engine)()
     issue = session.query(models.Issue).get(issue_id)

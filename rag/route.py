@@ -20,8 +20,8 @@ two unrelated ways, and a stronger generator can only fix one of them:
 
 WHAT IS JOINED, AND WHY THAT IS ALLOWED
 
-Outcomes come from the LAB's Round 16 run of the shipped prompt (`D`, 38/91
-delivered), because quoted numbers are the lab's: the Mac only screens. The cross-encoder
+Outcomes come from the Linux GPU box's 2026-09-10 run of the shipped prompt (`D`, 38/91
+delivered), because quoted numbers come from that box: the Mac only screens. The cross-encoder
 signals are recomputed wherever `--signals` runs. Joining the two is only valid
 because retrieval is identical across machines -- so `report()` checks
 that first, item by item, and refuses to print a router result if a single
@@ -45,12 +45,13 @@ from math import comb
 from rag import ask, judge, score
 
 OUTCOMES = judge.DELIVERABLES / "prompt-sweep-round16.Linux-x86_64.json"
-BUDGET = 30          # of 100 questions -- the pre-registered share for design A
-CAPTURE_BAR = 27     # of the 53 local failures -- pre-registered pass line
+BUDGET = 30  # of 100 questions -- the pre-registered share for design A
+CAPTURE_BAR = 27  # of the 53 local failures -- pre-registered pass line
 
 
 def signals_path():
     from rag import faithful
+
     return judge.DELIVERABLES / f"route-signals-phase6.{faithful.machine()}.json"
 
 
@@ -61,15 +62,22 @@ def compute_signals(items, retrieve=None, ce=None) -> list[dict]:
     """
     if retrieve is None:
         from rag import index
+
         retrieve = lambda q: index.retrieve(q, limit=ask.DEFAULT_K)
     if ce is None:
         from rag import rerank
+
         ce = rerank.ce_scores
     out = []
     for it in items:
         points = retrieve(it["question"])
-        out.append({"id": it["id"], "hits": [p.payload["chunk_id"] for p in points],
-                    "ce": [round(s, 6) for s in ce(it["question"], points)]})
+        out.append(
+            {
+                "id": it["id"],
+                "hits": [p.payload["chunk_id"] for p in points],
+                "ce": [round(s, 6) for s in ce(it["question"], points)],
+            }
+        )
     return out
 
 
@@ -80,10 +88,13 @@ def delivered(row: dict) -> bool:
 
 def join_check(signals: dict, outcomes: dict, golden: dict, chunks: dict) -> list[str]:
     """Items whose page-present flag differs between the two machines. Must be empty."""
-    return [i for i, r in outcomes.items()
-            if r["answerable"] and i in signals
-            and (score.rank_of_first_hit(signals[i]["hits"], golden[i], chunks) is not None)
-            != r["answer_in_prompt"]]
+    return [
+        i
+        for i, r in outcomes.items()
+        if r["answerable"]
+        and i in signals
+        and (score.rank_of_first_hit(signals[i]["hits"], golden[i], chunks) is not None) != r["answer_in_prompt"]
+    ]
 
 
 def random_routing(n_items: int, n_failures: int, budget: int) -> list[float]:
@@ -95,8 +106,9 @@ def random_routing(n_items: int, n_failures: int, budget: int) -> list[float]:
     with a fatter tail (P(>= 20) = 0.14 against the true 0.057), and made a
     marginal signal look like chance.
     """
-    return [comb(n_failures, k) * comb(n_items - n_failures, budget - k) / comb(n_items, budget)
-            for k in range(budget + 1)]
+    return [
+        comb(n_failures, k) * comb(n_items - n_failures, budget - k) / comb(n_items, budget) for k in range(budget + 1)
+    ]
 
 
 def _quantile(pmf: list[float], q: float) -> int:
@@ -121,34 +133,45 @@ def evaluate(signals: dict, outcomes: dict, budget: int = BUDGET) -> dict:
     escalated = [i for i, r in outcomes.items() if ask.refused(r["answer"])]
     b_answerable = [i for i in escalated if outcomes[i]["answerable"]]
     return {
-        "n_items": len(outcomes), "answerable": len(answerable), "failures": failures,
+        "n_items": len(outcomes),
+        "answerable": len(answerable),
+        "failures": failures,
         "present_failures": present_failures,
-        "A": {"routed": sorted(routed), "caught": a_caught,
-              "caught_present": [i for i in a_caught if outcomes[i]["answer_in_prompt"]],
-              "wasted": [i for i in routed if i in answerable and i not in failures],
-              "unanswerable": [i for i in routed if not outcomes[i]["answerable"]],
-              "random_median": _quantile(pmf, 0.5),
-              "random_p95": _quantile(pmf, 0.95),
-              "p_random_at_least": sum(pmf[len(a_caught):])},
-        "B": {"escalated": escalated,
-              "present": [i for i in b_answerable if outcomes[i]["answer_in_prompt"]],
-              "absent": [i for i in b_answerable if not outcomes[i]["answer_in_prompt"]],
-              "unanswerable": [i for i in escalated if not outcomes[i]["answerable"]],
-              "unseen_failures": [i for i in failures if i not in escalated]},
+        "A": {
+            "routed": sorted(routed),
+            "caught": a_caught,
+            "caught_present": [i for i in a_caught if outcomes[i]["answer_in_prompt"]],
+            "wasted": [i for i in routed if i in answerable and i not in failures],
+            "unanswerable": [i for i in routed if not outcomes[i]["answerable"]],
+            "random_median": _quantile(pmf, 0.5),
+            "random_p95": _quantile(pmf, 0.95),
+            "p_random_at_least": sum(pmf[len(a_caught) :]),
+        },
+        "B": {
+            "escalated": escalated,
+            "present": [i for i in b_answerable if outcomes[i]["answer_in_prompt"]],
+            "absent": [i for i in b_answerable if not outcomes[i]["answer_in_prompt"]],
+            "unanswerable": [i for i in escalated if not outcomes[i]["answerable"]],
+            "unseen_failures": [i for i in failures if i not in escalated],
+        },
     }
 
 
 def report(e: dict) -> None:
     a, b = e["A"], e["B"]
     n_fail, n_pf = len(e["failures"]), len(e["present_failures"])
-    print(f"local pipeline (lab, Round 16, prompt D): {e['answerable'] - n_fail}/{e['answerable']} "
-          f"delivered, {n_fail} failures, {n_pf} of them with the page PRESENT")
+    print(
+        f"local pipeline (Linux GPU box, 2026-09-10, prompt D): {e['answerable'] - n_fail}/{e['answerable']} "
+        f"delivered, {n_fail} failures, {n_pf} of them with the page PRESENT"
+    )
     print()
     verdict = "PASS" if len(a["caught"]) >= CAPTURE_BAR else "FAIL"
     print(f"A  predictive, route {BUDGET} lowest max-CE")
     print(f"   failures caught      {len(a['caught'])} of {n_fail}   bar {CAPTURE_BAR}  -> {verdict}")
-    print(f"   random routing       median {a['random_median']}, 95th percentile {a['random_p95']}, "
-          f"P(>= {len(a['caught'])}) = {a['p_random_at_least']:.3f}  (exact hypergeometric)")
+    print(
+        f"   random routing       median {a['random_median']}, 95th percentile {a['random_p95']}, "
+        f"P(>= {len(a['caught'])}) = {a['p_random_at_least']:.3f}  (exact hypergeometric)"
+    )
     print(f"   caught, page present {len(a['caught_present'])} of {n_pf}")
     print(f"   routed but delivered locally {len(a['wasted'])}, routed unanswerable {len(a['unanswerable'])}")
     print()
@@ -173,8 +196,10 @@ def main() -> None:
     if "--no-join-check" not in argv:
         mismatches = join_check(signals, outcomes, golden, score.load_chunks())
         if mismatches:
-            sys.exit(f"retrieval differs between machines on {mismatches}; "
-                     "the join is not valid and no router result is printed")
+            sys.exit(
+                f"retrieval differs between machines on {mismatches}; "
+                "the join is not valid and no router result is printed"
+            )
     report(evaluate(signals, outcomes))
 
 

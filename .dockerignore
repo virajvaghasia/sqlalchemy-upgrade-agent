@@ -1,9 +1,9 @@
-.venv
-.git
+# Every dot-file and dot-directory at the root (.venv, .git, .github, editor and
+# tool folders, .env): local state and config, none of it read by the image.
+.*
 *.db
 **/__pycache__
 **/.DS_Store
-.claude/
 
 # The retrieval corpus is fetched, not shipped. 4.5MB of .rst that this image
 # never reads: the app container runs the 1.4 app, and whichever machine embeds

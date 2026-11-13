@@ -13,7 +13,7 @@ Each number below is derived from a COMMITTED artifact, so this runs in CI where
 `corpus/chunks.jsonl` (gitignored) is absent.
 
 It deliberately does NOT pin the measured rates (64%, 0.42). Those live in
-`deliverables/` and in the register; re-deriving them here would need Qdrant and
+`deliverables/`; re-deriving them here would need Qdrant and
 a model, and `tools/check_page.py` plus `rag.score` already own them.
 """
 
@@ -61,9 +61,11 @@ def test_real_question_split_matches_the_golden_set():
 
 def test_the_page_states_the_number_of_sources_the_prompt_gets():
     from rag import ask
+
     # sentence-initial capital, so the count is what is asserted, not the spelling
-    assert re.search(rf"\b{'five' if ask.DEFAULT_K == 5 else ask.DEFAULT_K} pages go into one prompt",
-                     page_text(), re.IGNORECASE), f"page should match DEFAULT_K = {ask.DEFAULT_K}"
+    assert re.search(
+        rf"\b{'five' if ask.DEFAULT_K == 5 else ask.DEFAULT_K} pages go into one prompt", page_text(), re.IGNORECASE
+    ), f"page should match DEFAULT_K = {ask.DEFAULT_K}"
 
 
 def parse_breakages() -> list[dict]:
@@ -84,15 +86,23 @@ def parse_breakages() -> list[dict]:
         cls = re.search(r"`([^`]+)`", lines[j])
         k = next(k for k in range(j + 1, len(lines)) if lines[k].startswith("```"))
         block = []
-        for b in lines[k + 1:]:
+        for b in lines[k + 1 :]:
             if b.startswith("```"):
                 break
             block.append(b.strip())
         # an error message wrapped over several lines is one message; the silent #23 shows
         # its measurement instead, and the line that matters is the row that never arrived
         msg = " ".join(block) if cls else block[-1]
-        out.append({"n": int(m.group(1)), "group": group[0], "gname": group[1], "title": m.group(2),
-                    "error": cls.group(1) if cls else None, "msg": re.sub(r"\s+", " ", msg)})
+        out.append(
+            {
+                "n": int(m.group(1)),
+                "group": group[0],
+                "gname": group[1],
+                "title": m.group(2),
+                "error": cls.group(1) if cls else None,
+                "msg": re.sub(r"\s+", " ", msg),
+            }
+        )
     return out
 
 
@@ -100,8 +110,9 @@ def test_breakage_index_matches_breakages_md():
     page = page_text()
     m = re.search(r"const BREAKAGES = (\[.*?\]);\n", page, re.S)
     assert m, "page should embed the BREAKAGES index"
-    assert json.loads(m.group(1)) == parse_breakages(), \
+    assert json.loads(m.group(1)) == parse_breakages(), (
         "the page's breakage index drifted from deliverables/BREAKAGES.md; regenerate it"
+    )
 
 
 def test_breakage_count_in_prose_matches():

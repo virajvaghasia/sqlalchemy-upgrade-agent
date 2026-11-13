@@ -11,10 +11,7 @@ import contextlib
 import io
 import json
 
-import pytest
-
 from rag import judge
-
 
 # The g065 answer, in shape. It emitted an Alembic script calling
 # `op.create_view` (which does not exist on alembic 1.19.1) next to
@@ -52,14 +49,17 @@ def test_a_citation_three_paragraphs_earlier_does_not_launder_the_block():
     """Scoped deliberately. An answer that cites [2] up top and then emits an
     uncited script IS the g065 shape, and crediting the distant citation would
     hide exactly the case this exists for."""
-    answer = ("The migration guide covers renames [2].\n\n"
-              "Some more prose here about the session.\n\n"
-              "Another paragraph entirely.\n\n"
-              "```python\nop.create_view('v', 'SELECT 1')\n```\n")
+    answer = (
+        "The migration guide covers renames [2].\n\n"
+        "Some more prose here about the session.\n\n"
+        "Another paragraph entirely.\n\n"
+        "```python\nop.create_view('v', 'SELECT 1')\n```\n"
+    )
     assert judge.uncited_code_blocks(answer) == 1
 
 
 # --- the count probe.py structurally cannot produce -------------------------
+
 
 def test_a_citation_pointing_past_the_last_source_is_out_of_range():
     """probe.py builds its citation set as {n for n in range(1, len(hits)+1)},
@@ -90,6 +90,7 @@ def test_a_valid_citation_is_in_range():
 
 
 # --- the definitions that must not drift from probe.py ----------------------
+
 
 def test_uncited_matches_probe_pys_threshold():
     """Both files answer 'did it cite anything'. If the word thresholds drift,
@@ -125,6 +126,7 @@ def test_the_refusal_detector_is_ask_pys_not_a_second_copy(monkeypatch):
 
 # --- aggregation ------------------------------------------------------------
 
+
 def _row(**kw):
     base = judge.citation_report("Use Session.get [1].", n_sources=5)
     base.update(id="g001", provenance="breakages")
@@ -155,8 +157,7 @@ def test_coverage_of_a_refused_answer_does_not_drag_the_mean_down():
 def test_the_report_names_the_items_that_need_a_person():
     """A rate tells you the size; only an id tells you where to look. The two
     defects worth a human read are an invented source and uncited code."""
-    rows = [_row(id="g065", uncited_code_blocks=1),
-            _row(id="g042", out_of_range=[7])]
+    rows = [_row(id="g065", uncited_code_blocks=1), _row(id="g042", out_of_range=[7])]
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         judge.report(rows, judge.aggregate(rows))
@@ -180,8 +181,7 @@ def test_judge_rows_retrieves_at_the_k_that_ships(monkeypatch):
     monkeypatch.setattr(judge.ask, "build_prompt", lambda q, h: "prompt")
     judge.judge_rows([{"id": "g001", "question": "q"}], generate=lambda p: "answer [1]")
     assert limits == [ask.DEFAULT_K]
-    assert ask.DEFAULT_K != score.DEPTH, (
-        "if these ever coincide this test stops proving anything")
+    assert ask.DEFAULT_K != score.DEPTH, "if these ever coincide this test stops proving anything"
 
 
 def test_judge_rows_accepts_both_generate_shapes(monkeypatch):
@@ -220,8 +220,10 @@ def test_the_report_splits_by_provenance():
     shown to decide retrieval; this split is what tests whether it also
     decides citing. Without it the next run costs another ~100 generations to
     ask the same question."""
-    rows = [_row(id="g001", provenance="stackoverflow", uncited=True),
-            _row(id="g002", provenance="migration_guide", uncited=False)]
+    rows = [
+        _row(id="g001", provenance="stackoverflow", uncited=True),
+        _row(id="g002", provenance="migration_guide", uncited=False),
+    ]
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         judge.report(rows, judge.aggregate(rows))
@@ -234,16 +236,19 @@ def test_the_provenance_split_excludes_refusals_like_every_other_rate():
     """Same rule as the headline counts: a declined answer has nothing to cite.
     Asserted on parsed fields rather than column positions, so reformatting the
     table cannot silently turn this into a test of whitespace."""
-    rows = [_row(id="g001", provenance="stackoverflow", refused=True, uncited=True),
-            _row(id="g002", provenance="stackoverflow", uncited=False),
-            _row(id="g003", provenance="breakages", uncited=True)]
+    rows = [
+        _row(id="g001", provenance="stackoverflow", refused=True, uncited=True),
+        _row(id="g002", provenance="stackoverflow", uncited=False),
+        _row(id="g003", provenance="breakages", uncited=True),
+    ]
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         judge.report(rows, judge.aggregate(rows))
     line = next(l for l in out.getvalue().splitlines() if "stackoverflow" in l)
     answered, uncited, rate = line.split()[1:]
     assert (answered, uncited, rate) == ("1", "0", "0%"), (
-        "the refused stackoverflow item must not appear in either column")
+        "the refused stackoverflow item must not appear in either column"
+    )
 
 
 def test_a_single_provenance_prints_no_split():
@@ -261,6 +266,7 @@ def test_a_single_provenance_prints_no_split():
 # The one Phase 4 defect prompt work could not move: fabrications sat at 2 under
 # every wording tried. g065 answered with `op.create_view`, which appears
 # in no retrieved source and does not exist on alembic 1.19.1.
+
 
 def test_a_call_absent_from_every_source_is_ungrounded():
     a = "See [1]:\n\n```python\nop.create_view('v', 'SELECT 1')\n```\n"
@@ -312,6 +318,7 @@ def test_groundedness_is_not_a_claim_about_existence():
 
 # --- subscripts are not citations -------------------------------------------
 
+
 def test_python_indexing_is_not_read_as_a_citation():
     """`keys[0]` is a subscript. The first version of CITATION matched any
     bracket-integer, so H's answer to g016 -- which contains
@@ -358,10 +365,19 @@ def test_a_subscript_inside_a_block_does_not_launder_it_as_cited():
 
 # --- the open cell ----------------------------------------------------------
 
-def _cell_row(id, *, answer="A real answer with plenty of words in it here.",
-         answerable=True, in_prompt=False, failed=False):
-    r = {"id": id, "answerable": answerable, "answer_in_prompt": in_prompt,
-         "answer": answer, "provenance": "github", "cited": [], "code_blocks": 0}
+
+def _cell_row(
+    id, *, answer="A real answer with plenty of words in it here.", answerable=True, in_prompt=False, failed=False
+):
+    r = {
+        "id": id,
+        "answerable": answerable,
+        "answer_in_prompt": in_prompt,
+        "answer": answer,
+        "provenance": "github",
+        "cited": [],
+        "code_blocks": 0,
+    }
     if failed:
         r["failed"] = True
         r.pop("answer")
@@ -370,11 +386,11 @@ def _cell_row(id, *, answer="A real answer with plenty of words in it here.",
 
 def test_the_open_cell_is_answered_answerable_and_page_absent():
     rows = [
-        _cell_row("hit"),                                   # in
-        _cell_row("had_the_page", in_prompt=True),          # scored elsewhere
-        _cell_row("unanswerable", answerable=False),        # fabrication, not this
+        _cell_row("hit"),  # in
+        _cell_row("had_the_page", in_prompt=True),  # scored elsewhere
+        _cell_row("unanswerable", answerable=False),  # fabrication, not this
         _cell_row("refused", answer="The sources do not answer this."),
-        _cell_row("failed", failed=True),                   # a failed generation: not a measurement
+        _cell_row("failed", failed=True),  # a failed generation: not a measurement
     ]
     assert [r["id"] for r in judge.open_cell(rows)] == ["hit"]
 
@@ -388,13 +404,12 @@ def test_a_failed_row_is_not_read_as_an_open_cell_answer():
 def test_the_sheet_renders_the_answer_and_asks_for_a_verdict(tmp_path):
     """The sheet must hand the decision over, not pre-empt it."""
     out = tmp_path / "sheet.md"
-    items = [{"id": "g014", "question": "does scalars matter?",
-              "answer_chunks": ["c01588"]}]
+    items = [{"id": "g014", "question": "does scalars matter?", "answer_chunks": ["c01588"]}]
     n = judge.open_cell_sheet({"D": [_cell_row("g014")]}, items, out)
     text = out.read_text()
     assert n == 1
     assert "does scalars matter?" in text and "c01588" in text
-    assert "Verdict:" in text and "does\nnot rule on it" in text
+    assert "Verdict:" in text and "carries no\nruling of its own" in text
 
 
 def test_the_sheet_names_what_a_variant_ADDS_over_the_control(tmp_path):
@@ -410,6 +425,7 @@ def test_the_sheet_names_what_a_variant_ADDS_over_the_control(tmp_path):
 
 # --- a failed row is not a delivered answer ---------------------------------
 
+
 def test_a_failed_row_is_not_counted_as_delivered():
     """Measured 2026-09-03: a row that failed to generate carries no "answer" key, so
     `ask.refused("")` is False and the row sailed into the delivered count as a
@@ -420,14 +436,12 @@ def test_a_failed_row_is_not_counted_as_delivered():
     so it belongs in neither numerator while staying in the denominator, which
     is what keeps both arms on one ruler."""
     rows = [
-        {"id": "a", "answerable": True, "answer_in_prompt": True,
-         "failed": True},                                   # no "answer" key
-        {"id": "b", "answerable": True, "answer_in_prompt": True,
-         "answer": "Use select() instead, per [1]."},
+        {"id": "a", "answerable": True, "answer_in_prompt": True, "failed": True},  # no "answer" key
+        {"id": "b", "answerable": True, "answer_in_prompt": True, "answer": "Use select() instead, per [1]."},
     ]
     got = judge._sweep_generation(rows)
     assert got["delivered"] == 1
-    assert got["n_answerable"] == 2          # still in the denominator
+    assert got["n_answerable"] == 2  # still in the denominator
     assert got["failed"] == 1
 
 
@@ -443,13 +457,13 @@ def test_the_published_figures_are_reproduced_from_the_saved_sweep():
     drifts, either the saved answers or the derivation moved — and every Phase
     4 number rests on these cells."""
     import json
+
     sweep = json.loads((judge.DELIVERABLES / judge.SWEEP_NAME).read_text())
     expected = {"D": (39, 19, 2), "H": (47, 10, 2), "I": (46, 11, 2)}
     for variant, (delivered, over, fabr) in expected.items():
         got = judge._sweep_generation(sweep[variant])
         assert got["n_answerable"] == 91, variant
-        assert (got["delivered"], got["over_refused"], got["fabricated"]) == \
-               (delivered, over, fabr), variant
+        assert (got["delivered"], got["over_refused"], got["fabricated"]) == (delivered, over, fabr), variant
 
 
 def test_the_scorecard_warns_when_a_source_file_has_no_machine(capsys):
@@ -457,10 +471,8 @@ def test_the_scorecard_warns_when_a_source_file_has_no_machine(capsys):
     hypothetical — the lab's judge rows landed beside the Mac's answers and
     nothing in either file said so."""
     items = [{"id": "g001", "answerable": True}]
-    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
-                    "answer": "x [1]", "n_sources": 5}]}
-    judge.scorecard(items, sweep, ["D"], None, {"n": 0, "filled": 0, "rate": None},
-                    None, sweep_machine=None)
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True, "answer": "x [1]", "n_sources": 5}]}
+    judge.scorecard(items, sweep, ["D"], None, {"n": 0, "filled": 0, "rate": None}, None, sweep_machine=None)
     out = capsys.readouterr().out
     assert "do not record which machine" in out
     assert "do NOT reproduce across machines" in out
@@ -468,34 +480,52 @@ def test_the_scorecard_warns_when_a_source_file_has_no_machine(capsys):
 
 def test_the_scorecard_is_quiet_when_both_files_name_their_machine(capsys):
     items = [{"id": "g001", "answerable": True}]
-    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
-                    "answer": "x [1]", "n_sources": 5}]}
-    faith = {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b",
-             "variants": {"D": []}}
-    judge.scorecard(items, sweep, ["D"], faith,
-                    {"n": 0, "filled": 0, "rate": None}, None,
-                    sweep_machine="Linux-x86_64")
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True, "answer": "x [1]", "n_sources": 5}]}
+    faith = {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b", "variants": {"D": []}}
+    judge.scorecard(items, sweep, ["D"], faith, {"n": 0, "filled": 0, "rate": None}, None, sweep_machine="Linux-x86_64")
     assert "do not record which machine" not in capsys.readouterr().out
 
 
 def test_the_scorecard_shows_every_machines_rows_not_just_the_last(capsys):
     """Both boxes used to write one path and the second destroyed the first.
-Two runs present is the GOOD case — it is what the finding was
-    measured from — so the report must show both rather than pick one."""
+    Two runs present is the GOOD case — it is what the finding was
+        measured from — so the report must show both rather than pick one."""
     items = [{"id": "g001", "answerable": True}]
-    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
-                    "answer": "x [1]", "n_sources": 5}]}
-    rows = [{"id": "g001", "verdict": "SUPPORTED", "reason": "r", "claim": "c",
-             "judge_model": "gemma4:e4b", "machine": "Darwin-arm64"}]
-    faiths = [
-        {"_path": "faithfulness-phase4.Darwin-arm64.json", "machine": "Darwin-arm64",
-         "judge_model": "gemma4:e4b", "variants": {"D": rows}},
-        {"_path": "faithfulness-phase4.Linux-x86_64.json", "machine": "Linux-x86_64",
-         "judge_model": "gemma4:e4b", "variants": {"D": rows}},
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True, "answer": "x [1]", "n_sources": 5}]}
+    rows = [
+        {
+            "id": "g001",
+            "verdict": "SUPPORTED",
+            "reason": "r",
+            "claim": "c",
+            "judge_model": "gemma4:e4b",
+            "machine": "Darwin-arm64",
+        }
     ]
-    judge.scorecard(items, sweep, ["D"], faiths[0],
-                    {"n": 0, "filled": 0, "rate": None}, None,
-                    sweep_machine="Darwin-arm64", faiths=faiths)
+    faiths = [
+        {
+            "_path": "faithfulness-phase4.Darwin-arm64.json",
+            "machine": "Darwin-arm64",
+            "judge_model": "gemma4:e4b",
+            "variants": {"D": rows},
+        },
+        {
+            "_path": "faithfulness-phase4.Linux-x86_64.json",
+            "machine": "Linux-x86_64",
+            "judge_model": "gemma4:e4b",
+            "variants": {"D": rows},
+        },
+    ]
+    judge.scorecard(
+        items,
+        sweep,
+        ["D"],
+        faiths[0],
+        {"n": 0, "filled": 0, "rate": None},
+        None,
+        sweep_machine="Darwin-arm64",
+        faiths=faiths,
+    )
     out = capsys.readouterr().out
     assert "Darwin-arm64" in out and "Linux-x86_64" in out
     assert "Compare them item by item" in out
@@ -515,12 +545,11 @@ def test_the_legacy_unstamped_file_is_not_counted_as_a_second_run(tmp_path):
     The legacy name is still read, because a clone that never ran the split
     has its only rows there. It is dropped only when its rows are a copy of a
     file that does name its machine."""
-    rows = {"D": [{"id": "g001", "verdict": "SUPPORTED", "reason": "r",
-                   "claim": "c", "judge_model": "gemma4:e4b"}]}
-    (tmp_path / "faithfulness-phase4.Linux-x86_64.json").write_text(json.dumps(
-        {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b", "variants": rows}))
-    (tmp_path / "faithfulness-phase4.json").write_text(json.dumps(
-        {"judge_model": "gemma4:e4b", "variants": rows}))
+    rows = {"D": [{"id": "g001", "verdict": "SUPPORTED", "reason": "r", "claim": "c", "judge_model": "gemma4:e4b"}]}
+    (tmp_path / "faithfulness-phase4.Linux-x86_64.json").write_text(
+        json.dumps({"machine": "Linux-x86_64", "judge_model": "gemma4:e4b", "variants": rows})
+    )
+    (tmp_path / "faithfulness-phase4.json").write_text(json.dumps({"judge_model": "gemma4:e4b", "variants": rows}))
 
     got = judge.load_faith_files(tmp_path)
     assert [f["_path"] for f in got] == ["faithfulness-phase4.Linux-x86_64.json"]
@@ -530,11 +559,18 @@ def test_the_legacy_file_survives_when_it_is_the_only_copy(tmp_path):
     """The other half of the same rule, and the reason the duplicate check is
     by CONTENT rather than by filename: an older clone whose only rows sit at
     the unsuffixed path must still be read, not silently dropped."""
-    (tmp_path / "faithfulness-phase4.json").write_text(json.dumps(
-        {"judge_model": "gemma4:e4b",
-         "variants": {"D": [{"id": "g001", "verdict": "SUPPORTED",
-                             "reason": "r", "claim": "c",
-                             "judge_model": "gemma4:e4b"}]}}))
+    (tmp_path / "faithfulness-phase4.json").write_text(
+        json.dumps(
+            {
+                "judge_model": "gemma4:e4b",
+                "variants": {
+                    "D": [
+                        {"id": "g001", "verdict": "SUPPORTED", "reason": "r", "claim": "c", "judge_model": "gemma4:e4b"}
+                    ]
+                },
+            }
+        )
+    )
     got = judge.load_faith_files(tmp_path)
     assert [f["_path"] for f in got] == ["faithfulness-phase4.json"]
 
@@ -542,15 +578,16 @@ def test_the_legacy_file_survives_when_it_is_the_only_copy(tmp_path):
 def test_two_files_with_different_rows_are_both_kept(tmp_path):
     """Distinct runs are the GOOD case — the cross-machine finding was measured from exactly this —
     so the de-duplication must not collapse two machines that disagree."""
+
     def row(verdict):
-        return {"D": [{"id": "g001", "verdict": verdict, "reason": "r",
-                       "claim": "c", "judge_model": "gemma4:e4b"}]}
-    (tmp_path / "faithfulness-phase4.Darwin-arm64.json").write_text(json.dumps(
-        {"machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
-         "variants": row("SUPPORTED")}))
-    (tmp_path / "faithfulness-phase4.Linux-x86_64.json").write_text(json.dumps(
-        {"machine": "Linux-x86_64", "judge_model": "gemma4:e4b",
-         "variants": row("UNSUPPORTED")}))
+        return {"D": [{"id": "g001", "verdict": verdict, "reason": "r", "claim": "c", "judge_model": "gemma4:e4b"}]}
+
+    (tmp_path / "faithfulness-phase4.Darwin-arm64.json").write_text(
+        json.dumps({"machine": "Darwin-arm64", "judge_model": "gemma4:e4b", "variants": row("SUPPORTED")})
+    )
+    (tmp_path / "faithfulness-phase4.Linux-x86_64.json").write_text(
+        json.dumps({"machine": "Linux-x86_64", "judge_model": "gemma4:e4b", "variants": row("UNSUPPORTED")})
+    )
     assert len(judge.load_faith_files(tmp_path)) == 2
 
 
@@ -559,22 +596,42 @@ def test_the_number_of_runs_in_the_footer_is_computed(capsys):
     a count typed once, which is the thing this repo's measurement rule
     forbids in scripts as much as in docs."""
     items = [{"id": "g001", "answerable": True}]
-    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True,
-                    "answer": "x [1]", "n_sources": 5}]}
+    sweep = {"D": [{"id": "g001", "answerable": True, "answer_in_prompt": True, "answer": "x [1]", "n_sources": 5}]}
 
     def faith(machine, verdict):
-        return {"_path": f"faithfulness-phase4.{machine}.json",
-                "machine": machine, "judge_model": "gemma4:e4b",
-                "variants": {"D": [{"id": "g001", "verdict": verdict,
-                                    "reason": "r", "claim": "c",
-                                    "judge_model": "gemma4:e4b",
-                                    "machine": machine}]}}
-    faiths = [faith("Darwin-arm64", "SUPPORTED"),
-              faith("Linux-x86_64", "UNSUPPORTED"),
-              faith("Linux-aarch64", "PARTIAL")]
-    judge.scorecard(items, sweep, ["D"], faiths[0],
-                    {"n": 0, "filled": 0, "rate": None}, None,
-                    sweep_machine="Darwin-arm64", faiths=faiths)
+        return {
+            "_path": f"faithfulness-phase4.{machine}.json",
+            "machine": machine,
+            "judge_model": "gemma4:e4b",
+            "variants": {
+                "D": [
+                    {
+                        "id": "g001",
+                        "verdict": verdict,
+                        "reason": "r",
+                        "claim": "c",
+                        "judge_model": "gemma4:e4b",
+                        "machine": machine,
+                    }
+                ]
+            },
+        }
+
+    faiths = [
+        faith("Darwin-arm64", "SUPPORTED"),
+        faith("Linux-x86_64", "UNSUPPORTED"),
+        faith("Linux-aarch64", "PARTIAL"),
+    ]
+    judge.scorecard(
+        items,
+        sweep,
+        ["D"],
+        faiths[0],
+        {"n": 0, "filled": 0, "rate": None},
+        None,
+        sweep_machine="Darwin-arm64",
+        faiths=faiths,
+    )
     out = capsys.readouterr().out
     assert "3 runs above" in out
     assert "Two runs above" not in out
@@ -591,18 +648,45 @@ def test_an_incomplete_faithfulness_file_is_labelled_not_reported_as_a_result(ca
     have judged -- rather than stored, so it works on files written before this
     check existed."""
     items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 4)]
-    sweep = {"D": [{"id": i["id"], "answerable": True, "answer_in_prompt": True,
-                    "answer": "a real answer with a citation [1]",
-                    "n_sources": 5} for i in items]}
-    partial = {"_path": "faithfulness-phase4.Darwin-arm64.json",
-               "machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
-               "variants": {"D": [{"id": "g001", "verdict": "SUPPORTED",
-                                   "reason": "r", "claim": "c",
-                                   "judge_model": "gemma4:e4b",
-                                   "machine": "Darwin-arm64"}]}}
-    judge.scorecard(items, sweep, ["D"], partial,
-                    {"n": 0, "filled": 0, "rate": None}, None,
-                    sweep_machine="Darwin-arm64", faiths=[partial])
+    sweep = {
+        "D": [
+            {
+                "id": i["id"],
+                "answerable": True,
+                "answer_in_prompt": True,
+                "answer": "a real answer with a citation [1]",
+                "n_sources": 5,
+            }
+            for i in items
+        ]
+    }
+    partial = {
+        "_path": "faithfulness-phase4.Darwin-arm64.json",
+        "machine": "Darwin-arm64",
+        "judge_model": "gemma4:e4b",
+        "variants": {
+            "D": [
+                {
+                    "id": "g001",
+                    "verdict": "SUPPORTED",
+                    "reason": "r",
+                    "claim": "c",
+                    "judge_model": "gemma4:e4b",
+                    "machine": "Darwin-arm64",
+                }
+            ]
+        },
+    }
+    judge.scorecard(
+        items,
+        sweep,
+        ["D"],
+        partial,
+        {"n": 0, "filled": 0, "rate": None},
+        None,
+        sweep_machine="Darwin-arm64",
+        faiths=[partial],
+    )
     out = capsys.readouterr().out
     assert "INCOMPLETE" in out
     assert "1 of 3" in out
@@ -612,18 +696,45 @@ def test_a_complete_faithfulness_file_is_not_labelled_incomplete(capsys):
     """The other half: a finished run must not carry a warning, or the warning
     stops being read."""
     items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 3)]
-    sweep = {"D": [{"id": i["id"], "answerable": True, "answer_in_prompt": True,
-                    "answer": "a real answer with a citation [1]",
-                    "n_sources": 5} for i in items]}
-    rows = [{"id": i["id"], "verdict": "SUPPORTED", "reason": "r", "claim": "c",
-             "judge_model": "gemma4:e4b", "machine": "Darwin-arm64"}
-            for i in items]
-    full = {"_path": "faithfulness-phase4.Darwin-arm64.json",
-            "machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
-            "variants": {"D": rows}}
-    judge.scorecard(items, sweep, ["D"], full,
-                    {"n": 0, "filled": 0, "rate": None}, None,
-                    sweep_machine="Darwin-arm64", faiths=[full])
+    sweep = {
+        "D": [
+            {
+                "id": i["id"],
+                "answerable": True,
+                "answer_in_prompt": True,
+                "answer": "a real answer with a citation [1]",
+                "n_sources": 5,
+            }
+            for i in items
+        ]
+    }
+    rows = [
+        {
+            "id": i["id"],
+            "verdict": "SUPPORTED",
+            "reason": "r",
+            "claim": "c",
+            "judge_model": "gemma4:e4b",
+            "machine": "Darwin-arm64",
+        }
+        for i in items
+    ]
+    full = {
+        "_path": "faithfulness-phase4.Darwin-arm64.json",
+        "machine": "Darwin-arm64",
+        "judge_model": "gemma4:e4b",
+        "variants": {"D": rows},
+    }
+    judge.scorecard(
+        items,
+        sweep,
+        ["D"],
+        full,
+        {"n": 0, "filled": 0, "rate": None},
+        None,
+        sweep_machine="Darwin-arm64",
+        faiths=[full],
+    )
     assert "INCOMPLETE" not in capsys.readouterr().out
 
 
@@ -632,19 +743,52 @@ def test_a_failed_judge_row_does_not_count_toward_completeness(capsys):
     counted as present, a run that gave up on an item would report itself
     complete and the gap would never be retried."""
     items = [{"id": f"g{n:03d}", "answerable": True} for n in range(1, 3)]
-    sweep = {"D": [{"id": i["id"], "answerable": True, "answer_in_prompt": True,
-                    "answer": "a real answer with a citation [1]",
-                    "n_sources": 5} for i in items]}
-    rows = [{"id": "g001", "verdict": "SUPPORTED", "reason": "r", "claim": "c",
-             "judge_model": "gemma4:e4b", "machine": "Darwin-arm64"},
-            {"id": "g002", "verdict": "FAILED", "failed": True, "reason": "t",
-             "claim": "", "judge_model": "gemma4:e4b",
-             "machine": "Darwin-arm64"}]
-    part = {"_path": "faithfulness-phase4.Darwin-arm64.json",
-            "machine": "Darwin-arm64", "judge_model": "gemma4:e4b",
-            "variants": {"D": rows}}
-    judge.scorecard(items, sweep, ["D"], part,
-                    {"n": 0, "filled": 0, "rate": None}, None,
-                    sweep_machine="Darwin-arm64", faiths=[part])
+    sweep = {
+        "D": [
+            {
+                "id": i["id"],
+                "answerable": True,
+                "answer_in_prompt": True,
+                "answer": "a real answer with a citation [1]",
+                "n_sources": 5,
+            }
+            for i in items
+        ]
+    }
+    rows = [
+        {
+            "id": "g001",
+            "verdict": "SUPPORTED",
+            "reason": "r",
+            "claim": "c",
+            "judge_model": "gemma4:e4b",
+            "machine": "Darwin-arm64",
+        },
+        {
+            "id": "g002",
+            "verdict": "FAILED",
+            "failed": True,
+            "reason": "t",
+            "claim": "",
+            "judge_model": "gemma4:e4b",
+            "machine": "Darwin-arm64",
+        },
+    ]
+    part = {
+        "_path": "faithfulness-phase4.Darwin-arm64.json",
+        "machine": "Darwin-arm64",
+        "judge_model": "gemma4:e4b",
+        "variants": {"D": rows},
+    }
+    judge.scorecard(
+        items,
+        sweep,
+        ["D"],
+        part,
+        {"n": 0, "filled": 0, "rate": None},
+        None,
+        sweep_machine="Darwin-arm64",
+        faiths=[part],
+    )
     out = capsys.readouterr().out
     assert "INCOMPLETE" in out and "1 of 2" in out

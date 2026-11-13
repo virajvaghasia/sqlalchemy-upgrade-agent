@@ -15,7 +15,8 @@ Scoring still uses the same `dedup_key` for "either twin is a hit".
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 # Upgrade-agent default: when both halves are equally close, keep the 2.0 page.
 PREFERRED_VERSION = "2.0.51"

@@ -10,7 +10,6 @@ the provenance record, so the manifest is what gets checked.
 """
 
 import json
-import pathlib
 
 import pytest
 
@@ -25,13 +24,12 @@ def doc_relpaths(version: str | None = None) -> set[str]:
     """Paths relative to doc/build/, optionally for one version."""
     prefix = len(corpus.DOC_ROOT) + 1
     return {
-        entry["source_path"][prefix:]
-        for entry in FILES
-        if version is None or entry["sqlalchemy_version"] == version
+        entry["source_path"][prefix:] for entry in FILES if version is None or entry["sqlalchemy_version"] == version
     }
 
 
 # --- the selection rule itself, no manifest involved -----------------------
+
 
 @pytest.mark.parametrize(
     "rel_path",
@@ -51,14 +49,14 @@ def test_selected(rel_path):
 @pytest.mark.parametrize(
     "rel_path",
     [
-        "changelog/changelog_20.rst",      # per-release bug entries — the excluded bulk
-        "changelog/migration_14.rst",      # an older migration guide — version skew
-        "dialects/postgresql.rst",         # backend specifics
-        "index.rst",                       # navigation
+        "changelog/changelog_20.rst",  # per-release bug entries — the excluded bulk
+        "changelog/migration_14.rst",  # an older migration guide — version skew
+        "dialects/postgresql.rst",  # backend specifics
+        "index.rst",  # navigation
         "contents.rst",
         "copyright.rst",
         "intro.rst",
-        "orm/queryguide/select.html",      # not .rst
+        "orm/queryguide/select.html",  # not .rst
         "conf.py",
     ],
 )
@@ -78,6 +76,7 @@ def test_migration_guide_is_2_0_only():
 
 
 # --- the corpus that actually got built ------------------------------------
+
 
 def test_versions_match_the_repo_pins():
     """The corpus documents the releases the rest of the repo is on.
@@ -137,4 +136,3 @@ def test_manifest_has_no_timestamp():
 
 
 # --- the numbers quoted in the docs ----------------------------------------
-
