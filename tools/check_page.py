@@ -21,6 +21,7 @@ through the page's own `renderAnswer` and `renderSources`. So it tests the
 page's drawing, not the answers; `tests/test_demo.py` tests the payload.
 """
 
+import json
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -157,7 +158,123 @@ with sync_playwright() as p:
         )
         page.close()
 
-    check("no JavaScript errors on either page", not errors, "; ".join(errors)[:200])
+    # The states only the submit path reaches. /api/ask is answered here, by this script, with
+    # the status, header and body the server sends for each case (tests/test_server.py pins
+    # those), so every branch runs without a model and without waiting out a real limit.
+    print("\nsubmit path, desktop 1280px")
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    reply: dict = {}
+    calls = []
+
+    def answer_ask(route):
+        calls.append(1)
+        if reply.get("abort"):
+            route.abort()
+            return
+        route.fulfill(
+            status=reply["status"],
+            headers={"Content-Type": "application/json", **reply.get("headers", {})},
+            body=json.dumps(reply["body"]),
+        )
+
+    page.route("**/api/ask", answer_ask)
+    page.goto(URL)
+    page.wait_for_load_state("networkidle")
+
+    def ask(text: str) -> None:
+        page.fill("#q", text)
+        page.click("#ask")
+        page.wait_for_function("() => !document.getElementById('ask').classList.contains('busy')")
+
+    reply.update(
+        status=200, body={**ANSWERED, "sources": SOURCES, "timings": {"retrieve_ms": 2600, "generate_ms": 18400}}
+    )
+    ask("where did get move to")
+    segs = page.locator(".t-seg").evaluate_all("els => els.map(e => e.getBoundingClientRect().width)")
+    check(
+        "answered: search and writing time are drawn to scale",
+        len(segs) == 2 and segs[1] > 5 * segs[0] and "2.6s" in page.locator(".t-labs").inner_text(),
+        f"segments {[round(x) for x in segs]} px",
+    )
+
+    page.wait_for_timeout(900)  # the smooth scroll to the answer
+    top = page.evaluate(
+        "() => [document.querySelector('.doc-title').getBoundingClientRect().top,"
+        " document.querySelector('.topbar').getBoundingClientRect().bottom]"
+    )
+    check(
+        "after asking, the question's title is below the fixed bar, not under it",
+        top[0] >= top[1],
+        f"title at {round(top[0])} px, bar ends at {round(top[1])} px",
+    )
+    title = page.locator(".doc-title").inner_text()
+    reply.update(
+        status=422, body={**ERROR, "error": "This looks like a greeting.", "code": "not_a_lookup", "sources": []}
+    )
+    ask("Hello")
+    check(
+        "rejected question: said in the box, the answer on screen is left alone",
+        page.locator("#form-msg").is_visible()
+        and "greeting" in page.locator("#form-msg").inner_text()
+        and page.locator(".doc-title").inner_text() == title
+        and page.locator(".pill.answered").count() == 1,
+    )
+    page.fill("#q", "Hello again")
+    check("rejected question: the message clears on typing", not page.locator("#form-msg").is_visible())
+
+    reply.update(
+        status=429,
+        headers={"Retry-After": "3"},
+        body={**ERROR, "error": "Please wait 3 seconds.", "code": "rate_limited", "sources": SOURCES},
+    )
+    ask("where did get move to")
+    label = page.locator("#ask .label").inner_text()
+    check(
+        "rate limited: named, counted down, and the button stays shut",
+        page.locator(".pill.error").inner_text() == "Too many questions"
+        and label.startswith("Wait ")
+        and page.locator("#ask").is_disabled()
+        and page.locator(".src").count() == 2,
+        f"button says {label!r}",
+    )
+    page.wait_for_function("() => !document.getElementById('ask').disabled", timeout=6000)
+    check(
+        "rate limited: the button opens again when the wait is over",
+        page.locator("#ask .label").inner_text() == "Ask" and "again now" in page.locator(".fail-next").inner_text(),
+    )
+
+    reply.update(
+        status=503,
+        headers={},
+        body={**ERROR, "error": "No answer model responded.", "code": "generator_unavailable", "sources": SOURCES},
+    )
+    ask("where did get move to")
+    before = len(calls)
+    named = page.locator(".pill.error").inner_text()
+    page.click("#retry")
+    page.wait_for_function("() => !document.getElementById('ask').classList.contains('busy')")
+    check(
+        "model unavailable: named, sources listed, Ask again sends the question again",
+        named == "The model did not answer" and len(calls) == before + 1 and page.locator(".src").count() == 2,
+        f"{len(calls) - before} new request(s)",
+    )
+
+    reply.update(abort=True)
+    ask("where did get move to")
+    check(
+        "server unreachable: named, with a way to ask again",
+        page.locator(".pill.error").inner_text() == "Server not reached" and page.locator("#retry").count() == 1,
+    )
+    page.keyboard.press("Tab")
+    check(
+        "the live region carries the outcome, not the whole answer",
+        page.locator("#live").inner_text().startswith("Server not reached")
+        and page.get_attribute("#answer", "aria-live") is None,
+    )
+    page.close()
+
+    check("no JavaScript errors on any page", not errors, "; ".join(errors)[:200])
     browser.close()
 
 print(f"\n{sum(results)} of {len(results)} checks pass")

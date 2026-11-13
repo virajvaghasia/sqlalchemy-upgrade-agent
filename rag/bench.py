@@ -5,6 +5,7 @@
     RAG_DENSE=memory uv run python -m rag.bench --device cpu  # both models on the CPU, as in the container
     ... --first 20                                            # only the first 20 golden questions
     uv run python -m rag.bench --show <saved file>            # print a saved run's table again
+    ... --overwrite                                           # replace a saved run that covers more questions
 
 Retrieval only: no answer model is called. Writes deliverables/latency.<machine>.<dense>.<device>.json,
 with `n` in the file saying how many questions it covers.
@@ -151,6 +152,19 @@ def header(saved: dict) -> str:
     return f"retrieval latency, {saved['machine']}, device={saved['device']}, dense={saved['dense']}, n={saved['n']}"
 
 
+def saved_n(path) -> int:
+    """How many questions the run already saved at `path` covers; 0 if there is none.
+
+    The file name carries the machine, the dense backend and the device but not the
+    question count, so a `--first 6` run lands on the same name as the full 100.
+    A doc quotes the full run's table, and a shorter run must not replace it quietly.
+    """
+    try:
+        return int(json.loads(path.read_text())["n"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return 0
+
+
 def main() -> None:
     argv = sys.argv[1:]
     if "--show" in argv:
@@ -189,6 +203,13 @@ def main() -> None:
     report(saved, header(saved))
 
     out = DELIVERABLES / f"latency.{faithful.machine()}.{dense}.{device}.json"
+    covered = saved_n(out)
+    if covered > len(items) and "--overwrite" not in argv:
+        print(
+            f"\n  NOT saved: {out.relative_to(corpus.REPO_ROOT)} already covers {covered} questions and this run\n"
+            f"  covers {len(items)}. Pass --overwrite to replace it."
+        )
+        return
     out.write_text(json.dumps(saved, indent=1) + "\n")
     print(f"\n  saved {out.relative_to(corpus.REPO_ROOT)}")
 

@@ -17,7 +17,9 @@ fully supported by the pages it was given. Supported is not the same as correct.
 
 Source, measurements and every decision behind them: https://github.com/virajvaghasia/sqlalchemy-upgrade-agent
 
-**Run it locally.** `pip install -r requirements.txt && python web.py`, then open http://127.0.0.1:7860.
+**Run it locally.** From a checkout of the repository: `docker compose --profile demo up --build demo`,
+or `sqla-upgrade serve`. From this bundle: `pip install -r requirements.txt && python web.py`. Either
+way, open http://127.0.0.1:7860.
 On a server set `HOST=0.0.0.0` and `PORT`, and the secret `NVIDIA_API_KEY`; without the key the
 page says it is missing. `DEMO_GENERATOR=ollama` uses a local `qwen2.5-coder:7b` instead, the
 measured generator, and then the page's notice says so.
