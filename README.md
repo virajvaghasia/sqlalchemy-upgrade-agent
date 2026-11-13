@@ -138,7 +138,7 @@ is verified against **2.0.51**.
 | [`space/`](space/) | the demo page and its Modal deployment |
 | [`experiments/`](experiments/) | the 1.4 app under test and the migration measurements |
 | [`tools/`](tools/) | checks: every `# runnable` block reproduces, escalated answers run on 2.0.51, the demo page works in a browser |
-| [`tests/`](tests/) | 640 tests |
+| [`tests/`](tests/) | 647 tests |
 
 ---
 
@@ -201,7 +201,7 @@ rag/                   retrieval, generation, the judges, the agent, the CI gate
 tools/                 check_runnable.py — every `# runnable` block, verified; check_*.py — answers run on 2.0.51, the demo page in a browser
 space/                 the demo: web.py + static/, modal_app.py (Modal host), pins, build script
 corpus/                MANIFEST.json + CHUNK_STATS.json. raw/ and chunks.jsonl are generated
-tests/                 640 tests
+tests/                 647 tests
 .github/workflows/     CI — tests, the 2.0 evidence, the image; gate.yml blocks a PR that loses a golden answer
 ```
 
@@ -236,12 +236,12 @@ Deliberately written in 1.4 style, with known 2.0 problems left in place.
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-640 tests collected in 12.72s
+647 tests collected in 12.72s
 ```
 
 Ten need local setup and skip without it: five need Qdrant running, and five need the generated
-corpus (`corpus/chunks.jsonl`). With both, 640 pass; without Qdrant, 635 pass and 5 skip; on a
-fresh clone with neither, 630 pass and 10 skip. The block counts what is *collected* because that does not depend on
+corpus (`corpus/chunks.jsonl`). With both, 647 pass; without Qdrant, 642 pass and 5 skip; on a
+fresh clone with neither, 637 pass and 10 skip. The block counts what is *collected* because that does not depend on
 what happens to be running.
 
 They pin what the project claims, not what SQLAlchemy does: the seeded row counts,
