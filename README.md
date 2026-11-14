@@ -177,8 +177,9 @@ The index on the demo page comes from [`deliverables/BREAKAGES.md`](deliverables
 each with the 1.4 call and the exception SQLAlchemy 2.0.51 actually raised. A test fails if the page's
 copy ever differs from the file.
 
-![The What breaks in 2.0 section: groups of breaking changes, each entry showing the 1.4 call,
-the exception name and the error message](docs/images/demo-breaks.png)
+![The page as it opens: the What breaks in 2.0 index runs down the left as a sidebar, each entry
+showing the 1.4 call, the exception name and the error message, beside the question box and the
+benchmark strip](docs/images/demo-breaks.png)
 
 <details>
 <summary>The page on a phone</summary>
