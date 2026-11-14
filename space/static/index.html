@@ -97,8 +97,8 @@
   .ver .to, .ver .new { color: var(--accent); }
   .repo { display: inline-flex; align-items: center; gap: 6px; font: 400 14px var(--sans); color: var(--text-2); text-decoration: none; }
   .repo:hover { color: var(--text); }
-  .breaks, .how, .method, .limits { scroll-margin-top: 80px; }
-  @media (max-width: 880px) { .navlinks, .bar-rule { display: none; } }
+  .side, .how, .method, .limits { scroll-margin-top: 80px; }
+  @media (max-width: 1099px) { .navlinks, .bar-rule { display: none; } }
   /* Phone menu. The word "Menu", not three lines: it says what it is. It drops a panel under the
      bar with the same three sections plus the source link, and closes on a pick, Escape, or a
      tap anywhere else. */
@@ -111,11 +111,11 @@
   .menu a { display: block; padding: 12px 2px; border-bottom: 1px solid var(--border); text-decoration: none; font: 500 15px var(--sans); color: var(--text); }
   .menu a:last-child { border-bottom: 0; color: var(--text-2); }
   .menu a.here { color: var(--accent); }
-  @media (max-width: 880px) { .menu-btn { display: inline-block; } }
+  @media (max-width: 1099px) { .menu-btn { display: inline-block; } }
   /* On a phone the name, the version and the Menu button did not fit: 401px of bar on a 390px
      screen. The version is repeated in the line under the bar, so it is the one that goes. */
   @media (max-width: 520px) { .ver { display: none; } }
-  @media (min-width: 881px) { .menu { display: none !important; } }
+  @media (min-width: 1100px) { .menu { display: none !important; } }
   @media (max-width: 620px) { .topbar-inner { padding: 0 18px; } .repo { display: none; } }
 
   .shell { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
@@ -128,7 +128,7 @@
   @media (min-width: 1000px) { .cols { grid-template-columns: minmax(0, 1fr) 340px; gap: 64px; } }
 
   /* ---------- hero ---------- */
-  .top-grid { padding: 56px 0 44px; border-bottom: 1px solid var(--border); align-items: start; }
+  .top { padding: 56px 0 48px; border-bottom: 1px solid var(--border); }
   .eyebrow { margin: 0 0 18px; font: 400 13px var(--mono); color: var(--text-3); }
   .eyebrow b { color: var(--accent); font-weight: 500; }
   h1 { font: 600 clamp(2rem, 4.4vw, 2.85rem)/1.12 var(--sans); letter-spacing: -.035em; margin: 0 0 16px; text-wrap: balance; }
@@ -188,44 +188,30 @@
     .chip .go { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
   }
 
-  /* The benchmark, as a table: a label, a value, and what the value means. */
-  /* Starts on the eyebrow's line and, on a wide screen, stretches to the bottom of the Try list,
-     with "what happens when you ask" pinned to the bottom, so the two columns share a top AND a
-     bottom edge. Without it the benchmark ended ~170px above the Try list and left a hole. */
-  .hero-rail { padding-top: 0; display: flex; flex-direction: column; }
-  @media (min-width: 1000px) { .hero-rail { align-self: stretch; } }
-  .rail-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--text); }
-  .rail-head b { font: 600 13.5px var(--sans); }
-  .rail-head span { font: 400 12.5px var(--mono); color: var(--text-3); }
+  /* The benchmark as one ruled row under the question box: five measured figures, read left to
+     right, the way a docs page sets a small results table. It used to be a right-hand rail, which
+     made the hero two columns and the page read as a landing page. */
+  .bench { margin-top: 40px; max-width: 920px; }
+  .bench-head { display: flex; gap: 12px; align-items: baseline; margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--text); }
+  .bench-head b { font: 600 13.5px var(--sans); }
+  .bench-head span { font: 400 12.5px var(--mono); color: var(--text-3); }
   .figures { margin: 0; }
-  .fig { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .fig dt { font: 500 17px/1.3 var(--mono); letter-spacing: -.02em; font-variant-numeric: tabular-nums; text-align: right; }
-  .fig dd { margin: 0; color: var(--text-3); font-size: 13px; line-height: 1.45; }
-  .fig dd b { display: block; color: var(--text); font-weight: 500; font-size: 14px; line-height: 1.3; margin-bottom: 2px; }
-  .meter { display: block; height: 3px; margin-top: 8px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
+  .fig { padding: 14px 16px 16px; border-left: 1px solid var(--border); }
+  .fig:first-child { padding-left: 0; border-left: 0; }
+  .fig dt { font: 500 24px/1.2 var(--mono); letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+  .fig dd { margin: 0; color: var(--text-3); font-size: 12.5px; line-height: 1.45; }
+  .fig dd b { display: block; color: var(--text); font-weight: 500; font-size: 13.5px; line-height: 1.3; margin-bottom: 2px; }
+  .meter { display: block; height: 3px; margin-top: 10px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .meter i { display: block; height: 100%; background: var(--accent); }
   .fig + .fig .meter i { background: var(--accent-soft); }
+  @media (max-width: 760px) {
+    .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fig, .fig:first-child { padding: 12px 12px 14px 0; border-left: 0; border-bottom: 1px solid var(--border); }
+    .fig:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--border); }
+    .fig:last-child { border-bottom: 0; }
+  }
   .limits code { font: 12.5px var(--mono); color: var(--text-2); }
-  /* The table of contents takes whatever height is left in the column and shares it out between
-     its rows, so a taller left column (1024px wide, where the examples wrap) spreads the rows a
-     little rather than opening an 80px hole above them. When the columns already match it changes
-     nothing. */
-  .flow { flex: 1; display: flex; flex-direction: column; padding-top: 14px; }
-  .flow ol { flex: 1; display: flex; flex-direction: column; justify-content: space-between; margin: 0; padding: 0; list-style: none; }
-  .flow-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 4px; padding-bottom: 4px; border-bottom: 1px solid var(--text); font: 600 13.5px var(--sans); }
-  .flow-head a { text-decoration: none; }
-  .flow-head a:hover { color: var(--accent); }
-  .flow-head span { font: 400 12.5px var(--mono); color: var(--text-3); }
-  /* A table of contents into the breakage index: eight groups in two columns, each with its
-     count, each a jump. It replaced a three-step "what happens when you ask" that repeated
-     "How it works" word for word further down. */
-  /* One column: in two, the names were cut to "Statement construc..." and "cascade_backrefs (...". */
-  .flow li a { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; padding: 4px 0;
-    border-bottom: 1px solid var(--border); text-decoration: none; font-size: 13px; color: var(--text-2); }
-  .flow li a:hover { color: var(--accent); }
-  .flow li .g { font: 500 11.5px var(--mono); color: var(--accent); }
-  .flow li .c { font: 400 12px var(--mono); color: var(--text-3); }
-  .flow li .nm { overflow-wrap: anywhere; }
 
   /* ---------- the answer: a document with margin notes ---------- */
   /* The question and its status span both columns, so the answer's first line and the first
@@ -363,6 +349,43 @@
   .brk .e b { font: 500 11.5px var(--mono); color: var(--accent); margin-right: 6px; }
   .brk.silent .e b { color: var(--text-2); }
 
+  /* ---------- the page: a docs sidebar, the content, and the answer's sources ---------- */
+  /* On a wide screen the 23 breakages are a sticky left sidebar, the way a documentation site
+     lists its pages: always in view, each entry one click from an answer. The content column holds
+     the question, the answer with its sources beside it, and the README sections. Below 1200px
+     the sidebar has no room and becomes an ordinary section after the others. */
+  .layout { display: flex; flex-direction: column; }
+  .main { order: 1; width: 100%; }
+  .side { order: 2; width: 100%; max-width: 1160px; margin: 88px auto 0; padding: 28px 28px 0; border-top: 1px solid var(--border); box-sizing: border-box; }
+  @media (max-width: 620px) { .side { padding: 24px 18px 0; margin-top: 64px; } }
+  .side-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 6px; }
+  .side-head h2 { font: 600 1.35rem/1.3 var(--sans); letter-spacing: -.02em; margin: 0; }
+  .side-head .n { font: 400 12.5px var(--mono); color: var(--text-3); }
+  .side-lead { margin: 0 0 24px; color: var(--text-2); max-width: 64ch; }
+  .brk.on { background: var(--accent-bg); padding-left: 8px; box-shadow: inset 2px 0 0 var(--accent); }
+  .foot-shell { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 620px) { .foot-shell { padding: 0 18px; } }
+
+  @media (min-width: 1200px) {
+    .topbar-inner { max-width: 1440px; padding: 0 40px 0 28px; }
+    .layout { display: grid; grid-template-columns: 288px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+    .side { order: 0; grid-column: 1; grid-row: 1; margin: 0; max-width: none; position: sticky; top: 56px; height: calc(100vh - 56px);
+      overflow-y: auto; overscroll-behavior: contain; padding: 30px 22px 40px 28px; border-top: 0; border-right: 1px solid var(--border);
+      scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
+    .main { grid-column: 2; grid-row: 1; max-width: none; padding: 0 40px 0 48px; }
+    .side-head h2 { font-size: 15px; letter-spacing: -.01em; }
+    .side-lead { font-size: 13px; line-height: 1.55; color: var(--text-3); margin-bottom: 18px; }
+    .side .brk-grid { columns: 1; }
+    .side .brk-group { margin-bottom: 20px; }
+    .side .brk-group h3 { font-size: 12.5px; padding-bottom: 6px; border-bottom-width: 1px; }
+    .side .brk { padding: 7px 6px 7px 0; }
+    .side .brk .t { font-size: 12.5px; }
+    .side .brk .e { font-size: 11.5px; -webkit-line-clamp: 1; }
+    .side .brk .e b { font-size: 11px; }
+    .main .cols { grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; }
+    .foot-shell { max-width: 1440px; padding: 0 40px 0 364px; }
+  }
+
   /* ---------- the sections below: a README ---------- */
   .band { margin-top: 88px; padding-top: 28px; border-top: 1px solid var(--border); }
   .band h2 { font: 600 1.35rem/1.3 var(--sans); letter-spacing: -.02em; margin: 0 0 18px; }
@@ -434,8 +457,7 @@
   .md p, .md li, .src-head, .src-meta, .src-body, .declined-note, .notice, .chip { overflow-wrap: anywhere; }
 
   @media (max-width: 999px) {
-    .top-grid { padding: 44px 0 40px; }
-    .hero-rail { max-width: 520px; }
+    .top { padding: 44px 0 40px; }
     .sources { padding-top: 8px; }
   }
   @media (max-width: 620px) {
@@ -488,8 +510,9 @@
   </nav>
 </header>
 
-<main class="shell">
-  <div class="top-grid cols">
+<div class="layout">
+<main class="shell main">
+  <div class="top">
     <div class="top-main">
       <p class="eyebrow">SQLAlchemy <b>1.4 &rarr; 2.0</b> &middot; migration answers from the docs</p>
       <h1>Every answer cites its page, <br>or says there isn't one.</h1>
@@ -511,22 +534,19 @@
       <div class="try"><span class="try-label">Or try an example</span>
         <span class="chips" id="chips" role="group" aria-label="Example questions"></span>
       </div>
-    </div>
 
-    <aside class="hero-rail" aria-label="Benchmark">
-      <p class="rail-head"><b>Benchmark</b><span>100 questions, checked by hand</span></p>
-      <dl class="figures">
+      <section class="bench" aria-label="Benchmark">
+        <p class="bench-head"><b>Benchmark</b><span>100 questions, checked by hand</span></p>
+        <dl class="figures strip">
         <div class="fig"><dt>0.64</dt><dd><b>Right page found</b>in the five pages the model is given.<span class="meter"><i style="width:64%"></i></span></dd></div>
         <div class="fig"><dt>0.42</dt><dd><b>Answered from it</b>page shown, and the answer uses it.<span class="meter"><i style="width:42%"></i></span></dd></div>
         <div class="fig"><dt>100</dt><dd><b>Test questions</b>each with the page that answers it.</dd></div>
         <div class="fig"><dt>9</dt><dd><b>Unanswerable</b>no answer in the docs; should be refused.</dd></div>
         <div class="fig"><dt>3,284</dt><dd><b>Passages searched</b>from the 1.4 and 2.0 documentation.</dd></div>
       </dl>
-      <nav class="flow" aria-label="Breakages by group">
-        <p class="flow-head"><a href="#breaks">What breaks in 2.0</a><span id="toc-count"></span></p>
-        <ol id="toc-breaks"></ol>
-      </nav>
-    </aside>
+      </section>
+    </div>
+
   </div>
 
   <section id="results" class="cols" hidden>
@@ -537,12 +557,6 @@
       <div class="sources-head"><h2>Sources</h2><span class="n" id="src-count"></span></div>
       <div id="sources"></div>
     </aside>
-  </section>
-
-  <section class="band breaks" id="breaks">
-    <h2>What breaks in 2.0</h2>
-    <p class="lead">23 changes that break 1.4 code, each found by running the pattern on SQLAlchemy 2.0.51 and recording what it raised. Pick one to ask how to fix it.</p>
-    <div class="brk-grid" id="brk-grid"></div>
   </section>
 
   <section class="band how" id="how">
@@ -591,6 +605,18 @@
     </ul>
   </section>
 
+  <div class="tail" aria-hidden="true"></div>
+</main>
+<aside class="side" id="breaks" aria-labelledby="breaks-h">
+  <div class="side-head">
+    <h2 id="breaks-h">What breaks in 2.0</h2>
+  </div>
+  <p class="side-lead">23 changes that break 1.4 code, each found by running the pattern on SQLAlchemy 2.0.51 and recording what it raised. Pick one to ask how to fix it.</p>
+  <div class="brk-grid" id="brk-grid"></div>
+</aside>
+</div>
+
+<div class="foot-shell">
   <footer>
     <div class="foot-grid">
       <div>
@@ -616,8 +642,7 @@
     </div>
     <div id="foot"></div>
   </footer>
-  <div class="tail" aria-hidden="true"></div>
-</main>
+</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -697,10 +722,15 @@ if (navA.length && "IntersectionObserver" in window) {
   const line = () => Math.min(300, Math.max(110, window.innerHeight * 0.4));
   const mark = () => {
     const LINE = line();
-    let best = null;
+    // The section whose top passed the line most recently, i.e. the lowest one that has passed.
+    // Not "the last in nav order": on a narrow screen the breakage index sits below the others.
+    // A sticky element (the sidebar on a wide screen) is always in view, so it is never "current".
+    let best = null, bestTop = -Infinity;
     for (const a of navA) {
       const el = document.querySelector(a.getAttribute("href"));
-      if (el && el.getBoundingClientRect().top <= LINE) best = a;
+      if (!el || getComputedStyle(el).position === "sticky") continue;
+      const top = el.getBoundingClientRect().top;
+      if (top <= LINE && top > bestTop) { best = a; bestTop = top; }
     }
     navA.forEach((a) => a.classList.toggle("here", a === best));
     // the phone menu marks the same section
@@ -715,7 +745,9 @@ if (navA.length && "IntersectionObserver" in window) {
   const sizeTail = () => {
     if (!tail) return;
     tail.style.height = "0px";
-    const last = document.querySelector(navA[navA.length - 1].getAttribute("href"));
+    const sections = navA.map((a) => document.querySelector(a.getAttribute("href")))
+      .filter((el) => el && getComputedStyle(el).position !== "sticky");
+    const last = sections.reduce((a, b) => (b.offsetTop > a.offsetTop ? b : a));
     const below = document.documentElement.scrollHeight - (last.getBoundingClientRect().top + window.scrollY);
     tail.style.height = Math.max(0, Math.ceil(window.innerHeight - line() - below) + 4) + "px";
   };
@@ -725,6 +757,19 @@ if (navA.length && "IntersectionObserver" in window) {
   navA.forEach((a) => { const el = document.querySelector(a.getAttribute("href")); if (el) spy.observe(el); });
   document.querySelectorAll('.navlinks a, #menu a[href^="#"]').forEach((a) =>
     a.addEventListener("click", () => setTimeout(mark, 700)));
+}
+
+// On a wide screen the breakage index is the sidebar, always in view: its nav link moves focus
+// into it instead of scrolling the page to wherever the sidebar's box happens to start.
+{
+  const side = $("breaks");
+  document.querySelectorAll('a[href="#breaks"]').forEach((a) => a.addEventListener("click", (e) => {
+    if (getComputedStyle(side).position !== "sticky") return;
+    e.preventDefault();
+    side.scrollTo({ top: 0, behavior: SCROLL.behavior });
+    const first = side.querySelector(".brk");
+    if (first) first.focus({ preventScroll: true });
+  }));
 }
 
 fetch("/api/config").then((r) => r.json()).then((cfg) => {
@@ -942,10 +987,6 @@ const BREAKAGES = [{"n":1,"group":"A","gname":"Raw SQL","title":"engine.execute(
   const ask = (b) => b.error
     ? `${b.title} fails on SQLAlchemy 2.0 with ${b.error}: ${b.msg}. What replaces it?`
     : `After upgrading to SQLAlchemy 2.0, ${b.title} is never inserted (${b.msg}). How do I fix it?`;
-  $("toc-count").textContent = `${BREAKAGES.length} changes`;
-  $("toc-breaks").innerHTML = groups.map((g) =>
-    `<li><a href="#brk-${esc(g.id)}"><span class="g">${esc(g.id)}</span><span class="nm">${esc(g.name)}</span>` +
-    `<span class="c">${g.items.length}</span></a></li>`).join("");
   $("brk-grid").innerHTML = groups.map((g) => `
     <div class="brk-group" id="brk-${esc(g.id)}"><h3><span class="g">${esc(g.id)}</span>${esc(g.name)}</h3>
       ${g.items.map((b) => `<button type="button" class="brk${b.error ? "" : " silent"}" data-n="${b.n}"
@@ -958,6 +999,9 @@ const BREAKAGES = [{"n":1,"group":"A","gname":"Raw SQL","title":"engine.execute(
     const btn = e.target.closest(".brk");
     if (!btn) return;
     const b = BREAKAGES.find((x) => x.n === Number(btn.dataset.n));
+    // the sidebar keeps showing which entry the answer on screen is about
+    document.querySelectorAll(".brk.on").forEach((x) => x.classList.remove("on"));
+    btn.classList.add("on");
     q.value = ask(b).slice(0, maxChars);
     grow();
     $("form").requestSubmit();
