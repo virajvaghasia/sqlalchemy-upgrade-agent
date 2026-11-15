@@ -164,7 +164,9 @@ with sync_playwright() as p:
     print("\nsubmit path, desktop 1280px")
     page = browser.new_page(viewport={"width": 1280, "height": 900})
     page.on("pageerror", lambda e: errors.append(str(e)))
-    reply: dict = {}
+    # Starts answerable, so a request nobody expected is counted and reported as a failed check
+    # rather than crashing the script inside the route handler.
+    reply: dict = {"status": 200, "body": {**ANSWERED, "sources": SOURCES}}
     calls = []
 
     def answer_ask(route):
@@ -181,6 +183,24 @@ with sync_playwright() as p:
     page.route("**/api/ask", answer_ask)
     page.goto(URL)
     page.wait_for_load_state("networkidle")
+
+    # A sidebar entry writes its question into the box and stops. It used to send on the click,
+    # which asked a question the reader had not read and spent one of the hour's answers on a
+    # slip of the mouse. Entry 2 of the index, so the one clicked is not the first by accident.
+    entry = page.locator(".brk").nth(1)
+    entry.click()
+    page.wait_for_timeout(700)  # the smooth scroll to the box; long enough for a request to show
+    check(
+        "a breakage entry fills the question box and sends nothing",
+        len(calls) == 0
+        and len(page.input_value("#q")) > 20
+        and page.evaluate("() => document.activeElement.id") == "q"
+        and not page.locator("#ask").is_disabled()
+        and "on" in (entry.get_attribute("class") or "").split(),
+        f"{len(calls)} request(s), box holds {len(page.input_value('#q'))} characters",
+    )
+    cut = page.locator(".brk .e").evaluate_all("els => els.filter(e => e.scrollHeight > e.clientHeight + 1).length")
+    check("every breakage entry shows its whole error message", cut == 0, f"{cut} cut short")
 
     def ask(text: str) -> None:
         page.fill("#q", text)
