@@ -63,13 +63,23 @@ CONTROL = "nvidia/nemotron-3-ultra-550b-a55b"
 # Left out, and why: nemotron-4-340b, nemotron-3-super-120b and kimi-k2.6 returned 404 on
 # this key; deepseek-v4.1-flash, gemma-4-31b and step-5-preview timed out at 90 seconds;
 # gpt-oss-20b is the judge, and a judge must not grade its own answers.
+#
+# CHANGED AFTER THE RUN STARTED, both before any result was read off the table:
+#   - mistral-large-4-1t-a52b was in the first list and is out. It answers a one-word
+#     probe in a second and never answered a real question: zero rows after ten
+#     minutes, and a single question sent alone timed out at 100 seconds.
+#   - nemotron-3.5-lightning is in. It is one of the page's existing fallbacks and
+#     was left out of the first list by oversight.
 CANDIDATES = [
     CONTROL,
-    "mistralai/mistral-large-4-1t-a52b",
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
     "minimaxai/minimax-m3.1-flash",
     "z-ai/glm-5.3-flash",
     "poolside/laguna-xs-2.1",
 ]
+# A model that fails this many questions in a row is not asked the rest: each failure
+# costs several minutes of retries, and a hung endpoint would hold the run for a day.
+GIVE_UP_AFTER = 3
 PAGES = judge.DELIVERABLES / "nemotron-all-phase6.json"  # the five page ids per question
 ROWS = judge.DELIVERABLES / "model-screen.json"
 MAX_MISSING = escalate.MAX_MISSING
@@ -97,9 +107,13 @@ def ask_model(model: str, items: list[dict], pages: dict, chunks: dict, *, post,
     out of the rows, so a re-run asks it again; it is never scored as a decline."""
     rows = list(done)
     have = {r["id"] for r in rows}
+    failed_in_a_row = 0
     for it in items:
         if it["id"] in have:
             continue
+        if failed_in_a_row >= GIVE_UP_AFTER:
+            log(f"  {model} gave up: {GIVE_UP_AFTER} questions in a row got no answer from the endpoint")
+            break
         hits = [Page(chunks[c]) for c in pages[it["id"]]]
         started = time.monotonic()
         try:
@@ -107,7 +121,9 @@ def ask_model(model: str, items: list[dict], pages: dict, chunks: dict, *, post,
             parsed = escalate.parse(data)
         except (urllib.error.URLError, TimeoutError, KeyError, IndexError, TypeError) as exc:
             log(f"  {model} {it['id']} SKIPPED ({type(exc).__name__})")
+            failed_in_a_row += 1
             continue
+        failed_in_a_row = 0
         row = {
             "id": it["id"],
             "model": model,

@@ -93,3 +93,16 @@ def test_behind_too_many_made_up_answers_or_too_many_missing_is_not_used():
     assert d["default"] == screen.CONTROL
     assert d["fallbacks"] == []
     assert sorted(d["unused"]) == ["behind", "flaky", "invents"]
+
+
+def test_a_model_that_keeps_failing_is_not_asked_every_question():
+    asked = []
+
+    def post(path, body, key):
+        asked.append(1)
+        raise TimeoutError
+
+    items = [{"id": f"g{n:03}", "question": f"q{n}?"} for n in range(10)]
+    pages = {it["id"]: ["c1"] for it in items}
+    rows = screen.ask_model("m", items, pages, {"c1": CHUNK}, post=post, key="k", log=lambda *a: None)
+    assert rows == [] and len(asked) == screen.GIVE_UP_AFTER
