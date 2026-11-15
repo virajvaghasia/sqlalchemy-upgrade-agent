@@ -61,11 +61,25 @@ from rag import ask
 # answering until a human noticed. The page now walks this list and answers with the first
 # model that responds, and SAYS WHICH ONE DID -- a fallback that quietly swaps the model
 # behind an unchanged notice would be the measurement rule broken where a stranger reads.
-# All three answered on 2026-09-21; only the first has been measured on this project.
+#
+# THE LIST WAS SCREENED ON 2026-11-15 (`rag/screen.py`, rows in deliverables/model-screen.json):
+# the 100 test questions, the same five pages and the shipped prompt for every model.
+#   - nemotron-3-super-120b was the second entry. It returns 404 on this key now and is gone.
+#   - No newer free model earned the first place. glm-5.3-flash delivered more answers
+#     (58 of 91 against 52) by almost never declining: it also answered 5 of the 9
+#     questions the pages cannot answer, against 2, at a median of 61 seconds an answer.
+#     laguna-xs-2.1 lost 17 questions and gained none. mistral-large-4 never answered a
+#     real question. minimax-m3.1-flash got through 42 questions in two hours.
+#   - nemotron-3.5-lightning is level with the first model where it answers (3 questions
+#     gained, 2 lost), but 6 of its 100 replies were empty, one more than the screen's
+#     limit of 5, so the screen does NOT endorse it. It stays because it was already
+#     here and the alternative is no fallback at all: with it, a visitor gets an answer
+#     most of the time when the first model is down; without it, never. An empty reply
+#     now counts as the model failing (see `nvidia_post`), so the page shows its error
+#     state instead of an empty answer.
 MODELS = [
     "nvidia/nemotron-3-ultra-550b-a55b",  # measured here: 0.58 end to end, 91% faithful
-    "nvidia/nemotron-3-super-120b-a12b",  # not measured
-    "nvidia/nemotron-3.5-lightning-30b-a3b",  # not measured
+    "nvidia/nemotron-3.5-lightning-30b-a3b",  # no figure quoted: 6 of 100 replies empty
 ]
 MODEL = MODELS[0]
 PREVIOUS_MODEL = "deepseek-ai/deepseek-v4-flash-0731"
@@ -224,6 +238,12 @@ class RateLimiter:
             return None, None
 
 
+class EmptyReply(urllib.error.URLError):
+    """A hosted model answered HTTP 200 with nothing to show. A `URLError` so that every
+    handler written for "the model did not respond" covers it; a bare `ValueError` here
+    used to escape those handlers when the last model in the list was the empty one."""
+
+
 def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
     """One hosted call, trying each model in `MODELS` until one answers.
 
@@ -254,10 +274,15 @@ def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
             usage_mod.record(model, None, "demo.nvidia_post", status=None)
             last = exc
             continue
-        if not (data.get("choices") or []):
-            # 200 with no choices: seen on a live model, and indistinguishable from
-            # success unless it is checked. Treat it as this model failing.
-            last = ValueError(f"{model} returned no choices")
+        choices = data.get("choices") or []
+        if not choices or not ((choices[0].get("message") or {}).get("content") or "").strip():
+            # 200 with no choices, or with a choice whose text is empty. Both seen live
+            # (the second on 5 of 99 real questions to a reasoning model that spent its
+            # whole budget thinking), and both indistinguishable from success unless
+            # checked: the page would say "Answered" above nothing. Treat either as
+            # this model failing and try the next one.
+            usage_mod.record(model, data.get("usage"), "demo.nvidia_post", status=None)
+            last = EmptyReply(f"{model} returned no answer text")
             continue
         usage_mod.record(model, data.get("usage"), "demo.nvidia_post")
         data["_model"] = model

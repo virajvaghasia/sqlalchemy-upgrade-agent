@@ -57,6 +57,7 @@ run belongs to; the key is in [`rag/__init__.py`](../rag/__init__.py).
 | `escalate-phase6.json`, `escalate-rest-phase6.json` | The local model's refusals re-asked of a hosted model: the 20 where the answer page was in the prompt, and the other 33. | `rag.escalate` |
 | `ESCALATE-PARTIAL-REVIEW.md` | The escalated answers the judge called partial, each re-read against the five passages the model was given, with a verdict and a one-line reason. | `rag.escalate --report --sheet`, then filled in |
 | `nemotron-all-phase6.json`, `nemotron-all-repeat-phase6.json` | The hosted model on all 100 questions, and the first 20 asked again to measure repeatability. | `rag.escalate --all` |
+| `model-screen.json` | Five hosted models on all 100 questions with the shipped prompt and the same five pages each (2026-11-15): the demo's model as the control, its existing fallback and three newer free models. One of them stopped at 42 questions. | `rag.screen --run` |
 | `nemotron-all-delivered.json` | The ids of the hosted model's delivered answers; the input to `tools/check_nemotron_all.py`, which executes each answer's central claim. | `rag.escalate` |
 | `qwen-lab-judged-phase6.json` | The local model's answers graded by the same judge as the hosted model's. | `rag.escalate --judge-qwen` |
 | `prices-phase6.json` | One reseller's per-token list prices, fetched on 2026-09-12 and used to price the cascade. The calls themselves ran on free credits. | fetched |
