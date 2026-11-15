@@ -393,6 +393,43 @@ def test_a_200_with_no_choices_counts_as_that_model_failing():
     assert tried[:2] == demo.MODELS[:2] and data["_model"] == demo.MODELS[1]
 
 
+def test_a_reply_with_no_text_counts_as_that_model_failing():
+    """Measured 2026-11-15 on a fallback model: 5 of 99 real questions came back HTTP 200
+    with a choice whose text was empty (a reasoning model that spent its whole budget
+    thinking). The page would have shown "Answered" above nothing."""
+    tried = []
+
+    def fake_urlopen(request, timeout=None):
+        body = json.loads(request.data)
+        tried.append(body["model"])
+        text = "" if body["model"] == demo.MODELS[0] else "ok"
+        payload = {"choices": [{"message": {"content": text}}], "usage": {}}
+        return contextlib.nullcontext(io.BytesIO(json.dumps(payload).encode()))
+
+    with mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("rag.usage.record"):
+        data = demo.nvidia_post([{"role": "user", "content": "q"}], key="k")
+    assert tried[:2] == demo.MODELS[:2] and data["_model"] == demo.MODELS[1]
+
+
+def test_every_model_answering_with_nothing_is_a_page_error_not_a_crash():
+    """When the LAST model tried returns no choices or no text, what is raised is not a
+    network error, and the page's handler only caught network errors."""
+
+    def fake_urlopen(request, timeout=None):
+        return contextlib.nullcontext(io.BytesIO(json.dumps({"choices": []}).encode()))
+
+    with mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("rag.usage.record"):
+        out = demo.answer(
+            "what replaces Query.get in 2.0",
+            key="k",
+            session="s",
+            limiter=demo.RateLimiter(),
+            retrieve=lambda q: [hit()],
+        )
+    assert out["code"] == "generator_unavailable" and out["sources"]
+    assert "did not respond" in out["error"]
+
+
 def test_a_fallback_model_is_never_described_by_the_measured_models_numbers():
     """The whole point of naming the model that answered: 0.58 belongs to the first
     model in the list, and a fallback must not inherit it."""

@@ -224,6 +224,12 @@ class RateLimiter:
             return None, None
 
 
+class EmptyReply(urllib.error.URLError):
+    """A hosted model answered HTTP 200 with nothing to show. A `URLError` so that every
+    handler written for "the model did not respond" covers it; a bare `ValueError` here
+    used to escape those handlers when the last model in the list was the empty one."""
+
+
 def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
     """One hosted call, trying each model in `MODELS` until one answers.
 
@@ -254,10 +260,15 @@ def nvidia_post(messages: list[dict], key: str, timeout: int = 180) -> dict:
             usage_mod.record(model, None, "demo.nvidia_post", status=None)
             last = exc
             continue
-        if not (data.get("choices") or []):
-            # 200 with no choices: seen on a live model, and indistinguishable from
-            # success unless it is checked. Treat it as this model failing.
-            last = ValueError(f"{model} returned no choices")
+        choices = data.get("choices") or []
+        if not choices or not ((choices[0].get("message") or {}).get("content") or "").strip():
+            # 200 with no choices, or with a choice whose text is empty. Both seen live
+            # (the second on 5 of 99 real questions to a reasoning model that spent its
+            # whole budget thinking), and both indistinguishable from success unless
+            # checked: the page would say "Answered" above nothing. Treat either as
+            # this model failing and try the next one.
+            usage_mod.record(model, data.get("usage"), "demo.nvidia_post", status=None)
+            last = EmptyReply(f"{model} returned no answer text")
             continue
         usage_mod.record(model, data.get("usage"), "demo.nvidia_post")
         data["_model"] = model
