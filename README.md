@@ -286,10 +286,16 @@ corpus. With both, 663 pass; without Qdrant, 658 pass and 5 skip; in a fresh clo
 
 - *Supported* is not *correct*: the judge called three wrong answers fully supported.
 - The hosted model's numbers do not describe the local one, and generation figures differ by machine.
-- Latency is measured on one Mac. In the container, before the reranker scored fewer pages, one warm
-  question's retrieval took 27.5 s against 3.2 s on the same CPU outside it; that gap is unexplained
-  and has not been re-measured.
-- The demo model has not been measured against prompt injection; the model that was measured has
-  left the provider's catalog.
+- Latency is measured on one Mac. The hosted page runs the same search on two shared CPU cores and
+  is slower: on 2026-11-16 four warm questions took a median of 3.8 s to retrieve (3.8, 3.8, 3.8 and
+  4.2 s), and the first question after start-up took 28.5 s. Those five timings were read off the
+  page's own replies by hand and no command here reproduces them. An earlier line here reported
+  27.5 s for one warm question in the container and called it unexplained; that was the reranker
+  scoring all 20 pages on those two cores, before it scored six.
+- The demo is not safe against prompt injection. The model it serves now emitted the attacker's
+  token in 7 of 30 attempts (6 of 15 typed into the question, 1 of 15 planted in a retrieved page)
+  and repeated its own instructions in 4 of them. That count is the automatic check's; the review
+  sheet for this run is blank until a person has read it, and it is one run on one day, with no
+  defense tried against it.
 - Pinned to SQLAlchemy **1.4.52**; every 2.0 claim is verified against **2.0.51**. Only the 24 breakage
   patterns and their fixes were re-run on 2.0.57 and 2.1.8; the documentation the answers quote is 2.0.51's.
