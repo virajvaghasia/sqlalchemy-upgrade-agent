@@ -24,6 +24,12 @@ import sys
 from playwright.sync_api import sync_playwright
 
 URL = sys.argv[1]
+# The server takes one question per visitor every 20 seconds (`SESSION_MIN_SECONDS` in
+# rag/demo.py), counted from when the last one was SENT. While answers took longer than that the
+# next question was always allowed; at about 11 seconds an answer the second one came back
+# "Too many questions" and this script read that as a page with no citations. So it waits the
+# gap out before each further question.
+GAP_MS = 21_000
 ok = []
 
 
@@ -92,6 +98,7 @@ with sync_playwright() as p:
     check("no sideways scroll after a live answer", not s1["wide"])
 
     print("\nSUGGESTION CHIP")
+    pg.wait_for_timeout(GAP_MS)
     pg.locator(".chip").first.click()
     pg.wait_for_timeout(300)
     check("chip fills the box and submits", state(pg)["disabled"])
@@ -110,12 +117,14 @@ with sync_playwright() as p:
     )
 
     print("\nENTER KEY")
+    pg.wait_for_timeout(GAP_MS)
     pg.fill("#q", "what replaces Query.get in 2.0")
     pg.press("#q", "Enter")
     pg.wait_for_timeout(300)
     check("Enter submits", state(pg)["disabled"])
     pg.wait_for_function("() => !document.getElementById('ask').disabled", timeout=300000)
-    check("Enter produced an answer", "Working" not in state(pg)["pill"])
+    s3 = state(pg)
+    check("Enter produced an answer", "Answered" in s3["pill"] or "Declined" in s3["pill"], f"pill={s3['pill']!r}")
 
     print("\nSHIFT+ENTER")
     pg.fill("#q", "line one")
