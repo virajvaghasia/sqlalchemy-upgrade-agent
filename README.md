@@ -59,6 +59,8 @@ Overflow and GitHub. 9 have no answer in the docs, on purpose.
 | answers fully supported by their pages (same judge) | nemotron **91%**, qwen **81%**: level, p = 0.45 |
 | nemotron's answers, main claim **run** on SQLAlchemy 2.0.51 | **47 of 51** checkable correct (92%) |
 | invented answers on the 9 unanswerable questions | qwen **2**, nemotron **0** |
+| the hosted model asked again on the shipped prompt (2026-11-15) | **52 of 91** delivered (0.57; 53 in September, one question changed); it now answers **2** of the 9 unanswerable questions, both by quoting the pages and saying what they do not cover (automatic count, not reviewed by a person) |
+| four newer free hosted models on the same 100 questions | none replaced it: the one that delivered more (58 of 91) also answered **5** of the 9 unanswerable questions and took a median 61 s |
 | send only qwen's declines to nemotron | 0.42 → at most **0.53**, $1.81 per 1000 questions *if paid* (all calls were free credits) |
 | a pull request that removes the reranker | **blocked** by the CI quality gate, naming question `g017` |
 
@@ -139,7 +141,7 @@ RAG_DENSE=memory uv run sqla-upgrade ask "why can't I call engine.execute any mo
 **Reproduce the numbers:**
 
 ```bash
-make test          # 658 tests
+make test          # 660 tests
 make lint          # ruff, ruff format, mypy
 make gate          # starts Qdrant; recall@5 58/91 = 0.64 against the committed baseline
 uv run python -m rag.judge --report    # the answer-quality report cards, from saved rows (needs Qdrant)
@@ -245,17 +247,17 @@ silently never runs.
 | [`experiments/`](experiments/) | the SQLAlchemy 1.4 app under test, written in 1.4 style on purpose, and the scripts that measured what 2.0 breaks |
 | [`space/`](space/) | the demo page and its Modal deployment |
 | [`tools/`](tools/) | checks: every `# runnable` block in the docs reproduces, answers execute on 2.0.51, the page works in a browser |
-| [`tests/`](tests/) | 658 tests |
+| [`tests/`](tests/) | 660 tests |
 | `Dockerfile`, `Dockerfile.service`, `docker-compose.yml` | the 1.4 app with Postgres; the demo page; Qdrant |
 | [`.github/workflows/`](.github/workflows/) | CI (tests, docs, 2.0 evidence, both images, lint) and the quality gate |
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-658 tests collected in 12.72s
+660 tests collected in 12.72s
 ```
 
 Ten tests need local setup and skip without it: five need Qdrant running, five need the generated
-corpus. With both, 658 pass; without Qdrant, 653 pass and 5 skip; in a fresh clone, 648 pass and 10 skip.
+corpus. With both, 660 pass; without Qdrant, 655 pass and 5 skip; in a fresh clone, 650 pass and 10 skip.
 
 ## Limits
 

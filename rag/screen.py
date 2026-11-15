@@ -2,6 +2,7 @@
 
     uv run python -m rag.screen --probe      # one tiny call per candidate: who answers at all
     uv run python -m rag.screen --run        # the 100 test questions through every candidate
+    uv run python -m rag.screen --run --only <model>,<model>   # re-ask what failed, those models only
     uv run python -m rag.screen --report     # the table, from the saved rows, no network
 
 WHY IT EXISTS
@@ -278,8 +279,14 @@ def main() -> None:
 
     # One thread per model, questions in order inside it: the models answer at
     # different speeds and none of them waits on another.
-    with ThreadPoolExecutor(len(CANDIDATES)) as pool:
-        list(pool.map(one, CANDIDATES))
+    # `--only a,b` asks just those models: a re-run for the questions an endpoint
+    # failed on should not also restart a model that was stopped on purpose.
+    only = argv[argv.index("--only") + 1].split(",") if "--only" in argv else CANDIDATES
+    unknown = [m for m in only if m not in CANDIDATES]
+    if unknown:
+        sys.exit(f"not in CANDIDATES: {', '.join(unknown)}")
+    with ThreadPoolExecutor(len(only)) as pool:
+        list(pool.map(one, only))
     report(saved, golden, score.load_chunks())
 
 
