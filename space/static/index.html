@@ -139,6 +139,8 @@
   .composer { background: var(--surface); border: 1px solid var(--border-2); border-radius: 10px; padding: 12px 12px 10px 14px; max-width: 720px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, .04); transition: border-color .15s, box-shadow .15s; }
   .composer:focus-within { border-color: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-bg); }
+  @keyframes filled { from { box-shadow: 0 0 0 6px var(--accent-soft); } to { box-shadow: 0 0 0 3px var(--accent-bg); } }
+  .composer.filled { animation: filled .9s ease-out; }
   .composer textarea { display: block; width: 100%; border: 0; outline: 0; resize: none; background: transparent; color: var(--text);
     font: 16px/1.6 var(--sans); padding: 2px 0 0; min-height: 3rem; max-height: 14rem; }
   .composer textarea::placeholder { color: var(--text-3); }
@@ -328,7 +330,8 @@
 
   /* ---------- what breaks: an index of deliverables/BREAKAGES.md ---------- */
   /* Eight groups, each a short list. Every entry shows the 1.4 call, the exception 2.0.51 raised
-     and its message, and asks about itself when picked, so the index is a way in, not a wall. */
+     and its message, and writes its own question into the box when picked (it does not send
+     it), so the index is a way in, not a wall. */
   /* Columns, not a grid: groups are 1 to 4 entries long, and a grid started every row below the
      tallest group and left holes under the short ones. Columns let each group follow the last. */
   .brk-grid { columns: 1; column-gap: 40px; }
@@ -338,14 +341,16 @@
   .brk-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; padding-bottom: 8px; border-bottom: 2px solid var(--text); font: 600 14px var(--sans); }
   .brk-group h3 .g { font: 500 12px var(--mono); color: var(--accent); }
   .brk {
-    display: block; width: 100%; text-align: left; cursor: pointer; border: 0; border-bottom: 1px solid var(--border);
-    background: transparent; padding: 9px 8px 9px 0; color: var(--text); transition: background .12s, padding .12s, box-shadow .12s;
+    position: relative; display: block; width: 100%; text-align: left; cursor: pointer; border: 0; border-bottom: 1px solid var(--border);
+    background: transparent; padding: 9px 26px 9px 0; color: var(--text); transition: background .12s, padding .12s, box-shadow .12s;
   }
   .brk:hover, .brk:focus-visible { background: var(--accent-bg); padding-left: 8px; box-shadow: inset 2px 0 0 var(--accent); outline: none; }
+  .brk .go { position: absolute; top: 9px; right: 6px; font: 400 13px var(--sans); color: var(--text-3); transition: transform .12s, color .12s; }
+  .brk:hover .go, .brk:focus-visible .go, .brk.on .go { color: var(--accent); transform: translateX(2px); }
   .brk .t { display: block; font: 500 13px/1.4 var(--mono); overflow-wrap: anywhere; }
-  /* the message on up to two lines: one line cut "'Engine' object has no a..." to nothing useful */
-  .brk .e { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-    margin-top: 3px; font: 400 12px/1.45 var(--sans); color: var(--text-3); overflow-wrap: anywhere; }
+  /* the whole message: cut to a line or two it read "'Engine' object has no a...", which tells a
+     reader nothing about what broke */
+  .brk .e { display: block; margin-top: 3px; font: 400 12px/1.45 var(--sans); color: var(--text-3); overflow-wrap: anywhere; }
   .brk .e b { font: 500 11.5px var(--mono); color: var(--accent); margin-right: 6px; }
   .brk.silent .e b { color: var(--text-2); }
 
@@ -378,9 +383,11 @@
     .side .brk-grid { columns: 1; }
     .side .brk-group { margin-bottom: 20px; }
     .side .brk-group h3 { font-size: 12.5px; padding-bottom: 6px; border-bottom-width: 1px; }
-    .side .brk { padding: 7px 6px 7px 0; }
+    .side .brk { padding: 7px 24px 7px 0; }
+    .side .brk .go { top: 7px; right: 4px; }
+    .side .brk:hover, .side .brk:focus-visible, .side .brk.on { padding-left: 8px; }
     .side .brk .t { font-size: 12.5px; }
-    .side .brk .e { font-size: 11.5px; -webkit-line-clamp: 1; }
+    .side .brk .e { font-size: 11.5px; }
     .side .brk .e b { font-size: 11px; }
     .main .cols { grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; }
     .foot-shell { max-width: 1440px; padding: 0 40px 0 364px; }
@@ -611,7 +618,7 @@
   <div class="side-head">
     <h2 id="breaks-h">What breaks in 2.0</h2>
   </div>
-  <p class="side-lead">23 changes that break 1.4 code, each found by running the pattern on SQLAlchemy 2.0.51 and recording what it raised. Pick one to ask how to fix it.</p>
+  <p class="side-lead">23 changes that break 1.4 code, each found by running the pattern on SQLAlchemy 2.0.51 and recording what it raised. Click one and its question is written into the question box; nothing is sent until you press Ask.</p>
   <div class="brk-grid" id="brk-grid"></div>
 </aside>
 </div>
@@ -991,6 +998,7 @@ const BREAKAGES = [{"n":1,"group":"A","gname":"Raw SQL","title":"engine.execute(
     <div class="brk-group" id="brk-${esc(g.id)}"><h3><span class="g">${esc(g.id)}</span>${esc(g.name)}</h3>
       ${g.items.map((b) => `<button type="button" class="brk${b.error ? "" : " silent"}" data-n="${b.n}"
           title="${esc(b.error ? b.error + ": " + b.msg : "silent: " + b.msg)}">
+          <span class="go" aria-hidden="true">→</span>
           <span class="t">${esc(b.title)}</span>
           <span class="e"><b>${esc(b.error || "silent")}</b>${esc(b.error ? b.msg : "no exception; the row is never written")}</span>
         </button>`).join("")}
@@ -1002,9 +1010,17 @@ const BREAKAGES = [{"n":1,"group":"A","gname":"Raw SQL","title":"engine.execute(
     // the sidebar keeps showing which entry the answer on screen is about
     document.querySelectorAll(".brk.on").forEach((x) => x.classList.remove("on"));
     btn.classList.add("on");
+    // Fill the box and stop. Sending on the click asked a question the reader had not read,
+    // and a slip of the mouse spent one of the hour's answers.
     q.value = ask(b).slice(0, maxChars);
     grow();
-    $("form").requestSubmit();
+    $("form-msg").hidden = true;
+    $("form").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" });
+    q.focus({ preventScroll: true });
+    q.setSelectionRange(q.value.length, q.value.length);
+    $("form").classList.remove("filled");
+    void $("form").offsetWidth;  // restart the pulse when a second entry is clicked
+    $("form").classList.add("filled");
   });
 }
 
