@@ -27,6 +27,17 @@ name: quality gate
 
 on:
   pull_request:
+  # On every push to main, for the CACHE and not for the verdict. GitHub lets a pull
+  # request restore a cache saved by its own ref or by the base branch, never one saved
+  # by another pull request. Until 2026-11-15 this workflow ran on pull requests only, so
+  # every saved copy of the corpus embeddings sat under some refs/pull/N/merge and no
+  # later pull request could read it: PRs 3, 6, 9 and 10 each embedded 3,284 chunks on a
+  # CPU runner again, about an hour and a half each, under an identical cache key.
+  # A run on main saves the same cache where every pull request can restore it, and
+  # running on each push keeps it from being evicted (GitHub drops a cache that nothing
+  # has read for seven days). With the cache present this job takes a few minutes.
+  push:
+    branches: [main]
   # Manual runs, so the baseline can be re-derived on a runner.
   workflow_dispatch:
 
@@ -175,7 +186,11 @@ jobs:
             echo "baseline: deliverables/gate-baseline.json on origin/${{ github.base_ref }}"
           else
             cp deliverables/gate-baseline.json base.json
-            echo "::warning::the base branch has no gate baseline; comparing against this checkout's copy, which the PR itself could have edited"
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "::warning::the base branch has no gate baseline; comparing against this checkout's copy, which the PR itself could have edited"
+            else
+              echo "not a pull request: comparing against this checkout's own baseline"
+            fi
           fi
 
       - name: gate
