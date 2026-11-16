@@ -506,3 +506,15 @@ def test_the_notice_does_not_say_the_sources_are_below():
     for text in (demo.HOSTED_NOTICE, demo.hosted_notice("some/fallback-model")):
         assert "sources below" not in text
         assert "five sources listed with this answer" in text
+
+
+def test_a_grouped_citation_links_each_source_and_marks_each_one_cited():
+    """The hosted model wrote `[4, 5]` in 8 of 100 answers (the model screen, 2026-11-15).
+    The page linked only the `[n]` form, so the group stayed dead text and sources 4 and 5
+    were listed as not cited by an answer that cited them."""
+    answer = "They discuss warnings [4, 5]. Not code: `row[1, 2]`.\n```python\nm[1, 2]\n```\nAlso x[3, 4] and [2,9]."
+    out = demo.link_citations(answer, n_sources=5)
+    assert "[[4]](#src-4)" in out and "[[5]](#src-5)" in out
+    assert "`row[1, 2]`" in out and "m[1, 2]" in out and "x[3, 4]" in out  # code and subscripts untouched
+    assert "[[2]](#src-2)" in out and "#src-9" not in out  # in range linked, out of range left
+    assert demo.cited({"answer": answer}) == {2, 4, 5, 9}

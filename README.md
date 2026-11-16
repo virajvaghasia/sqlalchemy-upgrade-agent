@@ -141,7 +141,7 @@ RAG_DENSE=memory uv run sqla-upgrade ask "why can't I call engine.execute any mo
 **Reproduce the numbers:**
 
 ```bash
-make test          # 662 tests
+make test          # 663 tests
 make lint          # ruff, ruff format, mypy
 make gate          # starts Qdrant; recall@5 58/91 = 0.64 against the committed baseline
 uv run python -m rag.judge --report    # the answer-quality report cards, from saved rows (needs Qdrant)
@@ -235,6 +235,21 @@ and every fix still executes; the output differs from 2.0.51's only in the versi
   22 of 24 patterns FAIL on 2.1.8
 ```
 
+**Upgrading straight from 1.4 to 2.1 breaks one more thing, and it is not in this project's list.**
+A URL that starts `postgresql://` with no driver named used to mean psycopg2; in 2.1 it means psycopg
+(version 3). With only psycopg2 installed, 2.0.57 creates the engine and 2.1.8 does not:
+
+```
+# runnable: uv run -q --no-project --with 'sqlalchemy==2.1.8' --with psycopg2-binary \
+#             python -c "import sqlalchemy as sa; sa.create_engine('postgresql://u:p@localhost/db')" 2>&1 \
+#             | tail -1
+ModuleNotFoundError: No module named 'psycopg'
+```
+
+The fix is to name the driver (`postgresql+psycopg2://`). 2.1 also stops installing `greenlet` by default on every platform, so asyncio code
+needs `pip install sqlalchemy[asyncio]`. Neither change is in the documentation this system searches,
+which is 1.4.52 and 2.0.51, so it will not answer questions about them.
+
 **The most dangerous breakage raises nothing.** Under 2.0, an object attached by the many-to-one
 side of a relationship (`comment.issue = issue`) is never added to the session, and its `INSERT`
 silently never runs.
@@ -255,17 +270,17 @@ silently never runs.
 | [`experiments/`](experiments/) | the SQLAlchemy 1.4 app under test, written in 1.4 style on purpose, and the scripts that measured what 2.0 breaks |
 | [`space/`](space/) | the demo page and its Modal deployment |
 | [`tools/`](tools/) | checks: every `# runnable` block in the docs reproduces, answers execute on 2.0.51, the page works in a browser |
-| [`tests/`](tests/) | 662 tests |
+| [`tests/`](tests/) | 663 tests |
 | `Dockerfile`, `Dockerfile.service`, `docker-compose.yml` | the 1.4 app with Postgres; the demo page; Qdrant |
 | [`.github/workflows/`](.github/workflows/) | CI (tests, docs, 2.0 evidence, both images, lint) and the quality gate |
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-662 tests collected in 12.72s
+663 tests collected in 12.72s
 ```
 
 Ten tests need local setup and skip without it: five need Qdrant running, five need the generated
-corpus. With both, 662 pass; without Qdrant, 657 pass and 5 skip; in a fresh clone, 652 pass and 10 skip.
+corpus. With both, 663 pass; without Qdrant, 658 pass and 5 skip; in a fresh clone, 653 pass and 10 skip.
 
 ## Limits
 

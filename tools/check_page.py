@@ -127,6 +127,25 @@ with sync_playwright() as p:
             w["columns"] == (2 if size["width"] > 900 else 1),
             f"{w['columns']} column(s)",
         )
+        # A short answer beside a long source list, which is the input that can fail: the
+        # list used to run on at its own height and leave a blank half-screen beside its
+        # last entries. Six sources, a two-line answer.
+        show(page, DECLINED, [{**SOURCES[i % len(SOURCES)], "n": i + 1} for i in range(6)])
+        box = page.evaluate(
+            """() => { const a = document.getElementById('answer').getBoundingClientRect().height,
+                 s = document.querySelector('.sources').getBoundingClientRect().height,
+                 l = document.getElementById('sources');
+                 return {answer: a, sources: s, inner: l.scrollHeight > l.clientHeight + 1}; }"""
+        )
+        if size["width"] > 900:
+            check(
+                "a long source list is no taller than the answer beside it, and scrolls inside",
+                box["sources"] <= max(box["answer"], 460) + 2 and box["inner"],
+                f"answer {round(box['answer'])} px, sources column {round(box['sources'])} px",
+            )
+        else:
+            check("stacked, the source list is an ordinary list with no scroll of its own", not box["inner"])
+        show(page, ANSWERED, SOURCES)
         notice = page.locator(".notice")
         check(
             "the notice draws the model name as code, no stray backtick",
