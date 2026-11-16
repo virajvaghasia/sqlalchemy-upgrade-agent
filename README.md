@@ -235,6 +235,21 @@ and every fix still executes; the output differs from 2.0.51's only in the versi
   22 of 24 patterns FAIL on 2.1.8
 ```
 
+**Upgrading straight from 1.4 to 2.1 breaks one more thing, and it is not in this project's list.**
+A URL that starts `postgresql://` with no driver named used to mean psycopg2; in 2.1 it means psycopg
+(version 3). With only psycopg2 installed, 2.0.57 creates the engine and 2.1.8 does not:
+
+```
+# runnable: uv run -q --no-project --with 'sqlalchemy==2.1.8' --with psycopg2-binary \
+#             python -c "import sqlalchemy as sa; sa.create_engine('postgresql://u:p@localhost/db')" 2>&1 \
+#             | tail -1
+ModuleNotFoundError: No module named 'psycopg'
+```
+
+The fix is to name the driver (`postgresql+psycopg2://`). 2.1 also stops installing `greenlet` by default on every platform, so asyncio code
+needs `pip install sqlalchemy[asyncio]`. Neither change is in the documentation this system searches,
+which is 1.4.52 and 2.0.51, so it will not answer questions about them.
+
 **The most dangerous breakage raises nothing.** Under 2.0, an object attached by the many-to-one
 side of a relationship (`comment.issue = issue`) is never added to the session, and its `INSERT`
 silently never runs.

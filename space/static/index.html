@@ -309,6 +309,20 @@
   .sources-head h2 { font: 600 13.5px var(--sans); margin: 0; }
   .sources-head .n { font: 12.5px var(--mono); color: var(--text-3); }
   #sources { position: relative; }
+  /* Beside the answer, the list is exactly as tall as the answer and scrolls inside itself.
+     Left to its own height it ran on below a short answer, and the page showed a blank
+     half-screen to the left of sources 4 and 5. The floor keeps a two-line answer (a
+     decline) from squeezing the list to nothing; `contain` stops the page from moving
+     when the list reaches its end. Stacked on a phone, it is an ordinary list. */
+  @media (min-width: 1000px) {
+    .sources { position: relative; min-height: 460px; }
+    .sources-head { position: absolute; top: 0; left: 0; right: 0; }
+    #sources { position: absolute; top: 34px; right: 0; bottom: 0; left: 0; overflow-y: auto; overscroll-behavior: contain;
+      padding: 0 6px 28px 0; scrollbar-width: thin; scrollbar-color: var(--border-2) transparent;
+      /* the last 28px fade out, which is what says there is more list below */
+      -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
+  }
   .src { border-left: 2px solid var(--border); padding-left: 12px; margin-bottom: 14px; transition: border-color .2s, background .2s; }
   .src.cited { border-left-color: var(--accent); }
   .src summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1px 8px; align-items: baseline; }
@@ -320,7 +334,7 @@
   .src summary:hover .src-head { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-2); }
   .src-head .crumb { display: block; font: 400 12.5px/1.45 var(--sans); color: var(--text-3); margin-top: 2px; }
   .src-meta { grid-column: 2; font: 11.5px/1.6 var(--mono); color: var(--text-3); margin-top: 2px; }
-  .src-meta .cited-flag { color: var(--accent); margin-left: 6px; }
+  .src-meta .cited-flag { color: var(--accent); margin-left: 6px; white-space: nowrap; }
   .toggle { grid-row: span 2; font: 400 12px var(--sans); color: var(--text-3); }
   .toggle::after { content: "Read"; }
   .src[open] .toggle::after { content: "Hide"; }
