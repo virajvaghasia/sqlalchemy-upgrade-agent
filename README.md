@@ -141,7 +141,7 @@ RAG_DENSE=memory uv run sqla-upgrade ask "why can't I call engine.execute any mo
 **Reproduce the numbers:**
 
 ```bash
-make test          # 662 tests
+make test          # 663 tests
 make lint          # ruff, ruff format, mypy
 make gate          # starts Qdrant; recall@5 58/91 = 0.64 against the committed baseline
 uv run python -m rag.judge --report    # the answer-quality report cards, from saved rows (needs Qdrant)
@@ -270,17 +270,17 @@ silently never runs.
 | [`experiments/`](experiments/) | the SQLAlchemy 1.4 app under test, written in 1.4 style on purpose, and the scripts that measured what 2.0 breaks |
 | [`space/`](space/) | the demo page and its Modal deployment |
 | [`tools/`](tools/) | checks: every `# runnable` block in the docs reproduces, answers execute on 2.0.51, the page works in a browser |
-| [`tests/`](tests/) | 662 tests |
+| [`tests/`](tests/) | 663 tests |
 | `Dockerfile`, `Dockerfile.service`, `docker-compose.yml` | the 1.4 app with Postgres; the demo page; Qdrant |
 | [`.github/workflows/`](.github/workflows/) | CI (tests, docs, 2.0 evidence, both images, lint) and the quality gate |
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-662 tests collected in 12.72s
+663 tests collected in 12.72s
 ```
 
 Ten tests need local setup and skip without it: five need Qdrant running, five need the generated
-corpus. With both, 662 pass; without Qdrant, 657 pass and 5 skip; in a fresh clone, 652 pass and 10 skip.
+corpus. With both, 663 pass; without Qdrant, 658 pass and 5 skip; in a fresh clone, 653 pass and 10 skip.
 
 ## Limits
 

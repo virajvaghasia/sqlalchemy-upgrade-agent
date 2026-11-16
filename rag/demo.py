@@ -481,6 +481,18 @@ def readable(text: str) -> str:
     return SPHINX_ROLE.sub(lambda m: f"`{sphinx_name(m)}`", text)
 
 
+# `[4, 5]`: several sources in one pair of brackets. The prompt asks for `[2]`, and the
+# hosted model still wrote a group in 8 of 100 answers. The same guard as `judge.CITATION`
+# keeps subscripts like `x[3, 4]` out. This is the PAGE's reading only: the measured
+# citation counts use `judge.CITATION` unchanged.
+CITATION_GROUP = re.compile(r"(?<![\w\]\)])\[(\d+(?:\s*,\s*\d+)+)\]")
+
+
+def split_citation_groups(text: str) -> str:
+    """`[4, 5]` -> `[4] [5]`, so each number is linked and counted on its own."""
+    return CITATION_GROUP.sub(lambda m: " ".join(f"[{n.strip()}]" for n in m.group(1).split(",")), text)
+
+
 def link_citations(answer: str, n_sources: int) -> str:
     """[n] -> a link to source card n, outside code only, and only for n that exist.
 
@@ -491,7 +503,8 @@ def link_citations(answer: str, n_sources: int) -> str:
 
     def link(chunk: str) -> str:
         return judge.CITATION.sub(
-            lambda m: f"[[{m.group(1)}]](#src-{m.group(1)})" if 1 <= int(m.group(1)) <= n_sources else m.group(0), chunk
+            lambda m: f"[[{m.group(1)}]](#src-{m.group(1)})" if 1 <= int(m.group(1)) <= n_sources else m.group(0),
+            split_citation_groups(chunk),
         )
 
     # Order matters, and the first version had it wrong: a role's own backticks
@@ -533,7 +546,7 @@ def render_answer(result: dict, backend: str = "nvidia") -> str:
 def cited(result: dict) -> set[int]:
     from rag import judge
 
-    return set(judge.citations(result.get("answer") or ""))
+    return set(judge.citations(split_citation_groups(result.get("answer") or "")))
 
 
 def render_sources(result: dict) -> str:
