@@ -16,7 +16,7 @@ The stages are the shipped `index.retrieve` defaults, in the order it runs them:
     dense    nearest vectors (Qdrant or in memory), cross-version twins collapsed
     bm25     keyword search over the same chunks
     fuse     reciprocal rank fusion of the two lists, twins collapsed again
-    rerank   the cross-encoder scores the top 20 and may promote one into seat 5
+    rerank   the cross-encoder scores seat 5 and ranks 6 to 10, and may promote one into seat 5
 
 Each stage is timed by making the same calls `index.retrieve` makes, one at a
 time. After every question the top 5 are compared with what `index.retrieve`

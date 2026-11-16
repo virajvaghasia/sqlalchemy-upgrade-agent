@@ -141,7 +141,7 @@ RAG_DENSE=memory uv run sqla-upgrade ask "why can't I call engine.execute any mo
 **Reproduce the numbers:**
 
 ```bash
-make test          # 660 tests
+make test          # 662 tests
 make lint          # ruff, ruff format, mypy
 make gate          # starts Qdrant; recall@5 58/91 = 0.64 against the committed baseline
 uv run python -m rag.judge --report    # the answer-quality report cards, from saved rows (needs Qdrant)
@@ -158,20 +158,28 @@ identical to the shipped `index.retrieve` on every question. On an M4 Mac's GPU:
 retrieval latency, Darwin-arm64, device=mps, dense=memory, n=100
 
   stage       p50 ms    p95 ms   mean ms
-  embed         98.2     332.4     137.7
-  dense          1.8       7.9       3.2
-  bm25           3.2       8.5       4.0
-  fuse           0.2       0.4       0.2
-  rerank      2385.9    2995.1    2429.8
-  total       2508.8    3202.6    2574.9
+  embed         49.2      85.4      56.3
+  dense          1.7       2.8       1.9
+  bm25           3.4       7.0       3.6
+  fuse           0.2       0.3       0.2
+  rerank       410.7     444.6     408.2
+  total        466.3     534.6     470.3
 
-  cold first question 20.5s (model loading, not in the table)
+  cold first question 11.4s (model loading, not in the table)
 ```
 
-**The reranker is 95% of the median question's retrieval time**, and both searches together take
+**The reranker is 88% of the median question's retrieval time**, and both searches together take
 under 10 ms. On the same Mac's CPU (first 20 questions, `latency.Darwin-arm64.memory.cpu.json`) the
-median is 3.2 s, again nearly all reranker. Writing the answer is slower still: in the container
-test, the local model took 44 s and 50 s on the two questions asked.
+median is 0.9 s, again nearly all reranker.
+
+Until 2026-11-15 these medians were 2.5 s and 3.2 s. The reranker scored all 20 candidate pages, and
+its rule only reads the scores of six (the fifth page and the five below it). It now scores those
+six. The result is identical on all 100 test questions, and a test holds the two paths equal. Six
+pages instead of 20 is about a third of the work; the rest of the drop is the Mac being less loaded
+than on the day of the earlier run.
+
+Writing the answer is slower still: in the container test, the local model took 44 s and 50 s on the
+two questions asked.
 
 ## What breaks in 2.0, measured
 
@@ -247,24 +255,25 @@ silently never runs.
 | [`experiments/`](experiments/) | the SQLAlchemy 1.4 app under test, written in 1.4 style on purpose, and the scripts that measured what 2.0 breaks |
 | [`space/`](space/) | the demo page and its Modal deployment |
 | [`tools/`](tools/) | checks: every `# runnable` block in the docs reproduces, answers execute on 2.0.51, the page works in a browser |
-| [`tests/`](tests/) | 660 tests |
+| [`tests/`](tests/) | 662 tests |
 | `Dockerfile`, `Dockerfile.service`, `docker-compose.yml` | the 1.4 app with Postgres; the demo page; Qdrant |
 | [`.github/workflows/`](.github/workflows/) | CI (tests, docs, 2.0 evidence, both images, lint) and the quality gate |
 
 ```
 # runnable: uv run pytest --collect-only 2>&1 | grep -E 'collected'
-660 tests collected in 12.72s
+662 tests collected in 12.72s
 ```
 
 Ten tests need local setup and skip without it: five need Qdrant running, five need the generated
-corpus. With both, 660 pass; without Qdrant, 655 pass and 5 skip; in a fresh clone, 650 pass and 10 skip.
+corpus. With both, 662 pass; without Qdrant, 657 pass and 5 skip; in a fresh clone, 652 pass and 10 skip.
 
 ## Limits
 
 - *Supported* is not *correct*: the judge called three wrong answers fully supported.
 - The hosted model's numbers do not describe the local one, and generation figures differ by machine.
-- Latency is measured on one Mac. In the container, one warm question's retrieval took 27.5 s
-  against 3.2 s on the same CPU outside it; that gap is unexplained.
+- Latency is measured on one Mac. In the container, before the reranker scored fewer pages, one warm
+  question's retrieval took 27.5 s against 3.2 s on the same CPU outside it; that gap is unexplained
+  and has not been re-measured.
 - The demo model has not been measured against prompt injection; the model that was measured has
   left the provider's catalog.
 - Pinned to SQLAlchemy **1.4.52**; every 2.0 claim is verified against **2.0.51**. Only the 24 breakage

@@ -37,7 +37,9 @@ MODEL_ID = "BAAI/bge-reranker-base"
 # in the Mac's Hugging Face cache, and refs/main there names it.
 MODEL_REVISION = "2cfc18c9415c912f9d8155881c133215df768a70"
 
-# How many hybrid hits must be on the desk before promotion can see a tail.
+# How many hybrid hits are fetched before promotion. The rule needs only the first
+# TAIL_END of them; the depth is left at the value every measurement was taken with, because
+# the twin collapse and the fusion upstream were measured at this depth too.
 CANDIDATE_DEPTH = 20
 
 # Promote from ranks 6..TAIL_END inclusive (1-based). Wider tails re-broke items.
@@ -117,4 +119,11 @@ def rerank(query: str, points: Sequence[Any]) -> list[Any]:
     points = list(points)
     if len(points) < 6:
         return points
-    return promote_seat5(points, ce_scores(query, points))
+    # Only seat 5 and ranks 6..TAIL_END are scored, because those are the only scores
+    # `promote_seat5` reads. Until 2026-11-15 all 20 candidates went through the
+    # cross-encoder and 14 of the 20 scores were never looked at, while the
+    # cross-encoder was 95% of a question's search time. The seats that are not scored
+    # get a placeholder; the rule never reads it.
+    end = min(TAIL_END, len(points))
+    scores = ce_scores(query, points[4:end])
+    return promote_seat5(points, [0.0] * 4 + scores + [0.0] * (len(points) - end))

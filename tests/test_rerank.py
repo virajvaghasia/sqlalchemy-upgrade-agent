@@ -75,3 +75,35 @@ def test_the_reranker_is_pinned_to_a_revision_and_the_load_uses_it(monkeypatch):
         rerank.reset_model()
     assert len(rerank.MODEL_REVISION) == 40
     assert seen["revision"] == rerank.MODEL_REVISION
+
+
+def test_rerank_scores_only_the_passages_whose_scores_are_read(monkeypatch):
+    """The promotion rule reads the scores of seat 5 and ranks 6..TAIL_END and nothing
+    else. Scoring all 20 candidates spent 14 cross-encoder passes per question on numbers
+    no line of code looked at, and the cross-encoder is most of a question's search time."""
+    seen = []
+
+    def fake_scores(query, points):
+        seen.append([p.payload["chunk_id"] for p in points])
+        return [0.0] * len(points)
+
+    monkeypatch.setattr(rerank, "ce_scores", fake_scores)
+    pts = _pts(*[f"c{n}" for n in range(1, 21)])
+    rerank.rerank("q", pts)
+    assert seen == [[f"c{n}" for n in range(5, rerank.TAIL_END + 1)]]
+
+
+def test_scoring_fewer_passages_gives_the_same_order_as_scoring_all(monkeypatch):
+    """Same scores per passage, so the same swap: every seat a best-of-tail can sit in,
+    with and without the margin met, on lists of every length the rule handles."""
+    for n in range(1, 21):
+        pts = _pts(*[f"c{i}" for i in range(1, n + 1)])
+        for best in range(6, 12):
+            for gap in (0.0, rerank.MARGIN - 0.01, rerank.MARGIN, 5.0):
+                score_of = {p.payload["chunk_id"]: (gap if i == best - 1 else 0.0) for i, p in enumerate(pts)}
+                score_of["c5"] = 0.0
+                monkeypatch.setattr(
+                    rerank, "ce_scores", lambda q, ps, s=score_of: [s[p.payload["chunk_id"]] for p in ps]
+                )
+                want = rerank.promote_seat5(pts, [score_of[p.payload["chunk_id"]] for p in pts])
+                assert rerank.rerank("q", pts) == want, (n, best, gap)
