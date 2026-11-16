@@ -73,6 +73,28 @@ ERROR = {
 results = []
 
 
+# The published accessibility rule set (axe-core, WCAG 2 A and AA plus its best practices), loaded
+# from the CDN the page's own scripts come from. It found 60 elements of grey text at 3.0 to
+# 3.5:1 contrast on 2026-11-16, which no check written by hand here was looking for.
+AXE = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js"
+AXE_RUN = """async () => {
+  const r = await axe.run(document, {runOnly: {type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'best-practice']}});
+  return r.violations.map(v => `${v.id} x${v.nodes.length}`);
+}"""
+
+
+def check_rules(page, state: str) -> None:
+    try:
+        if not page.evaluate("() => typeof axe !== 'undefined'"):
+            page.add_script_tag(url=AXE)
+        found = page.evaluate(AXE_RUN)
+    except Exception as exc:  # the CDN unreachable is a failed check, not a crashed script
+        found = [f"could not run: {type(exc).__name__}"]
+    check(
+        f"{state}: no accessibility rule is broken (contrast, labels, landmarks, keyboard)", not found, ", ".join(found)
+    )
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
     results.append(ok)
     print(f"  {'PASS' if ok else 'FAIL'}  {name}" + (f"   ({detail})" if detail else ""))
@@ -146,6 +168,7 @@ with sync_playwright() as p:
         else:
             check("stacked, the source list is an ordinary list with no scroll of its own", not box["inner"])
         show(page, ANSWERED, SOURCES)
+        check_rules(page, "answered")
         notice = page.locator(".notice")
         check(
             "the notice draws the model name as code, no stray backtick",
@@ -167,6 +190,7 @@ with sync_playwright() as p:
             and page.locator(".declined-note").count() == 1
             and page.locator("a.cite").count() == 0,
         )
+        check_rules(page, "declined")
 
         show(page, ERROR, SOURCES)
         check(
@@ -175,6 +199,7 @@ with sync_playwright() as p:
             and "Ollama" in page.locator(".md").inner_text()
             and page.locator(".src").count() == 2,
         )
+        check_rules(page, "error")
         page.close()
 
     # The states only the submit path reaches. /api/ask is answered here, by this script, with

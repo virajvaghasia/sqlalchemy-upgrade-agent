@@ -36,7 +36,9 @@
     --surface-2: #f2efe8;
     --text:      #18202f;
     --text-2:    #4b5263;
-    --text-3:    #858a96;
+    /* 4.65:1 or better on every light background here. The earlier #858a96 was 3.0 to 3.5:1,
+       under the 4.5:1 that small text needs, on 60 elements. */
+    --text-3:    #666b76;
     --border:    #e8e3d9;
     --border-2:  #d6d0c3;
     --accent:    #c2410c;
@@ -56,7 +58,7 @@
       --surface-2: #1b2130;
       --text:      #e7e9ee;
       --text-2:    #a3a9b6;
-      --text-3:    #707787;
+      --text-3:    #8990a0;
       --border:    #232a38;
       --border-2:  #323a4b;
       --accent:    #fb8a4b;
@@ -84,7 +86,7 @@
   /* The tool's name is the identity, not a fourth nav link: full ink, the library it is about in
      the accent, and a rule plus space between it and the sections. Set in mono because it is a
      package name, and set like one. */
-  .brand { font: 600 15px/1 var(--mono); letter-spacing: -.02em; text-decoration: none; color: var(--text); white-space: nowrap; }
+  .brand { padding: 6px 0; font: 600 15px/1 var(--mono); letter-spacing: -.02em; text-decoration: none; color: var(--text); white-space: nowrap; }
   .brand b { color: var(--accent); font-weight: 600; }
   .brand:hover { color: var(--text-2); }
   .bar-rule { width: 1px; height: 22px; background: var(--border-2); flex: none; margin: 0 6px; }
@@ -95,7 +97,7 @@
   .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 18px; }
   .ver { font: 400 13px var(--mono); color: var(--text-3); white-space: nowrap; }
   .ver .to, .ver .new { color: var(--accent); }
-  .repo { display: inline-flex; align-items: center; gap: 6px; font: 400 14px var(--sans); color: var(--text-2); text-decoration: none; }
+  .repo { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; font: 400 14px var(--sans); color: var(--text-2); text-decoration: none; }
   .repo:hover { color: var(--text); }
   .side, .how, .method, .limits { scroll-margin-top: 80px; }
   @media (max-width: 1099px) { .navlinks, .bar-rule { display: none; } }
@@ -183,7 +185,7 @@
   .chip .go { color: var(--text-3); text-align: right; transition: transform .12s, color .12s; }
   .chip:hover .go, .chip:focus-visible .go { color: var(--accent); transform: translateX(2px); }
   .chip:hover .q { color: var(--text); }
-  .chip.declines .flag { display: block; width: max-content; margin-top: 4px; font: 500 11px var(--sans); color: var(--accent); background: var(--accent-bg); border-radius: 4px; padding: 1px 6px; }
+  .chip.declines .flag { display: block; width: max-content; margin-top: 4px; font: 500 11.5px var(--sans); color: var(--accent); background: var(--accent-bg); border-radius: 4px; padding: 1px 6px; }
   @media (max-width: 620px) {
     .chip { grid-template-columns: minmax(0, 1fr) 16px; gap: 3px 10px; }
     .chip .q { grid-column: 1; grid-row: 2; }
@@ -281,12 +283,13 @@
   .codeblock { margin: .2rem 0 1.2rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--code-bg); max-width: 76ch; }
   .codebar { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--border); }
   .codebar .lang { font: 400 12px var(--mono); color: var(--text-3); }
-  .copy { border: 0; background: transparent; cursor: pointer; color: var(--text-3); font: 400 12.5px var(--sans); padding: 3px 7px; border-radius: 5px; }
+  .copy { border: 0; background: transparent; cursor: pointer; color: var(--text-3); font: 400 12.5px var(--sans); padding: 4px 7px; border-radius: 5px; }
   .copy:hover { color: var(--text); background: var(--surface-2); }
   .md pre { margin: 0; padding: 14px 16px; background: var(--code-bg); overflow: hidden; }
   /* The code element is the scroll box, so a long line never widens the page. */
   .md pre code { display: block; overflow-x: auto; background: none; padding: 0; border-radius: 0; font: 13.5px/1.7 var(--mono); color: var(--text);
     scrollbar-width: thin; scrollbar-color: var(--border-2) transparent; }
+  .md pre code:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 4px; }
   .md pre code::-webkit-scrollbar { height: 8px; }
   .md pre code::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 999px; }
 
@@ -402,7 +405,7 @@
     .side .brk:hover, .side .brk:focus-visible, .side .brk.on { padding-left: 8px; }
     .side .brk .t { font-size: 12.5px; }
     .side .brk .e { font-size: 11.5px; }
-    .side .brk .e b { font-size: 11px; }
+    .side .brk .e b { font-size: 11.5px; }
     .main .cols { grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; }
     .foot-shell { max-width: 1440px; padding: 0 40px 0 364px; }
   }
@@ -450,7 +453,7 @@
   .foot-col h3 { font: 600 12.5px var(--sans); color: var(--text); margin: 0 0 10px; }
   .foot-col ul { margin: 0; padding: 0; list-style: none; }
   .foot-col li { margin-bottom: 6px; }
-  .foot-col a { color: var(--text-2); text-decoration: none; }
+  .foot-col a { display: inline-block; min-height: 24px; line-height: 24px; color: var(--text-2); text-decoration: none; }
   .foot-col a:hover { color: var(--accent); }
   .foot-col .m { font-family: var(--mono); font-size: 12.5px; }
   #foot { display: flex; gap: 1rem 2rem; justify-content: space-between; align-items: baseline; flex-wrap: wrap; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12.5px; }
@@ -462,9 +465,9 @@
   .hljs-keyword, .hljs-built_in, .hljs-literal { color: #cf222e; }
   .hljs-string, .hljs-regexp { color: #0a3069; }
   .hljs-number { color: #0550ae; }
-  .hljs-comment, .hljs-quote { color: #6e7781; font-style: italic; }
+  .hljs-comment, .hljs-quote { color: #666b76; font-style: italic; }
   .hljs-title, .hljs-title.function_, .hljs-title.class_, .hljs-type { color: #8250df; }
-  .hljs-meta { color: #6e7781; }
+  .hljs-meta { color: #666b76; }
   @media (prefers-color-scheme: dark) {
     .hljs-keyword, .hljs-built_in, .hljs-literal { color: #ff7b72; }
     .hljs-string, .hljs-regexp { color: #a5d6ff; }
@@ -574,10 +577,10 @@
     <header class="answer-head" id="answer-head"></header>
     <article class="panel" id="answer"></article>
     <p class="sr-only" id="live" role="status"></p>
-    <aside class="sources">
-      <div class="sources-head"><h2>Sources</h2><span class="n" id="src-count"></span></div>
+    <section class="sources" aria-labelledby="sources-h">
+      <div class="sources-head"><h2 id="sources-h">Sources</h2><span class="n" id="src-count"></span></div>
       <div id="sources"></div>
-    </aside>
+    </section>
   </section>
 
   <section class="band how" id="how">
@@ -882,6 +885,10 @@ function dressCode(root) {
     pre.replaceWith(wrap);
     wrap.innerHTML = `<div class="codebar"><span class="lang">${esc(lang)}</span>` +
                      `<button class="copy" type="button">Copy</button></div>`;
+    // The <code> is the element that scrolls sideways; a tab stop lets a keyboard scroll it.
+    code.tabIndex = 0;
+    code.setAttribute("role", "region");
+    code.setAttribute("aria-label", `${lang} code`);
     wrap.appendChild(pre);
     wrap.querySelector(".copy").addEventListener("click", (e) => {
       const btn = e.currentTarget;
