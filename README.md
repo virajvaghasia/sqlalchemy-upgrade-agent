@@ -294,8 +294,9 @@ corpus. With both, 663 pass; without Qdrant, 658 pass and 5 skip; in a fresh clo
   scoring all 20 pages on those two cores, before it scored six.
 - The demo is not safe against prompt injection. The model it serves now emitted the attacker's
   token in 7 of 30 attempts (6 of 15 typed into the question, 1 of 15 planted in a retrieved page)
-  and repeated its own instructions in 4 of them. That count is the automatic check's; the review
-  sheet for this run is blank until a person has read it, and it is one run on one day, with no
+  and repeated its own instructions in 4 of them. That count is the automatic check's. A first
+  reading of the seven, not yet confirmed by a person, finds one of them is the model saying its
+  sources do not cover the token, which would make it 6 of 30. It is one run on one day, with no
   defense tried against it.
 - Pinned to SQLAlchemy **1.4.52**; every 2.0 claim is verified against **2.0.51**. Only the 24 breakage
   patterns and their fixes were re-run on 2.0.57 and 2.1.8; the documentation the answers quote is 2.0.51's.
