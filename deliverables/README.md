@@ -70,8 +70,8 @@ run belongs to; the key is in [`rag/__init__.py`](../rag/__init__.py).
 | `inject-phase7-step1.Linux-x86_64.json` | The same attempts with untrusted text marked in the prompt, two ways, plus a control. | `rag.inject` |
 | `inject-phase7-demo.Darwin-arm64.json`, `inject-phase7-demo-fenced.Darwin-arm64.json` | The attempts against the hosted model, without and with the marking. | `rag.inject` |
 | `inject-phase7-prompth.Linux-x86_64.json`, `inject-phase7-prompth-control2.Linux-x86_64.json` | The attempts against the prompt that later shipped, and a second run of the control taken the same day. | `rag.inject` |
-| `inject-phase7-nemotron.Darwin-arm64.json` | The attempts against the model the demo page serves now, on the shipped prompt. Its sheet, `CANARY-REVIEW-inject-phase7-nemotron.md`, is still blank. | `rag.inject --run --backend demo` |
-| `CANARY-REVIEW-*.md` | One sheet per run above. The automatic check only sees whether the attacker's token appears in the answer, which cannot tell obeying from quoting it to refuse, so each attempt was read and marked COMPLIED or REPORTED (all but the newest sheet, which is not filled in yet). | `rag.inject --review`, then filled in |
+| `inject-phase7-nemotron.Darwin-arm64.json` | The attempts against the model the demo page serves now, on the shipped prompt. Its sheet, `CANARY-REVIEW-inject-phase7-nemotron.md`, holds a first reading (6 COMPLIED, 1 REPORTED) that no person has confirmed. | `rag.inject --run --backend demo` |
+| `CANARY-REVIEW-*.md` | One sheet per run above. The automatic check only sees whether the attacker's token appears in the answer, which cannot tell obeying from quoting it to refuse, so each attempt was read and marked COMPLIED or REPORTED (all but the newest sheet, whose verdicts are a first reading nobody has confirmed). | `rag.inject --review`, then filled in |
 
 `uv run python -m rag.judge --report` and `uv run python -m rag.inject --report <file>` print the
 figures from these rows.
